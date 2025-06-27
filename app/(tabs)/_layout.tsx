@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Bell, Settings, Bookmark, User } from 'lucide-react-native';
 import { Image } from 'expo-image';
@@ -22,6 +22,33 @@ export default function TabLayout() {
     
     initNotifications();
   }, [initializePreferences]);
+  
+  const renderTabBarIcon = (Icon: any, focused: boolean, badgeCount?: number) => {
+    return (
+      <View style={styles.tabIconContainer}>
+        <View style={[
+          styles.iconBackground, 
+          focused && { backgroundColor: theme.colors.primary + '15' }
+        ]}>
+          <Icon 
+            size={22} 
+            color={focused ? theme.colors.primary : theme.colors.textSecondary} 
+          />
+        </View>
+        
+        {badgeCount && badgeCount > 0 ? (
+          <View style={[
+            styles.badge, 
+            { backgroundColor: theme.colors.notification }
+          ]}>
+            <Text style={styles.badgeText}>
+              {badgeCount > 9 ? '9+' : badgeCount}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
   
   return (
     <Tabs
@@ -63,63 +90,68 @@ export default function TabLayout() {
               contentFit="contain"
             />
           ),
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+          tabBarIcon: ({ focused }) => renderTabBarIcon(Home, focused),
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
           title: 'Powiadomienia',
-          tabBarIcon: ({ color, size }) => (
-            <View style={{ position: 'relative' }}>
-              <Bell size={size} color={color} />
-              {unreadCount > 0 && (
-                <View style={{
-                  position: 'absolute',
-                  top: -2,
-                  right: -2,
-                  backgroundColor: theme.colors.notification,
-                  borderRadius: 8,
-                  minWidth: 16,
-                  height: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    color: '#FFFFFF',
-                    fontSize: 10,
-                    fontWeight: '600',
-                    fontFamily: theme.fontFamily?.regular || 'Poppins-Regular',
-                  }}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
+          tabBarIcon: ({ focused }) => renderTabBarIcon(Bell, focused, unreadCount),
         }}
       />
       <Tabs.Screen
         name="preferences"
         options={{
           title: 'Moje Sekcje',
-          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
+          tabBarIcon: ({ focused }) => renderTabBarIcon(Settings, focused),
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
           title: 'Zapisane',
-          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
+          tabBarIcon: ({ focused }) => renderTabBarIcon(Bookmark, focused),
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
           title: 'Więcej',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          tabBarIcon: ({ focused }) => renderTabBarIcon(User, focused),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  iconBackground: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+});

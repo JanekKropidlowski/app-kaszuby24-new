@@ -1,32 +1,32 @@
 // Color palette for the application
 export const colors = {
   light: {
-    primary: '#4A6FFF', // Modern blue
-    secondary: '#FF9500', // Warm orange accent
-    background: '#F9FAFC',
+    primary: '#3B82F6', // Modern blue
+    secondary: '#F59E0B', // Warm amber accent
+    background: '#F9FAFB',
     card: '#FFFFFF',
-    text: '#1A1A1A',
-    textSecondary: '#71727A',
+    text: '#111827',
+    textSecondary: '#6B7280',
     border: '#E5E7EB',
-    notification: '#FF3B30',
-    success: '#34C759',
-    error: '#FF3B30',
-    warning: '#FFCC00',
-    subtle: '#F2F4F8',
+    notification: '#EF4444',
+    success: '#10B981',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    subtle: '#F3F4F6',
   },
   dark: {
-    primary: '#5D7FFF', // Lighter blue for dark mode
-    secondary: '#FF9F0A', // Warmer orange for dark mode
-    background: '#121214',
-    card: '#1E1E20',
-    text: '#FFFFFF',
-    textSecondary: '#A0A0A8',
-    border: '#2C2C30',
-    notification: '#FF453A',
-    success: '#30D158',
-    error: '#FF453A',
-    warning: '#FFD60A',
-    subtle: '#252529',
+    primary: '#60A5FA', // Lighter blue for dark mode
+    secondary: '#FBBF24', // Warmer amber for dark mode
+    background: '#111827',
+    card: '#1F2937',
+    text: '#F9FAFB',
+    textSecondary: '#9CA3AF',
+    border: '#374151',
+    notification: '#F87171',
+    success: '#34D399',
+    error: '#F87171',
+    warning: '#FBBF24',
+    subtle: '#374151',
   },
 };
 

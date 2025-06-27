@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -8,10 +8,11 @@ import {
   TouchableOpacity, 
   ScrollView,
   Dimensions,
-  Alert
+  Alert,
+  Animated
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronRight, RefreshCw, WifiOff } from 'lucide-react-native';
+import { ChevronRight, RefreshCw, WifiOff, ArrowRight } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { fetchArticles, fetchCategories } from '@/services/api';
 import { Article, Category } from '@/types/article';
@@ -20,8 +21,11 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
+import CategoryPill from '@/components/CategoryPill';
 
 const { width } = Dimensions.get('window');
+const CAROUSEL_ITEM_WIDTH = width * 0.85;
+const CAROUSEL_ITEM_SPACING = 12;
 
 const MAX_RETRIES = 5;
 
@@ -31,7 +35,7 @@ export default function HomeScreen() {
   const { theme } = useThemeStore();
   
   const [articles, setArticles] = useState<Article[]>([]);
-  const [featuredArticle, setFeaturedArticle] = useState<Article | null>(null);
+  const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +46,10 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+  
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef<FlatList>(null);
   
   // Load articles and categories
   const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
@@ -58,17 +66,18 @@ export default function HomeScreen() {
       const categoryFilter = selectedCategory ? [selectedCategory] : undefined;
       const { articles: newArticles, totalPages: total } = await fetchArticles(
         pageNum,
-        10,
+        12,
         categoryFilter
       );
       
       if (refresh || pageNum === 1) {
         if (newArticles.length > 0) {
-          setArticles(newArticles.slice(1)); // Skip first for featured
-          setFeaturedArticle(newArticles[0]);
+          // Take first 3 articles for featured carousel
+          setFeaturedArticles(newArticles.slice(0, 3));
+          setArticles(newArticles.slice(3)); // Skip first 3 for regular list
         } else {
           setArticles([]);
-          setFeaturedArticle(null);
+          setFeaturedArticles([]);
         }
       } else {
         setArticles((prev) => [...prev, ...newArticles]);
@@ -164,6 +173,96 @@ export default function HomeScreen() {
     loadArticles(1, true);
   };
   
+  // Auto scroll carousel
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (featuredArticles.length > 1) {
+      interval = setInterval(() => {
+        if (activeCarouselIndex < featuredArticles.length - 1) {
+          setActiveCarouselIndex(activeCarouselIndex + 1);
+        } else {
+          setActiveCarouselIndex(0);
+        }
+        
+        flatListRef.current?.scrollToIndex({
+          index: activeCarouselIndex,
+          animated: true,
+          viewOffset: 0,
+          viewPosition: 0,
+        });
+      }, 5000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeCarouselIndex, featuredArticles.length]);
+  
+  const renderCarouselItem = ({ item, index }: { item: Article; index: number }) => {
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.carouselItem,
+          { 
+            width: CAROUSEL_ITEM_WIDTH,
+            marginRight: index === featuredArticles.length - 1 ? 0 : CAROUSEL_ITEM_SPACING,
+          }
+        ]}
+        onPress={() => {
+          handleArticlePress(item);
+          router.push(`/article/${item.id}`);
+        }}
+        activeOpacity={0.9}
+      >
+        <View style={styles.carouselImageContainer}>
+          {item.featured_media_url ? (
+            <Image
+              source={{ uri: item.featured_media_url }}
+              style={styles.carouselImage}
+              contentFit="cover"
+              transition={300}
+            />
+          ) : (
+            <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+          )}
+          <View style={styles.carouselGradient} />
+          <View style={styles.carouselContent}>
+            <Text style={styles.carouselLabel}>Polecane</Text>
+            <Text style={styles.carouselTitle} numberOfLines={2}>
+              {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+            </Text>
+            <View style={styles.carouselFooter}>
+              <Text style={styles.carouselReadMore}>Czytaj więcej</Text>
+              <ArrowRight size={16} color="#FFFFFF" />
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+  
+  const renderCarouselIndicator = () => {
+    return (
+      <View style={styles.indicatorContainer}>
+        {featuredArticles.map((_, index) => (
+          <View
+            key={`indicator-${index}`}
+            style={[
+              styles.indicator,
+              {
+                backgroundColor: index === activeCarouselIndex 
+                  ? theme.colors.primary 
+                  : theme.colors.border,
+                width: index === activeCarouselIndex ? 20 : 8,
+              },
+            ]}
+          />
+        ))}
+      </View>
+    );
+  };
+  
   if (loading && !refreshing) {
     return <LoadingIndicator fullScreen />;
   }
@@ -196,47 +295,71 @@ export default function HomeScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
-            {/* Featured Article */}
-            {featuredArticle ? (
-              <TouchableOpacity 
-                style={styles.featuredContainer}
-                onPress={() => {
-                  handleArticlePress(featuredArticle);
-                  router.push(`/article/${featuredArticle.id}`);
-                }}
-                activeOpacity={0.9}
-              >
-                <View style={styles.featuredImageContainer}>
-                  {featuredArticle.featured_media_url ? (
-                    <Image
-                      source={{ uri: featuredArticle.featured_media_url }}
-                      style={styles.featuredImage}
-                      contentFit="cover"
-                      transition={300}
-                    />
-                  ) : (
-                    <View style={[styles.featuredImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+            {/* Featured Articles Carousel */}
+            {featuredArticles.length > 0 && (
+              <View style={styles.carouselContainer}>
+                <Animated.FlatList
+                  ref={flatListRef}
+                  data={featuredArticles}
+                  keyExtractor={(item) => `carousel-${item.id}`}
+                  renderItem={renderCarouselItem}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  pagingEnabled
+                  snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
+                  decelerationRate="fast"
+                  contentContainerStyle={styles.carouselContent}
+                  onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                    { useNativeDriver: true }
                   )}
-                  <View style={styles.featuredOverlay}>
-                    <Text style={styles.featuredLabel}>Wiadomość dnia</Text>
-                    <Text style={styles.featuredTitle} numberOfLines={3}>
-                      {featuredArticle.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-                    </Text>
-                    <View style={styles.learnMoreContainer}>
-                      <Text style={styles.learnMoreText}>Czytaj więcej</Text>
-                      <ChevronRight size={16} color="#FFFFFF" />
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ) : null}
+                  onMomentumScrollEnd={(event) => {
+                    const newIndex = Math.round(
+                      event.nativeEvent.contentOffset.x / 
+                      (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
+                    );
+                    setActiveCarouselIndex(newIndex);
+                  }}
+                />
+                {renderCarouselIndicator()}
+              </View>
+            )}
+            
+            {/* Categories */}
+            {categories.length > 0 && (
+              <View style={styles.categoriesContainer}>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoriesContent}
+                >
+                  <CategoryPill
+                    name="Wszystkie"
+                    isSelected={selectedCategory === null}
+                    onPress={() => setSelectedCategory(null)}
+                  />
+                  {categories.map((category) => (
+                    <CategoryPill
+                      key={`category-${category.id}`}
+                      name={category.name}
+                      isSelected={selectedCategory === category.id}
+                      onPress={() => setSelectedCategory(category.id)}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
             
             <View style={styles.breakingNewsHeader}>
               <Text style={[styles.breakingNewsTitle, { color: theme.colors.text }]}>
                 Najnowsze wiadomości
               </Text>
-              <TouchableOpacity onPress={navigateToSearch}>
+              <TouchableOpacity 
+                onPress={navigateToSearch}
+                style={styles.moreButton}
+              >
                 <Text style={[styles.moreText, { color: theme.colors.primary }]}>Więcej</Text>
+                <ChevronRight size={16} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -274,62 +397,95 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 16,
   },
-  featuredContainer: {
-    marginBottom: 24,
-    marginHorizontal: 16,
-    borderRadius: 16,
+  carouselContainer: {
+    marginVertical: 16,
+  },
+  carouselContent: {
+    paddingHorizontal: 16,
+  },
+  carouselItem: {
+    borderRadius: 20,
     overflow: 'hidden',
+    height: 220,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  featuredImageContainer: {
+  carouselImageContainer: {
     position: 'relative',
     width: '100%',
-    height: 240,
+    height: '100%',
   },
-  featuredImage: {
+  carouselImage: {
     width: '100%',
     height: '100%',
   },
-  featuredImagePlaceholder: {
+  carouselImagePlaceholder: {
     width: '100%',
     height: '100%',
   },
-  featuredOverlay: {
+  carouselGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '70%',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%)',
+  },
+  carouselContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
   },
-  featuredLabel: {
+  carouselLabel: {
     color: '#FFFFFF',
     fontSize: 12,
     marginBottom: 8,
-    fontWeight: '500',
-  },
-  featuredTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
     fontWeight: '600',
-    lineHeight: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  carouselTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 24,
     marginBottom: 12,
   },
-  learnMoreContainer: {
+  carouselFooter: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  learnMoreText: {
+  carouselReadMore: {
     color: '#FFFFFF',
     fontSize: 14,
     marginRight: 4,
     fontWeight: '500',
+  },
+  indicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  indicator: {
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  categoriesContainer: {
+    marginBottom: 16,
+  },
+  categoriesContent: {
+    paddingHorizontal: 16,
   },
   breakingNewsHeader: {
     flexDirection: 'row',
@@ -341,6 +497,10 @@ const styles = StyleSheet.create({
   breakingNewsTitle: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  moreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   moreText: {
     fontSize: 14,

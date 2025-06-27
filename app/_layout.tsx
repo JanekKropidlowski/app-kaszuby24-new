@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Platform, StatusBar } from 'react-native';
+import { Platform, StatusBar, View } from 'react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
@@ -47,7 +47,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.background}
@@ -67,6 +67,8 @@ export default function RootLayout() {
             backgroundColor: theme.colors.background,
           },
           headerShadowVisible: false,
+          animation: 'slide_from_right',
+          headerBackTitle: 'Wróć',
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -75,6 +77,7 @@ export default function RootLayout() {
           options={{ 
             title: '',
             headerBackTitle: 'Wróć',
+            animation: 'slide_from_right',
           }} 
         />
         <Stack.Screen 
@@ -82,6 +85,7 @@ export default function RootLayout() {
           options={{ 
             title: 'Szukaj',
             headerBackTitle: 'Wróć',
+            animation: 'slide_from_bottom',
           }} 
         />
         <Stack.Screen 
@@ -89,9 +93,10 @@ export default function RootLayout() {
           options={{ 
             presentation: 'modal',
             title: 'Modal',
+            animation: 'slide_from_bottom',
           }} 
         />
       </Stack>
-    </>
+    </View>
   );
 }

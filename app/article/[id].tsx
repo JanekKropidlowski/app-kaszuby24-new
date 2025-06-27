@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -8,12 +8,13 @@ import {
   Share,
   Platform,
   Dimensions,
-  Linking
+  Linking,
+  Animated
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft } from 'lucide-react-native';
+import { Bookmark, Share2, RefreshCw, ArrowLeft, Clock, Calendar, Eye } from 'lucide-react-native';
 import { fetchArticleById } from '@/services/api';
 import { Article } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -25,6 +26,7 @@ import { cleanHtml, extractVideoUrls } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
 
 const MAX_RETRIES = 3;
+const { width } = Dimensions.get('window');
 
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,6 +39,13 @@ export default function ArticleDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [webViewHeight, setWebViewHeight] = useState(300);
+  
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 200],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -178,7 +187,7 @@ export default function ArticleDetailScreen() {
   }
   
   // Display meta fields if available
-  const metaViews = article.meta?.views ? `${article.meta.views} wyświetleń` : '';
+  const metaViews = article.meta?.views ? `${article.meta.views}` : '';
   const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
   
   // Render content based on platform
@@ -216,8 +225,8 @@ export default function ArticleDetailScreen() {
               document.getElementsByTagName('head')[0].appendChild(meta);
               
               // Apply theme
-              document.body.style.color = '${isDarkMode ? '#FFFFFF' : '#1A1A1A'}';
-              document.body.style.backgroundColor = '${isDarkMode ? '#1E1E20' : '#FFFFFF'}';
+              document.body.style.color = '${isDarkMode ? '#F9FAFB' : '#111827'}';
+              document.body.style.backgroundColor = '${isDarkMode ? '#1F2937' : '#FFFFFF'}';
               document.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
               document.body.style.fontSize = '16px';
               document.body.style.lineHeight = '1.8';
@@ -227,6 +236,16 @@ export default function ArticleDetailScreen() {
               for (let i = 0; i < links.length; i++) {
                 links[i].target = '_blank';
                 links[i].style.color = '${theme.colors.primary}';
+              }
+              
+              // Style images
+              const images = document.getElementsByTagName('img');
+              for (let i = 0; i < images.length; i++) {
+                images[i].style.maxWidth = '100%';
+                images[i].style.height = 'auto';
+                images[i].style.borderRadius = '8px';
+                images[i].style.marginTop = '16px';
+                images[i].style.marginBottom = '16px';
               }
               
               // Adjust the height
@@ -247,111 +266,182 @@ export default function ArticleDetailScreen() {
   };
   
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      {article.featured_media_url ? (
-        <View style={styles.featuredImageContainer}>
-          <Image
-            source={{ uri: article.featured_media_url }}
-            style={styles.featuredImage}
-            contentFit="cover"
-            transition={300}
-          />
-          {categoryName && (
-            <View style={[styles.categoryBadge, { backgroundColor: theme.colors.card }]}>
-              <Text style={[styles.categoryText, { color: theme.colors.primary }]}>
-                {categoryName}
-              </Text>
-            </View>
-          )}
-        </View>
-      ) : null}
-      
-      <View style={[styles.articleContent, { backgroundColor: theme.colors.card }]}>
-        <Text style={[styles.title, { color: theme.colors.text }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* Animated header */}
+      <Animated.View 
+        style={[
+          styles.animatedHeader, 
+          { 
+            opacity: headerOpacity,
+            backgroundColor: theme.colors.card,
+            borderBottomColor: theme.colors.border,
+          }
+        ]}
+      >
+        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+          <ArrowLeft size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text 
+          style={[styles.headerTitle, { color: theme.colors.text }]} 
+          numberOfLines={1}
+        >
           {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
         </Text>
-        
-        <Text style={[styles.date, { color: theme.colors.textSecondary }]}>
-          {formatDateTime(article.date)}
-          {metaViews ? ` • ${metaViews}` : ''}
-        </Text>
-        
-        {metaSource ? (
-          <Text style={[styles.source, { color: theme.colors.textSecondary }]}>
-            Źródło: {metaSource}
-          </Text>
+        <View style={{ width: 24 }} />
+      </Animated.View>
+      
+      <Animated.ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
+        {article.featured_media_url ? (
+          <View style={styles.featuredImageContainer}>
+            <Image
+              source={{ uri: article.featured_media_url }}
+              style={styles.featuredImage}
+              contentFit="cover"
+              transition={300}
+            />
+            {categoryName && (
+              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.card }]}>
+                <Text style={[styles.categoryText, { color: theme.colors.primary }]}>
+                  {categoryName}
+                </Text>
+              </View>
+            )}
+          </View>
         ) : null}
         
-        <View style={styles.actions}>
-          <TouchableOpacity 
-            style={[
-              styles.actionButton, 
-              { 
-                backgroundColor: isSaved ? theme.colors.primary : theme.colors.subtle,
-                borderColor: theme.colors.border
-              }
-            ]} 
-            onPress={toggleSave}
-          >
-            <Bookmark 
-              size={18} 
-              color={isSaved ? '#FFFFFF' : theme.colors.text} 
-              fill={isSaved ? '#FFFFFF' : 'transparent'} 
-            />
-            <Text 
-              style={[
-                styles.actionText, 
-                { color: isSaved ? '#FFFFFF' : theme.colors.text }
-              ]}
-            >
-              {isSaved ? 'Zapisano' : 'Zapisz'}
-            </Text>
-          </TouchableOpacity>
+        <View style={[styles.articleContent, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>
+            {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+          </Text>
           
-          <TouchableOpacity 
-            style={[
-              styles.actionButton, 
-              { 
-                backgroundColor: theme.colors.subtle,
-                borderColor: theme.colors.border
-              }
-            ]} 
-            onPress={handleShare}
-          >
-            <Share2 size={18} color={theme.colors.text} />
-            <Text style={[styles.actionText, { color: theme.colors.text }]}>
-              Udostępnij
-            </Text>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Display videos if any */}
-        {videoUrls.length > 0 && (
-          <View style={styles.videoContainer}>
-            {videoUrls.map((url, index) => (
-              <VideoPlayer key={`video-${index}`} url={url} />
-            ))}
+          <View style={styles.metaContainer}>
+            <View style={styles.metaItem}>
+              <Calendar size={14} color={theme.colors.textSecondary} />
+              <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
+                {formatDateTime(article.date)}
+              </Text>
+            </View>
+            
+            {metaViews && (
+              <View style={styles.metaItem}>
+                <Eye size={14} color={theme.colors.textSecondary} />
+                <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
+                  {metaViews}
+                </Text>
+              </View>
+            )}
           </View>
-        )}
-        
-        {/* Article content */}
-        {renderContent()}
-      </View>
-    </ScrollView>
+          
+          {metaSource ? (
+            <Text style={[styles.source, { color: theme.colors.textSecondary }]}>
+              Źródło: {metaSource}
+            </Text>
+          ) : null}
+          
+          <View style={styles.actions}>
+            <TouchableOpacity 
+              style={[
+                styles.actionButton, 
+                { 
+                  backgroundColor: isSaved ? theme.colors.primary : theme.colors.subtle,
+                  borderColor: theme.colors.border
+                }
+              ]} 
+              onPress={toggleSave}
+            >
+              <Bookmark 
+                size={18} 
+                color={isSaved ? '#FFFFFF' : theme.colors.text} 
+                fill={isSaved ? '#FFFFFF' : 'transparent'} 
+              />
+              <Text 
+                style={[
+                  styles.actionText, 
+                  { color: isSaved ? '#FFFFFF' : theme.colors.text }
+                ]}
+              >
+                {isSaved ? 'Zapisano' : 'Zapisz'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.actionButton, 
+                { 
+                  backgroundColor: theme.colors.subtle,
+                  borderColor: theme.colors.border
+                }
+              ]} 
+              onPress={handleShare}
+            >
+              <Share2 size={18} color={theme.colors.text} />
+              <Text style={[styles.actionText, { color: theme.colors.text }]}>
+                Udostępnij
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Display videos if any */}
+          {videoUrls.length > 0 && (
+            <View style={styles.videoContainer}>
+              {videoUrls.map((url, index) => (
+                <VideoPlayer key={`video-${index}`} url={url} />
+              ))}
+            </View>
+          )}
+          
+          {/* Article content */}
+          {renderContent()}
+        </View>
+      </Animated.ScrollView>
+    </View>
   );
 }
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
     paddingBottom: 32,
+  },
+  animatedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    zIndex: 1000,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginHorizontal: 8,
   },
   featuredImageContainer: {
     position: 'relative',
@@ -381,12 +471,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 16,
     lineHeight: 32,
   },
-  date: {
-    fontSize: 14,
+  metaContainer: {
+    flexDirection: 'row',
     marginBottom: 8,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  metaText: {
+    fontSize: 14,
+    marginLeft: 6,
   },
   source: {
     fontSize: 12,
