@@ -70,6 +70,7 @@ export const cleanHtml = (html: string): string => {
         padding: 0;
         margin: 0;
         font-size: 16px;
+        background-color: transparent;
       }
       img {
         max-width: 100%;
@@ -79,7 +80,7 @@ export const cleanHtml = (html: string): string => {
         border-radius: 12px;
       }
       a {
-        color: #224A96;
+        color: #FF3B30;
         text-decoration: none;
       }
       p {
@@ -91,13 +92,26 @@ export const cleanHtml = (html: string): string => {
         line-height: 1.3;
         font-weight: 600;
       }
+      blockquote {
+        border-left: 4px solid #FF3B30;
+        padding-left: 16px;
+        margin-left: 0;
+        color: #6c757d;
+        font-style: italic;
+      }
+      ul, ol {
+        padding-left: 24px;
+      }
       @media (prefers-color-scheme: dark) {
         body {
           color: #f8f9fa;
-          background-color: #121212;
+          background-color: transparent;
         }
         a {
-          color: #3A62B0;
+          color: #FF3B30;
+        }
+        blockquote {
+          color: #adb5bd;
         }
       }
     </style>

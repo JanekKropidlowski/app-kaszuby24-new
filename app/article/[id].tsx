@@ -9,7 +9,8 @@ import {
   Platform,
   Dimensions,
   Linking,
-  Animated
+  Animated,
+  StatusBar
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -42,7 +43,7 @@ export default function ArticleDetailScreen() {
   
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 200],
+    inputRange: [0, 100],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
@@ -226,7 +227,7 @@ export default function ArticleDetailScreen() {
               
               // Apply theme
               document.body.style.color = '${isDarkMode ? '#F9FAFB' : '#111827'}';
-              document.body.style.backgroundColor = '${isDarkMode ? '#1F2937' : '#FFFFFF'}';
+              document.body.style.backgroundColor = 'transparent';
               document.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
               document.body.style.fontSize = '16px';
               document.body.style.lineHeight = '1.8';
@@ -267,7 +268,40 @@ export default function ArticleDetailScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Animated header */}
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      
+      {/* Floating back button */}
+      <TouchableOpacity 
+        style={styles.floatingBackButton} 
+        onPress={handleGoBack}
+      >
+        <ArrowLeft size={20} color="#FFFFFF" />
+      </TouchableOpacity>
+      
+      {/* Floating share button */}
+      <TouchableOpacity 
+        style={styles.floatingShareButton} 
+        onPress={handleShare}
+      >
+        <Share2 size={20} color="#FFFFFF" />
+      </TouchableOpacity>
+      
+      {/* Floating bookmark button */}
+      <TouchableOpacity 
+        style={[
+          styles.floatingBookmarkButton,
+          isSaved && { backgroundColor: theme.colors.primary }
+        ]} 
+        onPress={toggleSave}
+      >
+        <Bookmark 
+          size={20} 
+          color="#FFFFFF" 
+          fill={isSaved ? "#FFFFFF" : "transparent"} 
+        />
+      </TouchableOpacity>
+      
+      {/* Animated header for scrolling */}
       <Animated.View 
         style={[
           styles.animatedHeader, 
@@ -290,7 +324,7 @@ export default function ArticleDetailScreen() {
         <View style={{ width: 24 }} />
       </Animated.View>
       
-      <Animated.ScrollView 
+      <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         onScroll={Animated.event(
@@ -299,6 +333,7 @@ export default function ArticleDetailScreen() {
         )}
         scrollEventThrottle={16}
       >
+        {/* Featured image */}
         {article.featured_media_url ? (
           <View style={styles.featuredImageContainer}>
             <Image
@@ -307,9 +342,12 @@ export default function ArticleDetailScreen() {
               contentFit="cover"
               transition={300}
             />
+            <View style={styles.imageDarkOverlay} />
+            
+            {/* Category badge */}
             {categoryName && (
-              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.card }]}>
-                <Text style={[styles.categoryText, { color: theme.colors.primary }]}>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>
                   {categoryName}
                 </Text>
               </View>
@@ -317,7 +355,9 @@ export default function ArticleDetailScreen() {
           </View>
         ) : null}
         
+        {/* Article content card */}
         <View style={[styles.articleContent, { backgroundColor: theme.colors.card }]}>
+          {/* Title and metadata */}
           <Text style={[styles.title, { color: theme.colors.text }]}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
           </Text>
@@ -346,49 +386,6 @@ export default function ArticleDetailScreen() {
             </Text>
           ) : null}
           
-          <View style={styles.actions}>
-            <TouchableOpacity 
-              style={[
-                styles.actionButton, 
-                { 
-                  backgroundColor: isSaved ? theme.colors.primary : theme.colors.subtle,
-                  borderColor: theme.colors.border
-                }
-              ]} 
-              onPress={toggleSave}
-            >
-              <Bookmark 
-                size={18} 
-                color={isSaved ? '#FFFFFF' : theme.colors.text} 
-                fill={isSaved ? '#FFFFFF' : 'transparent'} 
-              />
-              <Text 
-                style={[
-                  styles.actionText, 
-                  { color: isSaved ? '#FFFFFF' : theme.colors.text }
-                ]}
-              >
-                {isSaved ? 'Zapisano' : 'Zapisz'}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.actionButton, 
-                { 
-                  backgroundColor: theme.colors.subtle,
-                  borderColor: theme.colors.border
-                }
-              ]} 
-              onPress={handleShare}
-            >
-              <Share2 size={18} color={theme.colors.text} />
-              <Text style={[styles.actionText, { color: theme.colors.text }]}>
-                Udostępnij
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
           {/* Display videos if any */}
           {videoUrls.length > 0 && (
             <View style={styles.videoContainer}>
@@ -401,7 +398,7 @@ export default function ArticleDetailScreen() {
           {/* Article content */}
           {renderContent()}
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 }
@@ -445,38 +442,81 @@ const styles = StyleSheet.create({
   },
   featuredImageContainer: {
     position: 'relative',
+    height: 380,
   },
   featuredImage: {
     width: '100%',
-    height: 280,
+    height: '100%',
+  },
+  imageDarkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   categoryBadge: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 100,
     left: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 4,
+    backgroundColor: '#FF3B30',
   },
   categoryText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  floatingBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  floatingShareButton: {
+    position: 'absolute',
+    top: 50,
+    right: 70,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  floatingBookmarkButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
   },
   articleContent: {
     padding: 24,
-    marginTop: -20,
+    marginTop: -50,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     marginBottom: 16,
-    lineHeight: 32,
+    lineHeight: 30,
   },
   metaContainer: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   metaItem: {
     flexDirection: 'row',
@@ -489,26 +529,8 @@ const styles = StyleSheet.create({
   },
   source: {
     fontSize: 12,
-    marginBottom: 16,
+    marginBottom: 20,
     fontStyle: 'italic',
-  },
-  actions: {
-    flexDirection: 'row',
-    marginBottom: 28,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginRight: 12,
-    borderWidth: 1,
-  },
-  actionText: {
-    fontSize: 14,
-    marginLeft: 6,
-    fontWeight: '500',
   },
   videoContainer: {
     marginBottom: 24,

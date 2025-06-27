@@ -37,6 +37,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
             width: '100%',
             height: '100%',
             border: 'none',
+            borderRadius: '12px',
           }}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -64,12 +65,17 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
-    width: width - 32, // Full width minus padding
-    height: (width - 32) * 0.5625, // 16:9 aspect ratio
+    width: '100%',
+    height: (width - 48) * 0.5625, // 16:9 aspect ratio
     marginVertical: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   webview: {
     flex: 1,
