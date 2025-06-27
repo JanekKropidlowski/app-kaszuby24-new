@@ -41,7 +41,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       <TextInput
         style={[
           styles.input,
-          { color: theme.colors.text }
+          { color: theme.colors.text, fontFamily: theme.fontFamily?.regular || 'Poppins-Regular' }
         ]}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.textSecondary}

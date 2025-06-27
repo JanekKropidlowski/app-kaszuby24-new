@@ -69,11 +69,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         )}
         
         <View style={styles.compactContent}>
-          <Text style={[styles.compactTitle, { color: theme.colors.text }]} numberOfLines={2}>
+          <Text style={[styles.compactTitle, { color: theme.colors.text, fontFamily: theme.fontFamily?.medium || 'Poppins-Medium' }]} numberOfLines={2}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
           </Text>
           
-          <Text style={[styles.compactDate, { color: theme.colors.textSecondary }]}>
+          <Text style={[styles.compactDate, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily?.regular || 'Poppins-Regular' }]}>
             {getRelativeTime(article.date)}
           </Text>
         </View>
@@ -92,12 +92,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     >
       <View style={styles.cardContent}>
         <View style={styles.textContent}>
-          <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
+          <Text style={[styles.title, { color: theme.colors.text, fontFamily: theme.fontFamily?.medium || 'Poppins-Medium' }]} numberOfLines={2}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
           </Text>
           
           <View style={styles.footer}>
-            <Text style={[styles.date, { color: theme.colors.textSecondary }]}>
+            <Text style={[styles.date, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily?.regular || 'Poppins-Regular' }]}>
               {getRelativeTime(article.date)}
             </Text>
             

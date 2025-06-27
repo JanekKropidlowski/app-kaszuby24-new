@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Platform, StatusBar } from 'react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Font from 'expo-font';
 import { useThemeStore } from '@/store/themeStore';
 
 // Prevent the splash screen from auto-hiding
@@ -11,11 +12,37 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   const { isDarkMode, theme } = useThemeStore();
-  
-  React.useEffect(() => {
-    // Hide splash screen immediately since we're not loading fonts
-    SplashScreen.hideAsync();
+  const [appIsReady, setAppIsReady] = useState(false);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Load fonts
+        await Font.loadAsync({
+          'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf'),
+          'Poppins-Medium': require('../assets/fonts/Poppins/Poppins-Medium.ttf'),
+          'Poppins-SemiBold': require('../assets/fonts/Poppins/Poppins-SemiBold.ttf'),
+          'Poppins-Bold': require('../assets/fonts/Poppins/Poppins-Bold.ttf'),
+        });
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setAppIsReady(true);
+      }
+    }
+
+    prepare();
   }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      await SplashScreen.hideAsync();
+    }
+  }, [appIsReady]);
+
+  if (!appIsReady) {
+    return null;
+  }
 
   return (
     <>
@@ -32,12 +59,14 @@ export default function RootLayout() {
           headerTitleStyle: {
             fontWeight: '600',
             color: theme.colors.text,
+            fontFamily: 'Poppins-SemiBold',
           },
           contentStyle: {
             backgroundColor: theme.colors.background,
           },
           headerShadowVisible: false,
         }}
+        onLayout={onLayoutRootView}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen 

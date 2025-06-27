@@ -47,6 +47,7 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: '600',
           color: theme.colors.text,
+          fontFamily: theme.fontFamily?.semibold || 'Poppins-SemiBold',
         },
         headerTintColor: theme.colors.primary,
         tabBarShowLabel: false,
@@ -88,6 +89,7 @@ export default function TabLayout() {
                     color: '#FFFFFF',
                     fontSize: 10,
                     fontWeight: '600',
+                    fontFamily: theme.fontFamily?.regular || 'Poppins-Regular',
                   }}>
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </Text>

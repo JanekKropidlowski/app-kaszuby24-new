@@ -36,7 +36,8 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
             color: isSelected 
               ? '#fff' 
               : theme.colors.text,
-            fontWeight: theme.fontWeight.medium
+            fontWeight: theme.fontWeight.medium,
+            fontFamily: theme.fontFamily?.medium || 'Poppins-Medium'
           },
         ]}
       >
