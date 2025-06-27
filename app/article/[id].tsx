@@ -181,6 +181,71 @@ export default function ArticleDetailScreen() {
   const metaViews = article.meta?.views ? `${article.meta.views} wyświetleń` : '';
   const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
   
+  // Render content based on platform
+  const renderContent = () => {
+    if (Platform.OS === 'web') {
+      return (
+        <View style={styles.htmlContainer}>
+          <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.htmlContainer}>
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: cleanedHtml }}
+            style={[
+              styles.webview, 
+              { height: webViewHeight }
+            ]}
+            scrollEnabled={false}
+            onNavigationStateChange={(event) => {
+              // Handle link clicks
+              if (event.url !== 'about:blank') {
+                Linking.openURL(event.url);
+                return false;
+              }
+              return true;
+            }}
+            injectedJavaScript={`
+              // Adjust the height of the WebView to match the content
+              const meta = document.createElement('meta');
+              meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1');
+              meta.setAttribute('name', 'viewport');
+              document.getElementsByTagName('head')[0].appendChild(meta);
+              
+              // Apply theme
+              document.body.style.color = '${isDarkMode ? '#FFFFFF' : '#1A1A1A'}';
+              document.body.style.backgroundColor = '${isDarkMode ? '#1E1E20' : '#FFFFFF'}';
+              document.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+              document.body.style.fontSize = '16px';
+              document.body.style.lineHeight = '1.8';
+              
+              // Make all links open in a new window/tab
+              const links = document.getElementsByTagName('a');
+              for (let i = 0; i < links.length; i++) {
+                links[i].target = '_blank';
+                links[i].style.color = '${theme.colors.primary}';
+              }
+              
+              // Adjust the height
+              window.ReactNativeWebView.postMessage(document.documentElement.scrollHeight);
+              true;
+            `}
+            onMessage={(event) => {
+              // Adjust WebView height based on content
+              const height = parseInt(event.nativeEvent.data, 10);
+              if (height > 0) {
+                setWebViewHeight(height);
+              }
+            }}
+          />
+        </View>
+      );
+    }
+  };
+  
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -273,57 +338,7 @@ export default function ArticleDetailScreen() {
         )}
         
         {/* Article content */}
-        <View style={styles.htmlContainer}>
-          <WebView
-            originWhitelist={['*']}
-            source={{ html: cleanedHtml }}
-            style={[
-              styles.webview, 
-              { height: webViewHeight }
-            ]}
-            scrollEnabled={false}
-            onNavigationStateChange={(event) => {
-              // Handle link clicks
-              if (event.url !== 'about:blank') {
-                Linking.openURL(event.url);
-                return false;
-              }
-              return true;
-            }}
-            injectedJavaScript={`
-              // Adjust the height of the WebView to match the content
-              const meta = document.createElement('meta');
-              meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1');
-              meta.setAttribute('name', 'viewport');
-              document.getElementsByTagName('head')[0].appendChild(meta);
-              
-              // Apply theme
-              document.body.style.color = '${isDarkMode ? '#FFFFFF' : '#1A1A1A'}';
-              document.body.style.backgroundColor = '${isDarkMode ? '#1E1E20' : '#FFFFFF'}';
-              document.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-              document.body.style.fontSize = '16px';
-              document.body.style.lineHeight = '1.8';
-              
-              // Make all links open in a new window/tab
-              const links = document.getElementsByTagName('a');
-              for (let i = 0; i < links.length; i++) {
-                links[i].target = '_blank';
-                links[i].style.color = '${theme.colors.primary}';
-              }
-              
-              // Adjust the height
-              window.ReactNativeWebView.postMessage(document.documentElement.scrollHeight);
-              true;
-            `}
-            onMessage={(event) => {
-              // Adjust WebView height based on content
-              const height = parseInt(event.nativeEvent.data, 10);
-              if (height > 0) {
-                setWebViewHeight(height);
-              }
-            }}
-          />
-        </View>
+        {renderContent()}
       </View>
     </ScrollView>
   );
