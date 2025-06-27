@@ -20,7 +20,7 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
     // Animate the pill press
     Animated.sequence([
       Animated.timing(animatedScale, {
-        toValue: 0.95,
+        toValue: 0.92,
         duration: 100,
         useNativeDriver: true,
       }),
@@ -46,8 +46,8 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
             borderColor: isSelected
               ? theme.colors.primary
               : theme.colors.border,
-            shadowColor: isSelected ? theme.colors.primary : 'transparent',
-            shadowOpacity: isSelected ? 0.3 : 0,
+            shadowColor: isSelected ? theme.colors.primary : theme.colors.border,
+            shadowOpacity: isSelected ? 0.4 : 0.1,
           },
         ]}
         onPress={handlePress}
@@ -60,8 +60,10 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
               color: isSelected 
                 ? '#fff' 
                 : theme.colors.text,
-              fontWeight: theme.fontWeight.medium,
-              fontFamily: theme.fontFamily?.medium || 'Poppins-Medium'
+              fontWeight: isSelected ? '600' : '500',
+              fontFamily: isSelected 
+                ? theme.fontFamily?.semibold || 'Poppins-SemiBold'
+                : theme.fontFamily?.medium || 'Poppins-Medium'
             },
           ]}
         >
@@ -74,14 +76,14 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
 
 const styles = StyleSheet.create({
   pill: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginRight: 12,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
   },
   text: {
     fontSize: 14,

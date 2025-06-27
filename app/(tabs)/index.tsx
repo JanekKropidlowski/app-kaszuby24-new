@@ -9,7 +9,8 @@ import {
   ScrollView,
   Dimensions,
   Alert,
-  Animated
+  Animated,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronRight, RefreshCw, WifiOff, ArrowRight } from 'lucide-react-native';
@@ -24,8 +25,8 @@ import { useThemeStore } from '@/store/themeStore';
 import CategoryPill from '@/components/CategoryPill';
 
 const { width } = Dimensions.get('window');
-const CAROUSEL_ITEM_WIDTH = width * 0.85;
-const CAROUSEL_ITEM_SPACING = 12;
+const CAROUSEL_ITEM_WIDTH = width * 0.9;
+const CAROUSEL_ITEM_SPACING = 16;
 
 const MAX_RETRIES = 5;
 
@@ -50,6 +51,14 @@ export default function HomeScreen() {
   
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
+  
+  // Animation values for carousel items
+  const inputRange = [-width, 0, width];
+  const translateY = scrollX.interpolate({
+    inputRange,
+    outputRange: [0, -10, 0],
+    extrapolate: 'clamp',
+  });
   
   // Load articles and categories
   const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
@@ -200,65 +209,112 @@ export default function HomeScreen() {
   }, [activeCarouselIndex, featuredArticles.length]);
   
   const renderCarouselItem = ({ item, index }: { item: Article; index: number }) => {
+    // Calculate the input range for this specific item
+    const thisItemInputRange = [
+      (index - 1) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
+      index * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
+      (index + 1) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
+    ];
+    
+    // Calculate the scale and opacity based on the scroll position
+    const scale = scrollX.interpolate({
+      inputRange: thisItemInputRange,
+      outputRange: [0.9, 1, 0.9],
+      extrapolate: 'clamp'
+    });
+    
+    const opacity = scrollX.interpolate({
+      inputRange: thisItemInputRange,
+      outputRange: [0.7, 1, 0.7],
+      extrapolate: 'clamp'
+    });
+    
     return (
-      <TouchableOpacity 
+      <Animated.View
         style={[
-          styles.carouselItem,
+          styles.carouselItemContainer,
           { 
+            transform: [{ scale }],
+            opacity,
             width: CAROUSEL_ITEM_WIDTH,
             marginRight: index === featuredArticles.length - 1 ? 0 : CAROUSEL_ITEM_SPACING,
           }
         ]}
-        onPress={() => {
-          handleArticlePress(item);
-          router.push(`/article/${item.id}`);
-        }}
-        activeOpacity={0.9}
       >
-        <View style={styles.carouselImageContainer}>
-          {item.featured_media_url ? (
-            <Image
-              source={{ uri: item.featured_media_url }}
-              style={styles.carouselImage}
-              contentFit="cover"
-              transition={300}
-            />
-          ) : (
-            <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
-          )}
-          <View style={styles.carouselGradient} />
-          <View style={styles.carouselItemContent}>
-            <Text style={styles.carouselLabel}>Polecane</Text>
-            <Text style={styles.carouselTitle} numberOfLines={2}>
-              {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-            </Text>
-            <View style={styles.carouselFooter}>
-              <Text style={styles.carouselReadMore}>Czytaj więcej</Text>
-              <ArrowRight size={16} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={styles.carouselItem}
+          onPress={() => {
+            handleArticlePress(item);
+            router.push(`/article/${item.id}`);
+          }}
+          activeOpacity={0.9}
+        >
+          <View style={styles.carouselImageContainer}>
+            {item.featured_media_url ? (
+              <Image
+                source={{ uri: item.featured_media_url }}
+                style={styles.carouselImage}
+                contentFit="cover"
+                transition={300}
+              />
+            ) : (
+              <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+            )}
+            <View style={styles.carouselGradient} />
+            <View style={styles.carouselItemContent}>
+              <View style={styles.carouselLabelContainer}>
+                <Text style={styles.carouselLabel}>Polecane</Text>
+              </View>
+              <Text style={styles.carouselTitle} numberOfLines={2}>
+                {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+              </Text>
+              <View style={styles.carouselFooter}>
+                <Text style={styles.carouselReadMore}>Czytaj więcej</Text>
+                <ArrowRight size={16} color="#FFFFFF" />
+              </View>
             </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
   
   const renderCarouselIndicator = () => {
     return (
       <View style={styles.indicatorContainer}>
-        {featuredArticles.map((_, index) => (
-          <View
-            key={`indicator-${index}`}
-            style={[
-              styles.indicator,
-              {
-                backgroundColor: index === activeCarouselIndex 
-                  ? theme.colors.primary 
-                  : theme.colors.border,
-                width: index === activeCarouselIndex ? 20 : 8,
-              },
-            ]}
-          />
-        ))}
+        {featuredArticles.map((_, index) => {
+          const inputRange = [
+            (index - 1) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
+            index * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
+            (index + 1) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
+          ];
+          
+          const scale = scrollX.interpolate({
+            inputRange,
+            outputRange: [1, 1.5, 1],
+            extrapolate: 'clamp'
+          });
+          
+          const opacity = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.5, 1, 0.5],
+            extrapolate: 'clamp'
+          });
+          
+          return (
+            <Animated.View
+              key={`indicator-${index}`}
+              style={[
+                styles.indicator,
+                {
+                  backgroundColor: theme.colors.primary,
+                  transform: [{ scale }],
+                  opacity,
+                },
+              ]}
+            />
+          );
+        })}
       </View>
     );
   };
@@ -398,20 +454,23 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   carouselContainer: {
-    marginVertical: 16,
+    marginTop: 20,
+    marginBottom: 24,
   },
   carouselListContent: {
     paddingHorizontal: 16,
   },
-  carouselItem: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    height: 220,
+  carouselItemContainer: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  carouselItem: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    height: 240,
   },
   carouselImageContainer: {
     position: 'relative',
@@ -433,32 +492,38 @@ const styles = StyleSheet.create({
     right: 0,
     height: '70%',
     backgroundColor: 'rgba(0,0,0,0.6)',
-    backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%)',
+    backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
   },
   carouselItemContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    padding: 24,
+  },
+  carouselLabelContainer: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    backdropFilter: Platform.OS === 'web' ? 'blur(8px)' : undefined,
   },
   carouselLabel: {
     color: '#FFFFFF',
     fontSize: 12,
-    marginBottom: 8,
     fontWeight: '600',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
   },
   carouselTitle: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-    lineHeight: 24,
-    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 28,
+    marginBottom: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   carouselFooter: {
     flexDirection: 'row',
@@ -467,25 +532,27 @@ const styles = StyleSheet.create({
   carouselReadMore: {
     color: '#FFFFFF',
     fontSize: 14,
-    marginRight: 4,
-    fontWeight: '500',
+    marginRight: 6,
+    fontWeight: '600',
   },
   indicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 16,
   },
   indicator: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    width: 6,
+    borderRadius: 3,
     marginHorizontal: 4,
   },
   categoriesContainer: {
-    marginBottom: 16,
+    marginBottom: 24,
   },
   categoriesContent: {
     paddingHorizontal: 16,
+    paddingVertical: 4,
   },
   breakingNewsHeader: {
     flexDirection: 'row',
@@ -495,8 +562,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   breakingNewsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
   },
   moreButton: {
     flexDirection: 'row',
@@ -504,7 +571,7 @@ const styles = StyleSheet.create({
   },
   moreText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   articleContainer: {
     paddingHorizontal: 16,

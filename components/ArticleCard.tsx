@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Animated, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Bookmark, Clock } from 'lucide-react-native';
@@ -30,13 +30,13 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     // Animate the card press
     Animated.sequence([
       Animated.timing(animatedScale, {
-        toValue: 0.98,
-        duration: 100,
+        toValue: 0.97,
+        duration: 120,
         useNativeDriver: true,
       }),
       Animated.timing(animatedScale, {
         toValue: 1,
-        duration: 100,
+        duration: 120,
         useNativeDriver: true,
       }),
     ]).start();
@@ -133,7 +133,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         <View style={styles.cardContent}>
           <View style={styles.textContent}>
             {categoryName && (
-              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.subtle }]}>
+              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '15' }]}>
                 <Text style={[styles.categoryText, { color: theme.colors.primary }]}>
                   {categoryName}
                 </Text>
@@ -187,14 +187,14 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 1,
   },
   cardContent: {
@@ -209,17 +209,17 @@ const styles = StyleSheet.create({
   image: {
     width: 100,
     height: 100,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
   categoryText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
   },
   title: {
@@ -243,27 +243,27 @@ const styles = StyleSheet.create({
   },
   bookmarkButton: {
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   
   // Compact styles
   compactContainer: {
     flexDirection: 'row',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 12,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowRadius: 6,
+    elevation: 2,
     borderWidth: 1,
   },
   compactImage: {
     width: 80,
     height: 80,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
   },
   compactImagePlaceholder: {
     width: 80,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   compactCategory: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 8,
   },
   compactCategoryText: {
     fontSize: 10,
