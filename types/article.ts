@@ -22,6 +22,20 @@ export interface Article {
   categories: number[];
   tags: number[];
   author: number;
+  meta?: {
+    youtube?: string;
+    galeria?: string[];
+    zrodlo?: string;
+    foto?: string;
+    flickr?: string;
+    "czy-slider-galeria"?: string;
+    "czy-fotogaleria"?: string;
+    "plik-dzwiekowy"?: string;
+    "opis-plik-dziekowy"?: string;
+    views?: string;
+    zrudlo?: string;
+    footnotes?: string;
+  };
   _embedded?: {
     author?: Array<{
       id: number;

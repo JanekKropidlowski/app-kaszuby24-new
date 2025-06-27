@@ -177,6 +177,10 @@ export default function ArticleDetailScreen() {
     }
   }
   
+  // Display meta fields if available
+  const metaViews = article.meta?.views ? `${article.meta.views} wyświetleń` : '';
+  const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
+  
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -207,7 +211,14 @@ export default function ArticleDetailScreen() {
         
         <Text style={[styles.date, { color: theme.colors.textSecondary }]}>
           {formatDateTime(article.date)}
+          {metaViews ? ` • ${metaViews}` : ''}
         </Text>
+        
+        {metaSource ? (
+          <Text style={[styles.source, { color: theme.colors.textSecondary }]}>
+            Źródło: {metaSource}
+          </Text>
+        ) : null}
         
         <View style={styles.actions}>
           <TouchableOpacity 
@@ -360,7 +371,12 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 14,
-    marginBottom: 24,
+    marginBottom: 8,
+  },
+  source: {
+    fontSize: 12,
+    marginBottom: 16,
+    fontStyle: 'italic',
   },
   actions: {
     flexDirection: 'row',
