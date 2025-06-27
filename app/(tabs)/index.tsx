@@ -227,7 +227,7 @@ export default function HomeScreen() {
             <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
           )}
           <View style={styles.carouselGradient} />
-          <View style={styles.carouselContent}>
+          <View style={styles.carouselItemContent}>
             <Text style={styles.carouselLabel}>Polecane</Text>
             <Text style={styles.carouselTitle} numberOfLines={2}>
               {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
@@ -308,7 +308,7 @@ export default function HomeScreen() {
                   pagingEnabled
                   snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
                   decelerationRate="fast"
-                  contentContainerStyle={styles.carouselContent}
+                  contentContainerStyle={styles.carouselListContent}
                   onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
                     { useNativeDriver: true }
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   carouselContainer: {
     marginVertical: 16,
   },
-  carouselContent: {
+  carouselListContent: {
     paddingHorizontal: 16,
   },
   carouselItem: {
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%)',
   },
-  carouselContent: {
+  carouselItemContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
