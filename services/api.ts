@@ -1,0 +1,364 @@
+import { Article, Category } from '@/types/article';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
+const API_TIMEOUT = 30000; // Increase timeout to 30 seconds
+const MAX_RETRIES = 5; // Increased retries for better resilience
+const CACHE_KEY_ARTICLES = 'cached_articles';
+const CACHE_KEY_CATEGORIES = 'cached_categories';
+const CACHE_DURATION = 60 * 60 * 1000; // Cache for 1 hour
+
+// Helper function to handle fetch with timeout and retries
+const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise<Response> => {
+  const controller = new AbortController();
+  const { signal } = controller;
+  
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, API_TIMEOUT);
+  
+  try {
+    console.log(`Fetching (attempt ${retries + 1}/${MAX_RETRIES}): ${url}`);
+    const response = await fetch(url, { ...options, signal });
+    clearTimeout(timeout);
+    return response;
+  } catch (error) {
+    clearTimeout(timeout);
+    
+    console.error(`Fetch error (attempt ${retries + 1}/${MAX_RETRIES}):`, error);
+    
+    // Handle network errors with retries
+    if (retries < MAX_RETRIES) {
+      console.log(`Retry ${retries + 1}/${MAX_RETRIES} for: ${url}`);
+      // Exponential backoff with increased delay
+      const delay = 2000 * Math.pow(2, retries);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return fetchWithTimeout(url, options, retries + 1);
+    }
+    
+    throw error;
+  }
+};
+
+// Helper function to cache data
+const cacheData = async (key: string, data: any) => {
+  try {
+    const timestampedData = {
+      data,
+      timestamp: Date.now(),
+    };
+    await AsyncStorage.setItem(key, JSON.stringify(timestampedData));
+    console.log(`Cached data for key: ${key}`);
+  } catch (error) {
+    console.error(`Error caching data for key ${key}:`, error);
+  }
+};
+
+// Helper function to retrieve cached data
+const getCachedData = async (key: string) => {
+  try {
+    const cached = await AsyncStorage.getItem(key);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      const age = Date.now() - timestamp;
+      if (age < CACHE_DURATION) {
+        console.log(`Using cached data for key: ${key}`);
+        return data;
+      } else {
+        console.log(`Cached data expired for key: ${key}`);
+        return null;
+      }
+    }
+  } catch (error) {
+    console.error(`Error retrieving cached data for key ${key}:`, error);
+  }
+  return null;
+};
+
+export const fetchArticles = async (
+  page = 1, 
+  perPage = 10, 
+  categories?: number[]
+): Promise<{ articles: Article[], totalPages: number }> => {
+  try {
+    // Add timestamp to prevent caching issues
+    const timestamp = new Date().getTime();
+    let url = `${API_BASE_URL}/posts?_embed&page=${page}&per_page=${perPage}&_=${timestamp}`;
+    
+    if (categories && categories.length > 0) {
+      url += `&categories=${categories.join(',')}`;
+    }
+    
+    console.log('Fetching articles from:', url);
+    
+    const response = await fetchWithTimeout(url);
+    
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      
+      // Handle specific error codes
+      if (response.status === 429) {
+        throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+      } else if (response.status >= 500) {
+        throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+      } else {
+        throw new Error(`Błąd API: ${response.status}`);
+      }
+    }
+    
+    const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
+    const articles = await response.json();
+    
+    if (!Array.isArray(articles)) {
+      console.error('API returned non-array response:', articles);
+      throw new Error('Nieprawidłowy format odpowiedzi API');
+    }
+    
+    // Process articles to extract featured image URL
+    const processedArticles = articles.map((article: Article) => {
+      let featured_media_url = undefined;
+      
+      if (article._embedded && 
+          article._embedded['wp:featuredmedia'] && 
+          article._embedded['wp:featuredmedia'][0]) {
+        featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+      }
+      
+      return {
+        ...article,
+        featured_media_url
+      };
+    });
+    
+    console.log(`Successfully fetched ${processedArticles.length} articles`);
+    
+    // Cache the articles
+    if (page === 1) {
+      await cacheData(CACHE_KEY_ARTICLES, { articles: processedArticles, totalPages });
+    }
+    
+    return { 
+      articles: processedArticles, 
+      totalPages 
+    };
+  } catch (error: any) {
+    console.error('Error fetching articles:', error);
+    
+    // Attempt to load from cache if fetch fails
+    if (page === 1) {
+      const cachedData = await getCachedData(CACHE_KEY_ARTICLES);
+      if (cachedData) {
+        console.log('Using cached articles due to fetch failure');
+        return cachedData;
+      }
+    }
+    
+    // Provide more user-friendly error messages
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
+      throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
+    } else if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
+    } else if (error.message === 'Failed to fetch') {
+      throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
+    }
+    
+    // If we have a specific error message from earlier checks, use it
+    if (error.message) {
+      throw error;
+    }
+    
+    // Generic fallback error
+    throw new Error('Wystąpił problem podczas ładowania artykułów. Spróbuj ponownie później.');
+  }
+};
+
+export const fetchArticleById = async (id: number): Promise<Article> => {
+  try {
+    // Add timestamp to prevent caching issues
+    const timestamp = new Date().getTime();
+    const url = `${API_BASE_URL}/posts/${id}?_embed&_=${timestamp}`;
+    console.log('Fetching article by ID:', url);
+    
+    const response = await fetchWithTimeout(url);
+    
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      
+      if (response.status === 404) {
+        throw new Error('Artykuł nie został znaleziony.');
+      } else if (response.status === 429) {
+        throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+      } else if (response.status >= 500) {
+        throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+      } else {
+        throw new Error(`Błąd API: ${response.status}`);
+      }
+    }
+    
+    const article = await response.json();
+    
+    // Process article to extract featured image URL
+    let featured_media_url = undefined;
+    
+    if (article._embedded && 
+        article._embedded['wp:featuredmedia'] && 
+        article._embedded['wp:featuredmedia'][0]) {
+      featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+    }
+    
+    return {
+      ...article,
+      featured_media_url
+    };
+  } catch (error: any) {
+    console.error('Error fetching article by ID:', error);
+    
+    // Provide more user-friendly error messages
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
+      throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
+    } else if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
+    } else if (error.message === 'Failed to fetch') {
+      throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
+    }
+    
+    // If we have a specific error message from earlier checks, use it
+    if (error.message) {
+      throw error;
+    }
+    
+    // Generic fallback error
+    throw new Error('Wystąpił problem podczas ładowania artykułu. Spróbuj ponownie później.');
+  }
+};
+
+export const fetchCategories = async (): Promise<Category[]> => {
+  try {
+    // Add timestamp to prevent caching issues
+    const timestamp = new Date().getTime();
+    const url = `${API_BASE_URL}/categories?per_page=100&_=${timestamp}`;
+    console.log('Fetching categories:', url);
+    
+    const response = await fetchWithTimeout(url);
+    
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      
+      if (response.status === 429) {
+        throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+      } else if (response.status >= 500) {
+        throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+      } else {
+        throw new Error(`Błąd API: ${response.status}`);
+      }
+    }
+    
+    const categories = await response.json();
+    
+    // Cache the categories
+    await cacheData(CACHE_KEY_CATEGORIES, categories);
+    
+    return categories;
+  } catch (error: any) {
+    console.error('Error fetching categories:', error);
+    
+    // Attempt to load from cache if fetch fails
+    const cachedData = await getCachedData(CACHE_KEY_CATEGORIES);
+    if (cachedData) {
+      console.log('Using cached categories due to fetch failure');
+      return cachedData;
+    }
+    
+    // Provide more user-friendly error messages
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
+      throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
+    } else if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
+    } else if (error.message === 'Failed to fetch') {
+      throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
+    }
+    
+    // If we have a specific error message from earlier checks, use it
+    if (error.message) {
+      throw error;
+    }
+    
+    // Generic fallback error
+    throw new Error('Wystąpił problem podczas ładowania kategorii. Spróbuj ponownie później.');
+  }
+};
+
+export const searchArticles = async (
+  query: string,
+  page = 1,
+  perPage = 10
+): Promise<{ articles: Article[], totalPages: number }> => {
+  try {
+    // Add timestamp to prevent caching issues
+    const timestamp = new Date().getTime();
+    const url = `${API_BASE_URL}/posts?_embed&search=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&_=${timestamp}`;
+    console.log('Searching articles:', url);
+    
+    const response = await fetchWithTimeout(url);
+    
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      
+      if (response.status === 429) {
+        throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+      } else if (response.status >= 500) {
+        throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+      } else {
+        throw new Error(`Błąd API: ${response.status}`);
+      }
+    }
+    
+    const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
+    const articles = await response.json();
+    
+    if (!Array.isArray(articles)) {
+      console.error('API returned non-array response:', articles);
+      throw new Error('Nieprawidłowy format odpowiedzi API');
+    }
+    
+    // Process articles to extract featured image URL
+    const processedArticles = articles.map((article: Article) => {
+      let featured_media_url = undefined;
+      
+      if (article._embedded && 
+          article._embedded['wp:featuredmedia'] && 
+          article._embedded['wp:featuredmedia'][0]) {
+        featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+      }
+      
+      return {
+        ...article,
+        featured_media_url
+      };
+    });
+    
+    return { 
+      articles: processedArticles, 
+      totalPages 
+    };
+  } catch (error: any) {
+    console.error('Error searching articles:', error);
+    
+    // Provide more user-friendly error messages
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
+      throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
+    } else if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
+    } else if (error.message === 'Failed to fetch') {
+      throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
+    }
+    
+    // If we have a specific error message from earlier checks, use it
+    if (error.message) {
+      throw error;
+    }
+    
+    // Generic fallback error
+    throw new Error('Wystąpił problem podczas wyszukiwania artykułów. Spróbuj ponownie później.');
+  }
+};
