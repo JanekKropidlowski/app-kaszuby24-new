@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Platform, StatusBar, View } from 'react-native';
+import { Platform, StatusBar, View, Text } from 'react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
@@ -13,6 +13,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 export default function RootLayout() {
   const { isDarkMode, theme } = useThemeStore();
   const [appIsReady, setAppIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function prepare() {
@@ -26,6 +27,7 @@ export default function RootLayout() {
         });
       } catch (e) {
         console.warn(e);
+        setError('Wystąpił problem podczas ładowania zasobów. Aplikacja może działać nieprawidłowo.');
       } finally {
         setAppIsReady(true);
       }
@@ -44,6 +46,19 @@ export default function RootLayout() {
 
   if (!appIsReady) {
     return null;
+  }
+
+  if (error) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+        <Text style={{ color: theme.colors.error, fontSize: 16, textAlign: 'center', padding: 20 }}>
+          {error}
+        </Text>
+        <Text style={{ color: theme.colors.text, fontSize: 14, textAlign: 'center' }}>
+          Spróbuj uruchomić aplikację ponownie lub sprawdź połączenie internetowe.
+        </Text>
+      </View>
+    );
   }
 
   return (
