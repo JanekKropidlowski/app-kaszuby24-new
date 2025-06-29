@@ -33,8 +33,9 @@ export default function TabLayout() {
         tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: {
           backgroundColor: theme.colors.card,
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.border,
+          borderTopWidth: 0,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
           height: Platform.select({
             ios: 88,
             android: 68,
@@ -42,23 +43,28 @@ export default function TabLayout() {
           }),
           paddingBottom: Platform.select({
             ios: 24,
-            android: 8,
-            default: 8
+            android: 12,
+            default: 12
           }),
-          paddingTop: 8,
-          elevation: 8,
+          paddingTop: 12,
+          paddingHorizontal: 16,
+          elevation: 12,
           shadowColor: theme.colors.shadow,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-          marginTop: 4,
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 2,
         },
         headerStyle: {
           backgroundColor: theme.colors.card,
