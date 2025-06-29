@@ -26,50 +26,59 @@ export class NotificationService {
   }
   
   async requestPermissions(): Promise<boolean> {
-    if (Platform.OS === 'web') {
-      // Web notification permissions
-      if ('Notification' in window) {
-        const permission = await Notification.requestPermission();
-        return permission === 'granted';
+    try {
+      if (Platform.OS === 'web') {
+        // Web notification permissions
+        if ('Notification' in window) {
+          const permission = await Notification.requestPermission();
+          return permission === 'granted';
+        }
+        return false;
       }
+      
+      // Mobile permissions
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      return finalStatus === 'granted';
+    } catch (error) {
+      console.warn('Error requesting notification permissions:', error);
       return false;
     }
-    
-    // Mobile permissions
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    return finalStatus === 'granted';
   }
   
   async scheduleLocalNotification(title: string, body: string, data?: any): Promise<void> {
-    if (Platform.OS === 'web') {
-      // Web notification
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, {
-          body,
-          icon: '/favicon.ico',
-          data,
-        });
+    try {
+      if (Platform.OS === 'web') {
+        // Web notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, {
+            body,
+            icon: '/favicon.ico',
+            data,
+          });
+        }
+        return;
       }
-      return;
+      
+      // Mobile notification
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data,
+          sound: true,
+        },
+        trigger: null, // Show immediately
+      });
+    } catch (error) {
+      console.warn('Error scheduling notification:', error);
     }
-    
-    // Mobile notification
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data,
-        sound: true,
-      },
-      trigger: null, // Show immediately
-    });
   }
   
   async checkForNewArticles(): Promise<void> {
@@ -94,7 +103,6 @@ export class NotificationService {
       const { articles } = await fetchArticles(1, 10, allEnabledCategories);
       
       const currentTime = Date.now();
-      const timeSinceLastCheck = currentTime - this.lastCheckTime;
       
       // Only notify about articles published in the last hour if this is not the first check
       const oneHourAgo = currentTime - (60 * 60 * 1000);
@@ -149,26 +157,35 @@ export class NotificationService {
       this.checkForNewArticles();
     }, 30 * 60 * 1000);
     
-    // Initial check
-    this.checkForNewArticles();
+    // Initial check after 5 seconds
+    setTimeout(() => {
+      this.checkForNewArticles();
+    }, 5000);
   }
   
   async setupNotificationHandlers(): Promise<void> {
-    if (Platform.OS === 'web') return;
-    
-    // Handle notification received while app is in foreground
-    Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
-    });
-    
-    // Handle notification tapped
-    Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data;
-      if (data?.articleId) {
-        // Navigate to article - this would need to be implemented with navigation
-        console.log('Navigate to article:', data.articleId);
-      }
-    });
+    try {
+      if (Platform.OS === 'web') return;
+      
+      // Handle notification received while app is in foreground
+      Notifications.addNotificationReceivedListener(notification => {
+        console.log('Notification received:', notification);
+      });
+      
+      // Handle notification tapped
+      Notifications.addNotificationResponseReceivedListener(response => {
+        const data = response.notification.request.content.data;
+        if (data?.articleId) {
+          // Navigate to article - this would need to be implemented with navigation
+          console.log('Navigate to article:', data.articleId);
+        }
+      });
+      
+      // Request permissions
+      await this.requestPermissions();
+    } catch (error) {
+      console.warn('Error setting up notification handlers:', error);
+    }
   }
 }
 

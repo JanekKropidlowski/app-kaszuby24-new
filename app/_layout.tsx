@@ -18,15 +18,19 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Load fonts
-        await Font.loadAsync({
-          'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf'),
-          'Poppins-Medium': require('../assets/fonts/Poppins/Poppins-Medium.ttf'),
-          'Poppins-SemiBold': require('../assets/fonts/Poppins/Poppins-SemiBold.ttf'),
-          'Poppins-Bold': require('../assets/fonts/Poppins/Poppins-Bold.ttf'),
-        });
+        // Load fonts only if they exist
+        try {
+          await Font.loadAsync({
+            'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf'),
+            'Poppins-Medium': require('../assets/fonts/Poppins/Poppins-Medium.ttf'),
+            'Poppins-SemiBold': require('../assets/fonts/Poppins/Poppins-SemiBold.ttf'),
+            'Poppins-Bold': require('../assets/fonts/Poppins/Poppins-Bold.ttf'),
+          });
+        } catch (fontError) {
+          console.warn('Font loading failed, using system fonts:', fontError);
+        }
       } catch (e) {
-        console.warn(e);
+        console.warn('App preparation error:', e);
         setError('Wystąpił problem podczas ładowania zasobów. Aplikacja może działać nieprawidłowo.');
       } finally {
         setAppIsReady(true);
@@ -50,11 +54,26 @@ export default function RootLayout() {
 
   if (error) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
-        <Text style={{ color: theme.colors.error, fontSize: 16, textAlign: 'center', padding: 20 }}>
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: theme.colors.background,
+        padding: 20
+      }}>
+        <Text style={{ 
+          color: theme.colors.error, 
+          fontSize: 16, 
+          textAlign: 'center', 
+          marginBottom: 16
+        }}>
           {error}
         </Text>
-        <Text style={{ color: theme.colors.text, fontSize: 14, textAlign: 'center' }}>
+        <Text style={{ 
+          color: theme.colors.text, 
+          fontSize: 14, 
+          textAlign: 'center' 
+        }}>
           Spróbuj uruchomić aplikację ponownie lub sprawdź połączenie internetowe.
         </Text>
       </View>
@@ -65,7 +84,8 @@ export default function RootLayout() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={theme.colors.background}
+        backgroundColor={Platform.OS === 'android' ? theme.colors.background : undefined}
+        translucent={Platform.OS === 'android'}
       />
       <Stack
         screenOptions={{
@@ -76,13 +96,21 @@ export default function RootLayout() {
           headerTitleStyle: {
             fontWeight: '600',
             color: theme.colors.text,
-            fontFamily: 'Poppins-SemiBold',
+            fontFamily: Platform.select({
+              ios: 'Poppins-SemiBold',
+              android: 'Poppins-SemiBold',
+              default: 'System'
+            }),
           },
           contentStyle: {
             backgroundColor: theme.colors.background,
           },
           headerShadowVisible: false,
-          animation: 'slide_from_right',
+          animation: Platform.select({
+            ios: 'slide_from_right',
+            android: 'slide_from_right',
+            default: 'default'
+          }),
           headerBackTitle: 'Wróć',
         }}
       >
@@ -92,7 +120,11 @@ export default function RootLayout() {
           options={{ 
             title: '',
             headerBackTitle: 'Wróć',
-            animation: 'slide_from_right',
+            animation: Platform.select({
+              ios: 'slide_from_right',
+              android: 'slide_from_right',
+              default: 'default'
+            }),
           }} 
         />
         <Stack.Screen 
@@ -100,7 +132,11 @@ export default function RootLayout() {
           options={{ 
             title: 'Szukaj',
             headerBackTitle: 'Wróć',
-            animation: 'slide_from_bottom',
+            animation: Platform.select({
+              ios: 'slide_from_bottom',
+              android: 'slide_from_bottom',
+              default: 'default'
+            }),
           }} 
         />
         <Stack.Screen 
@@ -108,7 +144,11 @@ export default function RootLayout() {
           options={{ 
             presentation: 'modal',
             title: 'Modal',
-            animation: 'slide_from_bottom',
+            animation: Platform.select({
+              ios: 'slide_from_bottom',
+              android: 'slide_from_bottom',
+              default: 'default'
+            }),
           }} 
         />
       </Stack>

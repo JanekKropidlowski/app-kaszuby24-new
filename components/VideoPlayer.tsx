@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, View, Text, Dimensions, Platform } from 'react-native';
+import { StyleSheet, View, Text, Dimensions, Platform, TouchableOpacity, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { Play } from 'lucide-react-native';
 import { extractYouTubeId, extractVimeoId } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
 
@@ -17,14 +18,29 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   
   // Determine which platform the video is from
   let embedUrl = '';
+  let videoTitle = 'Video';
   
   if (youtubeId) {
     embedUrl = `https://www.youtube.com/embed/${youtubeId}?playsinline=1&modestbranding=1&rel=0`;
+    videoTitle = 'YouTube Video';
   } else if (vimeoId) {
     embedUrl = `https://player.vimeo.com/video/${vimeoId}?title=0&byline=0&portrait=0`;
+    videoTitle = 'Vimeo Video';
   } else {
-    // If we can't determine the platform, just use the URL as is
-    embedUrl = url;
+    // If we can't determine the platform, show a fallback
+    return (
+      <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
+        <TouchableOpacity 
+          style={styles.fallbackButton}
+          onPress={() => Linking.openURL(url)}
+        >
+          <Play size={32} color={theme.colors.primary} />
+          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+            Otwórz video w przeglądarce
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
   
   // For web platform, we'll use an iframe directly
@@ -41,24 +57,73 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
           }}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
+          title={videoTitle}
         />
       </View>
     );
   }
   
-  // For mobile platforms, use WebView
-  return (
-    <View style={styles.container}>
-      <WebView
-        source={{ uri: embedUrl }}
-        style={styles.webview}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        allowsFullscreenVideo={true}
-        mediaPlaybackRequiresUserAction={false}
-      />
-    </View>
-  );
+  // For mobile platforms, check if WebView is available
+  try {
+    // For mobile platforms, use WebView
+    return (
+      <View style={styles.container}>
+        <WebView
+          source={{ uri: embedUrl }}
+          style={styles.webview}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          allowsFullscreenVideo={true}
+          mediaPlaybackRequiresUserAction={false}
+          onError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.warn('VideoPlayer WebView error: ', nativeEvent);
+          }}
+          onHttpError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.warn('VideoPlayer WebView HTTP error: ', nativeEvent);
+          }}
+          renderError={() => (
+            <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
+              <TouchableOpacity 
+                style={styles.fallbackButton}
+                onPress={() => Linking.openURL(url)}
+              >
+                <Play size={32} color={theme.colors.primary} />
+                <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+                  Otwórz video w przeglądarce
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={[styles.loadingContainer, { backgroundColor: theme.colors.subtle }]}>
+              <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+                Ładowanie video...
+              </Text>
+            </View>
+          )}
+        />
+      </View>
+    );
+  } catch (error) {
+    // Fallback if WebView is not available
+    console.warn('WebView not available, showing fallback:', error);
+    return (
+      <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
+        <TouchableOpacity 
+          style={styles.fallbackButton}
+          onPress={() => Linking.openURL(url)}
+        >
+          <Play size={32} color={theme.colors.primary} />
+          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+            Otwórz video w przeglądarce
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 };
 
 const { width } = Dimensions.get('window');
@@ -79,6 +144,39 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  fallbackContainer: {
+    width: '100%',
+    height: (width - 48) * 0.5625,
+    marginVertical: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fallbackButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  fallbackText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

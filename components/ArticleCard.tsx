@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Animated, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Bookmark, Clock } from 'lucide-react-native';
@@ -24,23 +24,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   const { theme } = useThemeStore();
   
   const isSaved = isArticleSaved(article.id);
-  const animatedScale = new Animated.Value(1);
   
   const handlePress = () => {
-    // Animate the card press
-    Animated.sequence([
-      Animated.timing(animatedScale, {
-        toValue: 0.97,
-        duration: 120,
-        useNativeDriver: true,
-      }),
-      Animated.timing(animatedScale, {
-        toValue: 1,
-        duration: 120,
-        useNativeDriver: true,
-      }),
-    ]).start();
-    
     if (onPress) {
       onPress();
     }
@@ -73,113 +58,159 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   
   if (compact) {
     return (
-      <Animated.View style={{ transform: [{ scale: animatedScale }] }}>
-        <TouchableOpacity 
-          style={[
-            styles.compactContainer,
-            { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
-          ]} 
-          onPress={handlePress}
-          activeOpacity={0.7}
-        >
-          {article.featured_media_url ? (
-            <Image
-              source={{ uri: article.featured_media_url }}
-              style={styles.compactImage}
-              contentFit="cover"
-              transition={200}
-            />
-          ) : (
-            <View style={[styles.compactImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
-          )}
-          
-          <View style={styles.compactContent}>
-            <Text style={[styles.compactTitle, { color: theme.colors.text, fontFamily: theme.fontFamily?.medium || 'Poppins-Medium' }]} numberOfLines={2}>
-              {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-            </Text>
-            
-            <View style={styles.compactFooter}>
-              <View style={styles.compactTimeContainer}>
-                <Clock size={12} color={theme.colors.textSecondary} />
-                <Text style={[styles.compactDate, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily?.regular || 'Poppins-Regular' }]}>
-                  {getRelativeTime(article.date)}
-                </Text>
-              </View>
-              
-              {categoryName && (
-                <View style={[styles.compactCategory, { backgroundColor: theme.colors.subtle }]}>
-                  <Text style={[styles.compactCategoryText, { color: theme.colors.textSecondary }]}>
-                    {categoryName}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  }
-  
-  return (
-    <Animated.View style={{ transform: [{ scale: animatedScale }] }}>
       <TouchableOpacity 
         style={[
-          styles.container,
-          { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
+          styles.compactContainer,
+          { 
+            backgroundColor: theme.colors.card, 
+            borderColor: theme.colors.border,
+            shadowColor: Platform.OS === 'android' ? theme.colors.shadow : '#000',
+          }
         ]} 
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        <View style={styles.cardContent}>
-          <View style={styles.textContent}>
+        {article.featured_media_url ? (
+          <Image
+            source={{ uri: article.featured_media_url }}
+            style={styles.compactImage}
+            contentFit="cover"
+            transition={200}
+            placeholder="Loading..."
+          />
+        ) : (
+          <View style={[styles.compactImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+        )}
+        
+        <View style={styles.compactContent}>
+          <Text style={[
+            styles.compactTitle, 
+            { 
+              color: theme.colors.text, 
+              fontFamily: Platform.select({
+                ios: 'Poppins-Medium',
+                android: 'Poppins-Medium',
+                default: 'System'
+              })
+            }
+          ]} numberOfLines={2}>
+            {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+          </Text>
+          
+          <View style={styles.compactFooter}>
+            <View style={styles.compactTimeContainer}>
+              <Clock size={12} color={theme.colors.textSecondary} />
+              <Text style={[
+                styles.compactDate, 
+                { 
+                  color: theme.colors.textSecondary, 
+                  fontFamily: Platform.select({
+                    ios: 'Poppins-Regular',
+                    android: 'Poppins-Regular',
+                    default: 'System'
+                  })
+                }
+              ]}>
+                {getRelativeTime(article.date)}
+              </Text>
+            </View>
+            
             {categoryName && (
-              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '15' }]}>
-                <Text style={[styles.categoryText, { color: theme.colors.primary }]}>
+              <View style={[styles.compactCategory, { backgroundColor: theme.colors.subtle }]}>
+                <Text style={[styles.compactCategoryText, { color: theme.colors.textSecondary }]}>
                   {categoryName}
                 </Text>
               </View>
             )}
-            
-            <Text style={[styles.title, { color: theme.colors.text, fontFamily: theme.fontFamily?.medium || 'Poppins-Medium' }]} numberOfLines={2}>
-              {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-            </Text>
-            
-            <View style={styles.footer}>
-              <View style={styles.timeContainer}>
-                <Clock size={14} color={theme.colors.textSecondary} />
-                <Text style={[styles.date, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily?.regular || 'Poppins-Regular' }]}>
-                  {getRelativeTime(article.date)}
-                </Text>
-              </View>
-              
-              <TouchableOpacity 
-                onPress={toggleSave} 
-                style={[
-                  styles.bookmarkButton,
-                  isSaved && { backgroundColor: theme.colors.primary + '20' }
-                ]}
-                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-              >
-                <Bookmark 
-                  size={18} 
-                  color={isSaved ? theme.colors.primary : theme.colors.textSecondary} 
-                  fill={isSaved ? theme.colors.primary : 'transparent'} 
-                />
-              </TouchableOpacity>
-            </View>
           </View>
-          
-          {article.featured_media_url && (
-            <Image
-              source={{ uri: article.featured_media_url }}
-              style={styles.image}
-              contentFit="cover"
-              transition={300}
-            />
-          )}
         </View>
       </TouchableOpacity>
-    </Animated.View>
+    );
+  }
+  
+  return (
+    <TouchableOpacity 
+      style={[
+        styles.container,
+        { 
+          backgroundColor: theme.colors.card, 
+          borderColor: theme.colors.border,
+          shadowColor: Platform.OS === 'android' ? theme.colors.shadow : '#000',
+        }
+      ]} 
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.cardContent}>
+        <View style={styles.textContent}>
+          {categoryName && (
+            <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '15' }]}>
+              <Text style={[styles.categoryText, { color: theme.colors.primary }]}>
+                {categoryName}
+              </Text>
+            </View>
+          )}
+          
+          <Text style={[
+            styles.title, 
+            { 
+              color: theme.colors.text, 
+              fontFamily: Platform.select({
+                ios: 'Poppins-Medium',
+                android: 'Poppins-Medium',
+                default: 'System'
+              })
+            }
+          ]} numberOfLines={2}>
+            {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+          </Text>
+          
+          <View style={styles.footer}>
+            <View style={styles.timeContainer}>
+              <Clock size={14} color={theme.colors.textSecondary} />
+              <Text style={[
+                styles.date, 
+                { 
+                  color: theme.colors.textSecondary, 
+                  fontFamily: Platform.select({
+                    ios: 'Poppins-Regular',
+                    android: 'Poppins-Regular',
+                    default: 'System'
+                  })
+                }
+              ]}>
+                {getRelativeTime(article.date)}
+              </Text>
+            </View>
+            
+            <TouchableOpacity 
+              onPress={toggleSave} 
+              style={[
+                styles.bookmarkButton,
+                isSaved && { backgroundColor: theme.colors.primary + '20' }
+              ]}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            >
+              <Bookmark 
+                size={18} 
+                color={isSaved ? theme.colors.primary : theme.colors.textSecondary} 
+                fill={isSaved ? theme.colors.primary : 'transparent'} 
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {article.featured_media_url && (
+          <Image
+            source={{ uri: article.featured_media_url }}
+            style={styles.image}
+            contentFit="cover"
+            transition={300}
+            placeholder="Loading..."
+          />
+        )}
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -190,7 +221,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -252,7 +282,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,

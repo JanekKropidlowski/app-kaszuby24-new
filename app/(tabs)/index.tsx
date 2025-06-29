@@ -8,8 +8,6 @@ import {
   TouchableOpacity, 
   ScrollView,
   Dimensions,
-  Alert,
-  Animated,
   Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -25,7 +23,7 @@ import { useThemeStore } from '@/store/themeStore';
 import CategoryPill from '@/components/CategoryPill';
 
 const { width } = Dimensions.get('window');
-const CAROUSEL_ITEM_WIDTH = width * 0.9;
+const CAROUSEL_ITEM_WIDTH = width * 0.85;
 const CAROUSEL_ITEM_SPACING = 16;
 
 const MAX_RETRIES = 5;
@@ -49,16 +47,7 @@ export default function HomeScreen() {
   const [isOffline, setIsOffline] = useState(false);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   
-  const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
-  
-  // Animation values for carousel items
-  const inputRange = [-width, 0, width];
-  const translateY = scrollX.interpolate({
-    inputRange,
-    outputRange: [0, -10, 0],
-    extrapolate: 'clamp',
-  });
   
   // Load articles and categories
   const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
@@ -198,12 +187,16 @@ export default function HomeScreen() {
     const wait = new Promise(resolve => setTimeout(resolve, 500));
     wait.then(() => {
       // Try to scroll to the item with a delay
-      if (flatListRef.current) {
-        flatListRef.current.scrollToIndex({
-          index: info.index,
-          animated: true,
-          viewPosition: 0.5,
-        });
+      if (flatListRef.current && info.index < featuredArticles.length) {
+        try {
+          flatListRef.current.scrollToIndex({
+            index: info.index,
+            animated: true,
+            viewPosition: 0.5,
+          });
+        } catch (error) {
+          console.warn('ScrollToIndex failed:', error);
+        }
       }
     });
   };
@@ -223,12 +216,16 @@ export default function HomeScreen() {
         
         setActiveCarouselIndex(newIndex);
         
-        if (flatListRef.current) {
-          flatListRef.current.scrollToIndex({
-            index: newIndex,
-            animated: true,
-            viewPosition: 0.5,
-          });
+        if (flatListRef.current && newIndex < featuredArticles.length) {
+          try {
+            flatListRef.current.scrollToIndex({
+              index: newIndex,
+              animated: true,
+              viewPosition: 0.5,
+            });
+          } catch (error) {
+            console.warn('Auto scroll failed:', error);
+          }
         }
       }, 5000);
     }
@@ -239,39 +236,11 @@ export default function HomeScreen() {
   }, [activeCarouselIndex, featuredArticles.length]);
   
   const renderCarouselItem = ({ item, index }: { item: Article; index: number }) => {
-    // Calculate the input range for this specific item
-    const thisItemInputRange = [
-      (index - 1) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
-      index * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
-      (index + 1) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
-    ];
-    
-    // Calculate the scale and opacity based on the scroll position
-    const scale = scrollX.interpolate({
-      inputRange: thisItemInputRange,
-      outputRange: [0.85, 1, 0.85],
-      extrapolate: 'clamp'
-    });
-    
-    const opacity = scrollX.interpolate({
-      inputRange: thisItemInputRange,
-      outputRange: [0.6, 1, 0.6],
-      extrapolate: 'clamp'
-    });
-    
-    const translateX = scrollX.interpolate({
-      inputRange: thisItemInputRange,
-      outputRange: [-30, 0, 30],
-      extrapolate: 'clamp'
-    });
-    
     return (
-      <Animated.View
+      <View
         style={[
           styles.carouselItemContainer,
           { 
-            transform: [{ scale }, { translateX }],
-            opacity,
             width: CAROUSEL_ITEM_WIDTH,
             marginRight: index === featuredArticles.length - 1 ? 0 : CAROUSEL_ITEM_SPACING,
           }
@@ -292,6 +261,7 @@ export default function HomeScreen() {
                 style={styles.carouselImage}
                 contentFit="cover"
                 transition={300}
+                placeholder="Loading..."
               />
             ) : (
               <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
@@ -311,46 +281,26 @@ export default function HomeScreen() {
             </View>
           </View>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   };
   
   const renderCarouselIndicator = () => {
     return (
       <View style={styles.indicatorContainer}>
-        {featuredArticles.map((_, index) => {
-          const inputRange = [
-            (index - 1) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
-            index * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
-            (index + 1) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
-          ];
-          
-          const scale = scrollX.interpolate({
-            inputRange,
-            outputRange: [1, 1.5, 1],
-            extrapolate: 'clamp'
-          });
-          
-          const opacity = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.5, 1, 0.5],
-            extrapolate: 'clamp'
-          });
-          
-          return (
-            <Animated.View
-              key={`indicator-${index}`}
-              style={[
-                styles.indicator,
-                {
-                  backgroundColor: theme.colors.primary,
-                  transform: [{ scale }],
-                  opacity,
-                },
-              ]}
-            />
-          );
-        })}
+        {featuredArticles.map((_, index) => (
+          <View
+            key={`indicator-${index}`}
+            style={[
+              styles.indicator,
+              {
+                backgroundColor: index === activeCarouselIndex ? theme.colors.primary : theme.colors.textSecondary,
+                opacity: index === activeCarouselIndex ? 1 : 0.5,
+                transform: [{ scale: index === activeCarouselIndex ? 1.2 : 1 }],
+              },
+            ]}
+          />
+        ))}
       </View>
     );
   };
@@ -390,30 +340,32 @@ export default function HomeScreen() {
             {/* Featured Articles Carousel */}
             {featuredArticles.length > 0 && (
               <View style={styles.carouselContainer}>
-                <Animated.FlatList
+                <FlatList
                   ref={flatListRef}
                   data={featuredArticles}
                   keyExtractor={(item) => `carousel-${item.id}`}
                   renderItem={renderCarouselItem}
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  pagingEnabled
+                  pagingEnabled={Platform.OS === 'ios'}
                   snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
                   decelerationRate="fast"
                   contentContainerStyle={styles.carouselListContent}
-                  onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                    { useNativeDriver: true }
-                  )}
                   onMomentumScrollEnd={(event) => {
                     const newIndex = Math.round(
                       event.nativeEvent.contentOffset.x / 
                       (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
                     );
-                    setActiveCarouselIndex(newIndex);
+                    if (newIndex >= 0 && newIndex < featuredArticles.length) {
+                      setActiveCarouselIndex(newIndex);
+                    }
                   }}
                   getItemLayout={getItemLayout}
                   onScrollToIndexFailed={handleScrollToIndexFailed}
+                  removeClippedSubviews={Platform.OS === 'android'}
+                  initialNumToRender={3}
+                  maxToRenderPerBatch={3}
+                  windowSize={5}
                 />
                 {renderCarouselIndicator()}
               </View>
@@ -479,6 +431,10 @@ export default function HomeScreen() {
         }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        removeClippedSubviews={Platform.OS === 'android'}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={10}
       />
     </View>
   );
@@ -489,7 +445,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 16,
+    paddingBottom: 100, // Space for bottom tab bar
   },
   carouselContainer: {
     marginTop: 20,
@@ -530,7 +486,6 @@ const styles = StyleSheet.create({
     right: 0,
     height: '70%',
     backgroundColor: 'rgba(0,0,0,0.6)',
-    backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
   },
   carouselItemContent: {
     position: 'absolute',
@@ -546,7 +501,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignSelf: 'flex-start',
     marginBottom: 12,
-    backdropFilter: Platform.OS === 'web' ? 'blur(8px)' : undefined,
   },
   carouselLabel: {
     color: '#FFFFFF',

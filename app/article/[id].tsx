@@ -9,7 +9,6 @@ import {
   Platform,
   Dimensions,
   Linking,
-  Animated,
   StatusBar
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -40,13 +39,6 @@ export default function ArticleDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [webViewHeight, setWebViewHeight] = useState(300);
-  
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -196,7 +188,15 @@ export default function ArticleDetailScreen() {
     if (Platform.OS === 'web') {
       return (
         <View style={styles.htmlContainer}>
-          <div dangerouslySetInnerHTML={{ __html: cleanedHtml }} />
+          <div 
+            dangerouslySetInnerHTML={{ __html: cleanedHtml }}
+            style={{
+              color: isDarkMode ? '#F9FAFB' : '#111827',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              fontSize: '16px',
+              lineHeight: '1.8',
+            }}
+          />
         </View>
       );
     } else {
@@ -231,6 +231,8 @@ export default function ArticleDetailScreen() {
               document.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
               document.body.style.fontSize = '16px';
               document.body.style.lineHeight = '1.8';
+              document.body.style.padding = '0';
+              document.body.style.margin = '0';
               
               // Make all links open in a new window/tab
               const links = document.getElementsByTagName('a');
@@ -250,16 +252,28 @@ export default function ArticleDetailScreen() {
               }
               
               // Adjust the height
-              window.ReactNativeWebView.postMessage(document.documentElement.scrollHeight);
+              setTimeout(() => {
+                window.ReactNativeWebView.postMessage(document.documentElement.scrollHeight);
+              }, 500);
               true;
             `}
             onMessage={(event) => {
               // Adjust WebView height based on content
               const height = parseInt(event.nativeEvent.data, 10);
-              if (height > 0) {
-                setWebViewHeight(height);
+              if (height > 0 && height !== webViewHeight) {
+                setWebViewHeight(Math.max(height, 300));
               }
             }}
+            onError={(syntheticEvent) => {
+              const { nativeEvent } = syntheticEvent;
+              console.warn('WebView error: ', nativeEvent);
+            }}
+            onHttpError={(syntheticEvent) => {
+              const { nativeEvent } = syntheticEvent;
+              console.warn('WebView HTTP error: ', nativeEvent);
+            }}
+            androidLayerType="hardware"
+            mixedContentMode="compatibility"
           />
         </View>
       );
@@ -268,12 +282,17 @@ export default function ArticleDetailScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar 
+        translucent 
+        backgroundColor="transparent" 
+        barStyle="light-content" 
+      />
       
       {/* Floating back button */}
       <TouchableOpacity 
         style={styles.floatingBackButton} 
         onPress={handleGoBack}
+        activeOpacity={0.8}
       >
         <ArrowLeft size={20} color="#FFFFFF" />
       </TouchableOpacity>
@@ -282,6 +301,7 @@ export default function ArticleDetailScreen() {
       <TouchableOpacity 
         style={styles.floatingShareButton} 
         onPress={handleShare}
+        activeOpacity={0.8}
       >
         <Share2 size={20} color="#FFFFFF" />
       </TouchableOpacity>
@@ -293,6 +313,7 @@ export default function ArticleDetailScreen() {
           isSaved && { backgroundColor: theme.colors.primary }
         ]} 
         onPress={toggleSave}
+        activeOpacity={0.8}
       >
         <Bookmark 
           size={20} 
@@ -301,37 +322,10 @@ export default function ArticleDetailScreen() {
         />
       </TouchableOpacity>
       
-      {/* Animated header for scrolling */}
-      <Animated.View 
-        style={[
-          styles.animatedHeader, 
-          { 
-            opacity: headerOpacity,
-            backgroundColor: theme.colors.card,
-            borderBottomColor: theme.colors.border,
-          }
-        ]}
-      >
-        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-          <ArrowLeft size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text 
-          style={[styles.headerTitle, { color: theme.colors.text }]} 
-          numberOfLines={1}
-        >
-          {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-        </Text>
-        <View style={{ width: 24 }} />
-      </Animated.View>
-      
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.content}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
       >
         {/* Featured image */}
         {article.featured_media_url ? (
@@ -341,6 +335,7 @@ export default function ArticleDetailScreen() {
               style={styles.featuredImage}
               contentFit="cover"
               transition={300}
+              placeholder="Loading..."
             />
             <View style={styles.imageDarkOverlay} />
             
@@ -413,36 +408,13 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 32,
   },
-  animatedHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    zIndex: 1000,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginHorizontal: 8,
-  },
   featuredImageContainer: {
     position: 'relative',
-    height: 380,
+    height: Platform.select({
+      ios: 380,
+      android: 350,
+      default: 380
+    }),
   },
   featuredImage: {
     width: '100%',
@@ -468,7 +440,11 @@ const styles = StyleSheet.create({
   },
   floatingBackButton: {
     position: 'absolute',
-    top: 50,
+    top: Platform.select({
+      ios: 50,
+      android: 40,
+      default: 50
+    }),
     left: 20,
     width: 40,
     height: 40,
@@ -477,10 +453,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+    elevation: 5,
   },
   floatingShareButton: {
     position: 'absolute',
-    top: 50,
+    top: Platform.select({
+      ios: 50,
+      android: 40,
+      default: 50
+    }),
     right: 70,
     width: 40,
     height: 40,
@@ -489,10 +470,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+    elevation: 5,
   },
   floatingBookmarkButton: {
     position: 'absolute',
-    top: 50,
+    top: Platform.select({
+      ios: 50,
+      android: 40,
+      default: 50
+    }),
     right: 20,
     width: 40,
     height: 40,
@@ -501,12 +487,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+    elevation: 5,
   },
   articleContent: {
     padding: 24,
     marginTop: -50,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    minHeight: 400,
   },
   title: {
     fontSize: 22,
@@ -537,9 +525,11 @@ const styles = StyleSheet.create({
   },
   htmlContainer: {
     width: '100%',
+    minHeight: 200,
   },
   webview: {
     width: '100%',
-    minHeight: 200,
+    minHeight: 300,
+    backgroundColor: 'transparent',
   },
 });

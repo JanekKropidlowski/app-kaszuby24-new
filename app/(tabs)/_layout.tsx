@@ -6,7 +6,6 @@ import { Image } from 'expo-image';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
 const TAB_BAR_WIDTH = width * 0.9;
@@ -18,29 +17,20 @@ export default function TabLayout() {
   const unreadCount = getUnreadCount();
   const router = useRouter();
   
-  // Shared value for the indicator position
-  const indicatorPosition = useSharedValue(0);
-  
   useEffect(() => {
     // Initialize notifications
     const initNotifications = async () => {
-      initializePreferences();
-      await notificationService.setupNotificationHandlers();
-      notificationService.startPeriodicCheck();
+      try {
+        initializePreferences();
+        await notificationService.setupNotificationHandlers();
+        notificationService.startPeriodicCheck();
+      } catch (error) {
+        console.warn('Notification setup failed:', error);
+      }
     };
     
     initNotifications();
   }, [initializePreferences]);
-  
-  // Animated style for the indicator
-  const indicatorStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: withSpring(indicatorPosition.value, {
-        damping: 15,
-        stiffness: 120,
-      }) }],
-    };
-  });
   
   const renderTabBarIcon = (Icon: any, focused: boolean, badgeCount?: number) => {
     return (
@@ -81,7 +71,11 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: '600',
           color: theme.colors.text,
-          fontFamily: theme.fontFamily?.semibold || 'Poppins-SemiBold',
+          fontFamily: Platform.select({
+            ios: 'Poppins-SemiBold',
+            android: 'Poppins-SemiBold',
+            default: 'System'
+          }),
         },
         headerTintColor: theme.colors.primary,
       }}
@@ -89,28 +83,15 @@ export default function TabLayout() {
         <View style={styles.customTabBarContainer}>
           <View style={[
             styles.customTabBar,
-            { backgroundColor: theme.colors.card }
+            { 
+              backgroundColor: theme.colors.card,
+              shadowColor: Platform.OS === 'android' ? theme.colors.shadow : '#000',
+            }
           ]}>
-            {/* Animated indicator */}
-            {Platform.OS !== 'web' && (
-              <Animated.View 
-                style={[
-                  styles.indicator, 
-                  { backgroundColor: theme.colors.primary + '15' },
-                  indicatorStyle
-                ]} 
-              />
-            )}
-            
             {/* Custom tab bar implementation */}
             {state.routes.map((route, index) => {
               const { options } = descriptors[route.key];
               const isFocused = state.index === index;
-              
-              // Update indicator position when tab is focused
-              if (isFocused) {
-                indicatorPosition.value = index * TAB_WIDTH;
-              }
               
               let icon;
               switch (route.name) {
@@ -149,10 +130,18 @@ export default function TabLayout() {
                 <Pressable
                   key={route.key}
                   onPress={onPress}
-                  style={styles.tabButton}
+                  style={[
+                    styles.tabButton,
+                    isFocused && { backgroundColor: theme.colors.primary + '15' }
+                  ]}
                   accessibilityRole="button"
                   accessibilityState={isFocused ? { selected: true } : {}}
                   accessibilityLabel={options.tabBarAccessibilityLabel}
+                  android_ripple={{ 
+                    color: theme.colors.primary + '20',
+                    borderless: true,
+                    radius: 30
+                  }}
                 >
                   {icon}
                 </Pressable>
@@ -170,6 +159,7 @@ export default function TabLayout() {
               source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png' }}
               style={{ width: 140, height: 35 }}
               contentFit="contain"
+              placeholder="Kaszuby24"
             />
           ),
         }}
@@ -205,7 +195,11 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   customTabBarContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: Platform.select({
+      ios: 20,
+      android: 16,
+      default: 20
+    }),
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -215,20 +209,12 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     flexDirection: 'row',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
     position: 'relative',
     overflow: 'hidden',
-  },
-  indicator: {
-    position: 'absolute',
-    width: TAB_WIDTH,
-    height: 70,
-    borderRadius: 35,
-    zIndex: 0,
   },
   tabIconContainer: {
     alignItems: 'center',
@@ -241,6 +227,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 35,
   },
   badge: {
     position: 'absolute',
