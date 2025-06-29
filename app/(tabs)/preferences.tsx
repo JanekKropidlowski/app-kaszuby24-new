@@ -23,7 +23,9 @@ import {
   Share2, 
   ChevronRight,
   Trash2,
-  User
+  User,
+  Zap,
+  CheckCircle
 } from 'lucide-react-native';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
@@ -37,7 +39,8 @@ export default function PreferencesScreen() {
     notificationsEnabled, 
     toggleNotifications, 
     updatePreference,
-    initializePreferences 
+    initializePreferences,
+    isFirstTimeUser
   } = useNotificationsStore();
   
   const { isDarkMode, toggleTheme, theme } = useThemeStore();
@@ -60,6 +63,55 @@ export default function PreferencesScreen() {
       }
     }
     toggleNotifications();
+  };
+  
+  const handleQuickSetup = async () => {
+    try {
+      // Request permissions first
+      const hasPermission = await notificationService.requestPermissions();
+      if (!hasPermission) {
+        Alert.alert(
+          'Brak uprawnień',
+          'Aby otrzymywać powiadomienia, musisz zezwolić na nie w ustawieniach urządzenia.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      // Enable notifications
+      if (!notificationsEnabled) {
+        toggleNotifications();
+      }
+      
+      // Enable popular regions
+      const popularRegions = ['Trójmiasto', 'Kraj', 'Kartuzy'];
+      preferences.forEach(pref => {
+        if (pref.type === 'region' && popularRegions.includes(pref.name)) {
+          updatePreference(pref.id, true);
+        }
+      });
+      
+      // Enable popular categories
+      const popularCategories = ['Wiadomości', 'Kultura i Rozrywka'];
+      preferences.forEach(pref => {
+        if (pref.type === 'category' && popularCategories.includes(pref.name)) {
+          updatePreference(pref.id, true);
+        }
+      });
+      
+      Alert.alert(
+        'Gotowe!',
+        'Powiadomienia zostały skonfigurowane. Będziesz otrzymywać najważniejsze wiadomości z wybranych regionów.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error in quick setup:', error);
+      Alert.alert(
+        'Błąd',
+        'Nie udało się skonfigurować powiadomień. Spróbuj ponownie.',
+        [{ text: 'OK' }]
+      );
+    }
   };
   
   const handleOpenWebsite = () => {
@@ -126,6 +178,88 @@ export default function PreferencesScreen() {
           Twoje źródło wiadomości z Kaszub
         </Text>
       </View>
+      
+      {/* Quick Setup for new users */}
+      {(isFirstTimeUser || !notificationsEnabled) && (
+        <>
+          <Text style={[
+            styles.sectionTitle, 
+            { 
+              color: theme.colors.text,
+              fontFamily: theme.fontFamily.semibold
+            }
+          ]}>
+            Szybka konfiguracja
+          </Text>
+          
+          <View style={[styles.quickSetupCard, { backgroundColor: theme.colors.card }]}>
+            <View style={styles.quickSetupHeader}>
+              <View style={[styles.quickSetupIcon, { backgroundColor: theme.colors.subtle }]}>
+                <Zap size={24} color={theme.colors.primary} />
+              </View>
+              <View style={styles.quickSetupText}>
+                <Text style={[
+                  styles.quickSetupTitle,
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.semibold
+                  }
+                ]}>
+                  Skonfiguruj w 30 sekund
+                </Text>
+                <Text style={[
+                  styles.quickSetupSubtitle,
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
+                  Włącz powiadomienia dla popularnych regionów
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.quickSetupFeatures}>
+              <View style={styles.quickSetupFeature}>
+                <CheckCircle size={16} color={theme.colors.success} />
+                <Text style={[
+                  styles.quickSetupFeatureText,
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
+                  Trójmiasto, Kraj, Kartuzy
+                </Text>
+              </View>
+              <View style={styles.quickSetupFeature}>
+                <CheckCircle size={16} color={theme.colors.success} />
+                <Text style={[
+                  styles.quickSetupFeatureText,
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
+                  Wiadomości i Kultura
+                </Text>
+              </View>
+            </View>
+            
+            <TouchableOpacity 
+              style={[styles.quickSetupButton, { backgroundColor: theme.colors.primary }]}
+              onPress={handleQuickSetup}
+            >
+              <Text style={[
+                styles.quickSetupButtonText,
+                { fontFamily: theme.fontFamily.semibold }
+              ]}>
+                Skonfiguruj automatycznie
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
       
       {/* App Settings */}
       <Text style={[
@@ -447,6 +581,59 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 12,
     marginTop: 8,
+  },
+  quickSetupCard: {
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+  },
+  quickSetupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  quickSetupIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  quickSetupText: {
+    flex: 1,
+  },
+  quickSetupTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  quickSetupSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  quickSetupFeatures: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  quickSetupFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  quickSetupFeatureText: {
+    fontSize: 14,
+  },
+  quickSetupButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  quickSetupButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   section: {
     marginHorizontal: 20,

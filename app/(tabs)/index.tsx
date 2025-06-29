@@ -18,8 +18,11 @@ import { Article, Category } from '@/types/article';
 import { ArticleCard } from '@/components/ArticleCard';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
+import WelcomeNotifications from '@/components/WelcomeNotifications';
+import NotificationsBanner from '@/components/NotificationsBanner';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useNotificationsStore } from '@/store/notificationsStore';
 import CategoryPill from '@/components/CategoryPill';
 
 const { width } = Dimensions.get('window');
@@ -32,6 +35,12 @@ export default function HomeScreen() {
   const router = useRouter();
   const { addRecentArticle } = useArticlesStore();
   const { theme } = useThemeStore();
+  const { 
+    shouldShowWelcome, 
+    shouldShowBanner, 
+    dismissBanner,
+    initializePreferences 
+  } = useNotificationsStore();
   
   const [articles, setArticles] = useState<Article[]>([]);
   const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
@@ -46,8 +55,23 @@ export default function HomeScreen() {
   const [retryCount, setRetryCount] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
+  
+  // Initialize and check for first time user
+  useEffect(() => {
+    initializePreferences();
+    
+    // Show welcome modal for first time users after a short delay
+    const timer = setTimeout(() => {
+      if (shouldShowWelcome()) {
+        setShowWelcomeModal(true);
+      }
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, [initializePreferences, shouldShowWelcome]);
   
   // Load articles and categories
   const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
@@ -171,6 +195,18 @@ export default function HomeScreen() {
     setError(null);
     setIsOffline(false);
     loadArticles(1, true);
+  };
+  
+  const handleWelcomeClose = () => {
+    setShowWelcomeModal(false);
+  };
+  
+  const handleBannerPress = () => {
+    setShowWelcomeModal(true);
+  };
+  
+  const handleBannerDismiss = () => {
+    dismissBanner();
   };
   
   // Get item layout for FlatList to optimize scrollToIndex
@@ -352,6 +388,14 @@ export default function HomeScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
+            {/* Notifications Banner for users who haven't set up notifications */}
+            {shouldShowBanner() && (
+              <NotificationsBanner
+                onPress={handleBannerPress}
+                onDismiss={handleBannerDismiss}
+              />
+            )}
+            
             {/* Featured Articles Carousel */}
             {featuredArticles.length > 0 && (
               <View style={styles.carouselContainer}>
@@ -464,6 +508,12 @@ export default function HomeScreen() {
         initialNumToRender={Platform.OS === 'android' ? 5 : 10}
         maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
         windowSize={Platform.OS === 'android' ? 5 : 10}
+      />
+      
+      {/* Welcome Modal */}
+      <WelcomeNotifications
+        visible={showWelcomeModal}
+        onClose={handleWelcomeClose}
       />
     </View>
   );
