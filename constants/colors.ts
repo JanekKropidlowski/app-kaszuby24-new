@@ -13,6 +13,7 @@ export const colors = {
     error: '#EF4444',
     warning: '#F59E0B',
     subtle: '#F3F4F6',
+    shadow: '#000000',
   },
   dark: {
     primary: '#4CC9F0', // Lighter blue for dark mode
@@ -27,6 +28,7 @@ export const colors = {
     error: '#F87171',
     warning: '#FBBF24',
     subtle: '#374151',
+    shadow: '#000000',
   },
 };
 

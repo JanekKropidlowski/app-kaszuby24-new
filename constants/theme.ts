@@ -42,19 +42,6 @@ export const BORDER_RADIUS = {
   round: 9999,
 };
 
-export const getTheme = (isDark: boolean) => {
-  return {
-    colors: isDark ? colors.dark : colors.light,
-    spacing: SPACING,
-    fontSize: FONT_SIZE,
-    fontWeight: FONT_WEIGHT,
-    fontFamily: FONT_FAMILY,
-    borderRadius: BORDER_RADIUS,
-  };
-};
-
-export type Theme = ReturnType<typeof getTheme>;
-
 export const colors = {
   light: {
     primary: '#4361EE', // Modern vibrant blue
@@ -69,6 +56,7 @@ export const colors = {
     error: '#EF4444',
     warning: '#F59E0B',
     subtle: '#F3F4F6',
+    shadow: '#000000',
   },
   dark: {
     primary: '#4CC9F0', // Lighter blue for dark mode
@@ -83,5 +71,19 @@ export const colors = {
     error: '#F87171',
     warning: '#FBBF24',
     subtle: '#374151',
+    shadow: '#000000',
   },
 };
+
+export const getTheme = (isDark: boolean) => {
+  return {
+    colors: isDark ? colors.dark : colors.light,
+    spacing: SPACING,
+    fontSize: FONT_SIZE,
+    fontWeight: FONT_WEIGHT,
+    fontFamily: FONT_FAMILY,
+    borderRadius: BORDER_RADIUS,
+  };
+};
+
+export type Theme = ReturnType<typeof getTheme>;
