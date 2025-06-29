@@ -214,18 +214,20 @@ export default function HomeScreen() {
     
     if (featuredArticles.length > 1) {
       interval = setInterval(() => {
+        let newIndex = activeCarouselIndex;
         if (activeCarouselIndex < featuredArticles.length - 1) {
-          setActiveCarouselIndex(activeCarouselIndex + 1);
+          newIndex = activeCarouselIndex + 1;
         } else {
-          setActiveCarouselIndex(0);
+          newIndex = 0;
         }
+        
+        setActiveCarouselIndex(newIndex);
         
         if (flatListRef.current) {
           flatListRef.current.scrollToIndex({
-            index: activeCarouselIndex,
+            index: newIndex,
             animated: true,
-            viewOffset: 0,
-            viewPosition: 0,
+            viewPosition: 0.5,
           });
         }
       }, 5000);
@@ -247,13 +249,19 @@ export default function HomeScreen() {
     // Calculate the scale and opacity based on the scroll position
     const scale = scrollX.interpolate({
       inputRange: thisItemInputRange,
-      outputRange: [0.9, 1, 0.9],
+      outputRange: [0.85, 1, 0.85],
       extrapolate: 'clamp'
     });
     
     const opacity = scrollX.interpolate({
       inputRange: thisItemInputRange,
-      outputRange: [0.7, 1, 0.7],
+      outputRange: [0.6, 1, 0.6],
+      extrapolate: 'clamp'
+    });
+    
+    const translateX = scrollX.interpolate({
+      inputRange: thisItemInputRange,
+      outputRange: [-30, 0, 30],
       extrapolate: 'clamp'
     });
     
@@ -262,7 +270,7 @@ export default function HomeScreen() {
         style={[
           styles.carouselItemContainer,
           { 
-            transform: [{ scale }],
+            transform: [{ scale }, { translateX }],
             opacity,
             width: CAROUSEL_ITEM_WIDTH,
             marginRight: index === featuredArticles.length - 1 ? 0 : CAROUSEL_ITEM_SPACING,
