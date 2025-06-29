@@ -1,5 +1,3 @@
-// import { colors } from './colors';
-
 export const SPACING = {
   xs: 4,
   sm: 8,

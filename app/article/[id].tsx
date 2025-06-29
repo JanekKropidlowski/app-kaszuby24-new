@@ -192,7 +192,7 @@ export default function ArticleDetailScreen() {
             dangerouslySetInnerHTML={{ __html: cleanedHtml }}
             style={{
               color: isDarkMode ? '#F9FAFB' : '#111827',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
               fontSize: '16px',
               lineHeight: '1.8',
             }}
@@ -225,10 +225,10 @@ export default function ArticleDetailScreen() {
               meta.setAttribute('name', 'viewport');
               document.getElementsByTagName('head')[0].appendChild(meta);
               
-              // Apply theme
+              // Apply theme and Poppins font
               document.body.style.color = '${isDarkMode ? '#F9FAFB' : '#111827'}';
               document.body.style.backgroundColor = 'transparent';
-              document.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+              document.body.style.fontFamily = 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
               document.body.style.fontSize = '16px';
               document.body.style.lineHeight = '1.8';
               document.body.style.padding = '0';
@@ -342,7 +342,10 @@ export default function ArticleDetailScreen() {
             {/* Category badge */}
             {categoryName && (
               <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>
+                <Text style={[
+                  styles.categoryText,
+                  { fontFamily: theme.fontFamily.semibold }
+                ]}>
                   {categoryName}
                 </Text>
               </View>
@@ -353,14 +356,26 @@ export default function ArticleDetailScreen() {
         {/* Article content card */}
         <View style={[styles.articleContent, { backgroundColor: theme.colors.card }]}>
           {/* Title and metadata */}
-          <Text style={[styles.title, { color: theme.colors.text }]}>
+          <Text style={[
+            styles.title, 
+            { 
+              color: theme.colors.text,
+              fontFamily: theme.fontFamily.bold
+            }
+          ]}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
           </Text>
           
           <View style={styles.metaContainer}>
             <View style={styles.metaItem}>
               <Calendar size={14} color={theme.colors.textSecondary} />
-              <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
+              <Text style={[
+                styles.metaText, 
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.regular
+                }
+              ]}>
                 {formatDateTime(article.date)}
               </Text>
             </View>
@@ -368,7 +383,13 @@ export default function ArticleDetailScreen() {
             {metaViews && (
               <View style={styles.metaItem}>
                 <Eye size={14} color={theme.colors.textSecondary} />
-                <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
+                <Text style={[
+                  styles.metaText, 
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
                   {metaViews}
                 </Text>
               </View>
@@ -376,7 +397,13 @@ export default function ArticleDetailScreen() {
           </View>
           
           {metaSource ? (
-            <Text style={[styles.source, { color: theme.colors.textSecondary }]}>
+            <Text style={[
+              styles.source, 
+              { 
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fontFamily.regular
+              }
+            ]}>
               Źródło: {metaSource}
             </Text>
           ) : null}

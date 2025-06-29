@@ -75,7 +75,10 @@ export default function NotificationsScreen() {
         <View style={styles.notificationHeader}>
           <Text style={[
             styles.notificationTitle,
-            { color: theme.colors.text },
+            { 
+              color: theme.colors.text,
+              fontFamily: theme.fontFamily.medium
+            },
             !item.read && styles.unreadText
           ]}>
             {item.title}
@@ -88,7 +91,10 @@ export default function NotificationsScreen() {
         <Text 
           style={[
             styles.notificationBody, 
-            { color: theme.colors.textSecondary }
+            { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }
           ]} 
           numberOfLines={2}
         >
@@ -97,7 +103,13 @@ export default function NotificationsScreen() {
         
         <View style={styles.notificationFooter}>
           <Clock size={12} color={theme.colors.textSecondary} />
-          <Text style={[styles.notificationTime, { color: theme.colors.textSecondary }]}>
+          <Text style={[
+            styles.notificationTime, 
+            { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }
+          ]}>
             {getRelativeTime(new Date(item.timestamp).toISOString())}
           </Text>
         </View>
@@ -109,12 +121,23 @@ export default function NotificationsScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
         <View style={styles.headerTop}>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+          <Text style={[
+            styles.headerTitle, 
+            { 
+              color: theme.colors.text,
+              fontFamily: theme.fontFamily.semibold
+            }
+          ]}>
             Powiadomienia
           </Text>
           {unreadCount > 0 && (
             <View style={[styles.unreadBadge, { backgroundColor: theme.colors.notification }]}>
-              <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+              <Text style={[
+                styles.unreadBadgeText,
+                { fontFamily: theme.fontFamily.semibold }
+              ]}>
+                {unreadCount}
+              </Text>
             </View>
           )}
         </View>
@@ -127,7 +150,13 @@ export default function NotificationsScreen() {
                 onPress={handleMarkAllAsRead}
               >
                 <CheckCheck size={16} color={theme.colors.primary} />
-                <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>
+                <Text style={[
+                  styles.actionButtonText, 
+                  { 
+                    color: theme.colors.primary,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
                   Oznacz jako przeczytane
                 </Text>
               </TouchableOpacity>
@@ -138,7 +167,13 @@ export default function NotificationsScreen() {
               onPress={handleClearAll}
             >
               <Trash2 size={16} color={theme.colors.error} />
-              <Text style={[styles.actionButtonText, { color: theme.colors.error }]}>
+              <Text style={[
+                styles.actionButtonText, 
+                { 
+                  color: theme.colors.error,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
                 Wyczyść wszystkie
               </Text>
             </TouchableOpacity>

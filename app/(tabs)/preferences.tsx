@@ -107,14 +107,34 @@ export default function PreferencesScreen() {
             style={styles.profileImage}
           />
         </View>
-        <Text style={[styles.profileName, { color: theme.colors.text }]}>Kaszuby24</Text>
-        <Text style={[styles.profileEmail, { color: theme.colors.textSecondary }]}>
+        <Text style={[
+          styles.profileName, 
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}>
+          Kaszuby24
+        </Text>
+        <Text style={[
+          styles.profileEmail, 
+          { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.regular
+          }
+        ]}>
           Twoje źródło wiadomości z Kaszub
         </Text>
       </View>
       
       {/* App Settings */}
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+      <Text style={[
+        styles.sectionTitle, 
+        { 
+          color: theme.colors.text,
+          fontFamily: theme.fontFamily.semibold
+        }
+      ]}>
         Ustawienia aplikacji
       </Text>
       
@@ -126,7 +146,13 @@ export default function PreferencesScreen() {
             ) : (
               <Sun size={20} color={theme.colors.primary} />
             )}
-            <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+            <Text style={[
+              styles.settingLabel, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
               Tryb ciemny
             </Text>
           </View>
@@ -144,7 +170,13 @@ export default function PreferencesScreen() {
         >
           <View style={styles.settingLabelContainer}>
             <Trash2 size={20} color={theme.colors.primary} />
-            <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+            <Text style={[
+              styles.settingLabel, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
               Wyczyść historię
             </Text>
           </View>
@@ -153,14 +185,26 @@ export default function PreferencesScreen() {
       </View>
       
       {/* Notification Settings */}
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+      <Text style={[
+        styles.sectionTitle, 
+        { 
+          color: theme.colors.text,
+          fontFamily: theme.fontFamily.semibold
+        }
+      ]}>
         Powiadomienia
       </Text>
       
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.card }]}>
         <View style={styles.summaryRow}>
           <Bell size={20} color={theme.colors.primary} />
-          <Text style={[styles.summaryText, { color: theme.colors.text }]}>
+          <Text style={[
+            styles.summaryText, 
+            { 
+              color: theme.colors.text,
+              fontFamily: theme.fontFamily.medium
+            }
+          ]}>
             Powiadomienia {notificationsEnabled ? 'włączone' : 'wyłączone'}
           </Text>
           <Switch
@@ -172,7 +216,13 @@ export default function PreferencesScreen() {
         </View>
         
         <View style={[styles.summaryStats, { borderTopColor: theme.colors.border }]}>
-          <Text style={[styles.statsText, { color: theme.colors.textSecondary }]}>
+          <Text style={[
+            styles.statsText, 
+            { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }
+          ]}>
             Wybrano {enabledCount} z {preferences.length} sekcji
           </Text>
         </View>
@@ -183,7 +233,13 @@ export default function PreferencesScreen() {
         <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
           <View style={[styles.sectionHeader, { backgroundColor: theme.colors.subtle, borderBottomColor: theme.colors.border }]}>
             <MapPin size={18} color={theme.colors.primary} />
-            <Text style={[styles.sectionHeaderTitle, { color: theme.colors.text }]}>
+            <Text style={[
+              styles.sectionHeaderTitle, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.semibold
+              }
+            ]}>
               Regiony
             </Text>
           </View>
@@ -193,7 +249,13 @@ export default function PreferencesScreen() {
               key={region.id} 
               style={[styles.preferenceRow, { borderBottomColor: theme.colors.border }]}
             >
-              <Text style={[styles.preferenceName, { color: theme.colors.text }]}>
+              <Text style={[
+                styles.preferenceName, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
                 {region.name}
               </Text>
               <Switch
@@ -213,7 +275,13 @@ export default function PreferencesScreen() {
         <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
           <View style={[styles.sectionHeader, { backgroundColor: theme.colors.subtle, borderBottomColor: theme.colors.border }]}>
             <Tag size={18} color={theme.colors.primary} />
-            <Text style={[styles.sectionHeaderTitle, { color: theme.colors.text }]}>
+            <Text style={[
+              styles.sectionHeaderTitle, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.semibold
+              }
+            ]}>
               Działy tematyczne
             </Text>
           </View>
@@ -223,7 +291,13 @@ export default function PreferencesScreen() {
               key={category.id} 
               style={[styles.preferenceRow, { borderBottomColor: theme.colors.border }]}
             >
-              <Text style={[styles.preferenceName, { color: theme.colors.text }]}>
+              <Text style={[
+                styles.preferenceName, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
                 {category.name}
               </Text>
               <Switch
@@ -239,7 +313,13 @@ export default function PreferencesScreen() {
       )}
       
       {/* About & Contact */}
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+      <Text style={[
+        styles.sectionTitle, 
+        { 
+          color: theme.colors.text,
+          fontFamily: theme.fontFamily.semibold
+        }
+      ]}>
         Informacje
       </Text>
       
@@ -250,7 +330,13 @@ export default function PreferencesScreen() {
         >
           <View style={styles.settingLabelContainer}>
             <Globe size={20} color={theme.colors.primary} />
-            <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+            <Text style={[
+              styles.settingLabel, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
               Odwiedź stronę internetową
             </Text>
           </View>
@@ -263,7 +349,13 @@ export default function PreferencesScreen() {
         >
           <View style={styles.settingLabelContainer}>
             <Mail size={20} color={theme.colors.primary} />
-            <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+            <Text style={[
+              styles.settingLabel, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
               Kontakt z redakcją
             </Text>
           </View>
@@ -276,7 +368,13 @@ export default function PreferencesScreen() {
         >
           <View style={styles.settingLabelContainer}>
             <Share2 size={20} color={theme.colors.primary} />
-            <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+            <Text style={[
+              styles.settingLabel, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
               Udostępnij aplikację
             </Text>
           </View>
@@ -285,10 +383,22 @@ export default function PreferencesScreen() {
       </View>
       
       <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
+        <Text style={[
+          styles.footerText, 
+          { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.regular
+          }
+        ]}>
           Kaszuby24 App v1.0.0
         </Text>
-        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
+        <Text style={[
+          styles.footerText, 
+          { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.regular
+          }
+        ]}>
           © 2025 Kaszuby24.pl
         </Text>
       </View>

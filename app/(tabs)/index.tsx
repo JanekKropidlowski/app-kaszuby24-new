@@ -271,13 +271,26 @@ export default function HomeScreen() {
             <View style={styles.carouselGradient} />
             <View style={styles.carouselItemContent}>
               <View style={styles.carouselLabelContainer}>
-                <Text style={styles.carouselLabel}>Polecane</Text>
+                <Text style={[
+                  styles.carouselLabel,
+                  { fontFamily: theme.fontFamily.semibold }
+                ]}>
+                  Polecane
+                </Text>
               </View>
-              <Text style={styles.carouselTitle} numberOfLines={2}>
+              <Text style={[
+                styles.carouselTitle,
+                { fontFamily: theme.fontFamily.bold }
+              ]} numberOfLines={2}>
                 {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
               </Text>
               <View style={styles.carouselFooter}>
-                <Text style={styles.carouselReadMore}>Czytaj więcej</Text>
+                <Text style={[
+                  styles.carouselReadMore,
+                  { fontFamily: theme.fontFamily.semibold }
+                ]}>
+                  Czytaj więcej
+                </Text>
                 <ArrowRight size={16} color="#FFFFFF" />
               </View>
             </View>
@@ -399,14 +412,28 @@ export default function HomeScreen() {
             )}
             
             <View style={styles.breakingNewsHeader}>
-              <Text style={[styles.breakingNewsTitle, { color: theme.colors.text }]}>
+              <Text style={[
+                styles.breakingNewsTitle, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold
+                }
+              ]}>
                 Najnowsze wiadomości
               </Text>
               <TouchableOpacity 
                 onPress={navigateToSearch}
                 style={styles.moreButton}
               >
-                <Text style={[styles.moreText, { color: theme.colors.primary }]}>Więcej</Text>
+                <Text style={[
+                  styles.moreText, 
+                  { 
+                    color: theme.colors.primary,
+                    fontFamily: theme.fontFamily.semibold
+                  }
+                ]}>
+                  Więcej
+                </Text>
                 <ChevronRight size={16} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>

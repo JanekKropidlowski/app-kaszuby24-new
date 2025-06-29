@@ -87,11 +87,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             styles.compactTitle, 
             { 
               color: theme.colors.text, 
-              fontFamily: Platform.select({
-                ios: 'Poppins-Medium',
-                android: 'Poppins-Medium',
-                default: 'System'
-              })
+              fontFamily: theme.fontFamily.medium
             }
           ]} numberOfLines={2}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
@@ -104,11 +100,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                 styles.compactDate, 
                 { 
                   color: theme.colors.textSecondary, 
-                  fontFamily: Platform.select({
-                    ios: 'Poppins-Regular',
-                    android: 'Poppins-Regular',
-                    default: 'System'
-                  })
+                  fontFamily: theme.fontFamily.regular
                 }
               ]}>
                 {getRelativeTime(article.date)}
@@ -117,7 +109,13 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             
             {categoryName && (
               <View style={[styles.compactCategory, { backgroundColor: theme.colors.subtle }]}>
-                <Text style={[styles.compactCategoryText, { color: theme.colors.textSecondary }]}>
+                <Text style={[
+                  styles.compactCategoryText, 
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
                   {categoryName}
                 </Text>
               </View>
@@ -145,7 +143,13 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         <View style={styles.textContent}>
           {categoryName && (
             <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '15' }]}>
-              <Text style={[styles.categoryText, { color: theme.colors.primary }]}>
+              <Text style={[
+                styles.categoryText, 
+                { 
+                  color: theme.colors.primary,
+                  fontFamily: theme.fontFamily.semibold
+                }
+              ]}>
                 {categoryName}
               </Text>
             </View>
@@ -155,11 +159,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             styles.title, 
             { 
               color: theme.colors.text, 
-              fontFamily: Platform.select({
-                ios: 'Poppins-Medium',
-                android: 'Poppins-Medium',
-                default: 'System'
-              })
+              fontFamily: theme.fontFamily.medium
             }
           ]} numberOfLines={2}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
@@ -172,11 +172,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                 styles.date, 
                 { 
                   color: theme.colors.textSecondary, 
-                  fontFamily: Platform.select({
-                    ios: 'Poppins-Regular',
-                    android: 'Poppins-Regular',
-                    default: 'System'
-                  })
+                  fontFamily: theme.fontFamily.regular
                 }
               ]}>
                 {getRelativeTime(article.date)}

@@ -80,14 +80,16 @@ export default function RootLayout() {
           color: theme.colors.error, 
           fontSize: 16, 
           textAlign: 'center', 
-          marginBottom: 16
+          marginBottom: 16,
+          fontFamily: theme.fontFamily.medium
         }}>
           {error}
         </Text>
         <Text style={{ 
           color: theme.colors.text, 
           fontSize: 14, 
-          textAlign: 'center' 
+          textAlign: 'center',
+          fontFamily: theme.fontFamily.regular
         }}>
           Spróbuj uruchomić aplikację ponownie lub sprawdź połączenie internetowe.
         </Text>
@@ -111,11 +113,7 @@ export default function RootLayout() {
           headerTitleStyle: {
             fontWeight: '600',
             color: theme.colors.text,
-            fontFamily: Platform.select({
-              ios: 'Poppins-SemiBold',
-              android: 'Poppins-SemiBold',
-              default: 'System'
-            }),
+            fontFamily: theme.fontFamily.semibold,
           },
           contentStyle: {
             backgroundColor: theme.colors.background,

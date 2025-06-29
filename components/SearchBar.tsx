@@ -106,7 +106,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           styles.input,
           { 
             color: theme.colors.text, 
-            fontFamily: theme.fontFamily?.regular || 'Poppins-Regular' 
+            fontFamily: theme.fontFamily.regular 
           }
         ]}
         placeholder={placeholder}

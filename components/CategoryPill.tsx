@@ -62,8 +62,8 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
                 : theme.colors.text,
               fontWeight: isSelected ? '600' : '500',
               fontFamily: isSelected 
-                ? theme.fontFamily?.semibold || 'Poppins-SemiBold'
-                : theme.fontFamily?.medium || 'Poppins-Medium'
+                ? theme.fontFamily.semibold
+                : theme.fontFamily.medium
             },
           ]}
         >

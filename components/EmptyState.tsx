@@ -32,11 +32,23 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         </View>
       )}
       
-      <Text style={[styles.title, { color: theme.colors.text, fontFamily: theme.fontFamily?.semibold || 'Poppins-SemiBold' }]}>
+      <Text style={[
+        styles.title, 
+        { 
+          color: theme.colors.text, 
+          fontFamily: theme.fontFamily.semibold 
+        }
+      ]}>
         {title}
       </Text>
       
-      <Text style={[styles.message, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily?.regular || 'Poppins-Regular' }]}>
+      <Text style={[
+        styles.message, 
+        { 
+          color: theme.colors.textSecondary, 
+          fontFamily: theme.fontFamily.regular 
+        }
+      ]}>
         {message}
       </Text>
       
@@ -45,7 +57,10 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           style={[styles.button, { backgroundColor: theme.colors.primary }]}
           onPress={onAction}
         >
-          <Text style={[styles.buttonText, { fontFamily: theme.fontFamily?.medium || 'Poppins-Medium' }]}>
+          <Text style={[
+            styles.buttonText, 
+            { fontFamily: theme.fontFamily.medium }
+          ]}>
             {actionLabel}
           </Text>
         </TouchableOpacity>
