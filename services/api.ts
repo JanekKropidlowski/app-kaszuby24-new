@@ -9,6 +9,20 @@ const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_DURATION = 60 * 60 * 1000; // Cache for 1 hour
 
+// Push notification registration interface
+export interface PushTokenRegistration {
+  token: string;
+  location: string;
+  locationId: number;
+  platform: string;
+  deviceInfo?: {
+    brand?: string | null;
+    modelName?: string | null;
+    osName?: string | null;
+    osVersion?: string | null;
+  };
+}
+
 // Helper function to handle fetch with timeout and retries
 const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise<Response> => {
   const controller = new AbortController();
@@ -380,5 +394,32 @@ export const searchArticles = async (
     
     // Generic fallback error
     throw new Error('Wystąpił problem podczas wyszukiwania artykułów. Spróbuj ponownie później.');
+  }
+};
+
+// Register push token with backend
+export const registerPushToken = async (registration: PushTokenRegistration): Promise<void> => {
+  try {
+    // For now, we'll use a custom endpoint on your WordPress site
+    // You'll need to create this endpoint in your WordPress theme or plugin
+    const url = 'https://kaszuby24.pl/wp-json/kaszuby24/v1/register-push-token';
+    
+    const response = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(registration),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to register push token: ${response.status}`);
+    }
+    
+    console.log('Push token registered successfully');
+  } catch (error) {
+    console.error('Error registering push token:', error);
+    // Don't throw here - we don't want to break the app if registration fails
+    // The token will be retried on next app launch
   }
 };

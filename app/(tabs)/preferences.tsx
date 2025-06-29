@@ -25,9 +25,10 @@ import {
   Trash2,
   User,
   Zap,
-  CheckCircle
+  CheckCircle,
+  Navigation
 } from 'lucide-react-native';
-import { useNotificationsStore } from '@/store/notificationsStore';
+import { useNotificationsStore, availableLocations } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
@@ -40,7 +41,10 @@ export default function PreferencesScreen() {
     toggleNotifications, 
     updatePreference,
     initializePreferences,
-    isFirstTimeUser
+    isFirstTimeUser,
+    userLocation,
+    setUserLocation,
+    expoPushToken
   } = useNotificationsStore();
   
   const { isDarkMode, toggleTheme, theme } = useThemeStore();
@@ -61,6 +65,9 @@ export default function PreferencesScreen() {
         );
         return;
       }
+      
+      // Register for push notifications
+      await notificationService.registerForPushNotifications();
     }
     toggleNotifications();
   };
@@ -82,6 +89,9 @@ export default function PreferencesScreen() {
       if (!notificationsEnabled) {
         toggleNotifications();
       }
+      
+      // Register for push notifications
+      await notificationService.registerForPushNotifications();
       
       // Enable popular regions
       const popularRegions = ['Trójmiasto', 'Kraj', 'Kartuzy'];
@@ -112,6 +122,29 @@ export default function PreferencesScreen() {
         [{ text: 'OK' }]
       );
     }
+  };
+  
+  const handleLocationChange = () => {
+    Alert.alert(
+      'Zmień lokalizację',
+      'Wybierz swoją główną lokalizację:',
+      [
+        ...availableLocations.map(location => ({
+          text: location.name,
+          onPress: async () => {
+            setUserLocation(location);
+            // Re-register push token with new location
+            await notificationService.updateLocationAndReregister();
+            Alert.alert(
+              'Lokalizacja zmieniona',
+              `Twoja główna lokalizacja została zmieniona na ${location.name}.`,
+              [{ text: 'OK' }]
+            );
+          }
+        })),
+        { text: 'Anuluj', style: 'cancel' }
+      ]
+    );
   };
   
   const handleOpenWebsite = () => {
@@ -177,6 +210,65 @@ export default function PreferencesScreen() {
         ]}>
           Twoje źródło wiadomości z Kaszub
         </Text>
+        
+        {/* Location info */}
+        {userLocation && (
+          <View style={[styles.locationBadge, { backgroundColor: theme.colors.subtle }]}>
+            <MapPin size={14} color={theme.colors.primary} />
+            <Text style={[
+              styles.locationText,
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              {userLocation.name}
+            </Text>
+          </View>
+        )}
+      </View>
+      
+      {/* Location Settings */}
+      <Text style={[
+        styles.sectionTitle, 
+        { 
+          color: theme.colors.text,
+          fontFamily: theme.fontFamily.semibold
+        }
+      ]}>
+        Lokalizacja
+      </Text>
+      
+      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity 
+          style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+          onPress={handleLocationChange}
+        >
+          <View style={styles.settingLabelContainer}>
+            <Navigation size={20} color={theme.colors.primary} />
+            <View style={styles.settingTextContainer}>
+              <Text style={[
+                styles.settingLabel, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Główna lokalizacja
+              </Text>
+              <Text style={[
+                styles.settingSubtitle,
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.regular
+                }
+              ]}>
+                {userLocation ? userLocation.name : 'Nie wybrano'}
+              </Text>
+            </View>
+          </View>
+          <ChevronRight size={20} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
       </View>
       
       {/* Quick Setup for new users */}
@@ -359,6 +451,17 @@ export default function PreferencesScreen() {
           ]}>
             Wybrano {enabledCount} z {preferences.length} sekcji
           </Text>
+          {expoPushToken && (
+            <Text style={[
+              styles.statsText, 
+              { 
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fontFamily.regular
+              }
+            ]}>
+              Token zarejestrowany ✓
+            </Text>
+          )}
         </View>
       </View>
       
@@ -572,8 +675,20 @@ const styles = StyleSheet.create({
   },
   profileEmail: {
     fontSize: 14,
-    marginBottom: 20,
+    marginBottom: 12,
     textAlign: 'center',
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  locationText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 18,
@@ -661,6 +776,7 @@ const styles = StyleSheet.create({
   summaryStats: {
     paddingTop: 12,
     borderTopWidth: 1,
+    gap: 4,
   },
   statsText: {
     fontSize: 14,
@@ -690,9 +806,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  settingTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
   settingLabel: {
     fontSize: 16,
     marginLeft: 12,
+  },
+  settingSubtitle: {
+    fontSize: 14,
+    marginTop: 2,
   },
   preferenceRow: {
     flexDirection: 'row',

@@ -1,7 +1,9 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { useNotificationsStore } from '@/store/notificationsStore';
-import { fetchArticles } from './api';
+import { registerPushToken } from './api';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -16,7 +18,6 @@ Notifications.setNotificationHandler({
 
 export class NotificationService {
   private static instance: NotificationService;
-  private lastCheckTime: number = 0;
   
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -52,6 +53,74 @@ export class NotificationService {
     }
   }
   
+  async registerForPushNotifications(): Promise<string | null> {
+    try {
+      if (Platform.OS === 'web') {
+        console.log('Push notifications not supported on web');
+        return null;
+      }
+      
+      if (!Device.isDevice) {
+        console.log('Must use physical device for Push Notifications');
+        return null;
+      }
+      
+      // Request permissions first
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        console.log('Permission not granted for push notifications');
+        return null;
+      }
+      
+      // Get the token
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.expoConfig?.extra?.eas?.projectId,
+      });
+      
+      console.log('Expo Push Token:', token.data);
+      
+      // Store token in state
+      const { setExpoPushToken } = useNotificationsStore.getState();
+      setExpoPushToken(token.data);
+      
+      // Register token with backend
+      await this.registerTokenWithBackend(token.data);
+      
+      return token.data;
+    } catch (error) {
+      console.error('Error getting push token:', error);
+      return null;
+    }
+  }
+  
+  async registerTokenWithBackend(token: string): Promise<void> {
+    try {
+      const { userLocation } = useNotificationsStore.getState();
+      
+      if (!userLocation) {
+        console.log('No user location selected, skipping token registration');
+        return;
+      }
+      
+      await registerPushToken({
+        token,
+        location: userLocation.slug,
+        locationId: userLocation.id,
+        platform: Platform.OS,
+        deviceInfo: {
+          brand: Device.brand,
+          modelName: Device.modelName,
+          osName: Device.osName,
+          osVersion: Device.osVersion,
+        }
+      });
+      
+      console.log('Push token registered with backend successfully');
+    } catch (error) {
+      console.error('Error registering token with backend:', error);
+    }
+  }
+  
   async scheduleLocalNotification(title: string, body: string, data?: any): Promise<void> {
     try {
       if (Platform.OS === 'web') {
@@ -81,88 +150,6 @@ export class NotificationService {
     }
   }
   
-  async checkForNewArticles(): Promise<void> {
-    try {
-      const { preferences, notificationsEnabled, addNotification } = useNotificationsStore.getState();
-      
-      if (!notificationsEnabled) return;
-      
-      const enabledCategories = preferences
-        .filter(pref => pref.enabled && pref.type === 'category')
-        .map(pref => pref.id);
-      
-      const enabledRegions = preferences
-        .filter(pref => pref.enabled && pref.type === 'region')
-        .map(pref => pref.id);
-      
-      const allEnabledCategories = [...enabledCategories, ...enabledRegions];
-      
-      if (allEnabledCategories.length === 0) return;
-      
-      // Check for new articles in enabled categories
-      const { articles } = await fetchArticles(1, 10, allEnabledCategories);
-      
-      const currentTime = Date.now();
-      
-      // Only notify about articles published in the last hour if this is not the first check
-      const oneHourAgo = currentTime - (60 * 60 * 1000);
-      
-      for (const article of articles) {
-        const articleTime = new Date(article.date).getTime();
-        
-        // Skip if article is older than 1 hour and we've checked before
-        if (this.lastCheckTime > 0 && articleTime < oneHourAgo) continue;
-        
-        // Skip if article was published before our last check
-        if (this.lastCheckTime > 0 && articleTime < this.lastCheckTime) continue;
-        
-        // Find which category this article belongs to
-        const matchingCategory = preferences.find(pref => 
-          pref.enabled && article.categories.includes(pref.id)
-        );
-        
-        if (matchingCategory) {
-          const title = `Nowy artykuł w ${matchingCategory.name}`;
-          const body = article.title.rendered
-            .replace(/&#8211;/g, '-')
-            .replace(/&#8217;/g, "'")
-            .substring(0, 100) + '...';
-          
-          // Add to notification history
-          addNotification({
-            title,
-            body,
-            articleId: article.id,
-            categoryId: matchingCategory.id,
-            read: false,
-          });
-          
-          // Show local notification
-          await this.scheduleLocalNotification(title, body, {
-            articleId: article.id,
-            categoryId: matchingCategory.id,
-          });
-        }
-      }
-      
-      this.lastCheckTime = currentTime;
-    } catch (error) {
-      console.error('Error checking for new articles:', error);
-    }
-  }
-  
-  startPeriodicCheck(): void {
-    // Check every 30 minutes
-    setInterval(() => {
-      this.checkForNewArticles();
-    }, 30 * 60 * 1000);
-    
-    // Initial check after 5 seconds
-    setTimeout(() => {
-      this.checkForNewArticles();
-    }, 5000);
-  }
-  
   async setupNotificationHandlers(): Promise<void> {
     try {
       if (Platform.OS === 'web') return;
@@ -170,21 +157,48 @@ export class NotificationService {
       // Handle notification received while app is in foreground
       Notifications.addNotificationReceivedListener(notification => {
         console.log('Notification received:', notification);
+        
+        // Add to notification history
+        const { addNotification } = useNotificationsStore.getState();
+        addNotification({
+          title: notification.request.content.title || 'Nowe powiadomienie',
+          body: notification.request.content.body || '',
+          articleId: notification.request.content.data?.articleId,
+          categoryId: notification.request.content.data?.categoryId,
+          read: false,
+        });
       });
       
       // Handle notification tapped
       Notifications.addNotificationResponseReceivedListener(response => {
         const data = response.notification.request.content.data;
+        console.log('Notification tapped:', data);
+        
         if (data?.articleId) {
-          // Navigate to article - this would need to be implemented with navigation
+          // This will be handled by the deep linking system
           console.log('Navigate to article:', data.articleId);
         }
       });
       
-      // Request permissions
-      await this.requestPermissions();
+      // Register for push notifications
+      await this.registerForPushNotifications();
     } catch (error) {
       console.warn('Error setting up notification handlers:', error);
+    }
+  }
+  
+  async updateLocationAndReregister(): Promise<void> {
+    try {
+      const { expoPushToken } = useNotificationsStore.getState();
+      
+      if (expoPushToken) {
+        await this.registerTokenWithBackend(expoPushToken);
+      } else {
+        // If no token, try to get one
+        await this.registerForPushNotifications();
+      }
+    } catch (error) {
+      console.error('Error updating location and reregistering:', error);
     }
   }
 }

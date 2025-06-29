@@ -1,34 +1,93 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 
-interface FontFamily {
-  regular: string;
-  medium: string;
-  semibold: string;
-  bold: string;
+export interface Theme {
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    card: string;
+    text: string;
+    textSecondary: string;
+    border: string;
+    notification: string;
+    success: string;
+    error: string;
+    warning: string;
+    subtle: string;
+    shadow: string;
+  };
+  fontFamily: {
+    regular: string;
+    medium: string;
+    semibold: string;
+    bold: string;
+    light: string;
+    extraLight: string;
+    thin: string;
+    extraBold: string;
+    black: string;
+  };
 }
 
-interface ThemeColors {
-  primary: string;
-  secondary: string;
-  background: string;
-  card: string;
-  text: string;
-  textSecondary: string;
-  border: string;
-  notification: string;
-  success: string;
-  error: string;
-  warning: string;
-  subtle: string;
-}
+const lightTheme: Theme = {
+  colors: {
+    primary: '#3B82F6',
+    secondary: '#8B5CF6',
+    background: '#F9FAFB',
+    card: '#FFFFFF',
+    text: '#111827',
+    textSecondary: '#6B7280',
+    border: '#E5E7EB',
+    notification: '#EF4444',
+    success: '#10B981',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    subtle: '#F3F4F6',
+    shadow: '#000000',
+  },
+  fontFamily: {
+    regular: 'Poppins-Regular',
+    medium: 'Poppins-Medium',
+    semibold: 'Poppins-SemiBold',
+    bold: 'Poppins-Bold',
+    light: 'Poppins-Light',
+    extraLight: 'Poppins-ExtraLight',
+    thin: 'Poppins-Thin',
+    extraBold: 'Poppins-ExtraBold',
+    black: 'Poppins-Black',
+  },
+};
 
-interface Theme {
-  colors: ThemeColors;
-  fontFamily: FontFamily;
-}
+const darkTheme: Theme = {
+  colors: {
+    primary: '#60A5FA',
+    secondary: '#A78BFA',
+    background: '#111827',
+    card: '#1F2937',
+    text: '#F9FAFB',
+    textSecondary: '#9CA3AF',
+    border: '#374151',
+    notification: '#F87171',
+    success: '#34D399',
+    error: '#F87171',
+    warning: '#FBBF24',
+    subtle: '#374151',
+    shadow: '#000000',
+  },
+  fontFamily: {
+    regular: 'Poppins-Regular',
+    medium: 'Poppins-Medium',
+    semibold: 'Poppins-SemiBold',
+    bold: 'Poppins-Bold',
+    light: 'Poppins-Light',
+    extraLight: 'Poppins-ExtraLight',
+    thin: 'Poppins-Thin',
+    extraBold: 'Poppins-ExtraBold',
+    black: 'Poppins-Black',
+  },
+};
 
 interface ThemeState {
   isDarkMode: boolean;
@@ -36,77 +95,16 @@ interface ThemeState {
   toggleTheme: () => void;
 }
 
-const fontFamily: FontFamily = {
-  regular: Platform.select({
-    ios: 'Poppins-Regular',
-    android: 'Poppins-Regular',
-    default: 'Poppins, system-ui, -apple-system, sans-serif'
-  }),
-  medium: Platform.select({
-    ios: 'Poppins-Medium',
-    android: 'Poppins-Medium',
-    default: 'Poppins, system-ui, -apple-system, sans-serif'
-  }),
-  semibold: Platform.select({
-    ios: 'Poppins-SemiBold',
-    android: 'Poppins-SemiBold',
-    default: 'Poppins, system-ui, -apple-system, sans-serif'
-  }),
-  bold: Platform.select({
-    ios: 'Poppins-Bold',
-    android: 'Poppins-Bold',
-    default: 'Poppins, system-ui, -apple-system, sans-serif'
-  }),
-};
-
-const lightTheme: Theme = {
-  colors: {
-    primary: '#2563EB',
-    secondary: '#7C3AED',
-    background: '#F8FAFC',
-    card: '#FFFFFF',
-    text: '#1E293B',
-    textSecondary: '#64748B',
-    border: '#E2E8F0',
-    notification: '#EF4444',
-    success: '#10B981',
-    error: '#EF4444',
-    warning: '#F59E0B',
-    subtle: '#F1F5F9',
-  },
-  fontFamily,
-};
-
-const darkTheme: Theme = {
-  colors: {
-    primary: '#3B82F6',
-    secondary: '#8B5CF6',
-    background: '#0F172A',
-    card: '#1E293B',
-    text: '#F1F5F9',
-    textSecondary: '#94A3B8',
-    border: '#334155',
-    notification: '#F87171',
-    success: '#34D399',
-    error: '#F87171',
-    warning: '#FBBF24',
-    subtle: '#334155',
-  },
-  fontFamily,
-};
-
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       isDarkMode: false,
       theme: lightTheme,
-      
       toggleTheme: () => {
         const { isDarkMode } = get();
-        const newIsDarkMode = !isDarkMode;
         set({
-          isDarkMode: newIsDarkMode,
-          theme: newIsDarkMode ? darkTheme : lightTheme,
+          isDarkMode: !isDarkMode,
+          theme: !isDarkMode ? darkTheme : lightTheme,
         });
       },
     }),

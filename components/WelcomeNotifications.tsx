@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Bell, MapPin, X, Check } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
-import { useNotificationsStore } from '@/store/notificationsStore';
+import { useNotificationsStore, availableLocations, UserLocation } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 
 const { height } = Dimensions.get('window');
@@ -30,17 +30,20 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
     preferences, 
     updatePreference, 
     toggleNotifications,
-    completeFirstTimeSetup 
+    completeFirstTimeSetup,
+    setUserLocation
   } = useNotificationsStore();
   
   const [step, setStep] = useState(1);
+  const [selectedLocation, setSelectedLocation] = useState<UserLocation | null>(null);
   const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
   const [isSettingUp, setIsSettingUp] = useState(false);
   
   const regions = preferences.filter(pref => pref.type === 'region');
-  const popularRegions = regions.filter(region => 
-    ['Trójmiasto', 'Kraj', 'Kartuzy', 'Wejherowo'].includes(region.name)
-  );
+  
+  const handleLocationSelect = (location: UserLocation) => {
+    setSelectedLocation(location);
+  };
   
   const handleRegionToggle = (regionId: number) => {
     setSelectedRegions(prev => 
@@ -54,12 +57,20 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
     setIsSettingUp(true);
     
     try {
-      // Request notification permissions
+      // Set user location
+      if (selectedLocation) {
+        setUserLocation(selectedLocation);
+      }
+      
+      // Request notification permissions and register token
       const hasPermission = await notificationService.requestPermissions();
       
       if (hasPermission) {
         // Enable notifications
         toggleNotifications();
+        
+        // Register for push notifications
+        await notificationService.registerForPushNotifications();
         
         // Update selected regions
         selectedRegions.forEach(regionId => {
@@ -93,6 +104,14 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
     onClose();
   };
   
+  const handleNextStep = () => {
+    if (step === 1) {
+      setStep(2);
+    } else if (step === 2 && selectedLocation) {
+      setStep(3);
+    }
+  };
+  
   return (
     <Modal
       visible={visible}
@@ -122,6 +141,14 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
             <View style={[
               styles.progressDot, 
               { backgroundColor: step >= 2 ? theme.colors.primary : theme.colors.border }
+            ]} />
+            <View style={[
+              styles.progressLine, 
+              { backgroundColor: step >= 3 ? theme.colors.primary : theme.colors.border }
+            ]} />
+            <View style={[
+              styles.progressDot, 
+              { backgroundColor: step >= 3 ? theme.colors.primary : theme.colors.border }
             ]} />
           </View>
         </View>
@@ -196,8 +223,8 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
                 </View>
               </View>
             </View>
-          ) : (
-            // Step 2: Region Selection
+          ) : step === 2 ? (
+            // Step 2: Location Selection
             <View style={styles.stepContainer}>
               <View style={[styles.iconContainer, { backgroundColor: theme.colors.subtle }]}>
                 <MapPin size={48} color={theme.colors.primary} />
@@ -210,7 +237,7 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
                   fontFamily: theme.fontFamily.bold
                 }
               ]}>
-                Wybierz swoje regiony
+                Wybierz swoją lokalizację
               </Text>
               
               <Text style={[
@@ -220,109 +247,110 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
                   fontFamily: theme.fontFamily.regular
                 }
               ]}>
-                Zaznacz regiony, z których chcesz otrzymywać powiadomienia o najważniejszych wydarzeniach.
+                Dzięki temu będziesz otrzymywać powiadomienia o wydarzeniach z Twojego regionu.
               </Text>
               
-              {/* Popular Regions */}
-              <View style={styles.regionsSection}>
-                <Text style={[
-                  styles.sectionTitle,
-                  { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.semibold
-                  }
-                ]}>
-                  Popularne regiony
-                </Text>
-                
-                <View style={styles.regionsGrid}>
-                  {popularRegions.map((region) => (
-                    <TouchableOpacity
-                      key={region.id}
-                      style={[
-                        styles.regionCard,
-                        { 
-                          backgroundColor: selectedRegions.includes(region.id) 
-                            ? theme.colors.primary 
-                            : theme.colors.card,
-                          borderColor: selectedRegions.includes(region.id)
-                            ? theme.colors.primary
-                            : theme.colors.border
-                        }
-                      ]}
-                      onPress={() => handleRegionToggle(region.id)}
-                    >
-                      <Text style={[
-                        styles.regionName,
-                        { 
-                          color: selectedRegions.includes(region.id) 
-                            ? '#FFFFFF' 
-                            : theme.colors.text,
-                          fontFamily: theme.fontFamily.medium
-                        }
-                      ]}>
-                        {region.name}
-                      </Text>
-                      {selectedRegions.includes(region.id) && (
-                        <Check size={16} color="#FFFFFF" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              <View style={styles.locationsList}>
+                {availableLocations.map((location) => (
+                  <TouchableOpacity
+                    key={location.id}
+                    style={[
+                      styles.locationItem,
+                      { 
+                        backgroundColor: selectedLocation?.id === location.id 
+                          ? theme.colors.primary 
+                          : theme.colors.card,
+                        borderColor: selectedLocation?.id === location.id
+                          ? theme.colors.primary
+                          : theme.colors.border
+                      }
+                    ]}
+                    onPress={() => handleLocationSelect(location)}
+                  >
+                    <Text style={[
+                      styles.locationName,
+                      { 
+                        color: selectedLocation?.id === location.id 
+                          ? '#FFFFFF' 
+                          : theme.colors.text,
+                        fontFamily: theme.fontFamily.medium
+                      }
+                    ]}>
+                      {location.name}
+                    </Text>
+                    {selectedLocation?.id === location.id && (
+                      <Check size={20} color="#FFFFFF" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : (
+            // Step 3: Region Selection
+            <View style={styles.stepContainer}>
+              <View style={[styles.iconContainer, { backgroundColor: theme.colors.subtle }]}>
+                <Bell size={48} color={theme.colors.primary} />
               </View>
               
-              {/* All Regions */}
-              <View style={styles.regionsSection}>
-                <Text style={[
-                  styles.sectionTitle,
-                  { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.semibold
-                  }
-                ]}>
-                  Wszystkie regiony
-                </Text>
-                
-                <View style={styles.regionsList}>
-                  {regions.map((region) => (
-                    <TouchableOpacity
-                      key={region.id}
-                      style={[
-                        styles.regionListItem,
-                        { 
-                          backgroundColor: theme.colors.card,
-                          borderColor: theme.colors.border
-                        }
-                      ]}
-                      onPress={() => handleRegionToggle(region.id)}
-                    >
-                      <Text style={[
-                        styles.regionListName,
-                        { 
-                          color: theme.colors.text,
-                          fontFamily: theme.fontFamily.medium
-                        }
-                      ]}>
-                        {region.name}
-                      </Text>
-                      <View style={[
-                        styles.checkbox,
-                        { 
-                          backgroundColor: selectedRegions.includes(region.id) 
-                            ? theme.colors.primary 
-                            : 'transparent',
-                          borderColor: selectedRegions.includes(region.id)
-                            ? theme.colors.primary
-                            : theme.colors.border
-                        }
-                      ]}>
-                        {selectedRegions.includes(region.id) && (
-                          <Check size={14} color="#FFFFFF" />
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              <Text style={[
+                styles.title,
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold
+                }
+              ]}>
+                Wybierz dodatkowe regiony
+              </Text>
+              
+              <Text style={[
+                styles.subtitle,
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.regular
+                }
+              ]}>
+                Oprócz {selectedLocation?.name}, możesz wybrać dodatkowe regiony, które Cię interesują.
+              </Text>
+              
+              <View style={styles.regionsList}>
+                {regions.map((region) => (
+                  <TouchableOpacity
+                    key={region.id}
+                    style={[
+                      styles.regionListItem,
+                      { 
+                        backgroundColor: theme.colors.card,
+                        borderColor: theme.colors.border
+                      }
+                    ]}
+                    onPress={() => handleRegionToggle(region.id)}
+                  >
+                    <Text style={[
+                      styles.regionListName,
+                      { 
+                        color: theme.colors.text,
+                        fontFamily: theme.fontFamily.medium
+                      }
+                    ]}>
+                      {region.name}
+                    </Text>
+                    <View style={[
+                      styles.checkbox,
+                      { 
+                        backgroundColor: selectedRegions.includes(region.id) 
+                          ? theme.colors.primary 
+                          : 'transparent',
+                        borderColor: selectedRegions.includes(region.id)
+                          ? theme.colors.primary
+                          : theme.colors.border
+                      }
+                    ]}>
+                      {selectedRegions.includes(region.id) && (
+                        <Check size={14} color="#FFFFFF" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           )}
@@ -330,77 +358,48 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
         
         {/* Footer */}
         <View style={[styles.footer, { backgroundColor: theme.colors.card }]}>
-          {step === 1 ? (
-            <View style={styles.footerButtons}>
-              <TouchableOpacity 
-                style={[styles.skipButton, { backgroundColor: theme.colors.subtle }]}
-                onPress={handleSkip}
-              >
-                <Text style={[
-                  styles.skipButtonText,
-                  { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.medium
-                  }
-                ]}>
-                  Może później
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.nextButton, { backgroundColor: theme.colors.primary }]}
-                onPress={() => setStep(2)}
-              >
-                <Text style={[
-                  styles.nextButtonText,
-                  { fontFamily: theme.fontFamily.semibold }
-                ]}>
-                  Dalej
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.footerButtons}>
-              <TouchableOpacity 
-                style={[styles.skipButton, { backgroundColor: theme.colors.subtle }]}
-                onPress={handleSkip}
-              >
-                <Text style={[
-                  styles.skipButtonText,
-                  { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.medium
-                  }
-                ]}>
-                  Pomiń
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.nextButton, 
-                  { 
-                    backgroundColor: selectedRegions.length > 0 
-                      ? theme.colors.primary 
-                      : theme.colors.border,
-                    opacity: isSettingUp ? 0.7 : 1
-                  }
-                ]}
-                onPress={handleFinishSetup}
-                disabled={selectedRegions.length === 0 || isSettingUp}
-              >
-                <Text style={[
-                  styles.nextButtonText,
-                  { 
-                    color: selectedRegions.length > 0 ? '#FFFFFF' : theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.semibold
-                  }
-                ]}>
-                  {isSettingUp ? 'Konfigurowanie...' : 'Gotowe!'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <View style={styles.footerButtons}>
+            <TouchableOpacity 
+              style={[styles.skipButton, { backgroundColor: theme.colors.subtle }]}
+              onPress={handleSkip}
+            >
+              <Text style={[
+                styles.skipButtonText,
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                {step === 3 ? 'Pomiń' : 'Może później'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.nextButton, 
+                { 
+                  backgroundColor: (step === 1 || (step === 2 && selectedLocation) || step === 3)
+                    ? theme.colors.primary 
+                    : theme.colors.border,
+                  opacity: isSettingUp ? 0.7 : 1
+                }
+              ]}
+              onPress={step === 3 ? handleFinishSetup : handleNextStep}
+              disabled={(step === 2 && !selectedLocation) || isSettingUp}
+            >
+              <Text style={[
+                styles.nextButtonText,
+                { 
+                  color: (step === 1 || (step === 2 && selectedLocation) || step === 3) 
+                    ? '#FFFFFF' 
+                    : theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.semibold
+                }
+              ]}>
+                {isSettingUp ? 'Konfigurowanie...' : step === 3 ? 'Gotowe!' : 'Dalej'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -434,9 +433,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressLine: {
-    width: 40,
+    width: 30,
     height: 2,
-    marginHorizontal: 8,
+    marginHorizontal: 6,
   },
   content: {
     flex: 1,
@@ -479,36 +478,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
   },
-  regionsSection: {
+  locationsList: {
     width: '100%',
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  regionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
   },
-  regionCard: {
+  locationItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-    minWidth: '45%',
+    borderWidth: 2,
   },
-  regionName: {
-    fontSize: 14,
+  locationName: {
+    fontSize: 16,
     fontWeight: '500',
-    flex: 1,
   },
   regionsList: {
+    width: '100%',
     gap: 8,
   },
   regionListItem: {

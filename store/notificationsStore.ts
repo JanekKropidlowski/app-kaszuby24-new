@@ -19,7 +19,17 @@ export interface NotificationItem {
   read: boolean;
 }
 
+export interface UserLocation {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 interface NotificationsState {
+  // Push token and location
+  expoPushToken: string | null;
+  userLocation: UserLocation | null;
+  
   // Preferences
   preferences: NotificationPreference[];
   notificationsEnabled: boolean;
@@ -28,11 +38,14 @@ interface NotificationsState {
   isFirstTimeUser: boolean;
   hasSeenWelcome: boolean;
   bannerDismissed: boolean;
+  hasSelectedLocation: boolean;
   
   // Notification history
   notifications: NotificationItem[];
   
   // Actions
+  setExpoPushToken: (token: string) => void;
+  setUserLocation: (location: UserLocation) => void;
   toggleNotifications: () => void;
   updatePreference: (id: number, enabled: boolean) => void;
   addNotification: (notification: Omit<NotificationItem, 'id' | 'timestamp'>) => void;
@@ -72,9 +85,26 @@ const defaultCategories: NotificationPreference[] = [
   { id: 3, name: 'Wiadomości', type: 'category', enabled: false },
 ];
 
+// Available locations for users to choose from
+export const availableLocations: UserLocation[] = [
+  { id: 65556, name: 'Chojnice', slug: 'chojnice' },
+  { id: 65545, name: 'Kartuzy', slug: 'kartuzy' },
+  { id: 65546, name: 'Kościerzyna', slug: 'koscierzyna' },
+  { id: 66165, name: 'Kraj', slug: 'kraj' },
+  { id: 65558, name: 'Lębork', slug: 'lebork' },
+  { id: 2128, name: 'Puck', slug: 'puck' },
+  { id: 7, name: 'Trójmiasto', slug: 'trojmiasto' },
+  { id: 2583, name: 'Wejherowo', slug: 'wejherowo' },
+  { id: 999, name: 'Władysławowo', slug: 'wladyslawowo' },
+  { id: 998, name: 'Hel', slug: 'hel' },
+  { id: 997, name: 'Jastarnia', slug: 'jastarnia' },
+];
+
 export const useNotificationsStore = create<NotificationsState>()(
   persist(
     (set, get) => ({
+      expoPushToken: null,
+      userLocation: null,
       preferences: [],
       notificationsEnabled: false,
       notifications: [],
@@ -83,6 +113,15 @@ export const useNotificationsStore = create<NotificationsState>()(
       isFirstTimeUser: true,
       hasSeenWelcome: false,
       bannerDismissed: false,
+      hasSelectedLocation: false,
+      
+      setExpoPushToken: (token: string) => set({ expoPushToken: token }),
+      
+      setUserLocation: (location: UserLocation) => 
+        set({ 
+          userLocation: location, 
+          hasSelectedLocation: true 
+        }),
       
       toggleNotifications: () => 
         set((state) => ({ notificationsEnabled: !state.notificationsEnabled })),
