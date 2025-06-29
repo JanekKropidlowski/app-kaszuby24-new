@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Kaszuby24 Mobile App",
-    "slug": "kaszuby24-mobile-app",
+    "name": "Kaszuby24",
+    "slug": "kaszuby24",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.kaszuby24-mobile-app"
+      "bundleIdentifier": "app.kaszuby24"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.kaszuby24-mobile-app"
+      "package": "app.kaszuby24"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
