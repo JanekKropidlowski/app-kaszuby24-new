@@ -1,9 +1,10 @@
 import { Article, Category } from '@/types/article';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
-const API_TIMEOUT = 30000; // Increase timeout to 30 seconds
-const MAX_RETRIES = 5; // Increased retries for better resilience
+const API_TIMEOUT = Platform.OS === 'android' ? 45000 : 30000; // Longer timeout for Android
+const MAX_RETRIES = Platform.OS === 'android' ? 3 : 5; // Fewer retries on Android to prevent ANR
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_DURATION = 60 * 60 * 1000; // Cache for 1 hour
@@ -19,7 +20,20 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
   
   try {
     console.log(`Fetching (attempt ${retries + 1}/${MAX_RETRIES}): ${url}`);
-    const response = await fetch(url, { ...options, signal });
+    
+    // Add Android-specific headers
+    const fetchOptions = {
+      ...options,
+      signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': Platform.OS === 'android' ? 'Kaszuby24-Android' : 'Kaszuby24-App',
+        ...((options as any)?.headers || {}),
+      },
+    };
+    
+    const response = await fetch(url, fetchOptions);
     clearTimeout(timeout);
     return response;
   } catch (error) {
@@ -30,8 +44,8 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     // Handle network errors with retries
     if (retries < MAX_RETRIES) {
       console.log(`Retry ${retries + 1}/${MAX_RETRIES} for: ${url}`);
-      // Exponential backoff with increased delay
-      const delay = 2000 * Math.pow(2, retries);
+      // Shorter delay for Android to prevent ANR
+      const delay = Platform.OS === 'android' ? 1000 * (retries + 1) : 2000 * Math.pow(2, retries);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithTimeout(url, options, retries + 1);
     }
@@ -66,11 +80,15 @@ const getCachedData = async (key: string) => {
         return data;
       } else {
         console.log(`Cached data expired for key: ${key}`);
+        // Clean up expired cache
+        AsyncStorage.removeItem(key).catch(() => {});
         return null;
       }
     }
   } catch (error) {
     console.error(`Error retrieving cached data for key ${key}:`, error);
+    // Clean up corrupted cache
+    AsyncStorage.removeItem(key).catch(() => {});
   }
   return null;
 };
@@ -101,6 +119,8 @@ export const fetchArticles = async (
         throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
       } else if (response.status >= 500) {
         throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+      } else if (response.status === 404) {
+        throw new Error('Nie znaleziono artykułów.');
       } else {
         throw new Error(`Błąd API: ${response.status}`);
       }

@@ -26,7 +26,7 @@ const { width } = Dimensions.get('window');
 const CAROUSEL_ITEM_WIDTH = width * 0.85;
 const CAROUSEL_ITEM_SPACING = 16;
 
-const MAX_RETRIES = 5;
+const MAX_RETRIES = Platform.OS === 'android' ? 3 : 5;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -95,12 +95,13 @@ export default function HomeScreen() {
         setIsOffline(true);
       }
       
-      // Retry logic
+      // Retry logic - shorter delays for Android
       if (retry < MAX_RETRIES) {
         console.log(`Retrying (${retry + 1}/${MAX_RETRIES})...`);
+        const delay = Platform.OS === 'android' ? 1000 * (retry + 1) : 2000 * Math.pow(2, retry);
         setTimeout(() => {
           loadArticles(pageNum, refresh, retry + 1);
-        }, 2000 * Math.pow(2, retry)); // Exponential backoff with increased delay
+        }, delay);
         return;
       }
       
@@ -125,11 +126,12 @@ export default function HomeScreen() {
     } catch (err) {
       console.error('Error loading categories:', err);
       
-      // Retry logic for categories
+      // Retry logic for categories - shorter delays for Android
       if (retry < MAX_RETRIES) {
+        const delay = Platform.OS === 'android' ? 1000 * (retry + 1) : 2000 * Math.pow(2, retry);
         setTimeout(() => {
           loadCategories(retry + 1);
-        }, 2000 * Math.pow(2, retry)); // Exponential backoff
+        }, delay);
       }
     }
   }, []);
@@ -201,11 +203,11 @@ export default function HomeScreen() {
     });
   };
   
-  // Auto scroll carousel
+  // Auto scroll carousel - disabled on Android to prevent performance issues
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (featuredArticles.length > 1) {
+    if (featuredArticles.length > 1 && Platform.OS !== 'android') {
       interval = setInterval(() => {
         let newIndex = activeCarouselIndex;
         if (activeCarouselIndex < featuredArticles.length - 1) {
@@ -432,9 +434,9 @@ export default function HomeScreen() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         removeClippedSubviews={Platform.OS === 'android'}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={10}
+        initialNumToRender={Platform.OS === 'android' ? 5 : 10}
+        maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
+        windowSize={Platform.OS === 'android' ? 5 : 10}
       />
     </View>
   );

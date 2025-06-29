@@ -18,17 +18,27 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Load fonts only if they exist
+        // Load fonts only if they exist - with better error handling for Android
         try {
-          await Font.loadAsync({
-            'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf'),
-            'Poppins-Medium': require('../assets/fonts/Poppins/Poppins-Medium.ttf'),
-            'Poppins-SemiBold': require('../assets/fonts/Poppins/Poppins-SemiBold.ttf'),
-            'Poppins-Bold': require('../assets/fonts/Poppins/Poppins-Bold.ttf'),
-          });
+          if (Platform.OS !== 'web') {
+            await Font.loadAsync({
+              'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf'),
+              'Poppins-Medium': require('../assets/fonts/Poppins/Poppins-Medium.ttf'),
+              'Poppins-SemiBold': require('../assets/fonts/Poppins/Poppins-SemiBold.ttf'),
+              'Poppins-Bold': require('../assets/fonts/Poppins/Poppins-Bold.ttf'),
+            });
+            console.log('Fonts loaded successfully');
+          }
         } catch (fontError) {
           console.warn('Font loading failed, using system fonts:', fontError);
+          // Don't throw error, just continue with system fonts
         }
+
+        // Add small delay for Android to ensure everything is initialized
+        if (Platform.OS === 'android') {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
       } catch (e) {
         console.warn('App preparation error:', e);
         setError('Wystąpił problem podczas ładowania zasobów. Aplikacja może działać nieprawidłowo.');
@@ -42,9 +52,14 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (appIsReady) {
-      SplashScreen.hideAsync().catch(() => {
-        /* ignore error */
-      });
+      // Add delay for Android to prevent splash screen issues
+      const hideTimeout = setTimeout(() => {
+        SplashScreen.hideAsync().catch((e) => {
+          console.warn('Error hiding splash screen:', e);
+        });
+      }, Platform.OS === 'android' ? 500 : 100);
+
+      return () => clearTimeout(hideTimeout);
     }
   }, [appIsReady]);
 
