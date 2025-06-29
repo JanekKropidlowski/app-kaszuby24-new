@@ -182,6 +182,32 @@ export default function HomeScreen() {
     loadArticles(1, true);
   };
   
+  // Get item layout for FlatList to optimize scrollToIndex
+  const getItemLayout = (data: any, index: number) => {
+    const length = CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING;
+    const offset = index * length;
+    return { length, offset, index };
+  };
+  
+  // Handle scroll to index failure
+  const handleScrollToIndexFailed = (info: {
+    index: number;
+    highestMeasuredFrameIndex: number;
+    averageItemLength: number;
+  }) => {
+    const wait = new Promise(resolve => setTimeout(resolve, 500));
+    wait.then(() => {
+      // Try to scroll to the item with a delay
+      if (flatListRef.current) {
+        flatListRef.current.scrollToIndex({
+          index: info.index,
+          animated: true,
+          viewPosition: 0.5,
+        });
+      }
+    });
+  };
+  
   // Auto scroll carousel
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -194,12 +220,14 @@ export default function HomeScreen() {
           setActiveCarouselIndex(0);
         }
         
-        flatListRef.current?.scrollToIndex({
-          index: activeCarouselIndex,
-          animated: true,
-          viewOffset: 0,
-          viewPosition: 0,
-        });
+        if (flatListRef.current) {
+          flatListRef.current.scrollToIndex({
+            index: activeCarouselIndex,
+            animated: true,
+            viewOffset: 0,
+            viewPosition: 0,
+          });
+        }
       }, 5000);
     }
     
@@ -376,6 +404,8 @@ export default function HomeScreen() {
                     );
                     setActiveCarouselIndex(newIndex);
                   }}
+                  getItemLayout={getItemLayout}
+                  onScrollToIndexFailed={handleScrollToIndexFailed}
                 />
                 {renderCarouselIndicator()}
               </View>
