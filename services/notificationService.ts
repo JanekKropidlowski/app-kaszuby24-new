@@ -68,8 +68,8 @@ class NotificationService {
         body: notification.request.content.body || '',
         data: notification.request.content.data || {},
         read: false,
-        articleId: notification.request.content.data?.articleId ? parseInt(notification.request.content.data.articleId) : undefined,
-        categoryId: notification.request.content.data?.categoryId ? parseInt(notification.request.content.data.categoryId) : undefined,
+        articleId: notification.request.content.data?.articleId && typeof notification.request.content.data.articleId === 'string' ? parseInt(notification.request.content.data.articleId) : undefined,
+        categoryId: notification.request.content.data?.categoryId && typeof notification.request.content.data.categoryId === 'string' ? parseInt(notification.request.content.data.categoryId) : undefined,
       });
     } catch (error) {
       console.warn('Error handling notification received:', error);
