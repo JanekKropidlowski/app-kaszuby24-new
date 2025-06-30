@@ -1,4 +1,4 @@
-import OneSignal from 'react-native-onesignal';
+import { OneSignal } from 'react-native-onesignal';
 import { Platform } from 'react-native';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { registerOneSignalPlayer } from './api';
@@ -13,17 +13,22 @@ class NotificationService {
     if (this.isInitialized) return;
     
     try {
+      if (Platform.OS === 'web') {
+        console.log('OneSignal not supported on web');
+        return;
+      }
+
       // Initialize OneSignal
-      OneSignal.setAppId(ONESIGNAL_APP_ID);
+      OneSignal.initialize(ONESIGNAL_APP_ID);
       
       // Handle notification received while app is in foreground
-      OneSignal.setNotificationWillShowInForegroundHandler(this.handleNotificationReceived);
+      OneSignal.Notifications.addEventListener('foregroundWillDisplay', this.handleNotificationReceived);
       
       // Handle notification taps
-      OneSignal.setNotificationOpenedHandler(this.handleNotificationOpened);
+      OneSignal.Notifications.addEventListener('click', this.handleNotificationOpened);
       
       // Handle subscription changes
-      OneSignal.addSubscriptionObserver(this.handleSubscriptionChange);
+      OneSignal.User.pushSubscription.addEventListener('change', this.handleSubscriptionChange);
       
       // Request permissions and get player ID
       await this.requestPermissionsAndRegister();
@@ -35,8 +40,10 @@ class NotificationService {
     }
   }
   
-  private handleNotificationReceived = (notification: any) => {
-    console.log('OneSignal notification received in foreground:', notification);
+  private handleNotificationReceived = (event: any) => {
+    console.log('OneSignal notification received in foreground:', event);
+    
+    const notification = event.notification;
     
     // Add to store
     const { addNotification } = useNotificationsStore.getState();
@@ -50,17 +57,20 @@ class NotificationService {
     });
     
     // Display the notification
-    notification.complete(notification);
+    event.preventDefault();
+    event.notification.display();
   };
   
-  private handleNotificationOpened = (result: any) => {
-    console.log('OneSignal notification opened:', result);
+  private handleNotificationOpened = (event: any) => {
+    console.log('OneSignal notification opened:', event);
     
-    const notification = result.notification;
+    const notification = event.notification;
     
     // Mark as read
     const { markAsRead } = useNotificationsStore.getState();
-    markAsRead(notification.notificationId);
+    if (notification.notificationId) {
+      markAsRead(notification.notificationId);
+    }
     
     // Handle navigation based on notification data
     const data = notification.additionalData;
@@ -75,8 +85,8 @@ class NotificationService {
     
     const { setOneSignalPlayerId } = useNotificationsStore.getState();
     
-    if (event.to.isSubscribed) {
-      const playerId = event.to.userId;
+    if (event.current.optedIn) {
+      const playerId = event.current.id;
       if (playerId) {
         setOneSignalPlayerId(playerId);
         this.registerPlayerWithBackend(playerId);
@@ -92,7 +102,7 @@ class NotificationService {
       }
       
       // Request permission
-      const permission = await OneSignal.promptForPushNotificationsWithUserResponse();
+      const permission = await OneSignal.Notifications.requestPermission(true);
       console.log('OneSignal permission result:', permission);
       
       return permission;
@@ -117,16 +127,16 @@ class NotificationService {
         return;
       }
       
-      // Get device state to check subscription
-      const deviceState = await OneSignal.getDeviceState();
-      console.log('OneSignal device state:', deviceState);
+      // Get subscription state
+      const subscription = OneSignal.User.pushSubscription;
+      console.log('OneSignal subscription state:', subscription);
       
-      if (deviceState?.userId) {
+      if (subscription.id) {
         const { setOneSignalPlayerId } = useNotificationsStore.getState();
-        setOneSignalPlayerId(deviceState.userId);
+        setOneSignalPlayerId(subscription.id);
         
         // Register with backend
-        await this.registerPlayerWithBackend(deviceState.userId);
+        await this.registerPlayerWithBackend(subscription.id);
       }
       
     } catch (error) {
@@ -141,18 +151,18 @@ class NotificationService {
         return;
       }
       
-      // Enable notifications
-      OneSignal.disablePush(false);
+      // Opt in to push notifications
+      OneSignal.User.pushSubscription.optIn();
       
-      // Get current device state
-      const deviceState = await OneSignal.getDeviceState();
+      // Get current subscription
+      const subscription = OneSignal.User.pushSubscription;
       
-      if (deviceState?.userId) {
+      if (subscription.id) {
         const { setOneSignalPlayerId } = useNotificationsStore.getState();
-        setOneSignalPlayerId(deviceState.userId);
+        setOneSignalPlayerId(subscription.id);
         
         // Register with backend
-        await this.registerPlayerWithBackend(deviceState.userId);
+        await this.registerPlayerWithBackend(subscription.id);
       }
       
       console.log('OneSignal push notifications registered');
@@ -163,11 +173,11 @@ class NotificationService {
   
   async updateLocationAndReregister() {
     try {
-      const deviceState = await OneSignal.getDeviceState();
+      const subscription = OneSignal.User.pushSubscription;
       
-      if (deviceState?.userId) {
+      if (subscription.id) {
         // Re-register with new location
-        await this.registerPlayerWithBackend(deviceState.userId);
+        await this.registerPlayerWithBackend(subscription.id);
       }
     } catch (error) {
       console.error('Error updating location for OneSignal:', error);
@@ -197,7 +207,7 @@ class NotificationService {
         return;
       }
       
-      OneSignal.sendTags(tags);
+      OneSignal.User.addTags(tags);
       console.log('OneSignal tags set:', tags);
     } catch (error) {
       console.warn('Failed to set OneSignal tags:', error);
@@ -269,7 +279,7 @@ class NotificationService {
         return;
       }
       
-      OneSignal.clearOneSignalNotifications();
+      OneSignal.Notifications.clearAll();
     } catch (error) {
       console.warn('Failed to clear OneSignal notifications:', error);
     }
@@ -286,8 +296,21 @@ class NotificationService {
   }
   
   cleanup() {
-    this.isInitialized = false;
-    console.log('OneSignal notification service cleaned up');
+    try {
+      if (Platform.OS === 'web') {
+        return;
+      }
+      
+      // Remove event listeners
+      OneSignal.Notifications.removeEventListener('foregroundWillDisplay', this.handleNotificationReceived);
+      OneSignal.Notifications.removeEventListener('click', this.handleNotificationOpened);
+      OneSignal.User.pushSubscription.removeEventListener('change', this.handleSubscriptionChange);
+      
+      this.isInitialized = false;
+      console.log('OneSignal notification service cleaned up');
+    } catch (error) {
+      console.warn('Error cleaning up OneSignal:', error);
+    }
   }
 }
 
