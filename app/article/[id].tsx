@@ -13,7 +13,8 @@ import {
   BackHandler,
   Modal,
   PanResponder,
-  Animated
+  Animated,
+  Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -275,28 +276,64 @@ export default function ArticleDetailScreen() {
     if (!article) return;
     
     try {
+      const shareContent = {
+        title: article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'"),
+        message: `${article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")} - ${article.link}`,
+        url: article.link,
+      };
+      
       if (Platform.OS === 'web') {
-        // Web implementation
-        if (navigator.share) {
+        // Check if Web Share API is supported
+        if (navigator.share && navigator.canShare && navigator.canShare(shareContent)) {
           await navigator.share({
-            title: article.title.rendered,
-            text: 'Sprawdź ten artykuł!',
-            url: article.link,
+            title: shareContent.title,
+            text: 'Sprawdź ten artykuł z Kaszuby24!',
+            url: shareContent.url,
           });
         } else {
-          // Fallback for browsers that don't support the Web Share API
-          alert(`Skopiuj ten link, aby udostępnić: ${article.link}`);
+          // Fallback for browsers that don't support Web Share API
+          try {
+            await navigator.clipboard.writeText(`${shareContent.title} - ${shareContent.url}`);
+            Alert.alert(
+              'Link skopiowany!',
+              'Link do artykułu został skopiowany do schowka.',
+              [{ text: 'OK' }]
+            );
+          } catch (clipboardError) {
+            // Final fallback - show the link in an alert
+            Alert.alert(
+              'Udostępnij artykuł',
+              `Skopiuj ten link aby udostępnić:\n\n${shareContent.url}`,
+              [{ text: 'OK' }]
+            );
+          }
         }
       } else {
-        // Native implementation
-        await Share.share({
-          title: article.title.rendered,
-          message: `${article.title.rendered} - ${article.link}`,
-          url: article.link,
+        // Native implementation for iOS and Android
+        const result = await Share.share({
+          title: shareContent.title,
+          message: shareContent.message,
+          url: shareContent.url,
+        }, {
+          dialogTitle: 'Udostępnij artykuł',
+          subject: shareContent.title,
         });
+        
+        if (result.action === Share.sharedAction) {
+          console.log('Article shared successfully');
+        } else if (result.action === Share.dismissedAction) {
+          console.log('Share dialog dismissed');
+        }
       }
-    } catch (error) {
-      console.error('Error sharing:', error);
+    } catch (error: any) {
+      console.error('Error sharing article:', error);
+      
+      // Show user-friendly error message
+      Alert.alert(
+        'Błąd udostępniania',
+        'Nie udało się udostępnić artykułu. Spróbuj ponownie.',
+        [{ text: 'OK' }]
+      );
     }
   };
   
