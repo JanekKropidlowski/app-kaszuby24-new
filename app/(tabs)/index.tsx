@@ -510,7 +510,7 @@ export default function HomeScreen() {
           />
         }
         ListFooterComponent={
-          loadingMore ? <LoadingIndicator size="small" /> : null
+          loadingMore ? <LoadingIndicator size="small" message="Ładowanie więcej..." /> : null
         }
         refreshControl={
           <RefreshControl

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Bell, Settings, Bookmark } from 'lucide-react-native';
 import { Image } from 'expo-image';
@@ -11,23 +11,38 @@ export default function TabLayout() {
   const { getUnreadCount, initializePreferences } = useNotificationsStore();
   const { theme } = useThemeStore();
   const unreadCount = getUnreadCount();
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   
   useEffect(() => {
     const initNotifications = async () => {
       try {
         initializePreferences();
+        setConnectionStatus('connecting');
         
         // Small delay to ensure app is fully loaded
         await new Promise(resolve => setTimeout(resolve, 500));
         
         await notificationService.setupNotificationHandlers();
         notificationService.startPeriodicCheck();
+        
+        setConnectionStatus('connected');
       } catch (error) {
         console.warn('Notification setup failed:', error);
+        setConnectionStatus('disconnected');
       }
     };
     
     initNotifications();
+    
+    // Check connection status periodically
+    const statusInterval = setInterval(() => {
+      const status = notificationService.getConnectionStatus();
+      setConnectionStatus(status);
+    }, 5000);
+    
+    return () => {
+      clearInterval(statusInterval);
+    };
   }, [initializePreferences]);
   
   return (
@@ -99,13 +114,32 @@ export default function TabLayout() {
             <Home size={size} color={color} strokeWidth={2} />
           ),
           headerTitle: () => (
-            <Image
-              source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png' }}
-              style={{ width: 120, height: 30 }}
-              contentFit="contain"
-              placeholder="Kaszuby24"
-              cachePolicy="memory-disk"
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Image
+                source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png' }}
+                style={{ width: 120, height: 30 }}
+                contentFit="contain"
+                placeholder="Kaszuby24"
+                cachePolicy="memory-disk"
+              />
+              {connectionStatus === 'connecting' && (
+                <View style={{ 
+                  marginLeft: 8, 
+                  paddingHorizontal: 8, 
+                  paddingVertical: 2, 
+                  backgroundColor: theme.colors.primary, 
+                  borderRadius: 8 
+                }}>
+                  <Text style={{ 
+                    color: '#FFFFFF', 
+                    fontSize: 10, 
+                    fontFamily: theme.fontFamily.medium 
+                  }}>
+                    Łączenie...
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
