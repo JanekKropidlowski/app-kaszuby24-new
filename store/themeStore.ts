@@ -23,11 +23,6 @@ export interface Theme {
     medium: string;
     semibold: string;
     bold: string;
-    light: string;
-    extraLight: string;
-    thin: string;
-    extraBold: string;
-    black: string;
   };
 }
 
@@ -52,11 +47,6 @@ const lightTheme: Theme = {
     medium: 'Poppins-Medium',
     semibold: 'Poppins-SemiBold',
     bold: 'Poppins-Bold',
-    light: 'Poppins-Light',
-    extraLight: 'Poppins-ExtraLight',
-    thin: 'Poppins-Thin',
-    extraBold: 'Poppins-ExtraBold',
-    black: 'Poppins-Black',
   },
 };
 
@@ -81,11 +71,6 @@ const darkTheme: Theme = {
     medium: 'Poppins-Medium',
     semibold: 'Poppins-SemiBold',
     bold: 'Poppins-Bold',
-    light: 'Poppins-Light',
-    extraLight: 'Poppins-ExtraLight',
-    thin: 'Poppins-Thin',
-    extraBold: 'Poppins-ExtraBold',
-    black: 'Poppins-Black',
   },
 };
 
@@ -97,16 +82,14 @@ interface ThemeState {
 
 export const useThemeStore = create<ThemeState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       isDarkMode: false,
       theme: lightTheme,
-      toggleTheme: () => {
-        const { isDarkMode } = get();
-        set({
-          isDarkMode: !isDarkMode,
-          theme: !isDarkMode ? darkTheme : lightTheme,
-        });
-      },
+      toggleTheme: () =>
+        set((state) => ({
+          isDarkMode: !state.isDarkMode,
+          theme: !state.isDarkMode ? darkTheme : lightTheme,
+        })),
     }),
     {
       name: 'theme-storage',

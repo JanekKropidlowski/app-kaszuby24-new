@@ -4,16 +4,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useThemeStore } from '@/store/themeStore';
-import * as Linking from 'expo-linking';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-// Define the URL scheme for deep linking
-const prefix = Linking.createURL('/');
-
 export default function RootLayout() {
-  const { isDarkMode, theme } = useThemeStore();
+  const { isDarkMode } = useThemeStore();
   
   const [loaded] = useFonts({
     'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf'),
@@ -33,77 +29,31 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  // Handle deep linking
-  useEffect(() => {
-    const handleDeepLink = (url: string) => {
-      console.log('Deep link received:', url);
-      
-      // Parse the URL to extract article ID
-      // Expected format: kaszuby24://article/123 or https://kaszuby24.pl/article/123
-      const articleMatch = url.match(/article\/(\d+)/);
-      if (articleMatch) {
-        const articleId = articleMatch[1];
-        console.log('Navigate to article:', articleId);
-        // The navigation will be handled by Expo Router automatically
-      }
-    };
-
-    // Handle initial URL if app was opened via deep link
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleDeepLink(url);
-      }
-    });
-
-    // Handle deep links when app is already running
-    const subscription = Linking.addEventListener('url', (event) => {
-      handleDeepLink(event.url);
-    });
-
-    return () => {
-      subscription?.remove();
-    };
-  }, []);
-
   if (!loaded) {
     return null;
   }
 
   return (
     <>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={theme.colors.background} />
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: theme.colors.card,
-          },
-          headerTintColor: theme.colors.primary,
-          headerTitleStyle: {
-            fontWeight: '600',
-            color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold,
-          },
-          headerShadowVisible: false,
-        }}
-      >
+      <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen 
-          name="article/[id]" 
+          name="search" 
           options={{ 
-            title: 'Artykuł',
-            headerBackTitle: 'Wstecz'
+            title: 'Wyszukaj',
+            headerBackTitle: 'Wróć',
           }} 
         />
         <Stack.Screen 
-          name="search" 
+          name="article/[id]" 
           options={{ 
-            title: 'Wyszukiwanie',
-            headerBackTitle: 'Wstecz'
+            headerShown: false,
+            presentation: 'card',
           }} 
         />
-        <Stack.Screen name="+not-found" />
       </Stack>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
     </>
   );
 }

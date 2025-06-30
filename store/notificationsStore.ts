@@ -73,6 +73,8 @@ const defaultRegions: NotificationPreference[] = [
   { id: 2128, name: 'Puck', type: 'region', enabled: false },
   { id: 7, name: 'Trójmiasto', type: 'region', enabled: false },
   { id: 2583, name: 'Wejherowo', type: 'region', enabled: false },
+  { id: 996, name: 'Władysławowo', type: 'region', enabled: false },
+  { id: 998, name: 'Hel', type: 'region', enabled: false },
 ];
 
 const defaultCategories: NotificationPreference[] = [
@@ -95,9 +97,8 @@ export const availableLocations: UserLocation[] = [
   { id: 2128, name: 'Puck', slug: 'puck' },
   { id: 7, name: 'Trójmiasto', slug: 'trojmiasto' },
   { id: 2583, name: 'Wejherowo', slug: 'wejherowo' },
-  { id: 999, name: 'Władysławowo', slug: 'wladyslawowo' },
+  { id: 996, name: 'Władysławowo', slug: 'wladyslawowo' },
   { id: 998, name: 'Hel', slug: 'hel' },
-  { id: 997, name: 'Jastarnia', slug: 'jastarnia' },
 ];
 
 export const useNotificationsStore = create<NotificationsState>()(

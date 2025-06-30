@@ -1,6 +1,5 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { registerPushToken } from './api';
@@ -18,6 +17,7 @@ Notifications.setNotificationHandler({
 
 export class NotificationService {
   private static instance: NotificationService;
+  private periodicCheckInterval: NodeJS.Timeout | null = null;
   
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -57,11 +57,6 @@ export class NotificationService {
     try {
       if (Platform.OS === 'web') {
         console.log('Push notifications not supported on web');
-        return null;
-      }
-      
-      if (!Device.isDevice) {
-        console.log('Must use physical device for Push Notifications');
         return null;
       }
       
@@ -108,10 +103,10 @@ export class NotificationService {
         locationId: userLocation.id,
         platform: Platform.OS,
         deviceInfo: {
-          brand: Device.brand || 'unknown',
-          modelName: Device.modelName || 'unknown',
-          osName: Device.osName || 'unknown',
-          osVersion: Device.osVersion || 'unknown',
+          brand: 'unknown',
+          modelName: 'unknown',
+          osName: Platform.OS,
+          osVersion: 'unknown',
         }
       });
       
@@ -201,6 +196,25 @@ export class NotificationService {
       }
     } catch (error) {
       console.error('Error updating location and reregistering:', error);
+    }
+  }
+  
+  startPeriodicCheck(): void {
+    // Check for new notifications every 5 minutes when app is active
+    if (this.periodicCheckInterval) {
+      clearInterval(this.periodicCheckInterval);
+    }
+    
+    this.periodicCheckInterval = setInterval(() => {
+      // This could be used to sync with backend for missed notifications
+      console.log('Periodic notification check');
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+  
+  stopPeriodicCheck(): void {
+    if (this.periodicCheckInterval) {
+      clearInterval(this.periodicCheckInterval);
+      this.periodicCheckInterval = null;
     }
   }
 }
