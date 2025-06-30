@@ -106,38 +106,6 @@ export const useArticlesStore = create<ArticlesState>()(
           }
         }
       },
-      
-      // Optimize serialization
-      serialize: (state) => {
-        try {
-          return JSON.stringify(state);
-        } catch (error) {
-          console.warn('Failed to serialize articles state:', error);
-          return JSON.stringify({
-            state: {
-              savedArticles: [],
-              recentArticles: [],
-            },
-            version: 0,
-          });
-        }
-      },
-      
-      // Optimize deserialization
-      deserialize: (str) => {
-        try {
-          return JSON.parse(str);
-        } catch (error) {
-          console.warn('Failed to deserialize articles state:', error);
-          return {
-            state: {
-              savedArticles: [],
-              recentArticles: [],
-            },
-            version: 0,
-          };
-        }
-      },
     }
   )
 );

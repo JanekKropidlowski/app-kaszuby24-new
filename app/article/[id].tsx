@@ -729,7 +729,6 @@ ${article.link}`,
             }}
             // Android-specific props
             androidLayerType="hardware"
-            androidHardwareAccelerationDisabled={false}
             mixedContentMode="compatibility"
             allowsFullscreenVideo={false}
             mediaPlaybackRequiresUserAction={true}

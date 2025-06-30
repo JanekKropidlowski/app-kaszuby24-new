@@ -10,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -42,11 +44,9 @@ class NotificationService {
     // Add to store
     const { addNotification } = useNotificationsStore.getState();
     addNotification({
-      id: notification.request.identifier,
       title: notification.request.content.title || 'Nowe powiadomienie',
       body: notification.request.content.body || '',
       data: notification.request.content.data || {},
-      timestamp: new Date().toISOString(),
       read: false,
     });
   };

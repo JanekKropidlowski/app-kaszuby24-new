@@ -10,7 +10,7 @@ import { useThemeStore } from '@/store/themeStore';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { theme } = useThemeStore();
+  const { theme, isDarkMode } = useThemeStore();
   
   const [loaded] = useFonts({
     'Poppins-Thin': require('../assets/fonts/Poppins/Poppins-Thin.ttf'),
@@ -42,7 +42,7 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar 
-        style={theme.isDark ? "light" : "dark"} 
+        style={isDarkMode ? "light" : "dark"} 
         backgroundColor={theme.colors.background}
         translucent={Platform.OS === 'android'}
       />

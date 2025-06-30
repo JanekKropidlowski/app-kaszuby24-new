@@ -17,6 +17,7 @@ export interface NotificationItem {
   categoryId?: number;
   timestamp: number;
   read: boolean;
+  data?: any;
 }
 
 export interface UserLocation {
