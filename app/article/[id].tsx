@@ -106,7 +106,7 @@ export default function ArticleDetailScreen() {
         loadRelatedArticles(data);
         
         // Load gallery images with delay for better performance
-        if (data.meta?.galeria && data.meta.galeria.length > 0) {
+        if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
           setTimeout(() => {
             loadGalleryImages(data.meta.galeria);
           }, 500);
@@ -230,7 +230,7 @@ export default function ArticleDetailScreen() {
         }
         
         // Load gallery images if available
-        if (data.meta?.galeria && data.meta.galeria.length > 0) {
+        if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
           setTimeout(() => {
             loadGalleryImages(data.meta.galeria);
           }, 500);
