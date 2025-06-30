@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -11,8 +11,9 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { theme, isDarkMode } = useThemeStore();
+  const [appIsReady, setAppIsReady] = useState(false);
   
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     'Poppins-Thin': require('../assets/fonts/Poppins/Poppins-Thin.ttf'),
     'Poppins-ExtraLight': require('../assets/fonts/Poppins/Poppins-ExtraLight.ttf'),
     'Poppins-Light': require('../assets/fonts/Poppins/Poppins-Light.ttf'),
@@ -25,18 +26,42 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded) {
-      // Hide splash screen with a small delay to ensure fonts are loaded
+    async function prepare() {
+      try {
+        // Pre-load fonts, make any API calls you need to do here
+        if (loaded || error) {
+          // Fonts loaded successfully or failed to load
+          setAppIsReady(true);
+        }
+      } catch (e) {
+        console.warn('Error loading fonts:', e);
+        // Even if fonts fail, we should still show the app
+        setAppIsReady(true);
+      }
+    }
+
+    prepare();
+  }, [loaded, error]);
+
+  useEffect(() => {
+    if (appIsReady) {
+      // Hide splash screen with a small delay to ensure everything is ready
       const timer = setTimeout(() => {
-        SplashScreen.hideAsync();
+        SplashScreen.hideAsync().catch(console.warn);
       }, Platform.OS === 'android' ? 200 : 100);
       
       return () => clearTimeout(timer);
     }
-  }, [loaded]);
+  }, [appIsReady]);
 
-  if (!loaded) {
+  // Show nothing until fonts are loaded or failed to load
+  if (!appIsReady) {
     return null;
+  }
+
+  // Log font loading status for debugging
+  if (error) {
+    console.warn('Font loading error:', error);
   }
 
   return (
@@ -50,10 +75,11 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
-          // Performance optimizations for Android
+          // Performance optimizations
           animation: Platform.select({
             ios: 'default',
             android: 'fade',
+            web: 'default',
             default: 'default',
           }),
           animationDuration: Platform.select({
