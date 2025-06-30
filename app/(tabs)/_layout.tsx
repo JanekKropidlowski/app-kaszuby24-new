@@ -8,42 +8,66 @@ import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 
 export default function TabLayout() {
-  const { getUnreadCount, initializePreferences } = useNotificationsStore();
+  const { getUnreadCount, initializePreferences, connectionStatus } = useNotificationsStore();
   const { theme } = useThemeStore();
   const unreadCount = getUnreadCount();
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   
   useEffect(() => {
     const initNotifications = async () => {
       try {
+        console.log('Initializing notifications in tab layout...');
         initializePreferences();
-        setConnectionStatus('connecting');
         
         // Small delay to ensure app is fully loaded
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         await notificationService.setupNotificationHandlers();
         notificationService.startPeriodicCheck();
         
-        setConnectionStatus('connected');
+        console.log('Notification initialization completed');
       } catch (error) {
         console.warn('Notification setup failed:', error);
-        setConnectionStatus('disconnected');
+        // Try to reconnect after a delay
+        setTimeout(() => {
+          notificationService.reconnect();
+        }, 5000);
       }
     };
     
     initNotifications();
     
-    // Check connection status periodically
-    const statusInterval = setInterval(() => {
-      const status = notificationService.getConnectionStatus();
-      setConnectionStatus(status);
-    }, 5000);
-    
     return () => {
-      clearInterval(statusInterval);
+      notificationService.stopPeriodicCheck();
     };
   }, [initializePreferences]);
+  
+  const getConnectionStatusText = () => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return 'Łączenie...';
+      case 'connected':
+        return null; // Don't show anything when connected
+      case 'error':
+        return 'Błąd';
+      case 'disconnected':
+      default:
+        return 'Offline';
+    }
+  };
+
+  const getConnectionStatusColor = () => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return theme.colors.primary;
+      case 'connected':
+        return theme.colors.success;
+      case 'error':
+        return theme.colors.notification;
+      case 'disconnected':
+      default:
+        return theme.colors.textSecondary;
+    }
+  };
   
   return (
     <Tabs
@@ -122,12 +146,12 @@ export default function TabLayout() {
                 placeholder="Kaszuby24"
                 cachePolicy="memory-disk"
               />
-              {connectionStatus === 'connecting' && (
+              {getConnectionStatusText() && (
                 <View style={{ 
                   marginLeft: 8, 
                   paddingHorizontal: 8, 
                   paddingVertical: 2, 
-                  backgroundColor: theme.colors.primary, 
+                  backgroundColor: getConnectionStatusColor(), 
                   borderRadius: 8 
                 }}>
                   <Text style={{ 
@@ -135,7 +159,7 @@ export default function TabLayout() {
                     fontSize: 10, 
                     fontFamily: theme.fontFamily.medium 
                   }}>
-                    Łączenie...
+                    {getConnectionStatusText()}
                   </Text>
                 </View>
               )}

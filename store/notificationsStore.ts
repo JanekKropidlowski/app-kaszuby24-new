@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OneSignal from 'react-native-onesignal';
+import type { ConnectionStatus } from '@/services/notificationService';
 
 export interface NotificationPreference {
   id: number;
@@ -27,6 +28,9 @@ export interface UserLocation {
 }
 
 interface NotificationsState {
+  // Connection status
+  connectionStatus: ConnectionStatus;
+  
   // Push token and location
   userLocation: UserLocation | null;
   
@@ -44,6 +48,7 @@ interface NotificationsState {
   notifications: NotificationItem[];
   
   // Actions
+  setConnectionStatus: (status: ConnectionStatus) => void;
   setUserLocation: (location: UserLocation) => void;
   toggleNotifications: () => void;
   updatePreference: (id: number, enabled: boolean) => void;
@@ -62,7 +67,7 @@ interface NotificationsState {
   // Initialize default preferences
   initializePreferences: () => void;
   
-  // New fields
+  // User name
   userName: string;
   setUserName: (name: string) => void;
   getUserName: () => string;
@@ -89,7 +94,6 @@ const defaultCategories: NotificationPreference[] = [
   { id: 24, name: 'Sport i Rekreacja', type: 'category', enabled: false },
   { id: 2246, name: 'Zdrowie', type: 'category', enabled: false },
   { id: 3, name: 'Wiadomości', type: 'category', enabled: false },
-  // Note: Sponsored category (554) is intentionally excluded from default preferences
 ];
 
 // Available locations for users to choose from
@@ -109,6 +113,7 @@ export const availableLocations: UserLocation[] = [
 export const useNotificationsStore = create<NotificationsState>()(
   persist(
     (set, get) => ({
+      connectionStatus: 'disconnected',
       userLocation: null,
       preferences: [],
       notificationsEnabled: false,
@@ -120,8 +125,13 @@ export const useNotificationsStore = create<NotificationsState>()(
       bannerDismissed: false,
       hasSelectedLocation: false,
       
-      // New fields
+      // User name
       userName: '',
+      
+      setConnectionStatus: (status: ConnectionStatus) => {
+        console.log('Store: Setting connection status to:', status);
+        set({ connectionStatus: status });
+      },
       
       setUserLocation: (location: UserLocation) => {
         OneSignal.sendTag('region', location.slug);
@@ -139,13 +149,18 @@ export const useNotificationsStore = create<NotificationsState>()(
           const newPreferences = state.preferences.map(pref =>
             pref.id === id ? { ...pref, enabled } : pref
           );
-          // Wyciągnij slug-i włączonych regionów
+          
+          // Update OneSignal tags
           const enabledRegions = newPreferences.filter(p => p.type === 'region' && p.enabled);
           const regionSlugs = enabledRegions.map(region => {
             const loc = availableLocations.find(l => l.id === region.id);
             return loc ? loc.slug : null;
           }).filter(Boolean);
           OneSignal.sendTag('regions', regionSlugs.join(','));
+          
+          const enabledCategories = newPreferences.filter(p => p.type === 'category' && p.enabled);
+          OneSignal.sendTag('categories', enabledCategories.map(c => c.id.toString()).join(','));
+          
           return { preferences: newPreferences };
         });
       },
@@ -220,7 +235,7 @@ export const useNotificationsStore = create<NotificationsState>()(
         }
       },
       
-      // New actions
+      // User name actions
       setUserName: (name: string) => set({ userName: name }),
       getUserName: () => get().userName,
     }),
@@ -231,6 +246,8 @@ export const useNotificationsStore = create<NotificationsState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.notifications = state.notifications.filter(notif => notif.categoryId !== 554);
+          // Reset connection status on app restart
+          state.connectionStatus = 'disconnected';
         }
       },
     }
