@@ -22,6 +22,14 @@ export interface OneSignalPlayerRegistration {
   platform: string;
 }
 
+// Expo Push token registration interface
+export interface ExpoPushTokenRegistration {
+  pushToken: string;
+  location: string;
+  locationId: number;
+  platform: string;
+}
+
 // Helper function to handle fetch with timeout and retries
 const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise<Response> => {
   const controller = new AbortController();
@@ -681,6 +689,30 @@ export const registerOneSignalPlayer = async (registration: OneSignalPlayerRegis
   } catch (error) {
     // Don't throw here - we don't want to break the app if registration fails
     console.warn('OneSignal player registration failed:', error);
+  }
+};
+
+// Register Expo Push token with backend
+export const registerExpoPushToken = async (registration: ExpoPushTokenRegistration): Promise<void> => {
+  try {
+    const url = 'https://kaszuby24.pl/wp-json/kaszuby24/v1/register-expo-push-token';
+    
+    const response = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(registration),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to register Expo Push token: ${response.status}`);
+    }
+    
+    console.log('Expo Push token registered successfully');
+  } catch (error) {
+    // Don't throw here - we don't want to break the app if registration fails
+    console.warn('Expo Push token registration failed:', error);
   }
 };
 

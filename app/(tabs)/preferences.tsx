@@ -44,7 +44,7 @@ export default function PreferencesScreen() {
     isFirstTimeUser,
     userLocation,
     setUserLocation,
-    oneSignalPlayerId
+    expoPushToken
   } = useNotificationsStore();
   
   const { isDarkMode, toggleTheme, theme } = useThemeStore();
@@ -54,12 +54,12 @@ export default function PreferencesScreen() {
     initializePreferences();
   }, [initializePreferences]);
   
-  // Update OneSignal preferences when they change
+  // Update Expo Push preferences when they change
   useEffect(() => {
-    if (notificationsEnabled && oneSignalPlayerId) {
+    if (notificationsEnabled && expoPushToken) {
       notificationService.updatePreferences();
     }
-  }, [preferences, notificationsEnabled, oneSignalPlayerId, userLocation]);
+  }, [preferences, notificationsEnabled, expoPushToken, userLocation]);
   
   const handleToggleNotifications = async () => {
     if (!notificationsEnabled) {
@@ -458,7 +458,7 @@ export default function PreferencesScreen() {
           ]}>
             Wybrano {enabledCount} z {preferences.length} sekcji
           </Text>
-          {oneSignalPlayerId && (
+          {expoPushToken && (
             <Text style={[
               styles.statsText, 
               { 
@@ -466,7 +466,7 @@ export default function PreferencesScreen() {
                 fontFamily: theme.fontFamily.regular
               }
             ]}>
-              OneSignal zarejestrowany ✓
+              Expo Push zarejestrowany ✓
             </Text>
           )}
         </View>

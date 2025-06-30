@@ -27,8 +27,8 @@ export interface UserLocation {
 }
 
 interface NotificationsState {
-  // OneSignal player ID and location
-  oneSignalPlayerId: string | null;
+  // Expo Push token and location
+  expoPushToken: string | null;
   userLocation: UserLocation | null;
   
   // Preferences
@@ -45,7 +45,7 @@ interface NotificationsState {
   notifications: NotificationItem[];
   
   // Actions
-  setOneSignalPlayerId: (playerId: string) => void;
+  setExpoPushToken: (token: string) => void;
   setUserLocation: (location: UserLocation) => void;
   toggleNotifications: () => void;
   updatePreference: (id: number, enabled: boolean) => void;
@@ -106,7 +106,7 @@ export const availableLocations: UserLocation[] = [
 export const useNotificationsStore = create<NotificationsState>()(
   persist(
     (set, get) => ({
-      oneSignalPlayerId: null,
+      expoPushToken: null,
       userLocation: null,
       preferences: [],
       notificationsEnabled: false,
@@ -118,7 +118,7 @@ export const useNotificationsStore = create<NotificationsState>()(
       bannerDismissed: false,
       hasSelectedLocation: false,
       
-      setOneSignalPlayerId: (playerId: string) => set({ oneSignalPlayerId: playerId }),
+      setExpoPushToken: (token: string) => set({ expoPushToken: token }),
       
       setUserLocation: (location: UserLocation) => 
         set({ 

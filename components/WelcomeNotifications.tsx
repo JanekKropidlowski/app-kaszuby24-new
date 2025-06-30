@@ -93,7 +93,7 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
       // Close modal
       onClose();
     } catch (error) {
-      console.error('Error setting up OneSignal notifications:', error);
+      console.error('Error setting up Expo Push notifications:', error);
     } finally {
       setIsSettingUp(false);
     }
