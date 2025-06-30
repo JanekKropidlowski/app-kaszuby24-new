@@ -18,6 +18,7 @@ Notifications.setNotificationHandler({
 export class NotificationService {
   private static instance: NotificationService;
   private periodicCheckInterval: NodeJS.Timeout | null = null;
+  private isInitialized = false;
   
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -37,12 +38,29 @@ export class NotificationService {
         return false;
       }
       
-      // Mobile permissions
+      // Mobile permissions - with Android-specific handling
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
       if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
+        // Add delay for Android to ensure UI is ready
+        if (Platform.OS === 'android') {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        const { status } = await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+            allowAnnouncements: true,
+          },
+          android: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+          },
+        });
         finalStatus = status;
       }
       
@@ -67,10 +85,45 @@ export class NotificationService {
         return null;
       }
       
-      // Get the token
-      const token = await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig?.extra?.eas?.projectId,
-      });
+      // Android-specific: Check if device supports push notifications
+      if (Platform.OS === 'android') {
+        const devicePushToken = await Notifications.getDevicePushTokenAsync();
+        console.log('Android device push token:', devicePushToken);
+      }
+      
+      // Get the token with error handling for Android
+      let token;
+      try {
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId || 
+                         Constants.easConfig?.projectId ||
+                         Constants.manifest?.extra?.eas?.projectId;
+        
+        if (!projectId) {
+          console.warn('No project ID found for push notifications');
+          return null;
+        }
+        
+        token = await Notifications.getExpoPushTokenAsync({
+          projectId,
+        });
+      } catch (tokenError) {
+        console.error('Error getting Expo push token:', tokenError);
+        
+        // Fallback for Android
+        if (Platform.OS === 'android') {
+          try {
+            const deviceToken = await Notifications.getDevicePushTokenAsync();
+            console.log('Using device token as fallback:', deviceToken);
+            // For now, we'll skip registration if Expo token fails on Android
+            return null;
+          } catch (deviceTokenError) {
+            console.error('Device token also failed:', deviceTokenError);
+            return null;
+          }
+        }
+        
+        throw tokenError;
+      }
       
       console.log('Expo Push Token:', token.data);
       
@@ -84,6 +137,13 @@ export class NotificationService {
       return token.data;
     } catch (error) {
       console.error('Error getting push token:', error);
+      
+      // Don't throw error on Android - just log and continue
+      if (Platform.OS === 'android') {
+        console.warn('Push notifications setup failed on Android, continuing without them');
+        return null;
+      }
+      
       return null;
     }
   }
@@ -113,6 +173,7 @@ export class NotificationService {
       console.log('Push token registered with backend successfully');
     } catch (error) {
       console.error('Error registering token with backend:', error);
+      // Don't throw - this shouldn't break the app
     }
   }
   
@@ -147,38 +208,57 @@ export class NotificationService {
   
   async setupNotificationHandlers(): Promise<void> {
     try {
-      if (Platform.OS === 'web') return;
+      if (Platform.OS === 'web' || this.isInitialized) return;
+      
+      // Mark as initialized to prevent multiple setups
+      this.isInitialized = true;
       
       // Handle notification received while app is in foreground
       Notifications.addNotificationReceivedListener(notification => {
         console.log('Notification received:', notification);
         
-        // Add to notification history
-        const { addNotification } = useNotificationsStore.getState();
-        const data = notification.request.content.data || {};
-        
-        addNotification({
-          title: notification.request.content.title || 'Nowe powiadomienie',
-          body: notification.request.content.body || '',
-          articleId: typeof data.articleId === 'number' ? data.articleId : undefined,
-          categoryId: typeof data.categoryId === 'number' ? data.categoryId : undefined,
-          read: false,
-        });
+        try {
+          // Add to notification history
+          const { addNotification } = useNotificationsStore.getState();
+          const data = notification.request.content.data || {};
+          
+          addNotification({
+            title: notification.request.content.title || 'Nowe powiadomienie',
+            body: notification.request.content.body || '',
+            articleId: typeof data.articleId === 'number' ? data.articleId : undefined,
+            categoryId: typeof data.categoryId === 'number' ? data.categoryId : undefined,
+            read: false,
+          });
+        } catch (error) {
+          console.warn('Error processing received notification:', error);
+        }
       });
       
       // Handle notification tapped
       Notifications.addNotificationResponseReceivedListener(response => {
-        const data = response.notification.request.content.data || {};
-        console.log('Notification tapped:', data);
-        
-        if (data.articleId && typeof data.articleId === 'number') {
-          // This will be handled by the deep linking system
-          console.log('Navigate to article:', data.articleId);
+        try {
+          const data = response.notification.request.content.data || {};
+          console.log('Notification tapped:', data);
+          
+          if (data.articleId && typeof data.articleId === 'number') {
+            // This will be handled by the deep linking system
+            console.log('Navigate to article:', data.articleId);
+          }
+        } catch (error) {
+          console.warn('Error processing notification response:', error);
         }
       });
       
-      // Register for push notifications
-      await this.registerForPushNotifications();
+      // Register for push notifications with delay for Android
+      if (Platform.OS === 'android') {
+        setTimeout(() => {
+          this.registerForPushNotifications().catch(error => {
+            console.warn('Push notification registration failed:', error);
+          });
+        }, 2000); // 2 second delay for Android
+      } else {
+        await this.registerForPushNotifications();
+      }
     } catch (error) {
       console.warn('Error setting up notification handlers:', error);
     }
@@ -205,10 +285,13 @@ export class NotificationService {
       clearInterval(this.periodicCheckInterval);
     }
     
+    // Use longer interval on Android to reduce battery usage
+    const interval = Platform.OS === 'android' ? 10 * 60 * 1000 : 5 * 60 * 1000;
+    
     this.periodicCheckInterval = setInterval(() => {
       // This could be used to sync with backend for missed notifications
       console.log('Periodic notification check');
-    }, 5 * 60 * 1000); // 5 minutes
+    }, interval);
   }
   
   stopPeriodicCheck(): void {

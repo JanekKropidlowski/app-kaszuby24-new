@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
-const API_TIMEOUT = Platform.OS === 'android' ? 45000 : 30000;
-const MAX_RETRIES = Platform.OS === 'android' ? 3 : 5;
+const API_TIMEOUT = Platform.OS === 'android' ? 60000 : 30000; // Increased timeout for Android
+const MAX_RETRIES = Platform.OS === 'android' ? 5 : 3; // More retries for Android
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_DURATION = 60 * 60 * 1000; // Cache for 1 hour
@@ -39,7 +39,16 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': Platform.OS === 'android' ? 'Kaszuby24-Android' : 'Kaszuby24-App',
+        'User-Agent': Platform.select({
+          android: 'Kaszuby24-Android/1.0',
+          ios: 'Kaszuby24-iOS/1.0',
+          default: 'Kaszuby24-App/1.0'
+        }),
+        // Android-specific headers
+        ...(Platform.OS === 'android' && {
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        }),
         ...((options as any)?.headers || {}),
       },
     };
@@ -47,14 +56,29 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     const response = await fetch(url, fetchOptions);
     clearTimeout(timeout);
     return response;
-  } catch (error) {
+  } catch (error: any) {
     clearTimeout(timeout);
     
     // Handle network errors with retries
     if (retries < MAX_RETRIES) {
-      const delay = Platform.OS === 'android' ? 1000 * (retries + 1) : 2000 * Math.pow(2, retries);
+      const delay = Platform.OS === 'android' ? 
+        2000 * (retries + 1) : // Linear backoff for Android
+        1000 * Math.pow(2, retries); // Exponential backoff for others
+      
+      console.log(`Retrying request (${retries + 1}/${MAX_RETRIES}) after ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithTimeout(url, options, retries + 1);
+    }
+    
+    // Enhanced error handling for Android
+    if (Platform.OS === 'android') {
+      if (error.name === 'AbortError') {
+        throw new Error('Zapytanie przekroczyło limit czasu. Sprawdź połączenie internetowe.');
+      } else if (error.message.includes('Network request failed')) {
+        throw new Error('Brak połączenia z internetem. Sprawdź ustawienia sieci.');
+      } else if (error.message.includes('Unable to resolve host')) {
+        throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe.');
+      }
     }
     
     throw error;
@@ -71,6 +95,7 @@ const cacheData = async (key: string, data: any) => {
     await AsyncStorage.setItem(key, JSON.stringify(timestampedData));
   } catch (error) {
     // Silent fail for caching
+    console.warn('Cache write failed:', error);
   }
 };
 
@@ -89,6 +114,7 @@ const getCachedData = async (key: string) => {
       }
     }
   } catch (error) {
+    console.warn('Cache read failed:', error);
     AsyncStorage.removeItem(key).catch(() => {});
   }
   return null;
@@ -158,6 +184,7 @@ export const fetchArticles = async (
     if (page === 1) {
       const cachedData = await getCachedData(CACHE_KEY_ARTICLES);
       if (cachedData) {
+        console.log('Using cached articles data');
         return cachedData;
       }
     }
@@ -257,6 +284,7 @@ export const fetchCategories = async (): Promise<Category[]> => {
     // Attempt to load from cache if fetch fails
     const cachedData = await getCachedData(CACHE_KEY_CATEGORIES);
     if (cachedData) {
+      console.log('Using cached categories data');
       return cachedData;
     }
     
@@ -359,5 +387,6 @@ export const registerPushToken = async (registration: PushTokenRegistration): Pr
     }
   } catch (error) {
     // Don't throw here - we don't want to break the app if registration fails
+    console.warn('Push token registration failed:', error);
   }
 };

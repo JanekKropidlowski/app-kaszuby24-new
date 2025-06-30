@@ -63,9 +63,28 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     );
   }
   
-  // For mobile platforms, check if WebView is available
+  // For Android, use fallback due to WebView issues with video embeds
+  if (Platform.OS === 'android') {
+    return (
+      <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
+        <TouchableOpacity 
+          style={styles.fallbackButton}
+          onPress={() => Linking.openURL(url)}
+        >
+          <Play size={32} color={theme.colors.primary} />
+          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+            Otwórz video w przeglądarce
+          </Text>
+          <Text style={[styles.fallbackSubtext, { color: theme.colors.textSecondary }]}>
+            {youtubeId ? 'YouTube' : vimeoId ? 'Vimeo' : 'Video'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  
+  // For iOS, try WebView but with fallback
   try {
-    // For mobile platforms, use WebView
     return (
       <View style={styles.container}>
         <WebView
@@ -162,6 +181,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     fontWeight: '500',
+    textAlign: 'center',
+  },
+  fallbackSubtext: {
+    marginTop: 4,
+    fontSize: 14,
     textAlign: 'center',
   },
   loadingContainer: {

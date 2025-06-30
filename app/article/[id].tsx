@@ -9,7 +9,8 @@ import {
   Platform,
   Dimensions,
   Linking,
-  StatusBar
+  StatusBar,
+  BackHandler
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -39,9 +40,22 @@ export default function ArticleDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [webViewHeight, setWebViewHeight] = useState(300);
+  const [webViewError, setWebViewError] = useState(false);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
+  
+  // Handle Android back button
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.back();
+        return true;
+      });
+      
+      return () => backHandler.remove();
+    }
+  }, [router]);
   
   useEffect(() => {
     const loadArticle = async (retry = 0) => {
@@ -123,6 +137,7 @@ export default function ArticleDetailScreen() {
   const handleRetry = () => {
     setError(null);
     setLoading(true);
+    setWebViewError(false);
     
     // Reload the article
     fetchArticleById(articleId)
@@ -183,6 +198,143 @@ export default function ArticleDetailScreen() {
   const metaViews = article.meta?.views ? `${article.meta.views}` : '';
   const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
   
+  // Enhanced HTML for Android WebView
+  const enhancedHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          font-size: 16px;
+          line-height: 1.8;
+          color: ${isDarkMode ? '#F9FAFB' : '#111827'};
+          background-color: transparent;
+          margin: 0;
+          padding: 16px;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+        
+        p {
+          margin-bottom: 16px;
+        }
+        
+        img {
+          max-width: 100% !important;
+          height: auto !important;
+          border-radius: 8px;
+          margin: 16px 0;
+          display: block;
+        }
+        
+        a {
+          color: ${theme.colors.primary};
+          text-decoration: none;
+        }
+        
+        a:hover {
+          text-decoration: underline;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+          color: ${isDarkMode ? '#F9FAFB' : '#111827'};
+          margin: 24px 0 16px 0;
+          line-height: 1.4;
+        }
+        
+        blockquote {
+          border-left: 4px solid ${theme.colors.primary};
+          padding-left: 16px;
+          margin: 16px 0;
+          font-style: italic;
+          background-color: ${isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
+          padding: 16px;
+          border-radius: 8px;
+        }
+        
+        ul, ol {
+          padding-left: 20px;
+          margin: 16px 0;
+        }
+        
+        li {
+          margin-bottom: 8px;
+        }
+        
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 16px 0;
+        }
+        
+        th, td {
+          border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
+          padding: 8px;
+          text-align: left;
+        }
+        
+        th {
+          background-color: ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
+          font-weight: bold;
+        }
+        
+        /* Remove any video/iframe elements to prevent conflicts */
+        iframe, video, embed, object {
+          display: none !important;
+        }
+      </style>
+    </head>
+    <body>
+      ${cleanedHtml}
+      <script>
+        // Send height to React Native
+        function sendHeight() {
+          const height = Math.max(
+            document.body.scrollHeight,
+            document.body.offsetHeight,
+            document.documentElement.clientHeight,
+            document.documentElement.scrollHeight,
+            document.documentElement.offsetHeight
+          );
+          
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(height.toString());
+          }
+        }
+        
+        // Send height when content is loaded
+        document.addEventListener('DOMContentLoaded', sendHeight);
+        window.addEventListener('load', sendHeight);
+        
+        // Send height when images load
+        const images = document.getElementsByTagName('img');
+        for (let i = 0; i < images.length; i++) {
+          images[i].addEventListener('load', sendHeight);
+          images[i].addEventListener('error', sendHeight);
+        }
+        
+        // Handle link clicks
+        document.addEventListener('click', function(e) {
+          if (e.target.tagName === 'A') {
+            e.preventDefault();
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage('link:' + e.target.href);
+            }
+          }
+        });
+        
+        // Initial height send
+        setTimeout(sendHeight, 100);
+        setTimeout(sendHeight, 500);
+        setTimeout(sendHeight, 1000);
+      </script>
+    </body>
+    </html>
+  `;
+  
   // Render content based on platform
   const renderContent = () => {
     if (Platform.OS === 'web') {
@@ -199,12 +351,29 @@ export default function ArticleDetailScreen() {
           />
         </View>
       );
+    } else if (webViewError) {
+      // Fallback for Android when WebView fails
+      return (
+        <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
+          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+            Treść artykułu nie może być wyświetlona w aplikacji.
+          </Text>
+          <TouchableOpacity 
+            style={[styles.fallbackButton, { backgroundColor: theme.colors.primary }]}
+            onPress={() => Linking.openURL(article.link)}
+          >
+            <Text style={styles.fallbackButtonText}>
+              Otwórz w przeglądarce
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
     } else {
       return (
         <View style={styles.htmlContainer}>
           <WebView
             originWhitelist={['*']}
-            source={{ html: cleanedHtml }}
+            source={{ html: enhancedHtml }}
             style={[
               styles.webview, 
               { height: webViewHeight }
@@ -212,68 +381,59 @@ export default function ArticleDetailScreen() {
             scrollEnabled={false}
             onNavigationStateChange={(event) => {
               // Handle link clicks
-              if (event.url !== 'about:blank') {
+              if (event.url !== 'about:blank' && !event.url.startsWith('data:')) {
                 Linking.openURL(event.url);
                 return false;
               }
               return true;
             }}
-            injectedJavaScript={`
-              // Adjust the height of the WebView to match the content
-              const meta = document.createElement('meta');
-              meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1');
-              meta.setAttribute('name', 'viewport');
-              document.getElementsByTagName('head')[0].appendChild(meta);
-              
-              // Apply theme and Poppins font
-              document.body.style.color = '${isDarkMode ? '#F9FAFB' : '#111827'}';
-              document.body.style.backgroundColor = 'transparent';
-              document.body.style.fontFamily = 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-              document.body.style.fontSize = '16px';
-              document.body.style.lineHeight = '1.8';
-              document.body.style.padding = '0';
-              document.body.style.margin = '0';
-              
-              // Make all links open in a new window/tab
-              const links = document.getElementsByTagName('a');
-              for (let i = 0; i < links.length; i++) {
-                links[i].target = '_blank';
-                links[i].style.color = '${theme.colors.primary}';
-              }
-              
-              // Style images
-              const images = document.getElementsByTagName('img');
-              for (let i = 0; i < images.length; i++) {
-                images[i].style.maxWidth = '100%';
-                images[i].style.height = 'auto';
-                images[i].style.borderRadius = '8px';
-                images[i].style.marginTop = '16px';
-                images[i].style.marginBottom = '16px';
-              }
-              
-              // Adjust the height
-              setTimeout(() => {
-                window.ReactNativeWebView.postMessage(document.documentElement.scrollHeight);
-              }, 500);
-              true;
-            `}
             onMessage={(event) => {
-              // Adjust WebView height based on content
-              const height = parseInt(event.nativeEvent.data, 10);
-              if (height > 0 && height !== webViewHeight) {
-                setWebViewHeight(Math.max(height, 300));
+              const message = event.nativeEvent.data;
+              
+              if (message.startsWith('link:')) {
+                // Handle link clicks
+                const url = message.substring(5);
+                Linking.openURL(url);
+              } else {
+                // Adjust WebView height based on content
+                const height = parseInt(message, 10);
+                if (height > 0 && height !== webViewHeight) {
+                  setWebViewHeight(Math.max(height + 50, 300)); // Add padding for Android
+                }
               }
             }}
             onError={(syntheticEvent) => {
               const { nativeEvent } = syntheticEvent;
               console.warn('WebView error: ', nativeEvent);
+              setWebViewError(true);
             }}
             onHttpError={(syntheticEvent) => {
               const { nativeEvent } = syntheticEvent;
               console.warn('WebView HTTP error: ', nativeEvent);
+              if (Platform.OS === 'android') {
+                setWebViewError(true);
+              }
             }}
+            onRenderProcessGone={() => {
+              console.warn('WebView render process gone');
+              setWebViewError(true);
+            }}
+            // Android-specific props
             androidLayerType="hardware"
+            androidHardwareAccelerationDisabled={false}
             mixedContentMode="compatibility"
+            allowsFullscreenVideo={false}
+            mediaPlaybackRequiresUserAction={true}
+            // Reduce memory usage on Android
+            cacheEnabled={Platform.OS === 'android'}
+            domStorageEnabled={true}
+            javaScriptEnabled={true}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={[styles.loadingContainer, { backgroundColor: theme.colors.subtle }]}>
+                <LoadingIndicator size="small" />
+              </View>
+            )}
           />
         </View>
       );
@@ -326,6 +486,10 @@ export default function ArticleDetailScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        // Android-specific optimizations
+        removeClippedSubviews={Platform.OS === 'android'}
+        maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
+        windowSize={Platform.OS === 'android' ? 5 : 10}
       >
         {/* Featured image */}
         {article.featured_media_url ? (
@@ -336,6 +500,8 @@ export default function ArticleDetailScreen() {
               contentFit="cover"
               transition={300}
               placeholder="Loading..."
+              // Android-specific caching
+              cachePolicy={Platform.OS === 'android' ? 'memory-disk' : 'memory'}
             />
             <View style={styles.imageDarkOverlay} />
             
@@ -344,7 +510,9 @@ export default function ArticleDetailScreen() {
               <View style={styles.categoryBadge}>
                 <Text style={[
                   styles.categoryText,
-                  { fontFamily: theme.fontFamily.semibold }
+                  { 
+                    fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold 
+                  }
                 ]}>
                   {categoryName}
                 </Text>
@@ -360,7 +528,7 @@ export default function ArticleDetailScreen() {
             styles.title, 
             { 
               color: theme.colors.text,
-              fontFamily: theme.fontFamily.bold
+              fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.bold
             }
           ]}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
@@ -373,7 +541,7 @@ export default function ArticleDetailScreen() {
                 styles.metaText, 
                 { 
                   color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular
+                  fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.regular
                 }
               ]}>
                 {formatDateTime(article.date)}
@@ -387,7 +555,7 @@ export default function ArticleDetailScreen() {
                   styles.metaText, 
                   { 
                     color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular
+                    fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.regular
                   }
                 ]}>
                   {metaViews}
@@ -401,7 +569,7 @@ export default function ArticleDetailScreen() {
               styles.source, 
               { 
                 color: theme.colors.textSecondary,
-                fontFamily: theme.fontFamily.regular
+                fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.regular
               }
             ]}>
               Źródło: {metaSource}
@@ -439,7 +607,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     height: Platform.select({
       ios: 380,
-      android: 350,
+      android: 320, // Reduced height for Android
       default: 380
     }),
   },
@@ -469,7 +637,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Platform.select({
       ios: 50,
-      android: 40,
+      android: 45, // Adjusted for Android status bar
       default: 50
     }),
     left: 20,
@@ -486,7 +654,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Platform.select({
       ios: 50,
-      android: 40,
+      android: 45,
       default: 50
     }),
     right: 70,
@@ -503,7 +671,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Platform.select({
       ios: 50,
-      android: 40,
+      android: 45,
       default: 50
     }),
     right: 20,
@@ -524,10 +692,10 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   title: {
-    fontSize: 22,
+    fontSize: Platform.OS === 'android' ? 20 : 22, // Smaller font for Android
     fontWeight: '700',
     marginBottom: 16,
-    lineHeight: 30,
+    lineHeight: Platform.OS === 'android' ? 28 : 30,
   },
   metaContainer: {
     flexDirection: 'row',
@@ -558,5 +726,38 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 300,
     backgroundColor: 'transparent',
+  },
+  fallbackContainer: {
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+  },
+  fallbackText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 24,
+  },
+  fallbackButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  fallbackButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
   },
 });

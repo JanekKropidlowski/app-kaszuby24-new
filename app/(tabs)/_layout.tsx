@@ -16,6 +16,12 @@ export default function TabLayout() {
     const initNotifications = async () => {
       try {
         initializePreferences();
+        
+        // Add delay for Android to ensure app is fully loaded
+        if (Platform.OS === 'android') {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         await notificationService.setupNotificationHandlers();
         notificationService.startPeriodicCheck();
       } catch (error) {
@@ -38,20 +44,20 @@ export default function TabLayout() {
           borderTopRightRadius: 24,
           height: Platform.select({
             ios: 88,
-            android: 68,
+            android: 72, // Increased height for Android
             default: 68
           }),
           paddingBottom: Platform.select({
             ios: 24,
-            android: 12,
+            android: 16, // Increased padding for Android
             default: 12
           }),
           paddingTop: 12,
           paddingHorizontal: 16,
-          elevation: 12,
+          elevation: Platform.OS === 'android' ? 8 : 12, // Reduced elevation for Android
           shadowColor: theme.colors.shadow,
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.15,
+          shadowOpacity: Platform.OS === 'android' ? 0.1 : 0.15, // Reduced shadow for Android
           shadowRadius: 12,
           position: 'absolute',
           bottom: 0,
@@ -59,7 +65,7 @@ export default function TabLayout() {
           right: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: Platform.OS === 'android' ? 10 : 11, // Smaller font for Android
           fontWeight: '600',
           marginTop: 2,
         },
@@ -75,6 +81,8 @@ export default function TabLayout() {
           fontWeight: '600',
           color: theme.colors.text,
           fontSize: 18,
+          // Use system font on Android if custom fonts fail
+          fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold,
         },
         headerTintColor: theme.colors.primary,
       }}
@@ -92,6 +100,8 @@ export default function TabLayout() {
               style={{ width: 120, height: 30 }}
               contentFit="contain"
               placeholder="Kaszuby24"
+              // Add caching for Android
+              cachePolicy={Platform.OS === 'android' ? 'memory-disk' : 'memory'}
             />
           ),
         }}
@@ -108,8 +118,10 @@ export default function TabLayout() {
           tabBarBadgeStyle: {
             backgroundColor: theme.colors.notification,
             color: '#FFFFFF',
-            fontSize: 10,
+            fontSize: Platform.OS === 'android' ? 9 : 10, // Smaller badge font for Android
             fontWeight: '600',
+            minWidth: Platform.OS === 'android' ? 16 : 18, // Smaller badge for Android
+            height: Platform.OS === 'android' ? 16 : 18,
           },
         }}
       />
