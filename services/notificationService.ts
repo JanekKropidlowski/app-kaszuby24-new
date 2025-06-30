@@ -127,16 +127,16 @@ class NotificationService {
         return;
       }
       
-      // Get subscription state
-      const subscription = OneSignal.User.pushSubscription;
-      console.log('OneSignal subscription state:', subscription);
+      // Get subscription ID
+      const subscriptionId = OneSignal.User.pushSubscription.id;
+      console.log('OneSignal subscription ID:', subscriptionId);
       
-      if (subscription.id) {
+      if (subscriptionId) {
         const { setOneSignalPlayerId } = useNotificationsStore.getState();
-        setOneSignalPlayerId(subscription.id);
+        setOneSignalPlayerId(subscriptionId);
         
         // Register with backend
-        await this.registerPlayerWithBackend(subscription.id);
+        await this.registerPlayerWithBackend(subscriptionId);
       }
       
     } catch (error) {
@@ -154,15 +154,15 @@ class NotificationService {
       // Opt in to push notifications
       OneSignal.User.pushSubscription.optIn();
       
-      // Get current subscription
-      const subscription = OneSignal.User.pushSubscription;
+      // Get current subscription ID
+      const subscriptionId = OneSignal.User.pushSubscription.id;
       
-      if (subscription.id) {
+      if (subscriptionId) {
         const { setOneSignalPlayerId } = useNotificationsStore.getState();
-        setOneSignalPlayerId(subscription.id);
+        setOneSignalPlayerId(subscriptionId);
         
         // Register with backend
-        await this.registerPlayerWithBackend(subscription.id);
+        await this.registerPlayerWithBackend(subscriptionId);
       }
       
       console.log('OneSignal push notifications registered');
@@ -173,11 +173,11 @@ class NotificationService {
   
   async updateLocationAndReregister() {
     try {
-      const subscription = OneSignal.User.pushSubscription;
+      const subscriptionId = OneSignal.User.pushSubscription.id;
       
-      if (subscription.id) {
+      if (subscriptionId) {
         // Re-register with new location
-        await this.registerPlayerWithBackend(subscription.id);
+        await this.registerPlayerWithBackend(subscriptionId);
       }
     } catch (error) {
       console.error('Error updating location for OneSignal:', error);
