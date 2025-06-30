@@ -16,7 +16,7 @@ const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width * 0.8; // Increased width for full width
 const ITEM_SPACING = 16;
 
-export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
+const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
   articles,
   title,
 }) => {
@@ -165,3 +165,5 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 });
+
+export default React.memo(RelatedArticlesSlider);

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
+import OneSignal from 'react-native-onesignal';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -39,6 +40,18 @@ export default function RootLayout() {
   if (!loaded && !error) {
     return null;
   }
+
+  // Inicjalizacja OneSignal
+  useEffect(() => {
+    OneSignal.setAppId('03c10d51-376c-4651-a25e-bbc3aa7cfb63');
+    OneSignal.setNotificationOpenedHandler(notification => {
+      console.log('Powiadomienie otwarte:', notification);
+      // Możesz tu dodać nawigację do konkretnego ekranu na podstawie danych z powiadomienia
+    });
+    if (Platform.OS === 'ios') {
+      OneSignal.promptForPushNotificationsWithUserResponse();
+    }
+  }, []);
 
   return (
     <>

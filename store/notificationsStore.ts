@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import OneSignal from 'react-native-onesignal';
 
 export interface NotificationPreference {
   id: number;
@@ -27,7 +28,6 @@ export interface UserLocation {
 
 interface NotificationsState {
   // Push token and location
-  expoPushToken: string | null;
   userLocation: UserLocation | null;
   
   // Preferences
@@ -44,7 +44,6 @@ interface NotificationsState {
   notifications: NotificationItem[];
   
   // Actions
-  setExpoPushToken: (token: string) => void;
   setUserLocation: (location: UserLocation) => void;
   toggleNotifications: () => void;
   updatePreference: (id: number, enabled: boolean) => void;
@@ -62,6 +61,11 @@ interface NotificationsState {
   
   // Initialize default preferences
   initializePreferences: () => void;
+  
+  // New fields
+  userName: string;
+  setUserName: (name: string) => void;
+  getUserName: () => string;
 }
 
 const defaultRegions: NotificationPreference[] = [
@@ -105,7 +109,6 @@ export const availableLocations: UserLocation[] = [
 export const useNotificationsStore = create<NotificationsState>()(
   persist(
     (set, get) => ({
-      expoPushToken: null,
       userLocation: null,
       preferences: [],
       notificationsEnabled: false,
@@ -117,23 +120,35 @@ export const useNotificationsStore = create<NotificationsState>()(
       bannerDismissed: false,
       hasSelectedLocation: false,
       
-      setExpoPushToken: (token: string) => set({ expoPushToken: token }),
+      // New fields
+      userName: '',
       
-      setUserLocation: (location: UserLocation) => 
-        set({ 
-          userLocation: location, 
-          hasSelectedLocation: true 
-        }),
+      setUserLocation: (location: UserLocation) => {
+        OneSignal.sendTag('region', location.slug);
+        set({
+          userLocation: location,
+          hasSelectedLocation: true,
+        });
+      },
       
       toggleNotifications: () => 
         set((state) => ({ notificationsEnabled: !state.notificationsEnabled })),
       
-      updatePreference: (id: number, enabled: boolean) =>
-        set((state) => ({
-          preferences: state.preferences.map(pref =>
+      updatePreference: (id: number, enabled: boolean) => {
+        set((state) => {
+          const newPreferences = state.preferences.map(pref =>
             pref.id === id ? { ...pref, enabled } : pref
-          )
-        })),
+          );
+          // Wyciągnij slug-i włączonych regionów
+          const enabledRegions = newPreferences.filter(p => p.type === 'region' && p.enabled);
+          const regionSlugs = enabledRegions.map(region => {
+            const loc = availableLocations.find(l => l.id === region.id);
+            return loc ? loc.slug : null;
+          }).filter(Boolean);
+          OneSignal.sendTag('regions', regionSlugs.join(','));
+          return { preferences: newPreferences };
+        });
+      },
       
       addNotification: (notification) =>
         set((state) => {
@@ -204,6 +219,10 @@ export const useNotificationsStore = create<NotificationsState>()(
           set({ preferences: [...defaultRegions, ...defaultCategories] });
         }
       },
+      
+      // New actions
+      setUserName: (name: string) => set({ userName: name }),
+      getUserName: () => get().userName,
     }),
     {
       name: 'notifications-storage',

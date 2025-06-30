@@ -5,7 +5,8 @@ import {
   Text, 
   FlatList, 
   RefreshControl,
-  TouchableOpacity
+  TouchableOpacity,
+  Platform
 } from 'react-native';
 import { Calendar as CalendarIcon } from 'lucide-react-native';
 import { fetchArticles } from '@/services/api';
@@ -135,6 +136,10 @@ export default function CalendarScreen() {
           </View>
         )}
         contentContainerStyle={styles.listContent}
+        removeClippedSubviews={Platform.OS === 'android'}
+        initialNumToRender={Platform.OS === 'android' ? 5 : 10}
+        maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
+        windowSize={Platform.OS === 'android' ? 5 : 10}
         ListHeaderComponent={
           <Text style={[styles.title, { color: theme.colors.text }]}>
             Nadchodzące wydarzenia

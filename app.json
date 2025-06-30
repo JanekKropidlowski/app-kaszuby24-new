@@ -22,7 +22,17 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.kaszuby24"
+      "package": "app.kaszuby24",
+      "androidStatusBar": {
+        "backgroundColor": "#ffffff",
+        "barStyle": "dark-content",
+        "translucent": false
+      },
+      "androidNavigationBar": {
+        "visible": "immersive",
+        "barStyle": "dark-content",
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -35,6 +45,12 @@
         "expo-router",
         {
           "origin": "https://rork.com/"
+        }
+      ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "development"
         }
       ]
     ],

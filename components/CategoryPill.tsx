@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, Animated, Platform } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
 
 interface CategoryPillProps {
@@ -81,13 +81,21 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginRight: 12,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: 6,
+        shadowOpacity: 0.15,
+        shadowColor: '#000',
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   text: {
     fontSize: 14,
   },
 });
 
-export default CategoryPill;
+export default React.memo(CategoryPill);

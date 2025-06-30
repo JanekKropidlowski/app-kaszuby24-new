@@ -52,11 +52,17 @@ export default function TabLayout() {
           }),
           paddingTop: 12,
           paddingHorizontal: 16,
-          elevation: 12,
-          shadowColor: theme.colors.shadow,
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
+          ...Platform.select({
+            ios: {
+              shadowColor: theme.colors.shadow,
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+            },
+            android: {
+              elevation: 8,
+            },
+          }),
           position: 'absolute',
           bottom: 0,
           left: 0,

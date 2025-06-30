@@ -5,7 +5,8 @@ import {
   Text, 
   FlatList, 
   TouchableOpacity,
-  TextInput
+  TextInput,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search as SearchIcon, X } from 'lucide-react-native';
@@ -122,6 +123,10 @@ export default function SearchScreen() {
             </View>
           )}
           contentContainerStyle={styles.listContent}
+          removeClippedSubviews={Platform.OS === 'android'}
+          initialNumToRender={Platform.OS === 'android' ? 5 : 10}
+          maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
+          windowSize={Platform.OS === 'android' ? 5 : 10}
           ListHeaderComponent={
             query.trim() ? (
               <Text style={styles.resultsText}>
