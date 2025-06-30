@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, Dimensions, TouchableOpacity, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -12,18 +12,29 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.75;
-const CARD_MARGIN = 12;
+const CARD_WIDTH = width * 0.7;
+const CARD_MARGIN = 16;
+const PEEK_AMOUNT = 20; // 20% peek of next card
 
 export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ articles, title }) => {
   const { theme } = useThemeStore();
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  if (articles.length === 0) return null;
+  // Limit to max 5 articles
+  const limitedArticles = articles.slice(0, 5);
+
+  if (limitedArticles.length === 0) return null;
 
   const handleArticlePress = (article: Article) => {
     router.push(`/article/${article.id}`);
+  };
+
+  const handleScroll = (event: any) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / (CARD_WIDTH + CARD_MARGIN));
+    setCurrentIndex(Math.max(0, Math.min(index, limitedArticles.length - 1)));
   };
 
   const renderArticleCard = (article: Article, index: number) => (
@@ -31,21 +42,26 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
       key={article.id}
       style={[
         styles.card,
-        { backgroundColor: theme.colors.card },
+        { 
+          backgroundColor: theme.colors.card,
+          width: CARD_WIDTH,
+          marginRight: index === limitedArticles.length - 1 ? PEEK_AMOUNT : CARD_MARGIN,
+        },
         index === 0 && styles.firstCard,
-        index === articles.length - 1 && styles.lastCard,
       ]}
       onPress={() => handleArticlePress(article)}
       activeOpacity={0.8}
     >
       {article.featured_media_url && (
-        <Image
-          source={{ uri: article.featured_media_url }}
-          style={styles.cardImage}
-          contentFit="cover"
-          transition={200}
-          cachePolicy="memory-disk"
-        />
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: article.featured_media_url }}
+            style={styles.cardImage}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
+        </View>
       )}
       
       <View style={styles.cardContent}>
@@ -57,7 +73,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
               fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
             }
           ]}
-          numberOfLines={3}
+          numberOfLines={2}
         >
           {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
         </Text>
@@ -77,6 +93,24 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
     </TouchableOpacity>
   );
 
+  const renderIndicators = () => (
+    <View style={styles.indicatorContainer}>
+      {limitedArticles.map((_, index) => (
+        <View
+          key={`indicator-${index}`}
+          style={[
+            styles.indicator,
+            {
+              backgroundColor: index === currentIndex ? theme.colors.primary : theme.colors.textSecondary,
+              opacity: index === currentIndex ? 1 : 0.3,
+              transform: [{ scale: index === currentIndex ? 1.2 : 1 }],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <Text style={[
@@ -93,14 +127,21 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        snapToInterval={CARD_WIDTH + CARD_MARGIN * 2}
-        snapToAlignment="center"
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingRight: PEEK_AMOUNT }
+        ]}
+        snapToInterval={CARD_WIDTH + CARD_MARGIN}
+        snapToAlignment="start"
         decelerationRate="fast"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         pagingEnabled={false}
       >
-        {articles.map((article, index) => renderArticleCard(article, index))}
+        {limitedArticles.map((article, index) => renderArticleCard(article, index))}
       </ScrollView>
+      
+      {limitedArticles.length > 1 && renderIndicators()}
     </View>
   );
 };
@@ -116,39 +157,52 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
   },
   scrollContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 24,
   },
   card: {
-    width: CARD_WIDTH,
-    marginHorizontal: CARD_MARGIN,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    marginBottom: 8, // Add space for shadow
   },
   firstCard: {
-    marginLeft: 24,
+    // No special styling needed, handled by marginRight
   },
-  lastCard: {
-    marginRight: 24,
+  imageContainer: {
+    position: 'relative',
+    overflow: 'hidden',
   },
   cardImage: {
     width: '100%',
-    height: 140,
+    height: 120,
   },
   cardContent: {
     padding: 16,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    lineHeight: 22,
+    lineHeight: 20,
     marginBottom: 8,
   },
   cardDate: {
     fontSize: 12,
+  },
+  indicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 24,
+  },
+  indicator: {
+    height: 6,
+    width: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
   },
 });

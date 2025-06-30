@@ -947,14 +947,40 @@ export default function ArticleDetailScreen() {
         barStyle="light-content" 
       />
       
-      {/* Floating back button */}
-      <TouchableOpacity 
-        style={styles.floatingBackButton} 
-        onPress={handleGoBack}
-        activeOpacity={0.8}
-      >
-        <ArrowLeft size={20} color="#FFFFFF" />
-      </TouchableOpacity>
+      {/* Header bar - same as main page */}
+      <View style={[styles.headerBar, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity 
+          style={styles.headerButton} 
+          onPress={handleGoBack}
+          activeOpacity={0.8}
+        >
+          <ArrowLeft size={20} color={theme.colors.text} />
+        </TouchableOpacity>
+        
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleShare}
+            activeOpacity={0.7}
+          >
+            <Share2 size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+          
+          {!isSponsoredContent(article) && (
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={toggleSave}
+              activeOpacity={0.7}
+            >
+              <Bookmark 
+                size={20} 
+                color={isSaved ? theme.colors.primary : theme.colors.text}
+                fill={isSaved ? theme.colors.primary : 'transparent'} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
       
       <ScrollView 
         ref={scrollViewRef}
@@ -1058,8 +1084,19 @@ export default function ArticleDetailScreen() {
         </View>
       </ScrollView>
       
-      {/* Bottom menu bar */}
+      {/* Bottom menu bar - identical to main page */}
       <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoHome}
+          activeOpacity={0.7}
+        >
+          <Home size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+            Główna
+          </Text>
+        </TouchableOpacity>
+        
         <TouchableOpacity
           style={styles.bottomMenuItem}
           onPress={handleShare}
@@ -1090,17 +1127,6 @@ export default function ArticleDetailScreen() {
             </Text>
           </TouchableOpacity>
         )}
-        
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoHome}
-          activeOpacity={0.7}
-        >
-          <Home size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
-            Główna
-          </Text>
-        </TouchableOpacity>
       </View>
       
       {/* Swipe indicators */}
@@ -1119,6 +1145,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: Platform.select({
+      ios: 50,
+      android: 45,
+      default: 50
+    }),
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 1000,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   scrollView: {
     flex: 1,
   },
@@ -1128,9 +1185,9 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     position: 'relative',
     height: Platform.select({
-      ios: 380,
-      android: 320, // Reduced height for Android
-      default: 380
+      ios: 300,
+      android: 280,
+      default: 300
     }),
   },
   featuredImage: {
@@ -1143,7 +1200,7 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 80,
     left: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -1154,32 +1211,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  floatingBackButton: {
-    position: 'absolute',
-    top: Platform.select({
-      ios: 50,
-      android: 45, // Adjusted for Android status bar
-      default: 50
-    }),
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    elevation: 5,
-  },
   articleContent: {
     padding: 24,
-    marginTop: -50,
+    marginTop: -30,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     minHeight: 400,
   },
   title: {
-    fontSize: Platform.OS === 'android' ? 20 : 22, // Smaller font for Android
+    fontSize: Platform.OS === 'android' ? 20 : 22,
     fontWeight: '700',
     marginBottom: 16,
     lineHeight: Platform.OS === 'android' ? 28 : 30,
@@ -1226,10 +1266,11 @@ const styles = StyleSheet.create({
   galleryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 12, // Improved spacing
+    justifyContent: 'space-between',
   },
   galleryImageContainer: {
-    width: (width - 64) / 2, // 2 columns with padding and gap
+    width: (width - 72) / 2, // Better calculation for 2 columns
     height: 120,
     borderRadius: 12,
     overflow: 'hidden',
@@ -1324,7 +1365,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     paddingBottom: Platform.select({
-      ios: 34, // Account for home indicator
+      ios: 34,
       android: 12,
       default: 12,
     }),
