@@ -17,10 +17,8 @@ export default function TabLayout() {
       try {
         initializePreferences();
         
-        // Add delay for Android to ensure app is fully loaded
-        if (Platform.OS === 'android') {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        // Small delay to ensure app is fully loaded
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         await notificationService.setupNotificationHandlers();
         notificationService.startPeriodicCheck();
@@ -44,20 +42,20 @@ export default function TabLayout() {
           borderTopRightRadius: 24,
           height: Platform.select({
             ios: 88,
-            android: 72,
-            default: 68
+            android: 80,
+            default: 80
           }),
           paddingBottom: Platform.select({
             ios: 24,
-            android: 16,
-            default: 12
+            android: 20,
+            default: 20
           }),
           paddingTop: 12,
           paddingHorizontal: 16,
-          elevation: Platform.OS === 'android' ? 8 : 12,
+          elevation: 12,
           shadowColor: theme.colors.shadow,
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: Platform.OS === 'android' ? 0.1 : 0.15,
+          shadowOpacity: 0.15,
           shadowRadius: 12,
           position: 'absolute',
           bottom: 0,
@@ -65,7 +63,7 @@ export default function TabLayout() {
           right: 0,
         },
         tabBarLabelStyle: {
-          fontSize: Platform.OS === 'android' ? 10 : 11,
+          fontSize: 11,
           fontWeight: '600',
           marginTop: 2,
           fontFamily: theme.fontFamily.medium,
@@ -100,7 +98,7 @@ export default function TabLayout() {
               style={{ width: 120, height: 30 }}
               contentFit="contain"
               placeholder="Kaszuby24"
-              cachePolicy={Platform.OS === 'android' ? 'memory-disk' : 'memory'}
+              cachePolicy="memory-disk"
             />
           ),
         }}
@@ -117,10 +115,10 @@ export default function TabLayout() {
           tabBarBadgeStyle: {
             backgroundColor: theme.colors.notification,
             color: '#FFFFFF',
-            fontSize: Platform.OS === 'android' ? 9 : 10,
+            fontSize: 10,
             fontWeight: '600',
-            minWidth: Platform.OS === 'android' ? 16 : 18,
-            height: Platform.OS === 'android' ? 16 : 18,
+            minWidth: 18,
+            height: 18,
           },
         }}
       />

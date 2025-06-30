@@ -36,7 +36,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
           onPress={() => Linking.openURL(url)}
         >
           <Play size={32} color={theme.colors.primary} />
-          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+          <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Otwórz video w przeglądarce
           </Text>
         </TouchableOpacity>
@@ -64,27 +64,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
     );
   }
   
-  // For Android, use fallback due to WebView issues with video embeds
-  if (Platform.OS === 'android') {
-    return (
-      <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
-        <TouchableOpacity 
-          style={styles.fallbackButton}
-          onPress={() => Linking.openURL(url)}
-        >
-          <Play size={32} color={theme.colors.primary} />
-          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
-            Otwórz video w przeglądarce
-          </Text>
-          <Text style={[styles.fallbackSubtext, { color: theme.colors.textSecondary }]}>
-            {youtubeId ? 'YouTube' : vimeoId ? 'Vimeo' : 'Video'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  
-  // For iOS, try WebView but with fallback
+  // For mobile platforms, try WebView with improved error handling
   try {
     return (
       <View style={styles.container}>
@@ -110,7 +90,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
                 onPress={() => Linking.openURL(url)}
               >
                 <Play size={32} color={theme.colors.primary} />
-                <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+                <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
                   Otwórz video w przeglądarce
                 </Text>
               </TouchableOpacity>
@@ -119,11 +99,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
           startInLoadingState={true}
           renderLoading={() => (
             <View style={[styles.loadingContainer, { backgroundColor: theme.colors.subtle }]}>
-              <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+              <Text style={[styles.loadingText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
                 Ładowanie video...
               </Text>
             </View>
           )}
+          // Improved Android support
+          androidLayerType="hardware"
+          androidHardwareAccelerationDisabled={false}
+          mixedContentMode="compatibility"
+          cacheEnabled={true}
         />
       </View>
     );
@@ -137,7 +122,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
           onPress={() => Linking.openURL(url)}
         >
           <Play size={32} color={theme.colors.primary} />
-          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+          <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Otwórz video w przeglądarce
           </Text>
         </TouchableOpacity>

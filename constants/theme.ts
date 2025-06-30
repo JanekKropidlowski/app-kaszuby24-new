@@ -1,25 +1,8 @@
 import { Platform } from 'react-native';
 
-// Helper function to get font family with Android fallback
+// Helper function to get font family - prioritize custom fonts on all platforms
 const getFontFamily = (fontName: string) => {
-  if (Platform.OS === 'android') {
-    // On Android, use system fonts as fallback if custom fonts fail
-    switch (fontName) {
-      case 'Poppins-Bold':
-      case 'Poppins-ExtraBold':
-      case 'Poppins-Black':
-        return 'sans-serif-medium';
-      case 'Poppins-SemiBold':
-      case 'Poppins-Medium':
-        return 'sans-serif-medium';
-      case 'Poppins-Light':
-      case 'Poppins-ExtraLight':
-      case 'Poppins-Thin':
-        return 'sans-serif-light';
-      default:
-        return 'sans-serif';
-    }
-  }
+  // Always try to use custom fonts first
   return fontName;
 };
 

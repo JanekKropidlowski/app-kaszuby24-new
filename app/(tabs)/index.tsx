@@ -31,7 +31,7 @@ const { width } = Dimensions.get('window');
 const CAROUSEL_ITEM_WIDTH = width * 0.85;
 const CAROUSEL_ITEM_SPACING = 16;
 
-const MAX_RETRIES = Platform.OS === 'android' ? 3 : 5;
+const MAX_RETRIES = 3;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -125,10 +125,10 @@ export default function HomeScreen() {
         setIsOffline(true);
       }
       
-      // Retry logic - shorter delays for Android
+      // Retry logic
       if (retry < MAX_RETRIES) {
         console.log(`Retrying (${retry + 1}/${MAX_RETRIES})...`);
-        const delay = Platform.OS === 'android' ? 1000 * (retry + 1) : 2000 * Math.pow(2, retry);
+        const delay = 1000 * (retry + 1);
         setTimeout(() => {
           loadArticles(pageNum, refresh, retry + 1);
         }, delay);
@@ -156,9 +156,9 @@ export default function HomeScreen() {
     } catch (err) {
       console.error('Error loading categories:', err);
       
-      // Retry logic for categories - shorter delays for Android
+      // Retry logic for categories
       if (retry < MAX_RETRIES) {
-        const delay = Platform.OS === 'android' ? 1000 * (retry + 1) : 2000 * Math.pow(2, retry);
+        const delay = 1000 * (retry + 1);
         setTimeout(() => {
           loadCategories(retry + 1);
         }, delay);
@@ -250,11 +250,11 @@ export default function HomeScreen() {
     });
   };
   
-  // Auto scroll carousel - disabled on Android to prevent performance issues
+  // Auto scroll carousel - enabled on all platforms
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (featuredArticles.length > 1 && Platform.OS !== 'android') {
+    if (featuredArticles.length > 1) {
       interval = setInterval(() => {
         let newIndex = activeCarouselIndex;
         if (activeCarouselIndex < featuredArticles.length - 1) {

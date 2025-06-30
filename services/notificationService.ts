@@ -40,15 +40,13 @@ export class NotificationService {
         return false;
       }
       
-      // Mobile permissions - with Android-specific handling
+      // Mobile permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
       if (existingStatus !== 'granted') {
-        // Add delay for Android to ensure UI is ready
-        if (Platform.OS === 'android') {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+        // Small delay to ensure UI is ready
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         const { status } = await Notifications.requestPermissionsAsync({
           ios: {
@@ -86,16 +84,7 @@ export class NotificationService {
         return null;
       }
       
-      // Android-specific: Check if device supports push notifications
-      if (Platform.OS === 'android') {
-        const devicePushToken = await Notifications.getDevicePushTokenAsync();
-        console.log('Android device push token:', devicePushToken);
-        // Note: For Android, Firebase Cloud Messaging (FCM) is used under the hood by Expo.
-        // Ensure that google-services.json is properly configured in your app.json for builds.
-        // The file should be placed in the root directory and referenced in app.json under android.googleServicesFile.
-      }
-      
-      // Get the token with error handling for Android
+      // Get the token with error handling
       let token;
       try {
         const projectId = Constants.expoConfig?.extra?.eas?.projectId || 
@@ -110,37 +99,25 @@ export class NotificationService {
         token = await Notifications.getExpoPushTokenAsync({
           projectId,
         });
-      } catch (tokenError) {
+      } catch (tokenError: unknown) {
         console.error('Error getting Expo push token:', tokenError);
         
-        // Fallback for Android
-        if (Platform.OS === 'android') {
-          try {
-            const deviceToken = await Notifications.getDevicePushTokenAsync();
-            console.log('Using device token as fallback:', deviceToken);
-            // For now, we'll skip registration if Expo token fails on Android
-            return null;
-          } catch (deviceTokenError: unknown) {
-            console.error('Device token also failed:', deviceTokenError);
-            // Check if the error is related to service unavailability
-            if (deviceTokenError instanceof Error && deviceTokenError.message.includes('SERVICE_NOT_AVAILABLE')) {
-              console.warn('Firebase Cloud Messaging service is not available. This could be due to missing Google Play Services or network issues.');
-              if (this.retryCount < this.maxRetries) {
-                this.retryCount++;
-                console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
-                await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
-                return await this.registerForPushNotifications();
-              } else {
-                console.error('Max retries reached. Push notifications will not be available.');
-                this.retryCount = 0; // Reset for future attempts
-                return null;
-              }
-            }
+        // Check if the error is related to service unavailability
+        if (tokenError instanceof Error && tokenError.message.includes('SERVICE_NOT_AVAILABLE')) {
+          console.warn('Firebase Cloud Messaging service is not available. This could be due to missing Google Play Services or network issues.');
+          if (this.retryCount < this.maxRetries) {
+            this.retryCount++;
+            console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
+            return await this.registerForPushNotifications();
+          } else {
+            console.error('Max retries reached. Push notifications will not be available.');
+            this.retryCount = 0; // Reset for future attempts
             return null;
           }
         }
         
-        throw tokenError;
+        return null;
       }
       
       console.log('Expo Push Token:', token.data);
@@ -158,19 +135,15 @@ export class NotificationService {
     } catch (error: unknown) {
       console.error('Error getting push token:', error);
       
-      // Don't throw error on Android - just log and continue
-      if (Platform.OS === 'android') {
-        console.warn('Push notifications setup failed on Android, continuing without them');
-        if (error instanceof Error && error.message.includes('SERVICE_NOT_AVAILABLE') && this.retryCount < this.maxRetries) {
-          this.retryCount++;
-          console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
-          await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
-          return await this.registerForPushNotifications();
-        } else if (this.retryCount >= this.maxRetries) {
-          console.error('Max retries reached. Push notifications will not be available.');
-          this.retryCount = 0; // Reset for future attempts
-          return null;
-        }
+      // Don't throw error - just log and continue
+      if (error instanceof Error && error.message.includes('SERVICE_NOT_AVAILABLE') && this.retryCount < this.maxRetries) {
+        this.retryCount++;
+        console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
+        return await this.registerForPushNotifications();
+      } else if (this.retryCount >= this.maxRetries) {
+        console.error('Max retries reached. Push notifications will not be available.');
+        this.retryCount = 0; // Reset for future attempts
         return null;
       }
       
@@ -297,16 +270,12 @@ export class NotificationService {
         }
       });
       
-      // Register for push notifications with delay for Android
-      if (Platform.OS === 'android') {
-        setTimeout(() => {
-          this.registerForPushNotifications().catch(error => {
-            console.warn('Push notification registration failed:', error);
-          });
-        }, 2000); // 2 second delay for Android
-      } else {
-        await this.registerForPushNotifications();
-      }
+      // Register for push notifications with small delay
+      setTimeout(() => {
+        this.registerForPushNotifications().catch(error => {
+          console.warn('Push notification registration failed:', error);
+        });
+      }, 1000);
     } catch (error) {
       console.warn('Error setting up notification handlers:', error);
     }
@@ -333,8 +302,7 @@ export class NotificationService {
       clearInterval(this.periodicCheckInterval);
     }
     
-    // Use longer interval on Android to reduce battery usage
-    const interval = Platform.OS === 'android' ? 10 * 60 * 1000 : 5 * 60 * 1000;
+    const interval = 5 * 60 * 1000; // 5 minutes
     
     this.periodicCheckInterval = setInterval(() => {
       // This could be used to sync with backend for missed notifications

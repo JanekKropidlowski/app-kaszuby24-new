@@ -1,9 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Dimensions, TouchableOpacity, Platform } from 'react-native';
-import { Image } from 'expo-image';
+import React from 'react';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { Article } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
+import { useArticlesStore } from '@/store/articlesStore';
 import { formatDateTime } from '@/utils/dateFormatter';
 
 interface RelatedArticlesSliderProps {
@@ -12,60 +13,52 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width - 48; // Full width minus padding
-const CARD_MARGIN = 16;
+const ITEM_WIDTH = width * 0.7;
+const ITEM_SPACING = 16;
 
-export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ articles, title }) => {
-  const { theme } = useThemeStore();
+export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
+  articles,
+  title,
+}) => {
   const router = useRouter();
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  // Limit to max 5 articles
-  const limitedArticles = articles.slice(0, 5);
-
-  if (limitedArticles.length === 0) return null;
+  const { theme } = useThemeStore();
+  const { addRecentArticle } = useArticlesStore();
 
   const handleArticlePress = (article: Article) => {
+    addRecentArticle(article);
     router.push(`/article/${article.id}`);
   };
 
-  const handleScroll = (event: any) => {
-    const scrollX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(scrollX / (CARD_WIDTH + CARD_MARGIN));
-    setCurrentIndex(Math.max(0, Math.min(index, limitedArticles.length - 1)));
-  };
-
-  const renderArticleCard = (article: Article, index: number) => (
+  const renderArticle = ({ item, index }: { item: Article; index: number }) => (
     <TouchableOpacity
-      key={`${article.id}-${index}`}
       style={[
-        styles.card,
-        { 
+        styles.articleContainer,
+        {
+          width: ITEM_WIDTH,
+          marginRight: index === articles.length - 1 ? 24 : ITEM_SPACING,
           backgroundColor: theme.colors.card,
-          width: CARD_WIDTH,
-          marginRight: index === limitedArticles.length - 1 ? 0 : CARD_MARGIN,
+          shadowColor: theme.colors.shadow,
         },
       ]}
-      onPress={() => handleArticlePress(article)}
+      onPress={() => handleArticlePress(item)}
       activeOpacity={0.8}
     >
-      {article.featured_media_url && (
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: article.featured_media_url }}
-            style={styles.cardImage}
-            contentFit="cover"
-            transition={200}
-            cachePolicy="memory-disk"
-          />
-        </View>
+      {item.featured_media_url ? (
+        <Image
+          source={{ uri: item.featured_media_url }}
+          style={styles.articleImage}
+          contentFit="cover"
+          transition={200}
+          placeholder="Loading..."
+        />
+      ) : (
+        <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
       )}
       
-      <View style={styles.cardContent}>
-        <Text 
+      <View style={styles.articleContent}>
+        <Text
           style={[
-            styles.cardTitle, 
+            styles.articleTitle,
             { 
               color: theme.colors.text,
               fontFamily: theme.fontFamily.semibold
@@ -73,78 +66,63 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
           ]}
           numberOfLines={2}
         >
-          {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+          {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
         </Text>
         
-        <Text 
+        <Text
           style={[
-            styles.cardDate, 
+            styles.articleDate,
             { 
               color: theme.colors.textSecondary,
               fontFamily: theme.fontFamily.regular
             }
           ]}
         >
-          {formatDateTime(article.date)}
+          {formatDateTime(item.date)}
         </Text>
       </View>
     </TouchableOpacity>
   );
 
-  const renderIndicators = () => (
-    <View style={styles.indicatorContainer}>
-      {limitedArticles.map((_, index) => (
-        <View
-          key={`indicator-${index}`}
-          style={[
-            styles.indicator,
-            {
-              backgroundColor: index === currentIndex ? theme.colors.primary : theme.colors.textSecondary,
-              opacity: index === currentIndex ? 1 : 0.3,
-              transform: [{ scale: index === currentIndex ? 1.2 : 1 }],
-            },
-          ]}
-        />
-      ))}
-    </View>
-  );
+  if (articles.length === 0) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={[
-        styles.title, 
-        { 
-          color: theme.colors.text,
-          fontFamily: theme.fontFamily.semibold
-        }
-      ]}>
+      <Text
+        style={[
+          styles.title,
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}
+      >
         {title}
       </Text>
       
-      <ScrollView
-        ref={scrollViewRef}
+      <FlatList
+        data={articles}
+        renderItem={renderArticle}
+        keyExtractor={(item) => `related-${item.id}`}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        snapToInterval={CARD_WIDTH + CARD_MARGIN}
-        snapToAlignment="start"
+        contentContainerStyle={styles.listContainer}
+        snapToInterval={ITEM_WIDTH + ITEM_SPACING}
         decelerationRate="fast"
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        pagingEnabled={false}
-        onMomentumScrollEnd={handleScroll}
-      >
-        {limitedArticles.map((article, index) => renderArticleCard(article, index))}
-      </ScrollView>
-      
-      {limitedArticles.length > 1 && renderIndicators()}
+        removeClippedSubviews={false}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 16,
+    marginBottom: 24,
   },
   title: {
     fontSize: 18,
@@ -152,50 +130,36 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginHorizontal: 24,
   },
-  scrollContent: {
-    paddingHorizontal: 24,
+  listContainer: {
+    paddingLeft: 24,
   },
-  card: {
+  articleContainer: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-    marginBottom: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  imageContainer: {
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  cardImage: {
+  articleImage: {
     width: '100%',
-    height: 120,
+    height: 140,
   },
-  cardContent: {
+  imagePlaceholder: {
+    width: '100%',
+    height: 140,
+  },
+  articleContent: {
     padding: 16,
   },
-  cardTitle: {
-    fontSize: 15,
+  articleTitle: {
+    fontSize: 16,
     fontWeight: '600',
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 8,
   },
-  cardDate: {
+  articleDate: {
     fontSize: 12,
-  },
-  indicatorContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingHorizontal: 24,
-  },
-  indicator: {
-    height: 6,
-    width: 6,
-    borderRadius: 3,
-    marginHorizontal: 3,
+    fontWeight: '400',
   },
 });

@@ -4,8 +4,8 @@ import { Platform } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
-const API_TIMEOUT = Platform.OS === 'android' ? 60000 : 30000; // Increased timeout for Android
-const MAX_RETRIES = Platform.OS === 'android' ? 5 : 3; // More retries for Android
+const API_TIMEOUT = 30000; // Consistent timeout across platforms
+const MAX_RETRIES = 3; // Consistent retry count
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_KEY_MEDIA = 'cached_media';
@@ -46,11 +46,8 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
           ios: 'Kaszuby24-iOS/1.0',
           default: 'Kaszuby24-App/1.0'
         }),
-        // Android-specific headers
-        ...(Platform.OS === 'android' && {
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        }),
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
         ...((options as any)?.headers || {}),
       },
     };
@@ -63,24 +60,20 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     
     // Handle network errors with retries
     if (retries < MAX_RETRIES) {
-      const delay = Platform.OS === 'android' ? 
-        2000 * (retries + 1) : // Linear backoff for Android
-        1000 * Math.pow(2, retries); // Exponential backoff for others
+      const delay = 1000 * (retries + 1); // Linear backoff
       
       console.log(`Retrying request (${retries + 1}/${MAX_RETRIES}) after ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithTimeout(url, options, retries + 1);
     }
     
-    // Enhanced error handling for Android
-    if (Platform.OS === 'android') {
-      if (error.name === 'AbortError') {
-        throw new Error('Zapytanie przekroczyło limit czasu. Sprawdź połączenie internetowe.');
-      } else if (error.message.includes('Network request failed')) {
-        throw new Error('Brak połączenia z internetem. Sprawdź ustawienia sieci.');
-      } else if (error.message.includes('Unable to resolve host')) {
-        throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe.');
-      }
+    // Enhanced error handling
+    if (error.name === 'AbortError') {
+      throw new Error('Zapytanie przekroczyło limit czasu. Sprawdź połączenie internetowe.');
+    } else if (error.message.includes('Network request failed')) {
+      throw new Error('Brak połączenia z internetem. Sprawdź ustawienia sieci.');
+    } else if (error.message.includes('Unable to resolve host')) {
+      throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe.');
     }
     
     throw error;
