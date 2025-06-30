@@ -61,6 +61,7 @@ export default function ArticleDetailScreen() {
   const [prevArticle, setPrevArticle] = useState<Article | null>(null);
   const [readingProgress, setReadingProgress] = useState(0);
   const [showFinishMessage, setShowFinishMessage] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -199,7 +200,7 @@ export default function ArticleDetailScreen() {
         // Load gallery images with delay for better performance
         if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
           setTimeout(() => {
-            const processedGalleryIds = processGalleryIds(data.meta?.galeria);
+            const processedGalleryIds = processGalleryIds(data.meta?.galeria || []);
             if (processedGalleryIds.length > 0) {
               loadGalleryImages(processedGalleryIds);
             }
@@ -331,7 +332,7 @@ export default function ArticleDetailScreen() {
         // Load gallery images if available
         if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
           setTimeout(() => {
-            const processedGalleryIds = processGalleryIds(data.meta?.galeria);
+            const processedGalleryIds = processGalleryIds(data.meta?.galeria || []);
             if (processedGalleryIds.length > 0) {
               loadGalleryImages(processedGalleryIds);
             }
@@ -398,54 +399,72 @@ export default function ArticleDetailScreen() {
     const scrollViewHeight = layoutMeasurement.height;
     const contentHeight = contentSize.height;
     
-    // Calculate reading progress percentage
-    const maxScrollDistance = contentHeight - scrollViewHeight;
-    const progress = Math.min(Math.max((scrollPosition / maxScrollDistance) * 100, 0), 100);
-    setReadingProgress(Math.round(progress));
+    // Calculate if user is at the very bottom (with small buffer)
+    const bottomBuffer = 50; // 50px buffer from actual bottom
+    const isNearBottom = scrollPosition + scrollViewHeight >= contentHeight - bottomBuffer;
+    const isAtActualBottom = scrollPosition + scrollViewHeight >= contentHeight - 10;
     
-    // Show/hide progress indicator based on scroll
-    if (progress > 5 && progress < 95) {
-      Animated.timing(progressOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+    setIsAtBottom(isAtActualBottom);
+    
+    // Only start calculating progress when user is near the bottom
+    if (isNearBottom) {
+      // Calculate reading progress percentage only when near bottom
+      const maxScrollDistance = contentHeight - scrollViewHeight;
+      const progress = Math.min(Math.max((scrollPosition / maxScrollDistance) * 100, 0), 100);
+      setReadingProgress(Math.round(progress));
+      
+      // Show progress indicator only when at bottom and progress is 100%
+      if (progress >= 100) {
+        Animated.timing(progressOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        Animated.timing(progressOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }
+      
+      // Check if user has finished reading (reached actual bottom)
+      if (isAtActualBottom && progress >= 100 && !hasShownFinishMessage.current) {
+        hasShownFinishMessage.current = true;
+        setShowFinishMessage(true);
+        
+        // Show finish message with animation
+        Animated.timing(finishMessageOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
+        
+        // Clear any existing timeout
+        if (redirectTimeout.current) {
+          clearTimeout(redirectTimeout.current);
+        }
+        
+        // Set timeout for auto-redirect (longer delay)
+        redirectTimeout.current = setTimeout(() => {
+          // Fade out message and redirect
+          Animated.timing(finishMessageOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }).start(() => {
+            router.replace('/(tabs)');
+          });
+        }, 5000); // 5 seconds instead of 3
+      }
     } else {
+      // Reset progress when not at bottom
+      setReadingProgress(0);
       Animated.timing(progressOpacity, {
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
       }).start();
-    }
-    
-    // Check if user has finished reading (reached 100%)
-    if (progress >= 100 && !hasShownFinishMessage.current) {
-      hasShownFinishMessage.current = true;
-      setShowFinishMessage(true);
-      
-      // Show finish message with animation
-      Animated.timing(finishMessageOpacity, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-      
-      // Clear any existing timeout
-      if (redirectTimeout.current) {
-        clearTimeout(redirectTimeout.current);
-      }
-      
-      // Set timeout for auto-redirect
-      redirectTimeout.current = setTimeout(() => {
-        // Fade out message and redirect
-        Animated.timing(finishMessageOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => {
-          router.replace('/(tabs)');
-        });
-      }, 3000);
     }
   };
   
@@ -913,8 +932,10 @@ export default function ArticleDetailScreen() {
     );
   };
   
-  // Render reading progress indicator
+  // Render reading progress indicator - only show when at bottom
   const renderProgressIndicator = () => {
+    if (!isAtBottom || readingProgress < 100) return null;
+    
     return (
       <Animated.View 
         style={[
@@ -1249,7 +1270,7 @@ export default function ArticleDetailScreen() {
         </TouchableOpacity>
       </View>
       
-      {/* Reading progress indicator */}
+      {/* Reading progress indicator - only shows when at bottom */}
       {renderProgressIndicator()}
       
       {/* Swipe indicators */}
