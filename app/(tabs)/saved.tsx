@@ -80,10 +80,10 @@ export default function SavedScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.headerTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
               Zapisane artykuły
             </Text>
-            <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+            <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
               {filteredSavedArticles.length > 0 
                 ? `Masz ${filteredSavedArticles.length} zapisanych artykułów`
                 : 'Zapisz artykuły, aby czytać je później'}
@@ -117,10 +117,10 @@ export default function SavedScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.recentTitleContainer}>
-                  <Text style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                     Ostatnio przeglądane
                   </Text>
-                  <Text style={[styles.recentCount, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+                  <Text style={[styles.recentCount, { color: theme.colors.textSecondary }]}>
                     {filteredRecentArticles.length}
                   </Text>
                 </View>
@@ -134,7 +134,7 @@ export default function SavedScreen() {
                         { borderColor: theme.colors.border }
                       ]}
                     >
-                      <Text style={[styles.clearText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.medium }]}>
+                      <Text style={[styles.clearText, { color: theme.colors.textSecondary }]}>
                         Wyczyść
                       </Text>
                     </TouchableOpacity>
@@ -178,6 +178,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
+    fontWeight: '600',
     marginBottom: 4,
   },
   headerSubtitle: {
@@ -214,6 +215,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
+    fontWeight: '600',
   },
   recentCount: {
     fontSize: 14,
@@ -236,6 +238,7 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: 12,
+    fontWeight: '500',
   },
   recentList: {
     paddingHorizontal: 20,

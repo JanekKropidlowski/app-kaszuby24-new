@@ -92,17 +92,17 @@ export default function SearchScreen() {
       <View style={[styles.iconContainer, { backgroundColor: theme.colors.subtle }]}>
         <SearchIcon size={32} color={theme.colors.primary} />
       </View>
-      <Text style={[styles.emptySearchTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
+      <Text style={[styles.emptySearchTitle, { color: theme.colors.text }]}>
         Wyszukaj artykuły
       </Text>
-      <Text style={[styles.emptySearchSubtitle, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+      <Text style={[styles.emptySearchSubtitle, { color: theme.colors.textSecondary }]}>
         Wpisz słowa kluczowe lub użyj wyszukiwania głosowego
       </Text>
       
       {Platform.OS === 'web' && 'webkitSpeechRecognition' in window && (
         <View style={styles.voiceSearchHint}>
           <Mic size={16} color={theme.colors.primary} />
-          <Text style={[styles.voiceSearchText, { color: theme.colors.primary, fontFamily: theme.fontFamily.medium }]}>
+          <Text style={[styles.voiceSearchText, { color: theme.colors.primary }]}>
             Kliknij mikrofon aby wyszukać głosowo
           </Text>
         </View>
@@ -138,7 +138,7 @@ export default function SearchScreen() {
               <Text 
                 style={[
                   styles.resultsText, 
-                  { color: theme.colors.text, fontFamily: theme.fontFamily.medium }
+                  { color: theme.colors.text }
                 ]}
               >
                 {articles.length === 0
@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginHorizontal: 16,
     marginVertical: 16,
+    fontWeight: '500',
   },
   emptySearchContainer: {
     flex: 1,
@@ -201,6 +202,7 @@ const styles = StyleSheet.create({
   },
   emptySearchTitle: {
     fontSize: 20,
+    fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -221,5 +223,6 @@ const styles = StyleSheet.create({
   voiceSearchText: {
     fontSize: 14,
     marginLeft: 8,
+    fontWeight: '500',
   },
 });

@@ -495,7 +495,7 @@ ${shareContent.url}`,
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
       <style>
         body {
-          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
           font-size: 16px;
           line-height: 1.8;
           color: ${isDarkMode ? '#F9FAFB' : '#111827'};
@@ -665,14 +665,14 @@ ${shareContent.url}`,
       // Fallback for Android when WebView fails
       return (
         <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
-          <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.regular }]}>
+          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
             Treść artykułu nie może być wyświetlona w aplikacji.
           </Text>
           <TouchableOpacity 
             style={[styles.fallbackButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => Linking.openURL(article.link)}
           >
-            <Text style={[styles.fallbackButtonText, { fontFamily: theme.fontFamily.semibold }]}>
+            <Text style={styles.fallbackButtonText}>
               Otwórz w przeglądarce
             </Text>
           </TouchableOpacity>
@@ -878,7 +878,7 @@ ${shareContent.url}`,
           }
         ]}
       >
-        <Text style={[styles.progressText, { fontFamily: theme.fontFamily.semibold }]}>
+        <Text style={styles.progressText}>
           {readingProgress}%
         </Text>
       </Animated.View>
@@ -900,10 +900,10 @@ ${shareContent.url}`,
         ]}
       >
         <View style={styles.finishMessageContent}>
-          <Text style={[styles.finishMessageTitle, { fontFamily: theme.fontFamily.semibold }]}>
+          <Text style={styles.finishMessageTitle}>
             Koniec artykułu
           </Text>
-          <Text style={[styles.finishMessageSubtitle, { fontFamily: theme.fontFamily.regular }]}>
+          <Text style={styles.finishMessageSubtitle}>
             Kliknij, aby wrócić na stronę główną
           </Text>
         </View>
@@ -968,7 +968,7 @@ ${shareContent.url}`,
           
           {/* Image counter */}
           <View style={styles.modalCounter}>
-            <Text style={[styles.modalCounterText, { fontFamily: theme.fontFamily.medium }]}>
+            <Text style={styles.modalCounterText}>
               {selectedImageIndex + 1} / {galleryImages.length}
             </Text>
           </View>
@@ -984,7 +984,7 @@ ${shareContent.url}`,
           {/* Caption */}
           {currentImage.caption?.rendered && (
             <View style={styles.modalCaptionContainer}>
-              <Text style={[styles.modalCaption, { fontFamily: theme.fontFamily.regular }]}>
+              <Text style={styles.modalCaption}>
                 {currentImage.caption.rendered.replace(/<[^>]*>/g, '')}
               </Text>
             </View>
@@ -1046,87 +1046,75 @@ ${shareContent.url}`,
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Article content card */}
-        <View style={[styles.articleContent, { backgroundColor: theme.colors.card }]}>
-          {/* Featured image inside the card, above title */}
-          {article.featured_media_url && (
-            <View style={styles.featuredImageContainer}>
-              <Image
-                source={{ uri: article.featured_media_url }}
-                style={styles.featuredImage}
-                contentFit="cover"
-                transition={300}
-                placeholder="Loading..."
-                cachePolicy={Platform.OS === 'android' ? 'memory-disk' : 'memory'}
-              />
-              
-              {/* Category badge */}
-              {categoryName && (
-                <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary }]}>
-                  <Text style={[
-                    styles.categoryText,
-                    { 
-                      fontFamily: theme.fontFamily.semibold 
-                    }
-                  ]}>
-                    {categoryName}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-          
-          {/* Title and metadata */}
-          <View style={styles.titleSection}>
-            <Text style={[
-              styles.title, 
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.bold
-              }
-            ]}>
-              {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-            </Text>
+        {/* Featured image */}
+        {article.featured_media_url ? (
+          <View style={styles.featuredImageContainer}>
+            <Image
+              source={{ uri: article.featured_media_url }}
+              style={styles.featuredImage}
+              contentFit="cover"
+              transition={300}
+              placeholder="Loading..."
+              // Android-specific caching
+              cachePolicy={Platform.OS === 'android' ? 'memory-disk' : 'memory'}
+            />
+            <View style={styles.imageDarkOverlay} />
             
-            <View style={styles.metaContainer}>
-              <View style={styles.metaItem}>
-                <Calendar size={14} color={theme.colors.textSecondary} />
+            {/* Category badge */}
+            {categoryName && (
+              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary }]}>
                 <Text style={[
-                  styles.metaText, 
+                  styles.categoryText,
                   { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular
+                    fontFamily: theme.fontFamily.semibold 
                   }
                 ]}>
-                  {formatDateTime(article.date)}
+                  {categoryName}
                 </Text>
               </View>
-            </View>
-            
-            {metaSource ? (
+            )}
+          </View>
+        ) : null}
+        
+        {/* Article content card */}
+        <View style={[styles.articleContent, { backgroundColor: theme.colors.card }]}>
+          {/* Title and metadata */}
+          <Text style={[
+            styles.title, 
+            { 
+              color: theme.colors.text,
+              fontFamily: theme.fontFamily.bold
+            }
+          ]}>
+            {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+          </Text>
+          
+          <View style={styles.metaContainer}>
+            <View style={styles.metaItem}>
+              <Calendar size={14} color={theme.colors.textSecondary} />
               <Text style={[
-                styles.source, 
+                styles.metaText, 
                 { 
                   color: theme.colors.textSecondary,
                   fontFamily: theme.fontFamily.regular
                 }
               ]}>
-                Źródło: {metaSource}
+                {formatDateTime(article.date)}
               </Text>
-            ) : null}
-            
-            {/* Share button under title */}
-            <TouchableOpacity
-              style={[styles.shareButton, { backgroundColor: theme.colors.primary }]}
-              onPress={handleShare}
-              activeOpacity={0.8}
-            >
-              <Share2 size={18} color="#FFFFFF" />
-              <Text style={[styles.shareButtonText, { fontFamily: theme.fontFamily.semibold }]}>
-                Udostępnij artykuł
-              </Text>
-            </TouchableOpacity>
+            </View>
           </View>
+          
+          {metaSource ? (
+            <Text style={[
+              styles.source, 
+              { 
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fontFamily.regular
+              }
+            ]}>
+              Źródło: {metaSource}
+            </Text>
+          ) : null}
           
           {/* Display videos if any */}
           {videoUrls.length > 0 && (
@@ -1175,7 +1163,7 @@ ${shareContent.url}`,
           </Text>
           {unreadCount > 0 && (
             <View style={[styles.badge, { backgroundColor: theme.colors.notification }]}>
-              <Text style={[styles.badgeText, { fontFamily: theme.fontFamily.semibold }]}>
+              <Text style={styles.badgeText}>
                 {unreadCount > 9 ? '9+' : unreadCount.toString()}
               </Text>
             </View>
@@ -1260,53 +1248,46 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 100, // Space for bottom menu
-    paddingTop: Platform.select({
-      ios: 100,
-      android: 95,
-      default: 100
-    }),
-  },
-  articleContent: {
-    marginHorizontal: 16,
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
   },
   featuredImageContainer: {
     position: 'relative',
     height: Platform.select({
-      ios: 250,
-      android: 230,
-      default: 250
+      ios: 300,
+      android: 280,
+      default: 300
     }),
-    width: '100%',
   },
   featuredImage: {
     width: '100%',
     height: '100%',
   },
+  imageDarkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
   categoryBadge: {
     position: 'absolute',
-    bottom: 16,
-    left: 16,
-    paddingHorizontal: 12,
+    bottom: 80,
+    left: 20,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 4,
   },
   categoryText: {
     fontSize: 12,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
-  titleSection: {
+  articleContent: {
     padding: 24,
-    paddingBottom: 16,
+    marginTop: -30,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    minHeight: 400,
   },
   title: {
     fontSize: Platform.OS === 'android' ? 20 : 22,
+    fontWeight: '700',
     marginBottom: 16,
     lineHeight: Platform.OS === 'android' ? 28 : 30,
   },
@@ -1328,36 +1309,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontStyle: 'italic',
   },
-  shareButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  shareButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginLeft: 8,
-  },
   videoContainer: {
-    paddingHorizontal: 24,
     marginBottom: 24,
   },
   youtubeContainer: {
-    paddingHorizontal: 24,
     marginTop: 24,
     marginBottom: 24,
   },
   galleryContainer: {
-    paddingHorizontal: 24,
     marginTop: 32,
     marginBottom: 24,
   },
   galleryTitle: {
     fontSize: 18,
+    fontWeight: '600',
     marginBottom: 16,
   },
   galleryLoadingContainer: {
@@ -1392,6 +1357,7 @@ const styles = StyleSheet.create({
   },
   relatedTitle: {
     fontSize: 18,
+    fontWeight: '600',
     marginBottom: 16,
     marginHorizontal: 24,
   },
@@ -1418,6 +1384,7 @@ const styles = StyleSheet.create({
   progressText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '600',
   },
   finishMessage: {
     position: 'absolute',
@@ -1441,11 +1408,13 @@ const styles = StyleSheet.create({
   finishMessageTitle: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
     marginBottom: 4,
   },
   finishMessageSubtitle: {
     color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 14,
+    fontWeight: '400',
   },
   finishMessageButton: {
     width: 40,
@@ -1486,6 +1455,7 @@ const styles = StyleSheet.create({
   },
   bottomMenuText: {
     fontSize: 12,
+    fontWeight: '500',
     marginTop: 4,
   },
   badge: {
@@ -1502,11 +1472,11 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#FFFFFF',
     fontSize: 10,
+    fontWeight: '600',
   },
   htmlContainer: {
     width: '100%',
     minHeight: 200,
-    paddingHorizontal: 24,
   },
   webview: {
     width: '100%',
@@ -1519,7 +1489,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 200,
-    marginHorizontal: 24,
   },
   fallbackText: {
     fontSize: 16,
@@ -1535,6 +1504,7 @@ const styles = StyleSheet.create({
   fallbackButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '600',
   },
   loadingContainer: {
     position: 'absolute',
@@ -1604,6 +1574,7 @@ const styles = StyleSheet.create({
   modalCounterText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '500',
   },
   modalImage: {
     width: width,

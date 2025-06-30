@@ -1,12 +1,10 @@
-import React from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Dimensions, TouchableOpacity, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Clock } from 'lucide-react-native';
 import { Article } from '@/types/article';
-import { getRelativeTime } from '@/utils/dateFormatter';
 import { useThemeStore } from '@/store/themeStore';
-import { useArticlesStore } from '@/store/articlesStore';
+import { formatDateTime } from '@/utils/dateFormatter';
 
 interface RelatedArticlesSliderProps {
   articles: Article[];
@@ -14,81 +12,103 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.75;
-const ITEM_SPACING = 16;
+const CARD_WIDTH = width - 48; // Full width minus padding
+const CARD_MARGIN = 16;
 
-export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ 
-  articles, 
-  title 
-}) => {
-  const router = useRouter();
+export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ articles, title }) => {
   const { theme } = useThemeStore();
-  const { addRecentArticle } = useArticlesStore();
-  
+  const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Limit to max 5 articles
+  const limitedArticles = articles.slice(0, 5);
+
+  if (limitedArticles.length === 0) return null;
+
   const handleArticlePress = (article: Article) => {
-    addRecentArticle(article);
     router.push(`/article/${article.id}`);
   };
-  
-  const renderArticle = ({ item }: { item: Article }) => (
+
+  const handleScroll = (event: any) => {
+    const scrollX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollX / (CARD_WIDTH + CARD_MARGIN));
+    setCurrentIndex(Math.max(0, Math.min(index, limitedArticles.length - 1)));
+  };
+
+  const renderArticleCard = (article: Article, index: number) => (
     <TouchableOpacity
+      key={`${article.id}-${index}`}
       style={[
-        styles.articleItem,
+        styles.card,
         { 
           backgroundColor: theme.colors.card,
-          borderColor: theme.colors.border,
-          width: ITEM_WIDTH
-        }
+          width: CARD_WIDTH,
+          marginRight: index === limitedArticles.length - 1 ? 0 : CARD_MARGIN,
+        },
       ]}
-      onPress={() => handleArticlePress(item)}
+      onPress={() => handleArticlePress(article)}
       activeOpacity={0.8}
     >
-      {item.featured_media_url ? (
-        <Image
-          source={{ uri: item.featured_media_url }}
-          style={styles.articleImage}
-          contentFit="cover"
-          transition={200}
-          placeholder="Loading..."
-        />
-      ) : (
-        <View style={[styles.articleImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+      {article.featured_media_url && (
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: article.featured_media_url }}
+            style={styles.cardImage}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
+        </View>
       )}
       
-      <View style={styles.articleContent}>
+      <View style={styles.cardContent}>
         <Text 
           style={[
-            styles.articleTitle, 
+            styles.cardTitle, 
             { 
               color: theme.colors.text,
-              fontFamily: theme.fontFamily.medium
+              fontFamily: theme.fontFamily.semibold
             }
-          ]} 
+          ]}
           numberOfLines={2}
         >
-          {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+          {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
         </Text>
         
-        <View style={styles.articleFooter}>
-          <Clock size={12} color={theme.colors.textSecondary} />
-          <Text style={[
-            styles.articleDate, 
+        <Text 
+          style={[
+            styles.cardDate, 
             { 
               color: theme.colors.textSecondary,
               fontFamily: theme.fontFamily.regular
             }
-          ]}>
-            {getRelativeTime(item.date)}
-          </Text>
-        </View>
+          ]}
+        >
+          {formatDateTime(article.date)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
-  
-  if (articles.length === 0) {
-    return null;
-  }
-  
+
+  const renderIndicators = () => (
+    <View style={styles.indicatorContainer}>
+      {limitedArticles.map((_, index) => (
+        <View
+          key={`indicator-${index}`}
+          style={[
+            styles.indicator,
+            {
+              backgroundColor: index === currentIndex ? theme.colors.primary : theme.colors.textSecondary,
+              opacity: index === currentIndex ? 1 : 0.3,
+              transform: [{ scale: index === currentIndex ? 1.2 : 1 }],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <Text style={[
@@ -101,70 +121,81 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
         {title}
       </Text>
       
-      <FlatList
-        data={articles}
-        keyExtractor={(item) => `related-${item.id}`}
-        renderItem={renderArticle}
+      <ScrollView
+        ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        snapToInterval={ITEM_WIDTH + ITEM_SPACING}
+        contentContainerStyle={styles.scrollContent}
+        snapToInterval={CARD_WIDTH + CARD_MARGIN}
+        snapToAlignment="start"
         decelerationRate="fast"
-        ItemSeparatorComponent={() => <View style={{ width: ITEM_SPACING }} />}
-        getItemLayout={(data, index) => ({
-          length: ITEM_WIDTH + ITEM_SPACING,
-          offset: (ITEM_WIDTH + ITEM_SPACING) * index,
-          index,
-        })}
-      />
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        pagingEnabled={false}
+        onMomentumScrollEnd={handleScroll}
+      >
+        {limitedArticles.map((article, index) => renderArticleCard(article, index))}
+      </ScrollView>
+      
+      {limitedArticles.length > 1 && renderIndicators()}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginVertical: 16,
   },
   title: {
     fontSize: 18,
+    fontWeight: '600',
     marginBottom: 16,
     marginHorizontal: 24,
   },
-  listContent: {
+  scrollContent: {
     paddingHorizontal: 24,
   },
-  articleItem: {
+  card: {
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    marginBottom: 8,
   },
-  articleImage: {
+  imageContainer: {
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  cardImage: {
     width: '100%',
-    height: 140,
+    height: 120,
   },
-  articleImagePlaceholder: {
-    width: '100%',
-    height: 140,
-  },
-  articleContent: {
+  cardContent: {
     padding: 16,
   },
-  articleTitle: {
-    fontSize: 16,
-    marginBottom: 12,
-    lineHeight: 22,
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginBottom: 8,
   },
-  articleFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  articleDate: {
+  cardDate: {
     fontSize: 12,
-    marginLeft: 4,
+  },
+  indicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 24,
+  },
+  indicator: {
+    height: 6,
+    width: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
   },
 });

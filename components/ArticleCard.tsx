@@ -262,9 +262,11 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 11,
+    fontWeight: '600',
   },
   title: {
     fontSize: 16,
+    fontWeight: '600',
     marginBottom: 8,
     lineHeight: 22,
   },
@@ -315,6 +317,7 @@ const styles = StyleSheet.create({
   },
   compactTitle: {
     fontSize: 14,
+    fontWeight: '500',
     marginBottom: 4,
   },
   compactFooter: {
@@ -337,6 +340,7 @@ const styles = StyleSheet.create({
   },
   compactCategoryText: {
     fontSize: 10,
+    fontWeight: '500',
   },
 });
 
