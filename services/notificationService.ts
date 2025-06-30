@@ -135,8 +135,8 @@ class NotificationService {
           osName: Device.osName,
           osVersion: Device.osVersion,
         };
-      } catch (deviceTokenError) {
-        console.warn('Error getting device info:', deviceTokenError instanceof Error ? deviceTokenError.message : String(deviceTokenError));
+      } catch (deviceError) {
+        console.warn('Error getting device info:', deviceError);
       }
 
       // Register with backend
@@ -152,7 +152,7 @@ class NotificationService {
       this.setConnectionStatus('connected');
       
     } catch (error) {
-      console.error('Error registering device token:', error instanceof Error ? error.message : String(error));
+      console.error('Error registering device token:', error);
       this.setConnectionStatus('disconnected');
     }
   }
@@ -190,7 +190,7 @@ class NotificationService {
       }
       
     } catch (error) {
-      console.warn('Error checking notification status:', error instanceof Error ? error.message : String(error));
+      console.warn('Error checking notification status:', error);
       this.setConnectionStatus('disconnected');
     }
   }
@@ -228,7 +228,7 @@ class NotificationService {
       this.setConnectionStatus('connected');
       
     } catch (error) {
-      console.error('Error updating user tags:', error instanceof Error ? error.message : String(error));
+      console.error('Error updating user tags:', error);
       this.setConnectionStatus('disconnected');
     }
   }
@@ -252,7 +252,7 @@ class NotificationService {
       await this.updateUserTags();
       
     } catch (error) {
-      console.error('Error enabling notifications:', error instanceof Error ? error.message : String(error));
+      console.error('Error enabling notifications:', error);
       this.setConnectionStatus('disconnected');
     }
   }
@@ -263,7 +263,7 @@ class NotificationService {
       this.setConnectionStatus('disconnected');
       console.log('Notifications disabled');
     } catch (error) {
-      console.error('Error disabling notifications:', error instanceof Error ? error.message : String(error));
+      console.error('Error disabling notifications:', error);
     }
   }
 }
