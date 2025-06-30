@@ -116,8 +116,10 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
     return null;
   }
 
-  // Create infinite data by tripling the array
-  const infiniteData = articles.length > 1 ? [...articles, ...articles, ...articles] : articles;
+  // Create infinite data by repeating the array 5 times for better infinite scroll
+  const infiniteData = articles.length > 1 ? 
+    [...articles, ...articles, ...articles, ...articles, ...articles] : 
+    articles;
 
   return (
     <View style={styles.container}>
@@ -141,13 +143,14 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
         snapToInterval={ITEM_WIDTH + ITEM_SPACING}
+        snapToAlignment="center"
         decelerationRate="fast"
         removeClippedSubviews={false}
-        initialNumToRender={3}
-        maxToRenderPerBatch={3}
-        windowSize={5}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={7}
         pagingEnabled={false}
-        initialScrollIndex={articles.length > 1 ? articles.length : 0} // Start at middle set
+        initialScrollIndex={articles.length > 1 ? articles.length * 2 : 0} // Start at middle set
         getItemLayout={(data, index) => ({
           length: ITEM_WIDTH + ITEM_SPACING,
           offset: (ITEM_WIDTH + ITEM_SPACING) * index,
@@ -165,47 +168,49 @@ RelatedArticlesSlider.displayName = 'RelatedArticlesSlider';
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 32,
+    marginBottom: 36,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
-    marginBottom: 20,
-    marginHorizontal: 24,
-    letterSpacing: -0.3,
+    marginBottom: 24,
+    marginHorizontal: 28,
+    letterSpacing: -0.4,
   },
   listContainer: {
     paddingLeft: (width - ITEM_WIDTH) / 2, // Center the items
     paddingRight: (width - ITEM_WIDTH) / 2,
   },
   articleContainer: {
-    borderRadius: 24,
+    borderRadius: 28,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
   articleImage: {
     width: '100%',
-    height: 180,
+    height: 200,
   },
   imagePlaceholder: {
     width: '100%',
-    height: 180,
+    height: 200,
   },
   articleContent: {
-    padding: 24,
+    padding: 28,
   },
   articleTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
-    lineHeight: 26,
-    marginBottom: 12,
+    lineHeight: 28,
+    marginBottom: 16,
+    letterSpacing: -0.2,
   },
   articleDate: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     opacity: 0.7,
+    letterSpacing: 0.2,
   },
 });

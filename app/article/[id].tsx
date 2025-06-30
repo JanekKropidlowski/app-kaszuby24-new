@@ -373,118 +373,143 @@ ${article.link}`,
           
           * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
           }
           
           body {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            font-size: 16px;
-            line-height: 1.8;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+            font-size: 17px;
+            line-height: 1.7;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
             background-color: ${isDarkMode ? '#1E293B' : '#FFFFFF'} !important;
             margin: 0;
-            padding: 16px;
+            padding: 20px;
             word-wrap: break-word;
             overflow-wrap: break-word;
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
           }
           
           p {
-            margin-bottom: 16px;
-            font-family: 'Poppins', sans-serif;
+            margin-bottom: 18px !important;
+            font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+            font-size: 17px !important;
+            line-height: 1.7 !important;
+            font-weight: 400 !important;
           }
           
           img {
             max-width: 100% !important;
             height: auto !important;
-            border-radius: 8px;
-            margin: 16px 0;
-            display: block;
+            border-radius: 12px !important;
+            margin: 20px 0 !important;
+            display: block !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
           }
           
           a {
             color: ${theme.colors.primary} !important;
-            text-decoration: none;
+            text-decoration: none !important;
+            font-weight: 500 !important;
+            border-bottom: 1px solid transparent !important;
+            transition: border-color 0.2s ease !important;
           }
           
           a:hover {
-            text-decoration: underline;
+            border-bottom-color: ${theme.colors.primary} !important;
           }
           
           h1, h2, h3, h4, h5, h6 {
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            margin: 24px 0 16px 0;
-            line-height: 1.4;
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
+            margin: 32px 0 20px 0 !important;
+            line-height: 1.3 !important;
+            font-family: 'Poppins', sans-serif !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.02em !important;
           }
           
+          h1 { font-size: 28px !important; }
+          h2 { font-size: 24px !important; }
+          h3 { font-size: 20px !important; }
+          h4 { font-size: 18px !important; }
+          h5 { font-size: 16px !important; }
+          h6 { font-size: 14px !important; }
+          
           blockquote {
-            position: relative;
-            margin: 24px 0;
-            padding: 20px 24px 20px 60px;
-            background: ${isDarkMode ? 'linear-gradient(135deg, rgba(74, 123, 200, 0.15) 0%, rgba(254, 204, 0, 0.08) 100%)' : 'linear-gradient(135deg, rgba(34, 74, 150, 0.08) 0%, rgba(254, 204, 0, 0.08) 100%)'};
-            border-radius: 16px;
-            border-left: 4px solid ${theme.colors.primary};
-            font-style: italic;
-            font-size: 17px;
-            line-height: 1.6;
+            position: relative !important;
+            margin: 28px 0 !important;
+            padding: 24px 28px 24px 70px !important;
+            background: ${isDarkMode ? 'linear-gradient(135deg, rgba(74, 123, 200, 0.12) 0%, rgba(254, 204, 0, 0.06) 100%)' : 'linear-gradient(135deg, rgba(34, 74, 150, 0.06) 0%, rgba(254, 204, 0, 0.06) 100%)'} !important;
+            border-radius: 20px !important;
+            border-left: 5px solid ${theme.colors.primary} !important;
+            font-style: italic !important;
+            font-size: 18px !important;
+            line-height: 1.6 !important;
             color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
-            box-shadow: ${isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(34, 74, 150, 0.1)'};
-            font-family: 'Poppins', sans-serif;
+            box-shadow: ${isDarkMode ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(34, 74, 150, 0.08)'} !important;
+            font-family: 'Poppins', sans-serif !important;
           }
           
           blockquote::before {
-            content: '"';
-            position: absolute;
-            left: 20px;
-            top: 12px;
-            font-size: 48px;
-            font-weight: bold;
-            color: ${theme.colors.primary};
-            opacity: 0.3;
-            line-height: 1;
-            font-family: 'Poppins', sans-serif;
+            content: '"' !important;
+            position: absolute !important;
+            left: 24px !important;
+            top: 16px !important;
+            font-size: 56px !important;
+            font-weight: bold !important;
+            color: ${theme.colors.primary} !important;
+            opacity: 0.25 !important;
+            line-height: 1 !important;
+            font-family: 'Poppins', sans-serif !important;
           }
           
           blockquote p {
-            margin: 0;
-            position: relative;
-            z-index: 1;
-            font-family: 'Poppins', sans-serif;
+            margin: 0 !important;
+            position: relative !important;
+            z-index: 1 !important;
+            font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
+            font-size: 18px !important;
           }
           
           ul, ol {
-            padding-left: 20px;
-            margin: 16px 0;
+            padding-left: 28px !important;
+            margin: 20px 0 !important;
           }
           
           li {
-            margin-bottom: 8px;
-            font-family: 'Poppins', sans-serif;
+            margin-bottom: 12px !important;
+            font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+            font-size: 17px !important;
+            line-height: 1.6 !important;
           }
           
           table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 16px 0;
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin: 24px 0 !important;
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
           }
           
           th, td {
-            border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
-            padding: 8px;
-            text-align: left;
-            font-family: 'Poppins', sans-serif;
+            border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} !important;
+            padding: 16px 12px !important;
+            text-align: left !important;
+            font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
           }
           
           th {
-            background-color: ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
-            font-weight: 600;
-            font-family: 'Poppins', sans-serif;
+            background-color: ${isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'} !important;
+            font-weight: 600 !important;
+            font-family: 'Poppins', sans-serif !important;
           }
           
           /* Remove any video/iframe elements to prevent conflicts */
@@ -493,21 +518,22 @@ ${article.link}`,
           }
           
           /* Force text color on all elements */
-          * {
+          *, *::before, *::after {
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
           }
           
           /* iOS specific fixes */
           @supports (-webkit-touch-callout: none) {
             body {
-              -webkit-text-size-adjust: 100%;
-              -webkit-font-smoothing: antialiased;
+              -webkit-text-size-adjust: 100% !important;
+              -webkit-font-smoothing: antialiased !important;
               color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
               background-color: ${isDarkMode ? '#1E293B' : '#FFFFFF'} !important;
             }
             
-            p, span, div, li, td, th, h1, h2, h3, h4, h5, h6 {
+            p, span, div, li, td, th, h1, h2, h3, h4, h5, h6, a {
               color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+              -webkit-font-smoothing: antialiased !important;
             }
           }
         </style>
@@ -788,13 +814,12 @@ ${article.link}`,
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={Platform.OS === 'android'}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        {/* Featured image with increased height for Android */}
+        {/* Featured image with proper aspect ratio */}
         {article.featured_media_url ? (
-          <View style={[
-            styles.featuredImageContainer,
-            Platform.OS === 'android' && styles.featuredImageContainerAndroid
-          ]}>
+          <View style={styles.featuredImageContainer}>
             <Image
               source={{ uri: article.featured_media_url }}
               style={styles.featuredImage}
@@ -902,7 +927,7 @@ ${article.link}`,
                     styles.relatedTitle, 
                     { 
                       color: theme.colors.text,
-                      fontFamily: theme.fontFamily.semibold
+                      fontFamily: theme.fontFamily.bold
                     }
                   ]}>
                     Najnowsze artykuły
@@ -928,7 +953,7 @@ ${article.link}`,
         </View>
       </ScrollView>
       
-      {/* Bottom menu bar - same as main page */}
+      {/* Bottom menu bar */}
       <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
         <TouchableOpacity
           style={styles.bottomMenuItem}
@@ -1065,49 +1090,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: Platform.select({
-      ios: 50,
-      android: 45,
-      default: 50
+      ios: 54,
+      android: 48,
+      default: 54
     }),
-    paddingBottom: 12,
+    paddingBottom: 16,
     zIndex: 1000,
   },
   circularButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    paddingBottom: 100, // Space for bottom menu
+    paddingBottom: 120, // Space for bottom menu
   },
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    height: 300, // Fixed height instead of aspect ratio
-    minHeight: 300,
-    maxHeight: 300,
-  },
-  featuredImageContainerAndroid: {
-    height: 320, // Slightly taller for Android
-    minHeight: 320,
-    maxHeight: 320,
+    aspectRatio: 16 / 10, // Better aspect ratio for featured images
+    minHeight: 280,
+    maxHeight: 400,
   },
   featuredImage: {
     width: '100%',
@@ -1115,70 +1135,85 @@ const styles = StyleSheet.create({
   },
   imageDarkOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
   },
   categoryBadge: {
     position: 'absolute',
-    bottom: 80,
-    left: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 4,
+    bottom: 24,
+    left: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   articleContent: {
-    padding: 24,
-    marginTop: -30,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    minHeight: 400,
+    padding: 28,
+    marginTop: -32,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    minHeight: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   title: {
-    fontSize: Platform.OS === 'android' ? 22 : 22,
-    fontWeight: '700',
-    marginBottom: 16,
-    lineHeight: Platform.OS === 'android' ? 30 : 30,
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 20,
+    lineHeight: 34,
+    letterSpacing: -0.5,
   },
   metaContainer: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 20,
   },
   metaText: {
     fontSize: 14,
-    marginLeft: 6,
+    marginLeft: 8,
+    fontWeight: '500',
   },
   source: {
-    fontSize: 12,
-    marginBottom: 20,
+    fontSize: 13,
+    marginBottom: 24,
     fontStyle: 'italic',
+    opacity: 0.8,
   },
   videoContainer: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   youtubeContainer: {
-    marginTop: 24,
-    marginBottom: 24,
+    marginTop: 28,
+    marginBottom: 28,
   },
   galleryContainer: {
-    marginTop: 32,
-    marginBottom: 24,
+    marginTop: 36,
+    marginBottom: 28,
   },
   galleryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 20,
+    letterSpacing: -0.3,
   },
   galleryLoadingContainer: {
-    height: 100,
+    height: 120,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1189,32 +1224,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   galleryImageContainer: {
-    width: (width - 72) / 2,
-    height: 120,
-    borderRadius: 12,
+    width: (width - 88) / 2,
+    height: 140,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   galleryImage: {
     width: '100%',
     height: '100%',
   },
   relatedContainer: {
-    marginTop: 32,
-    paddingTop: 24,
+    marginTop: 40,
+    paddingTop: 32,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+    borderTopColor: 'rgba(0, 0, 0, 0.08)',
   },
   relatedListContainer: {
-    marginTop: 24,
+    marginTop: 32,
   },
   relatedTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    marginHorizontal: 24,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 24,
+    letterSpacing: -0.4,
   },
   relatedList: {
-    gap: 12,
+    gap: 16,
   },
   bottomMenuBar: {
     position: 'absolute',
@@ -1222,20 +1262,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     paddingBottom: Platform.select({
-      ios: 34,
-      android: 12,
-      default: 12,
+      ios: 38,
+      android: 16,
+      default: 16,
     }),
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+    borderTopColor: 'rgba(0, 0, 0, 0.08)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 12,
   },
   bottomMenuItem: {
     flex: 1,
@@ -1246,28 +1286,30 @@ const styles = StyleSheet.create({
   },
   bottomMenuText: {
     fontSize: 12,
-    fontWeight: '500',
-    marginTop: 4,
+    fontWeight: '600',
+    marginTop: 6,
+    letterSpacing: 0.2,
   },
   badge: {
     position: 'absolute',
     top: -2,
     right: '25%',
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
   },
   badgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
   },
   htmlContainer: {
     width: '100%',
     minHeight: 200,
+    marginTop: 8,
   },
   webview: {
     width: '100%',
@@ -1275,26 +1317,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   fallbackContainer: {
-    padding: 20,
-    borderRadius: 12,
+    padding: 24,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 200,
+    marginTop: 8,
   },
   fallbackText: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
     lineHeight: 24,
   },
   fallbackButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
   },
   fallbackButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
   loadingContainer: {
@@ -1305,26 +1348,26 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 16,
   },
   // Modal styles
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: 'rgba(0, 0, 0, 0.96)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalCloseButton: {
     position: 'absolute',
     top: Platform.select({
-      ios: 50,
-      android: 40,
-      default: 50
+      ios: 54,
+      android: 44,
+      default: 54
     }),
-    right: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    right: 24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1333,39 +1376,39 @@ const styles = StyleSheet.create({
   modalNavButton: {
     position: 'absolute',
     top: '50%',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    marginTop: -22,
+    marginTop: -24,
   },
   modalNavButtonLeft: {
-    left: 20,
+    left: 24,
   },
   modalNavButtonRight: {
-    right: 20,
+    right: 24,
   },
   modalCounter: {
     position: 'absolute',
     top: Platform.select({
-      ios: 50,
-      android: 40,
-      default: 50
+      ios: 54,
+      android: 44,
+      default: 54
     }),
-    left: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    left: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     zIndex: 1000,
   },
   modalCounterText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
   },
   modalImage: {
     width: width,
@@ -1373,18 +1416,18 @@ const styles = StyleSheet.create({
   },
   modalCaptionContainer: {
     position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    bottom: 48,
+    left: 24,
+    right: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   modalCaption: {
     color: '#FFFFFF',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
   // Reading progress indicator - only shows when at bottom
