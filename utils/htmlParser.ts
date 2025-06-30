@@ -77,29 +77,34 @@ export const cleanHtml = (html: string): string => {
     'src="https://kaszuby24.pl/$1"'
   );
   
-  // Enhanced styles for better Android rendering
+  // Enhanced styles for better rendering across platforms
   const webStyles = `
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
       
+      * {
+        box-sizing: border-box;
+      }
+      
       body {
         font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         line-height: 1.8;
-        color: #212529;
         padding: 0;
         margin: 0;
         font-size: ${Platform.OS === 'android' ? '17px' : '16px'};
-        background-color: transparent;
         word-wrap: break-word;
         overflow-wrap: break-word;
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
       
       p {
         margin-bottom: 16px;
         font-family: 'Poppins', sans-serif;
         line-height: 1.8;
+        font-weight: 400;
       }
       
       img {
@@ -111,9 +116,9 @@ export const cleanHtml = (html: string): string => {
       }
       
       a {
-        color: #224A96;
         text-decoration: none;
         word-break: break-word;
+        font-weight: 500;
       }
       
       a:hover {
@@ -121,27 +126,25 @@ export const cleanHtml = (html: string): string => {
       }
       
       h1, h2, h3, h4, h5, h6 {
-        color: #212529;
         margin-top: 28px;
         margin-bottom: 16px;
         line-height: 1.3;
         font-weight: 600;
         font-family: 'Poppins', sans-serif;
+        letter-spacing: -0.02em;
       }
       
       blockquote {
         position: relative;
         margin: 24px 0;
         padding: 20px 24px 20px 60px;
-        background: linear-gradient(135deg, rgba(34, 74, 150, 0.08) 0%, rgba(254, 204, 0, 0.08) 100%);
         border-radius: 16px;
-        border-left: 4px solid #224A96;
+        border-left: 4px solid;
         font-style: italic;
         font-size: ${Platform.OS === 'android' ? '18px' : '17px'};
         line-height: 1.6;
-        color: #475569;
-        box-shadow: 0 4px 20px rgba(34, 74, 150, 0.1);
         font-family: 'Poppins', sans-serif;
+        font-weight: 400;
       }
       
       blockquote::before {
@@ -151,7 +154,6 @@ export const cleanHtml = (html: string): string => {
         top: 12px;
         font-size: 48px;
         font-weight: bold;
-        color: #224A96;
         opacity: 0.3;
         line-height: 1;
         font-family: 'Poppins', sans-serif;
@@ -173,6 +175,7 @@ export const cleanHtml = (html: string): string => {
         margin-bottom: 8px;
         font-family: 'Poppins', sans-serif;
         line-height: 1.6;
+        font-weight: 400;
       }
       
       table {
@@ -183,14 +186,13 @@ export const cleanHtml = (html: string): string => {
       }
       
       th, td {
-        border: 1px solid rgba(0,0,0,0.2);
+        border: 1px solid;
         padding: 12px 8px;
         text-align: left;
         font-family: 'Poppins', sans-serif;
       }
       
       th {
-        background-color: rgba(0,0,0,0.1);
         font-weight: 600;
         font-family: 'Poppins', sans-serif;
       }
@@ -198,6 +200,18 @@ export const cleanHtml = (html: string): string => {
       /* Remove any video/iframe elements to prevent conflicts */
       iframe, video, embed, object {
         display: none !important;
+      }
+      
+      /* iOS specific optimizations */
+      @supports (-webkit-touch-callout: none) {
+        body {
+          -webkit-text-size-adjust: 100%;
+          -webkit-font-smoothing: antialiased;
+        }
+        
+        * {
+          -webkit-font-smoothing: antialiased;
+        }
       }
       
       /* Android-specific optimizations */
@@ -217,40 +231,6 @@ export const cleanHtml = (html: string): string => {
           letter-spacing: -0.01em;
         }
       ` : ''}
-      
-      @media (prefers-color-scheme: dark) {
-        body {
-          color: #f8f9fa;
-          background-color: transparent;
-        }
-        
-        h1, h2, h3, h4, h5, h6 {
-          color: #f8f9fa;
-        }
-        
-        a {
-          color: #4A7BC8;
-        }
-        
-        blockquote {
-          background: linear-gradient(135deg, rgba(74, 123, 200, 0.1) 0%, rgba(254, 204, 0, 0.05) 100%);
-          color: #E2E8F0;
-          border-left-color: #4A7BC8;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-        
-        blockquote::before {
-          color: #4A7BC8;
-        }
-        
-        th, td {
-          border-color: rgba(255,255,255,0.2);
-        }
-        
-        th {
-          background-color: rgba(255,255,255,0.1);
-        }
-      }
     </style>
   `;
   

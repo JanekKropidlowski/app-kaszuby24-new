@@ -371,21 +371,28 @@ ${article.link}`,
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
           
+          * {
+            box-sizing: border-box;
+          }
+          
           body {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             font-size: 16px;
             line-height: 1.8;
-            color: ${isDarkMode ? '#F9FAFB' : '#111827'};
-            background-color: transparent;
+            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+            background-color: ${isDarkMode ? '#1E293B' : '#FFFFFF'} !important;
             margin: 0;
             padding: 16px;
             word-wrap: break-word;
             overflow-wrap: break-word;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
           }
           
           p {
             margin-bottom: 16px;
             font-family: 'Poppins', sans-serif;
+            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
           }
           
           img {
@@ -397,7 +404,7 @@ ${article.link}`,
           }
           
           a {
-            color: ${theme.colors.primary};
+            color: ${theme.colors.primary} !important;
             text-decoration: none;
           }
           
@@ -406,7 +413,7 @@ ${article.link}`,
           }
           
           h1, h2, h3, h4, h5, h6 {
-            color: ${isDarkMode ? '#F9FAFB' : '#111827'};
+            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
             margin: 24px 0 16px 0;
             line-height: 1.4;
             font-family: 'Poppins', sans-serif;
@@ -417,13 +424,13 @@ ${article.link}`,
             position: relative;
             margin: 24px 0;
             padding: 20px 24px 20px 60px;
-            background: ${isDarkMode ? 'linear-gradient(135deg, rgba(74, 123, 200, 0.1) 0%, rgba(254, 204, 0, 0.05) 100%)' : 'linear-gradient(135deg, rgba(34, 74, 150, 0.08) 0%, rgba(254, 204, 0, 0.08) 100%)'};
+            background: ${isDarkMode ? 'linear-gradient(135deg, rgba(74, 123, 200, 0.15) 0%, rgba(254, 204, 0, 0.08) 100%)' : 'linear-gradient(135deg, rgba(34, 74, 150, 0.08) 0%, rgba(254, 204, 0, 0.08) 100%)'};
             border-radius: 16px;
             border-left: 4px solid ${theme.colors.primary};
             font-style: italic;
             font-size: 17px;
             line-height: 1.6;
-            color: ${isDarkMode ? '#E2E8F0' : '#475569'};
+            color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
             box-shadow: ${isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(34, 74, 150, 0.1)'};
             font-family: 'Poppins', sans-serif;
           }
@@ -446,6 +453,7 @@ ${article.link}`,
             position: relative;
             z-index: 1;
             font-family: 'Poppins', sans-serif;
+            color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
           }
           
           ul, ol {
@@ -456,6 +464,7 @@ ${article.link}`,
           li {
             margin-bottom: 8px;
             font-family: 'Poppins', sans-serif;
+            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
           }
           
           table {
@@ -469,6 +478,7 @@ ${article.link}`,
             padding: 8px;
             text-align: left;
             font-family: 'Poppins', sans-serif;
+            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
           }
           
           th {
@@ -480,6 +490,25 @@ ${article.link}`,
           /* Remove any video/iframe elements to prevent conflicts */
           iframe, video, embed, object {
             display: none !important;
+          }
+          
+          /* Force text color on all elements */
+          * {
+            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+          }
+          
+          /* iOS specific fixes */
+          @supports (-webkit-touch-callout: none) {
+            body {
+              -webkit-text-size-adjust: 100%;
+              -webkit-font-smoothing: antialiased;
+              color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+              background-color: ${isDarkMode ? '#1E293B' : '#FFFFFF'} !important;
+            }
+            
+            p, span, div, li, td, th, h1, h2, h3, h4, h5, h6 {
+              color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+            }
           }
         </style>
       </head>
@@ -540,7 +569,7 @@ ${article.link}`,
           <div 
             dangerouslySetInnerHTML={{ __html: enhancedHtml }}
             style={{
-              color: isDarkMode ? '#F9FAFB' : '#111827',
+              color: isDarkMode ? '#F1F5F9' : '#1E293B',
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
               fontSize: '16px',
               lineHeight: '1.8',

@@ -28,8 +28,8 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-const CAROUSEL_ITEM_WIDTH = width * 0.92;
-const CAROUSEL_ITEM_SPACING = 12;
+const CAROUSEL_ITEM_WIDTH = width * 0.85; // Slightly smaller for center mode
+const CAROUSEL_ITEM_SPACING = 16;
 
 const MAX_RETRIES = 3;
 
@@ -185,9 +185,9 @@ export default function HomeScreen() {
       
       if (refresh || pageNum === 1) {
         if (newArticles.length > 0) {
-          // Take first 3 articles for featured carousel
-          setFeaturedArticles(newArticles.slice(0, 3));
-          setArticles(newArticles.slice(3)); // Skip first 3 for regular list
+          // Take first 5 articles for featured carousel
+          setFeaturedArticles(newArticles.slice(0, 5));
+          setArticles(newArticles.slice(5)); // Skip first 5 for regular list
         } else {
           setArticles([]);
           setFeaturedArticles([]);
@@ -523,30 +523,39 @@ export default function HomeScreen() {
               <View style={styles.carouselContainer}>
                 <FlatList
                   ref={flatListRef}
-                  data={featuredArticles}
-                  keyExtractor={(item) => `carousel-${item.id}`}
-                  renderItem={renderCarouselItem}
+                  data={[...featuredArticles, ...featuredArticles, ...featuredArticles]} // Triple for infinite effect
+                  keyExtractor={(item, index) => `carousel-${item.id}-${index}`}
+                  renderItem={({ item, index }) => (
+                    <CarouselItem
+                      item={item}
+                      index={index % featuredArticles.length}
+                      totalItems={featuredArticles.length}
+                      onPress={handleArticlePress}
+                    />
+                  )}
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  pagingEnabled={Platform.OS === 'ios'}
                   snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
                   decelerationRate="fast"
                   contentContainerStyle={styles.carouselListContent}
+                  initialScrollIndex={featuredArticles.length} // Start at middle set
+                  getItemLayout={(data, index) => ({
+                    length: CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING,
+                    offset: (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING) * index,
+                    index,
+                  })}
                   onMomentumScrollEnd={(event) => {
                     const newIndex = Math.round(
                       event.nativeEvent.contentOffset.x / 
                       (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
                     );
-                    if (newIndex >= 0 && newIndex < featuredArticles.length) {
-                      setActiveCarouselIndex(newIndex);
-                    }
+                    setActiveCarouselIndex(newIndex % featuredArticles.length);
                   }}
-                  getItemLayout={getItemLayout}
                   onScrollToIndexFailed={handleScrollToIndexFailed}
                   removeClippedSubviews={Platform.OS === 'android'}
-                  initialNumToRender={3}
-                  maxToRenderPerBatch={3}
-                  windowSize={5}
+                  initialNumToRender={5}
+                  maxToRenderPerBatch={5}
+                  windowSize={7}
                 />
                 {renderCarouselIndicator}
               </View>
@@ -577,28 +586,28 @@ export default function HomeScreen() {
               </View>
             )}
             
-            <View style={styles.breakingNewsHeader}>
+            <View style={styles.sectionHeader}>
               <Text style={[
-                styles.breakingNewsTitle, 
+                styles.sectionTitle, 
                 { 
                   color: theme.colors.text,
                   fontFamily: theme.fontFamily.bold
                 }
               ]}>
-                Najnowsze wiadomości
+                Najnowsze artykuły
               </Text>
               <TouchableOpacity 
                 onPress={navigateToSearch}
-                style={styles.moreButton}
+                style={styles.sectionMoreButton}
               >
                 <Text style={[
-                  styles.moreText, 
+                  styles.sectionMoreText, 
                   { 
                     color: theme.colors.primary,
                     fontFamily: theme.fontFamily.semibold
                   }
                 ]}>
-                  Więcej
+                  Zobacz wszystkie
                 </Text>
                 <ChevronRight size={16} color={theme.colors.primary} />
               </TouchableOpacity>
@@ -657,19 +666,20 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   carouselListContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: (width - CAROUSEL_ITEM_WIDTH) / 2, // Center the items
+    paddingVertical: 8,
   },
   carouselItemContainer: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
   },
   carouselItem: {
-    borderRadius: 24,
+    borderRadius: 28,
     overflow: 'hidden',
-    height: 240,
+    height: 260,
   },
   carouselImageContainer: {
     position: 'relative',
@@ -752,30 +762,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  breakingNewsHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    marginTop: 8,
   },
-  breakingNewsTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  moreButton: {
+  sectionMoreButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(34, 74, 150, 0.08)',
+    borderRadius: 20,
   },
-  moreText: {
-    fontSize: 15,
+  sectionMoreText: {
+    fontSize: 14,
     fontWeight: '600',
+    marginRight: 4,
   },
   articleContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
 });

@@ -13,8 +13,8 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.9; // 90% of screen width
-const ITEM_SPACING = 12;
+const ITEM_WIDTH = width * 0.82; // Slightly smaller for better center mode
+const ITEM_SPACING = 16;
 
 // Memoized article item component for better performance
 const RelatedArticleItem = memo(({ 
@@ -104,17 +104,20 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
   const renderArticle = useCallback(({ item, index }: { item: Article; index: number }) => (
     <RelatedArticleItem
       item={item}
-      index={index}
+      index={index % articles.length}
       totalItems={articles.length}
       onPress={handleArticlePress}
     />
   ), [articles.length, handleArticlePress]);
 
-  const keyExtractor = useCallback((item: Article) => `related-${item.id}`, []);
+  const keyExtractor = useCallback((item: Article, index: number) => `related-${item.id}-${index}`, []);
 
   if (articles.length === 0) {
     return null;
   }
+
+  // Create infinite data by tripling the array
+  const infiniteData = articles.length > 1 ? [...articles, ...articles, ...articles] : articles;
 
   return (
     <View style={styles.container}>
@@ -123,7 +126,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
           styles.title,
           { 
             color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold
+            fontFamily: theme.fontFamily.bold
           }
         ]}
       >
@@ -131,7 +134,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
       </Text>
       
       <FlatList
-        data={articles}
+        data={infiniteData}
         renderItem={renderArticle}
         keyExtractor={keyExtractor}
         horizontal
@@ -140,16 +143,19 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         snapToInterval={ITEM_WIDTH + ITEM_SPACING}
         decelerationRate="fast"
         removeClippedSubviews={false}
-        initialNumToRender={2}
-        maxToRenderPerBatch={2}
-        windowSize={3}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
         pagingEnabled={false}
-        // Performance optimizations
+        initialScrollIndex={articles.length > 1 ? articles.length : 0} // Start at middle set
         getItemLayout={(data, index) => ({
           length: ITEM_WIDTH + ITEM_SPACING,
           offset: (ITEM_WIDTH + ITEM_SPACING) * index,
           index,
         })}
+        onScrollToIndexFailed={() => {
+          // Handle scroll failure gracefully
+        }}
       />
     </View>
   );
@@ -162,43 +168,44 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     marginBottom: 20,
     marginHorizontal: 24,
+    letterSpacing: -0.3,
   },
   listContainer: {
-    paddingLeft: 24,
-    paddingRight: 12,
+    paddingLeft: (width - ITEM_WIDTH) / 2, // Center the items
+    paddingRight: (width - ITEM_WIDTH) / 2,
   },
   articleContainer: {
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
   },
   articleImage: {
     width: '100%',
-    height: 160,
+    height: 180,
   },
   imagePlaceholder: {
     width: '100%',
-    height: 160,
+    height: 180,
   },
   articleContent: {
-    padding: 20,
+    padding: 24,
   },
   articleTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    lineHeight: 24,
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 26,
     marginBottom: 12,
   },
   articleDate: {
     fontSize: 13,
-    fontWeight: '400',
+    fontWeight: '500',
     opacity: 0.7,
   },
 });
