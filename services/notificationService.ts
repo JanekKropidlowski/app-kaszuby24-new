@@ -108,10 +108,10 @@ export class NotificationService {
         locationId: userLocation.id,
         platform: Platform.OS,
         deviceInfo: {
-          brand: Device.brand,
-          modelName: Device.modelName,
-          osName: Device.osName,
-          osVersion: Device.osVersion,
+          brand: Device.brand || 'unknown',
+          modelName: Device.modelName || 'unknown',
+          osName: Device.osName || 'unknown',
+          osVersion: Device.osVersion || 'unknown',
         }
       });
       
@@ -160,21 +160,23 @@ export class NotificationService {
         
         // Add to notification history
         const { addNotification } = useNotificationsStore.getState();
+        const data = notification.request.content.data || {};
+        
         addNotification({
           title: notification.request.content.title || 'Nowe powiadomienie',
           body: notification.request.content.body || '',
-          articleId: notification.request.content.data?.articleId,
-          categoryId: notification.request.content.data?.categoryId,
+          articleId: typeof data.articleId === 'number' ? data.articleId : undefined,
+          categoryId: typeof data.categoryId === 'number' ? data.categoryId : undefined,
           read: false,
         });
       });
       
       // Handle notification tapped
       Notifications.addNotificationResponseReceivedListener(response => {
-        const data = response.notification.request.content.data;
+        const data = response.notification.request.content.data || {};
         console.log('Notification tapped:', data);
         
-        if (data?.articleId) {
+        if (data.articleId && typeof data.articleId === 'number') {
           // This will be handled by the deep linking system
           console.log('Navigate to article:', data.articleId);
         }
