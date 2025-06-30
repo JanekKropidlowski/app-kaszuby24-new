@@ -1,5 +1,12 @@
 import { Article, Category } from '@/types/article';
 
+// Interface for embedded category objects from API
+interface EmbeddedCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 /**
  * Checks if an article is sponsored content that should be filtered out
  * @param article - The article to check
@@ -10,7 +17,7 @@ export const isSponsoredContent = (article: Article): boolean => {
   if (article._embedded && article._embedded["wp:term"]) {
     const categories = article._embedded["wp:term"][0];
     if (categories && Array.isArray(categories)) {
-      return categories.some((category: Category) => 
+      return categories.some((category: EmbeddedCategory) => 
         category.id === 554 || 
         category.slug === 'sponsorowany'
       );
@@ -20,11 +27,6 @@ export const isSponsoredContent = (article: Article): boolean => {
   // Check if article has categories array directly
   if (article.categories && Array.isArray(article.categories)) {
     return article.categories.includes(554);
-  }
-  
-  // Check if article has a single category field
-  if (article.category) {
-    return article.category === 554 || article.category === 'sponsorowany';
   }
   
   return false;
