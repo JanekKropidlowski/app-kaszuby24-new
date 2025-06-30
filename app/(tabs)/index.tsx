@@ -24,6 +24,7 @@ import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import CategoryPill from '@/components/CategoryPill';
+import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
 const CAROUSEL_ITEM_WIDTH = width * 0.85;
@@ -85,24 +86,28 @@ export default function HomeScreen() {
         setLoadingMore(true);
       }
       
-      const categoryFilter = selectedCategory ? [selectedCategory] : undefined;
+      // Don't include sponsored category (554) in filter
+      const categoryFilter = selectedCategory && selectedCategory !== 554 ? [selectedCategory] : undefined;
       const { articles: newArticles, totalPages: total } = await fetchArticles(
         pageNum,
         12,
         categoryFilter
       );
       
+      // Additional client-side filtering to ensure no sponsored content
+      const filteredArticles = filterSponsoredArticles(newArticles);
+      
       if (refresh || pageNum === 1) {
-        if (newArticles.length > 0) {
+        if (filteredArticles.length > 0) {
           // Take first 3 articles for featured carousel
-          setFeaturedArticles(newArticles.slice(0, 3));
-          setArticles(newArticles.slice(3)); // Skip first 3 for regular list
+          setFeaturedArticles(filteredArticles.slice(0, 3));
+          setArticles(filteredArticles.slice(3)); // Skip first 3 for regular list
         } else {
           setArticles([]);
           setFeaturedArticles([]);
         }
       } else {
-        setArticles((prev) => [...prev, ...newArticles]);
+        setArticles((prev) => [...prev, ...filteredArticles]);
       }
       
       setTotalPages(total);
@@ -141,8 +146,8 @@ export default function HomeScreen() {
   const loadCategories = useCallback(async (retry = 0) => {
     try {
       const data = await fetchCategories();
-      // Filter out categories with no posts and sort by count
-      const filteredCategories = data
+      // Filter out sponsored categories and categories with no posts, then sort by count
+      const filteredCategories = filterSponsoredCategories(data)
         .filter(cat => cat.count > 0)
         .sort((a, b) => b.count - a.count);
       
@@ -168,6 +173,11 @@ export default function HomeScreen() {
   
   // Refresh when category changes
   useEffect(() => {
+    // Don't allow selection of sponsored category
+    if (selectedCategory === 554) {
+      setSelectedCategory(null);
+      return;
+    }
     loadArticles(1, true);
   }, [selectedCategory, loadArticles]);
   
@@ -183,7 +193,7 @@ export default function HomeScreen() {
   };
   
   const handleArticlePress = (article: Article) => {
-    // Add to recent articles
+    // Add to recent articles (filtering is handled in the store)
     addRecentArticle(article);
   };
   

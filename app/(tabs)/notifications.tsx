@@ -27,6 +27,9 @@ export default function NotificationsScreen() {
   
   const unreadCount = getUnreadCount();
   
+  // Filter out any notifications for sponsored content (category 554)
+  const filteredNotifications = notifications.filter(notif => notif.categoryId !== 554);
+  
   const handleNotificationPress = (notification: NotificationItem) => {
     if (!notification.read) {
       markAsRead(notification.id);
@@ -142,7 +145,7 @@ export default function NotificationsScreen() {
           )}
         </View>
         
-        {notifications.length > 0 && (
+        {filteredNotifications.length > 0 && (
           <View style={styles.headerActions}>
             {unreadCount > 0 && (
               <TouchableOpacity 
@@ -182,7 +185,7 @@ export default function NotificationsScreen() {
       </View>
       
       <FlatList
-        data={notifications}
+        data={filteredNotifications}
         keyExtractor={(item) => item.id}
         renderItem={renderNotification}
         contentContainerStyle={styles.listContent}

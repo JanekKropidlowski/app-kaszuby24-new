@@ -17,6 +17,7 @@ import EmptyState from '@/components/EmptyState';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
+import { filterSponsoredArticles } from '@/utils/contentFilter';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -45,7 +46,10 @@ export default function SearchScreen() {
       
       const { articles: searchResults, totalPages } = await searchArticles(searchQuery, 1);
       
-      setArticles(searchResults);
+      // Additional client-side filtering to ensure no sponsored content
+      const filteredResults = filterSponsoredArticles(searchResults);
+      
+      setArticles(filteredResults);
       setTotalPages(totalPages);
       setPage(1);
     } catch (err) {
@@ -65,7 +69,10 @@ export default function SearchScreen() {
       const nextPage = page + 1;
       const { articles: moreResults } = await searchArticles(query, nextPage);
       
-      setArticles((prev) => [...prev, ...moreResults]);
+      // Additional client-side filtering to ensure no sponsored content
+      const filteredResults = filterSponsoredArticles(moreResults);
+      
+      setArticles((prev) => [...prev, ...filteredResults]);
       setPage(nextPage);
     } catch (err) {
       console.error('Error loading more search results:', err);
@@ -75,7 +82,7 @@ export default function SearchScreen() {
   };
   
   const handleArticlePress = (article: Article) => {
-    // Add to recent articles
+    // Add to recent articles (filtering is handled in the store)
     addRecentArticle(article);
   };
   

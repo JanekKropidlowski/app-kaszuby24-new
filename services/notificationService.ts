@@ -178,6 +178,12 @@ export class NotificationService {
   
   async scheduleLocalNotification(title: string, body: string, data?: any): Promise<void> {
     try {
+      // Don't schedule notifications for sponsored content
+      if (data?.categoryId === 554) {
+        console.log('Skipping notification for sponsored content');
+        return;
+      }
+      
       if (Platform.OS === 'web') {
         // Web notification
         if ('Notification' in window && Notification.permission === 'granted') {
@@ -221,6 +227,12 @@ export class NotificationService {
           const { addNotification } = useNotificationsStore.getState();
           const data = notification.request.content.data || {};
           
+          // Don't process notifications for sponsored content
+          if (data.categoryId === 554) {
+            console.log('Ignoring notification for sponsored content');
+            return;
+          }
+          
           addNotification({
             title: notification.request.content.title || 'Nowe powiadomienie',
             body: notification.request.content.body || '',
@@ -238,6 +250,12 @@ export class NotificationService {
         try {
           const data = response.notification.request.content.data || {};
           console.log('Notification tapped:', data);
+          
+          // Don't handle taps for sponsored content
+          if (data.categoryId === 554) {
+            console.log('Ignoring tap for sponsored content notification');
+            return;
+          }
           
           if (data.articleId && typeof data.articleId === 'number') {
             // This will be handled by the deep linking system

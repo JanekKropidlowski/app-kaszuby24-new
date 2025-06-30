@@ -7,6 +7,7 @@ import { Article } from '@/types/article';
 import { getRelativeTime } from '@/utils/dateFormatter';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
+import { isSponsoredContent } from '@/utils/contentFilter';
 
 interface ArticleCardProps {
   article: Article;
@@ -24,6 +25,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   const { theme } = useThemeStore();
   
   const isSaved = isArticleSaved(article.id);
+  const isSponsored = isSponsoredContent(article);
+  
+  // Don't render sponsored content
+  if (isSponsored) {
+    return null;
+  }
   
   const handlePress = () => {
     if (onPress) {
@@ -34,6 +41,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   
   const toggleSave = (e: any) => {
     e.stopPropagation();
+    
+    // Don't allow saving sponsored content
+    if (isSponsored) {
+      return;
+    }
+    
     if (isSaved) {
       removeArticle(article.id);
     } else {
@@ -179,20 +192,23 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               </Text>
             </View>
             
-            <TouchableOpacity 
-              onPress={toggleSave} 
-              style={[
-                styles.bookmarkButton,
-                isSaved && { backgroundColor: theme.colors.primary + '20' }
-              ]}
-              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-            >
-              <Bookmark 
-                size={18} 
-                color={isSaved ? theme.colors.primary : theme.colors.textSecondary} 
-                fill={isSaved ? theme.colors.primary : 'transparent'} 
-              />
-            </TouchableOpacity>
+            {/* Only show bookmark button for non-sponsored content */}
+            {!isSponsored && (
+              <TouchableOpacity 
+                onPress={toggleSave} 
+                style={[
+                  styles.bookmarkButton,
+                  isSaved && { backgroundColor: theme.colors.primary + '20' }
+                ]}
+                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+              >
+                <Bookmark 
+                  size={18} 
+                  color={isSaved ? theme.colors.primary : theme.colors.textSecondary} 
+                  fill={isSaved ? theme.colors.primary : 'transparent'} 
+                />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
         

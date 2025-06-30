@@ -25,6 +25,7 @@ import { useArticlesStore } from '@/store/articlesStore';
 import { formatDateTime } from '@/utils/dateFormatter';
 import { cleanHtml, extractVideoUrls } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
+import { isSponsoredContent } from '@/utils/contentFilter';
 
 const MAX_RETRIES = 3;
 const { width } = Dimensions.get('window');
@@ -64,6 +65,13 @@ export default function ArticleDetailScreen() {
         setError(null);
         
         const data = await fetchArticleById(articleId);
+        
+        // Check if this is sponsored content
+        if (isSponsoredContent(data)) {
+          setError('Artykuł nie został znaleziony.');
+          return;
+        }
+        
         setArticle(data);
         
         // Extract video URLs from content
@@ -72,7 +80,7 @@ export default function ArticleDetailScreen() {
           setVideoUrls(videos);
         }
         
-        // Add to recent articles
+        // Add to recent articles (filtering is handled in the store)
         addRecentArticle(data);
       } catch (err) {
         console.error('Error loading article:', err);
@@ -97,6 +105,11 @@ export default function ArticleDetailScreen() {
   
   const toggleSave = () => {
     if (!article) return;
+    
+    // Don't allow saving sponsored content
+    if (isSponsoredContent(article)) {
+      return;
+    }
     
     if (isSaved) {
       removeArticle(articleId);
@@ -142,6 +155,12 @@ export default function ArticleDetailScreen() {
     // Reload the article
     fetchArticleById(articleId)
       .then(data => {
+        // Check if this is sponsored content
+        if (isSponsoredContent(data)) {
+          setError('Artykuł nie został znaleziony.');
+          return;
+        }
+        
         setArticle(data);
         
         // Extract video URLs from content
@@ -150,7 +169,7 @@ export default function ArticleDetailScreen() {
           setVideoUrls(videos);
         }
         
-        // Add to recent articles
+        // Add to recent articles (filtering is handled in the store)
         addRecentArticle(data);
       })
       .catch(err => {
@@ -466,21 +485,23 @@ export default function ArticleDetailScreen() {
         <Share2 size={20} color="#FFFFFF" />
       </TouchableOpacity>
       
-      {/* Floating bookmark button */}
-      <TouchableOpacity 
-        style={[
-          styles.floatingBookmarkButton,
-          isSaved && { backgroundColor: theme.colors.primary }
-        ]} 
-        onPress={toggleSave}
-        activeOpacity={0.8}
-      >
-        <Bookmark 
-          size={20} 
-          color="#FFFFFF" 
-          fill={isSaved ? "#FFFFFF" : "transparent"} 
-        />
-      </TouchableOpacity>
+      {/* Floating bookmark button - only show if not sponsored content */}
+      {!isSponsoredContent(article) && (
+        <TouchableOpacity 
+          style={[
+            styles.floatingBookmarkButton,
+            isSaved && { backgroundColor: theme.colors.primary }
+          ]} 
+          onPress={toggleSave}
+          activeOpacity={0.8}
+        >
+          <Bookmark 
+            size={20} 
+            color="#FFFFFF" 
+            fill={isSaved ? "#FFFFFF" : "transparent"} 
+          />
+        </TouchableOpacity>
+      )}
       
       <ScrollView 
         style={styles.scrollView}

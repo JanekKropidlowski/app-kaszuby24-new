@@ -1,6 +1,7 @@
 import { Article, Category } from '@/types/article';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
 const API_TIMEOUT = Platform.OS === 'android' ? 60000 : 30000; // Increased timeout for Android
@@ -129,9 +130,16 @@ export const fetchArticles = async (
     const timestamp = new Date().getTime();
     let url = `${API_BASE_URL}/posts?_embed&page=${page}&per_page=${perPage}&_=${timestamp}`;
     
+    // Filter out sponsored category (554) from categories filter
     if (categories && categories.length > 0) {
-      url += `&categories=${categories.join(',')}`;
+      const filteredCategories = categories.filter(catId => catId !== 554);
+      if (filteredCategories.length > 0) {
+        url += `&categories=${filteredCategories.join(',')}`;
+      }
     }
+    
+    // Exclude sponsored category from all requests
+    url += `&categories_exclude=554`;
     
     const response = await fetchWithTimeout(url);
     
@@ -170,13 +178,16 @@ export const fetchArticles = async (
       };
     });
     
+    // Filter out sponsored content as additional safety measure
+    const filteredArticles = filterSponsoredArticles(processedArticles);
+    
     // Cache the articles
     if (page === 1) {
-      await cacheData(CACHE_KEY_ARTICLES, { articles: processedArticles, totalPages });
+      await cacheData(CACHE_KEY_ARTICLES, { articles: filteredArticles, totalPages });
     }
     
     return { 
-      articles: processedArticles, 
+      articles: filteredArticles, 
       totalPages 
     };
   } catch (error: any) {
@@ -185,7 +196,9 @@ export const fetchArticles = async (
       const cachedData = await getCachedData(CACHE_KEY_ARTICLES);
       if (cachedData) {
         console.log('Using cached articles data');
-        return cachedData;
+        // Filter cached data as well
+        const filteredCachedArticles = filterSponsoredArticles(cachedData.articles);
+        return { ...cachedData, articles: filteredCachedArticles };
       }
     }
     
@@ -236,10 +249,17 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
       featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
     }
     
-    return {
+    const processedArticle = {
       ...article,
       featured_media_url
     };
+    
+    // Check if this is sponsored content and throw error if it is
+    if (filterSponsoredArticles([processedArticle]).length === 0) {
+      throw new Error('Artykuł nie został znaleziony.');
+    }
+    
+    return processedArticle;
   } catch (error: any) {
     if (error instanceof TypeError && error.message.includes('Network request failed')) {
       throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
@@ -260,7 +280,7 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
 export const fetchCategories = async (): Promise<Category[]> => {
   try {
     const timestamp = new Date().getTime();
-    const url = `${API_BASE_URL}/categories?per_page=100&_=${timestamp}`;
+    const url = `${API_BASE_URL}/categories?per_page=100&exclude=554&_=${timestamp}`;
     
     const response = await fetchWithTimeout(url);
     
@@ -276,16 +296,20 @@ export const fetchCategories = async (): Promise<Category[]> => {
     
     const categories = await response.json();
     
-    // Cache the categories
-    await cacheData(CACHE_KEY_CATEGORIES, categories);
+    // Filter out sponsored categories as additional safety measure
+    const filteredCategories = filterSponsoredCategories(categories);
     
-    return categories;
+    // Cache the categories
+    await cacheData(CACHE_KEY_CATEGORIES, filteredCategories);
+    
+    return filteredCategories;
   } catch (error: any) {
     // Attempt to load from cache if fetch fails
     const cachedData = await getCachedData(CACHE_KEY_CATEGORIES);
     if (cachedData) {
       console.log('Using cached categories data');
-      return cachedData;
+      // Filter cached data as well
+      return filterSponsoredCategories(cachedData);
     }
     
     if (error instanceof TypeError && error.message.includes('Network request failed')) {
@@ -311,7 +335,10 @@ export const searchArticles = async (
 ): Promise<{ articles: Article[], totalPages: number }> => {
   try {
     const timestamp = new Date().getTime();
-    const url = `${API_BASE_URL}/posts?_embed&search=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&_=${timestamp}`;
+    let url = `${API_BASE_URL}/posts?_embed&search=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&_=${timestamp}`;
+    
+    // Exclude sponsored category from search results
+    url += `&categories_exclude=554`;
     
     const response = await fetchWithTimeout(url);
     
@@ -348,8 +375,11 @@ export const searchArticles = async (
       };
     });
     
+    // Filter out sponsored content as additional safety measure
+    const filteredArticles = filterSponsoredArticles(processedArticles);
+    
     return { 
-      articles: processedArticles, 
+      articles: filteredArticles, 
       totalPages 
     };
   } catch (error: any) {

@@ -85,6 +85,7 @@ const defaultCategories: NotificationPreference[] = [
   { id: 24, name: 'Sport i Rekreacja', type: 'category', enabled: false },
   { id: 2246, name: 'Zdrowie', type: 'category', enabled: false },
   { id: 3, name: 'Wiadomości', type: 'category', enabled: false },
+  // Note: Sponsored category (554) is intentionally excluded from default preferences
 ];
 
 // Available locations for users to choose from
@@ -135,17 +136,24 @@ export const useNotificationsStore = create<NotificationsState>()(
         })),
       
       addNotification: (notification) =>
-        set((state) => ({
-          notifications: [
-            {
-              ...notification,
-              id: Date.now().toString(),
-              timestamp: Date.now(),
-              read: false,
-            },
-            ...state.notifications
-          ].slice(0, 100) // Keep only last 100 notifications
-        })),
+        set((state) => {
+          // Don't add notifications for sponsored content (category 554)
+          if (notification.categoryId === 554) {
+            return state;
+          }
+          
+          return {
+            notifications: [
+              {
+                ...notification,
+                id: Date.now().toString(),
+                timestamp: Date.now(),
+                read: false,
+              },
+              ...state.notifications
+            ].slice(0, 100) // Keep only last 100 notifications
+          };
+        }),
       
       markAsRead: (notificationId: string) =>
         set((state) => ({
@@ -200,6 +208,12 @@ export const useNotificationsStore = create<NotificationsState>()(
     {
       name: 'notifications-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      // Filter out any sponsored notifications that might exist
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.notifications = state.notifications.filter(notif => notif.categoryId !== 554);
+        }
+      },
     }
   )
 );

@@ -14,6 +14,7 @@ import EmptyState from '@/components/EmptyState';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useRouter } from 'expo-router';
 import { useThemeStore } from '@/store/themeStore';
+import { filterSponsoredArticles } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
 const ANIMATION_DURATION = 300;
@@ -25,6 +26,10 @@ export default function SavedScreen() {
   
   const [showRecent, setShowRecent] = useState(true);
   const recentHeight = useState(new Animated.Value(recentArticles.length > 0 ? 1 : 0))[0];
+  
+  // Filter out any sponsored content that might exist
+  const filteredSavedArticles = filterSponsoredArticles(savedArticles);
+  const filteredRecentArticles = filterSponsoredArticles(recentArticles);
   
   const navigateToHome = () => {
     router.push('/');
@@ -51,7 +56,7 @@ export default function SavedScreen() {
     });
   };
   
-  const maxRecentHeight = recentArticles.length * 92 + 80; // Approximate height based on items
+  const maxRecentHeight = filteredRecentArticles.length * 92 + 80; // Approximate height based on items
   const recentSectionHeight = recentHeight.interpolate({
     inputRange: [0, 1],
     outputRange: [80, maxRecentHeight], // Header height to full height
@@ -65,7 +70,7 @@ export default function SavedScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <FlatList
-        data={savedArticles}
+        data={filteredSavedArticles}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.articleContainer}>
@@ -79,8 +84,8 @@ export default function SavedScreen() {
               Zapisane artykuły
             </Text>
             <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
-              {savedArticles.length > 0 
-                ? `Masz ${savedArticles.length} zapisanych artykułów`
+              {filteredSavedArticles.length > 0 
+                ? `Masz ${filteredSavedArticles.length} zapisanych artykułów`
                 : 'Zapisz artykuły, aby czytać je później'}
             </Text>
           </View>
@@ -95,7 +100,7 @@ export default function SavedScreen() {
           />
         }
         ListFooterComponent={
-          recentArticles.length > 0 ? (
+          filteredRecentArticles.length > 0 ? (
             <Animated.View 
               style={[
                 styles.recentSection, 
@@ -116,7 +121,7 @@ export default function SavedScreen() {
                     Ostatnio przeglądane
                   </Text>
                   <Text style={[styles.recentCount, { color: theme.colors.textSecondary }]}>
-                    {recentArticles.length}
+                    {filteredRecentArticles.length}
                   </Text>
                 </View>
                 
@@ -143,7 +148,7 @@ export default function SavedScreen() {
               
               {showRecent && (
                 <FlatList
-                  data={recentArticles.slice(0, 5)}
+                  data={filteredRecentArticles.slice(0, 5)}
                   keyExtractor={(item) => `recent-${item.id}`}
                   renderItem={({ item }) => (
                     <ArticleCard article={item} compact />
