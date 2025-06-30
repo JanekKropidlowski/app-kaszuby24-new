@@ -12,6 +12,9 @@ interface ArticlesState {
   addRecentArticle: (article: Article) => void;
   clearRecentArticles: () => void;
   isArticleSaved: (articleId: number) => boolean;
+  // Performance optimization methods
+  getSavedArticleIds: () => Set<number>;
+  getRecentArticleIds: () => Set<number>;
 }
 
 export const useArticlesStore = create<ArticlesState>()(
@@ -19,6 +22,7 @@ export const useArticlesStore = create<ArticlesState>()(
     (set, get) => ({
       savedArticles: [],
       recentArticles: [],
+      
       saveArticle: (article: Article) => 
         set((state) => {
           // Don't save sponsored content
@@ -30,12 +34,21 @@ export const useArticlesStore = create<ArticlesState>()(
           if (state.savedArticles.some(a => a.id === article.id)) {
             return state;
           }
-          return { savedArticles: [article, ...state.savedArticles] };
+          
+          // Limit saved articles to prevent memory issues (max 100)
+          const newSavedArticles = [article, ...state.savedArticles];
+          if (newSavedArticles.length > 100) {
+            newSavedArticles.splice(100);
+          }
+          
+          return { savedArticles: newSavedArticles };
         }),
+        
       removeArticle: (articleId: number) => 
         set((state) => ({
           savedArticles: state.savedArticles.filter(article => article.id !== articleId)
         })),
+        
       addRecentArticle: (article: Article) => 
         set((state) => {
           // Don't add sponsored content to recent articles
@@ -45,24 +58,84 @@ export const useArticlesStore = create<ArticlesState>()(
           
           // Remove if already exists to avoid duplicates
           const filtered = state.recentArticles.filter(a => a.id !== article.id);
-          // Keep only the last 20 articles
+          // Keep only the last 20 articles to prevent memory issues
+          const newRecentArticles = [article, ...filtered].slice(0, 20);
+          
           return { 
-            recentArticles: [article, ...filtered].slice(0, 20)
+            recentArticles: newRecentArticles
           };
         }),
+        
       clearRecentArticles: () => set({ recentArticles: [] }),
+      
       isArticleSaved: (articleId: number) => {
         return get().savedArticles.some(article => article.id === articleId);
+      },
+      
+      // Performance optimization methods
+      getSavedArticleIds: () => {
+        return new Set(get().savedArticles.map(article => article.id));
+      },
+      
+      getRecentArticleIds: () => {
+        return new Set(get().recentArticles.map(article => article.id));
       },
     }),
     {
       name: 'articles-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      
+      // Selective persistence - only persist essential data
+      partialize: (state) => ({
+        savedArticles: state.savedArticles.slice(0, 50), // Limit persisted saved articles
+        recentArticles: state.recentArticles.slice(0, 10), // Limit persisted recent articles
+      }),
+      
       // Filter out any sponsored content that might have been saved before this update
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.savedArticles = filterSponsoredArticles(state.savedArticles);
           state.recentArticles = filterSponsoredArticles(state.recentArticles);
+          
+          // Ensure limits are respected after rehydration
+          if (state.savedArticles.length > 100) {
+            state.savedArticles = state.savedArticles.slice(0, 100);
+          }
+          if (state.recentArticles.length > 20) {
+            state.recentArticles = state.recentArticles.slice(0, 20);
+          }
+        }
+      },
+      
+      // Optimize serialization
+      serialize: (state) => {
+        try {
+          return JSON.stringify(state);
+        } catch (error) {
+          console.warn('Failed to serialize articles state:', error);
+          return JSON.stringify({
+            state: {
+              savedArticles: [],
+              recentArticles: [],
+            },
+            version: 0,
+          });
+        }
+      },
+      
+      // Optimize deserialization
+      deserialize: (str) => {
+        try {
+          return JSON.parse(str);
+        } catch (error) {
+          console.warn('Failed to deserialize articles state:', error);
+          return {
+            state: {
+              savedArticles: [],
+              recentArticles: [],
+            },
+            version: 0,
+          };
         }
       },
     }

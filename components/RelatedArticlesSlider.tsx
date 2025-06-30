@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -13,34 +13,35 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.8; // Increased width for full width
+const ITEM_WIDTH = width - 32; // Full width minus padding
 const ITEM_SPACING = 16;
 
-export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
-  articles,
-  title,
+// Memoized article item component for better performance
+const RelatedArticleItem = memo(({ 
+  item, 
+  index, 
+  totalItems, 
+  onPress 
+}: { 
+  item: Article; 
+  index: number; 
+  totalItems: number;
+  onPress: (article: Article) => void;
 }) => {
-  const router = useRouter();
   const { theme } = useThemeStore();
-  const { addRecentArticle } = useArticlesStore();
-
-  const handleArticlePress = (article: Article) => {
-    addRecentArticle(article);
-    router.push(`/article/${article.id}`);
-  };
-
-  const renderArticle = ({ item, index }: { item: Article; index: number }) => (
+  
+  return (
     <TouchableOpacity
       style={[
         styles.articleContainer,
         {
           width: ITEM_WIDTH,
-          marginRight: index === articles.length - 1 ? 24 : ITEM_SPACING,
+          marginRight: index === totalItems - 1 ? 24 : ITEM_SPACING,
           backgroundColor: theme.colors.card,
           shadowColor: theme.colors.shadow,
         },
       ]}
-      onPress={() => handleArticlePress(item)}
+      onPress={() => onPress(item)}
       activeOpacity={0.8}
     >
       {item.featured_media_url ? (
@@ -50,6 +51,8 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
           contentFit="cover"
           transition={200}
           placeholder="Loading..."
+          cachePolicy="memory-disk"
+          priority="normal"
         />
       ) : (
         <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
@@ -83,6 +86,31 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
       </View>
     </TouchableOpacity>
   );
+});
+
+export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(({
+  articles,
+  title,
+}) => {
+  const router = useRouter();
+  const { theme } = useThemeStore();
+  const { addRecentArticle } = useArticlesStore();
+
+  const handleArticlePress = useCallback((article: Article) => {
+    addRecentArticle(article);
+    router.push(`/article/${article.id}`);
+  }, [addRecentArticle, router]);
+
+  const renderArticle = useCallback(({ item, index }: { item: Article; index: number }) => (
+    <RelatedArticleItem
+      item={item}
+      index={index}
+      totalItems={articles.length}
+      onPress={handleArticlePress}
+    />
+  ), [articles.length, handleArticlePress]);
+
+  const keyExtractor = useCallback((item: Article) => `related-${item.id}`, []);
 
   if (articles.length === 0) {
     return null;
@@ -105,7 +133,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
       <FlatList
         data={articles}
         renderItem={renderArticle}
-        keyExtractor={(item) => `related-${item.id}`}
+        keyExtractor={keyExtractor}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
@@ -116,10 +144,18 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
         maxToRenderPerBatch={3}
         windowSize={5}
         pagingEnabled={false}
+        // Performance optimizations
+        getItemLayout={(data, index) => ({
+          length: ITEM_WIDTH + ITEM_SPACING,
+          offset: (ITEM_WIDTH + ITEM_SPACING) * index,
+          index,
+        })}
       />
     </View>
   );
-};
+});
+
+RelatedArticlesSlider.displayName = 'RelatedArticlesSlider';
 
 const styles = StyleSheet.create({
   container: {

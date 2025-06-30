@@ -1,7 +1,7 @@
+import React, { useEffect } from 'react';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
@@ -10,61 +10,78 @@ import { useThemeStore } from '@/store/themeStore';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { isDarkMode } = useThemeStore();
+  const { theme } = useThemeStore();
   
-  const [loaded, error] = useFonts({
+  const [loaded] = useFonts({
+    'Poppins-Thin': require('../assets/fonts/Poppins/Poppins-Thin.ttf'),
+    'Poppins-ExtraLight': require('../assets/fonts/Poppins/Poppins-ExtraLight.ttf'),
+    'Poppins-Light': require('../assets/fonts/Poppins/Poppins-Light.ttf'),
     'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf'),
     'Poppins-Medium': require('../assets/fonts/Poppins/Poppins-Medium.ttf'),
     'Poppins-SemiBold': require('../assets/fonts/Poppins/Poppins-SemiBold.ttf'),
     'Poppins-Bold': require('../assets/fonts/Poppins/Poppins-Bold.ttf'),
-    'Poppins-Light': require('../assets/fonts/Poppins/Poppins-Light.ttf'),
-    'Poppins-ExtraLight': require('../assets/fonts/Poppins/Poppins-ExtraLight.ttf'),
-    'Poppins-Thin': require('../assets/fonts/Poppins/Poppins-Thin.ttf'),
     'Poppins-ExtraBold': require('../assets/fonts/Poppins/Poppins-ExtraBold.ttf'),
     'Poppins-Black': require('../assets/fonts/Poppins/Poppins-Black.ttf'),
   });
 
   useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
+    if (loaded) {
+      // Hide splash screen with a small delay to ensure fonts are loaded
+      const timer = setTimeout(() => {
+        SplashScreen.hideAsync();
+      }, 100);
       
-      if (error) {
-        console.warn('Font loading failed:', error);
-      }
+      return () => clearTimeout(timer);
     }
-  }, [loaded, error]);
+  }, [loaded]);
 
-  // Always render the app, even if fonts fail to load
-  // The theme system will handle fallbacks
-  if (!loaded && !error) {
+  if (!loaded) {
     return null;
   }
 
   return (
     <>
-      <Stack>
+      <StatusBar 
+        style={theme.isDark ? "light" : "dark"} 
+        backgroundColor={theme.colors.background}
+        translucent={Platform.OS === 'android'}
+      />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+          // Performance optimizations
+          animation: Platform.select({
+            ios: 'default',
+            android: 'fade',
+            default: 'default',
+          }),
+          animationDuration: Platform.select({
+            android: 200,
+            default: undefined,
+          }),
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        <Stack.Screen 
-          name="search" 
-          options={{ 
-            title: 'Wyszukaj',
-            headerBackTitle: 'Wróć',
-          }} 
-        />
         <Stack.Screen 
           name="article/[id]" 
           options={{ 
             headerShown: false,
             presentation: 'card',
+            gestureEnabled: true,
           }} 
         />
+        <Stack.Screen 
+          name="search" 
+          options={{ 
+            headerShown: false,
+            presentation: 'card',
+            gestureEnabled: true,
+          }} 
+        />
+        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar 
-        style={isDarkMode ? 'light' : 'dark'} 
-        backgroundColor={Platform.OS === 'android' ? 'transparent' : undefined}
-        translucent={Platform.OS === 'android'}
-      />
     </>
   );
 }

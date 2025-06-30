@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -36,6 +36,35 @@ import { isSponsoredContent } from '@/utils/contentFilter';
 const MAX_RETRIES = 3;
 const { width, height } = Dimensions.get('window');
 
+// Memoized gallery image component for better performance
+const GalleryImage = React.memo(({ 
+  image, 
+  index, 
+  onPress 
+}: { 
+  image: MediaItem; 
+  index: number; 
+  onPress: (index: number) => void;
+}) => (
+  <TouchableOpacity
+    style={styles.galleryImageContainer}
+    onPress={() => onPress(index)}
+    activeOpacity={0.8}
+  >
+    <Image
+      source={{ 
+        uri: image.media_details?.sizes?.medium?.source_url || image.source_url 
+      }}
+      style={styles.galleryImage}
+      contentFit="cover"
+      transition={200}
+      placeholder="Loading..."
+      cachePolicy="memory-disk"
+      priority="normal"
+    />
+  </TouchableOpacity>
+));
+
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -66,6 +95,7 @@ export default function ArticleDetailScreen() {
   const finishMessageOpacity = useRef(new Animated.Value(0)).current;
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
   const hasShownFinishMessage = useRef(false);
+  const webViewRef = useRef<WebView>(null);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -87,72 +117,73 @@ export default function ArticleDetailScreen() {
     }
   }, [router, selectedImageIndex]);
   
-  useEffect(() => {
-    const loadArticle = async (retry = 0) => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const data = await fetchArticleById(articleId);
-        
-        // Check if this is sponsored content
-        if (isSponsoredContent(data)) {
-          setError('Artykuł nie został znaleziony.');
-          return;
-        }
-        
-        setArticle(data);
-        setContentLoaded(true);
-        
-        // Extract video URLs from content
-        if (data.content.rendered) {
-          const videos = extractVideoUrls(data.content.rendered);
-          setVideoUrls(videos);
-        }
-        
-        // Extract YouTube URL from meta field
-        if (data.meta?.youtube) {
-          const youtubeVideoUrl = extractYouTubeUrl(data.meta.youtube);
-          setYoutubeUrl(youtubeVideoUrl);
-        }
-        
-        // Add to recent articles (filtering is handled in the store)
-        addRecentArticle(data);
-        
-        // Load related articles
-        loadRelatedArticles(data);
-        
-        // Load gallery images with delay for better performance
-        if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
-          setTimeout(() => {
-            const processedGalleryIds = processGalleryIds(data.meta?.galeria || []);
-            if (processedGalleryIds.length > 0) {
-              loadGalleryImages(processedGalleryIds);
-            }
-          }, 500);
-        }
-      } catch (err) {
-        console.error('Error loading article:', err);
-        
-        // Retry logic
-        if (retry < MAX_RETRIES) {
-          console.log(`Retrying article load (${retry + 1}/${MAX_RETRIES})...`);
-          setTimeout(() => {
-            loadArticle(retry + 1);
-          }, 1000 * (retry + 1)); // Exponential backoff
-          return;
-        }
-        
-        setError('Nie udało się załadować artykułu. Spróbuj ponownie.');
-      } finally {
-        setLoading(false);
+  // Optimized article loading with better error handling
+  const loadArticle = useCallback(async (retry = 0) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await fetchArticleById(articleId);
+      
+      // Check if this is sponsored content
+      if (isSponsoredContent(data)) {
+        setError('Artykuł nie został znaleziony.');
+        return;
       }
-    };
-    
-    loadArticle();
+      
+      setArticle(data);
+      setContentLoaded(true);
+      
+      // Extract video URLs from content
+      if (data.content.rendered) {
+        const videos = extractVideoUrls(data.content.rendered);
+        setVideoUrls(videos);
+      }
+      
+      // Extract YouTube URL from meta field
+      if (data.meta?.youtube) {
+        const youtubeVideoUrl = extractYouTubeUrl(data.meta.youtube);
+        setYoutubeUrl(youtubeVideoUrl);
+      }
+      
+      // Add to recent articles (filtering is handled in the store)
+      addRecentArticle(data);
+      
+      // Load related articles
+      loadRelatedArticles(data);
+      
+      // Load gallery images with delay for better performance
+      if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
+        setTimeout(() => {
+          const processedGalleryIds = processGalleryIds(data.meta?.galeria || []);
+          if (processedGalleryIds.length > 0) {
+            loadGalleryImages(processedGalleryIds);
+          }
+        }, 500);
+      }
+    } catch (err) {
+      console.error('Error loading article:', err);
+      
+      // Retry logic
+      if (retry < MAX_RETRIES) {
+        console.log(`Retrying article load (${retry + 1}/${MAX_RETRIES})...`);
+        setTimeout(() => {
+          loadArticle(retry + 1);
+        }, 1000 * (retry + 1)); // Exponential backoff
+        return;
+      }
+      
+      setError('Nie udało się załadować artykułu. Spróbuj ponownie.');
+    } finally {
+      setLoading(false);
+    }
   }, [articleId, addRecentArticle]);
   
-  const loadGalleryImages = async (galleryIds: string[]) => {
+  useEffect(() => {
+    loadArticle();
+  }, [loadArticle]);
+  
+  const loadGalleryImages = useCallback(async (galleryIds: string[]) => {
     if (!galleryIds || galleryIds.length === 0) {
       return;
     }
@@ -166,9 +197,9 @@ export default function ArticleDetailScreen() {
     } finally {
       setGalleryLoading(false);
     }
-  };
+  }, []);
   
-  const loadRelatedArticles = async (currentArticle: Article) => {
+  const loadRelatedArticles = useCallback(async (currentArticle: Article) => {
     setRelatedLoading(true);
     try {
       const { sliderArticles, listArticles } = await fetchRelatedArticles(currentArticle.id, currentArticle.categories);
@@ -179,9 +210,9 @@ export default function ArticleDetailScreen() {
     } finally {
       setRelatedLoading(false);
     }
-  };
+  }, []);
   
-  const toggleSave = () => {
+  const toggleSave = useCallback(() => {
     if (!article) return;
     
     // Don't allow saving sponsored content
@@ -194,9 +225,9 @@ export default function ArticleDetailScreen() {
     } else {
       saveArticle(article);
     }
-  };
+  }, [article, isSaved, removeArticle, saveArticle, articleId]);
   
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     if (!article) return;
     
     try {
@@ -214,9 +245,13 @@ export default function ArticleDetailScreen() {
       const shareContent = {
         title: cleanTitle,
         message: Platform.select({
-          android: `${cleanTitle}\n\n${article.link}`,
+          android: `${cleanTitle}
+
+${article.link}`,
           ios: cleanTitle,
-          default: `${cleanTitle}\n\n${article.link}`,
+          default: `${cleanTitle}
+
+${article.link}`,
         }),
         url: Platform.select({
           ios: article.link,
@@ -235,7 +270,9 @@ export default function ArticleDetailScreen() {
         } else {
           // Fallback for browsers that don't support Web Share API
           try {
-            await navigator.clipboard.writeText(`${shareContent.title}\n\n${article.link}`);
+            await navigator.clipboard.writeText(`${shareContent.title}
+
+${article.link}`);
             Alert.alert(
               'Link skopiowany!',
               'Link do artykułu został skopiowany do schowka.',
@@ -245,7 +282,9 @@ export default function ArticleDetailScreen() {
             // Final fallback - show the link in an alert
             Alert.alert(
               'Udostępnij artykuł',
-              `Skopiuj ten link aby udostępnić:\n\n${article.link}`,
+              `Skopiuj ten link aby udostępnić:
+
+${article.link}`,
               [{ text: 'OK' }]
             );
           }
@@ -282,91 +321,43 @@ export default function ArticleDetailScreen() {
         [{ text: 'OK' }]
       );
     }
-  };
+  }, [article]);
   
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     setError(null);
-    setLoading(true);
     setWebViewError(false);
-    
-    // Reload the article
-    fetchArticleById(articleId)
-      .then(data => {
-        // Check if this is sponsored content
-        if (isSponsoredContent(data)) {
-          setError('Artykuł nie został znaleziony.');
-          return;
-        }
-        
-        setArticle(data);
-        setContentLoaded(true);
-        
-        // Extract video URLs from content
-        if (data.content.rendered) {
-          const videos = extractVideoUrls(data.content.rendered);
-          setVideoUrls(videos);
-        }
-        
-        // Extract YouTube URL from meta field
-        if (data.meta?.youtube) {
-          const youtubeVideoUrl = extractYouTubeUrl(data.meta.youtube);
-          setYoutubeUrl(youtubeVideoUrl);
-        }
-        
-        // Load gallery images if available
-        if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
-          setTimeout(() => {
-            const processedGalleryIds = processGalleryIds(data.meta?.galeria || []);
-            if (processedGalleryIds.length > 0) {
-              loadGalleryImages(processedGalleryIds);
-            }
-          }, 500);
-        }
-        
-        // Add to recent articles (filtering is handled in the store)
-        addRecentArticle(data);
-        
-        // Load related articles
-        loadRelatedArticles(data);
-      })
-      .catch(err => {
-        console.error('Error reloading article:', err);
-        setError('Nie udało się załadować artykułu. Spróbuj ponownie.');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
+    loadArticle();
+  }, [loadArticle]);
   
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     router.back();
-  };
+  }, [router]);
   
-  const handleGoHome = () => {
+  const handleGoHome = useCallback(() => {
     router.replace('/(tabs)');
-  };
+  }, [router]);
   
-  const handleGoNotifications = () => {
+  const handleGoNotifications = useCallback(() => {
     router.replace('/(tabs)/notifications');
-  };
+  }, [router]);
   
-  const handleGoSaved = () => {
+  const handleGoSaved = useCallback(() => {
     router.replace('/(tabs)/saved');
-  };
+  }, [router]);
   
-  const handleGoSettings = () => {
+  const handleGoSettings = useCallback(() => {
     router.replace('/(tabs)/preferences');
-  };
+  }, [router]);
   
-  const openImageModal = (index: number) => {
+  const openImageModal = useCallback((index: number) => {
     setSelectedImageIndex(index);
-  };
+  }, []);
   
-  const closeImageModal = () => {
+  const closeImageModal = useCallback(() => {
     setSelectedImageIndex(null);
-  };
+  }, []);
   
-  const navigateImage = (direction: 'prev' | 'next') => {
+  const navigateImage = useCallback((direction: 'prev' | 'next') => {
     if (selectedImageIndex === null) return;
     
     if (direction === 'prev' && selectedImageIndex > 0) {
@@ -374,10 +365,10 @@ export default function ArticleDetailScreen() {
     } else if (direction === 'next' && selectedImageIndex < galleryImages.length - 1) {
       setSelectedImageIndex(selectedImageIndex + 1);
     }
-  };
+  }, [selectedImageIndex, galleryImages.length]);
   
-  // Handle scroll for reading progress and auto-redirect
-  const handleScroll = (event: any) => {
+  // Optimized scroll handler with throttling
+  const handleScroll = useCallback((event: any) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const scrollPosition = contentOffset.y;
     const scrollViewHeight = layoutMeasurement.height;
@@ -450,7 +441,7 @@ export default function ArticleDetailScreen() {
         useNativeDriver: true,
       }).start();
     }
-  };
+  }, [progressOpacity, finishMessageOpacity, router]);
   
   // Clear redirect timeout when component unmounts
   useEffect(() => {
@@ -462,7 +453,7 @@ export default function ArticleDetailScreen() {
   }, []);
   
   // Handle manual return to home
-  const handleReturnToHome = () => {
+  const handleReturnToHome = useCallback(() => {
     if (redirectTimeout.current) {
       clearTimeout(redirectTimeout.current);
     }
@@ -474,216 +465,191 @@ export default function ArticleDetailScreen() {
     }).start(() => {
       router.replace('/(tabs)');
     });
-  };
+  }, [finishMessageOpacity, router]);
   
-  if (loading) {
-    return <LoadingIndicator fullScreen />;
-  }
-  
-  if (error || !article) {
-    return (
-      <EmptyState
-        title="Coś poszło nie tak"
-        message={error || "Nie udało się załadować artykułu."}
-        actionLabel="Spróbuj ponownie"
-        onAction={handleRetry}
-        icon={<RefreshCw size={48} color={theme.colors.primary} />}
-      />
-    );
-  }
-  
-  // Clean the HTML content
-  const cleanedHtml = cleanHtml(article.content.rendered);
-  
-  // Get category name if available
-  let categoryName = "";
-  if (article._embedded && article._embedded["wp:term"]) {
-    const categories = article._embedded["wp:term"][0];
-    if (categories && categories.length > 0) {
-      categoryName = categories[0].name;
-    }
-  }
-  
-  // Display meta fields if available (removed views)
-  const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
-  
-  // Enhanced HTML for Android WebView
-  const enhancedHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        
-        body {
-          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-          font-size: 16px;
-          line-height: 1.8;
-          color: ${isDarkMode ? '#F9FAFB' : '#111827'};
-          background-color: transparent;
-          margin: 0;
-          padding: 16px;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
-        
-        p {
-          margin-bottom: 16px;
-          font-family: 'Poppins', sans-serif;
-        }
-        
-        img {
-          max-width: 100% !important;
-          height: auto !important;
-          border-radius: 8px;
-          margin: 16px 0;
-          display: block;
-        }
-        
-        a {
-          color: ${theme.colors.primary};
-          text-decoration: none;
-        }
-        
-        a:hover {
-          text-decoration: underline;
-        }
-        
-        h1, h2, h3, h4, h5, h6 {
-          color: ${isDarkMode ? '#F9FAFB' : '#111827'};
-          margin: 24px 0 16px 0;
-          line-height: 1.4;
-          font-family: 'Poppins', sans-serif;
-          font-weight: 600;
-        }
-        
-        blockquote {
-          position: relative;
-          margin: 24px 0;
-          padding: 20px 24px 20px 60px;
-          background: ${isDarkMode ? 'linear-gradient(135deg, rgba(74, 123, 200, 0.1) 0%, rgba(254, 204, 0, 0.05) 100%)' : 'linear-gradient(135deg, rgba(34, 74, 150, 0.08) 0%, rgba(254, 204, 0, 0.08) 100%)'};
-          border-radius: 16px;
-          border-left: 4px solid ${theme.colors.primary};
-          font-style: italic;
-          font-size: 17px;
-          line-height: 1.6;
-          color: ${isDarkMode ? '#E2E8F0' : '#475569'};
-          box-shadow: ${isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(34, 74, 150, 0.1)'};
-          font-family: 'Poppins', sans-serif;
-        }
-        
-        blockquote::before {
-          content: '"';
-          position: absolute;
-          left: 20px;
-          top: 12px;
-          font-size: 48px;
-          font-weight: bold;
-          color: ${theme.colors.primary};
-          opacity: 0.3;
-          line-height: 1;
-          font-family: 'Poppins', sans-serif;
-        }
-        
-        blockquote p {
-          margin: 0;
-          position: relative;
-          z-index: 1;
-          font-family: 'Poppins', sans-serif;
-        }
-        
-        ul, ol {
-          padding-left: 20px;
-          margin: 16px 0;
-        }
-        
-        li {
-          margin-bottom: 8px;
-          font-family: 'Poppins', sans-serif;
-        }
-        
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 16px 0;
-        }
-        
-        th, td {
-          border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
-          padding: 8px;
-          text-align: left;
-          font-family: 'Poppins', sans-serif;
-        }
-        
-        th {
-          background-color: ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
-          font-weight: 600;
-          font-family: 'Poppins', sans-serif;
-        }
-        
-        /* Remove any video/iframe elements to prevent conflicts */
-        iframe, video, embed, object {
-          display: none !important;
-        }
-      </style>
-    </head>
-    <body>
-      ${cleanedHtml}
-      <script>
-        // Send height to React Native
-        function sendHeight() {
-          const height = Math.max(
-            document.body.scrollHeight,
-            document.body.offsetHeight,
-            document.documentElement.clientHeight,
-            document.documentElement.scrollHeight,
-            document.documentElement.offsetHeight
-          );
+  // Memoized enhanced HTML for better performance
+  const enhancedHtml = useMemo(() => {
+    if (!article) return '';
+    
+    const cleanedHtml = cleanHtml(article.content.rendered);
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
           
-          if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(height.toString());
+          body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.8;
+            color: ${isDarkMode ? '#F9FAFB' : '#111827'};
+            background-color: transparent;
+            margin: 0;
+            padding: 16px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
           }
-        }
-        
-        // Send height when content is loaded
-        document.addEventListener('DOMContentLoaded', sendHeight);
-        window.addEventListener('load', sendHeight);
-        
-        // Send height when images load
-        const images = document.getElementsByTagName('img');
-        for (let i = 0; i < images.length; i++) {
-          images[i].addEventListener('load', sendHeight);
-          images[i].addEventListener('error', sendHeight);
-        }
-        
-        // Handle link clicks
-        document.addEventListener('click', function(e) {
-          if (e.target.tagName === 'A') {
-            e.preventDefault();
+          
+          p {
+            margin-bottom: 16px;
+            font-family: 'Poppins', sans-serif;
+          }
+          
+          img {
+            max-width: 100% !important;
+            height: auto !important;
+            border-radius: 8px;
+            margin: 16px 0;
+            display: block;
+          }
+          
+          a {
+            color: ${theme.colors.primary};
+            text-decoration: none;
+          }
+          
+          a:hover {
+            text-decoration: underline;
+          }
+          
+          h1, h2, h3, h4, h5, h6 {
+            color: ${isDarkMode ? '#F9FAFB' : '#111827'};
+            margin: 24px 0 16px 0;
+            line-height: 1.4;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+          }
+          
+          blockquote {
+            position: relative;
+            margin: 24px 0;
+            padding: 20px 24px 20px 60px;
+            background: ${isDarkMode ? 'linear-gradient(135deg, rgba(74, 123, 200, 0.1) 0%, rgba(254, 204, 0, 0.05) 100%)' : 'linear-gradient(135deg, rgba(34, 74, 150, 0.08) 0%, rgba(254, 204, 0, 0.08) 100%)'};
+            border-radius: 16px;
+            border-left: 4px solid ${theme.colors.primary};
+            font-style: italic;
+            font-size: 17px;
+            line-height: 1.6;
+            color: ${isDarkMode ? '#E2E8F0' : '#475569'};
+            box-shadow: ${isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(34, 74, 150, 0.1)'};
+            font-family: 'Poppins', sans-serif;
+          }
+          
+          blockquote::before {
+            content: '"';
+            position: absolute;
+            left: 20px;
+            top: 12px;
+            font-size: 48px;
+            font-weight: bold;
+            color: ${theme.colors.primary};
+            opacity: 0.3;
+            line-height: 1;
+            font-family: 'Poppins', sans-serif;
+          }
+          
+          blockquote p {
+            margin: 0;
+            position: relative;
+            z-index: 1;
+            font-family: 'Poppins', sans-serif;
+          }
+          
+          ul, ol {
+            padding-left: 20px;
+            margin: 16px 0;
+          }
+          
+          li {
+            margin-bottom: 8px;
+            font-family: 'Poppins', sans-serif;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+          }
+          
+          th, td {
+            border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
+            padding: 8px;
+            text-align: left;
+            font-family: 'Poppins', sans-serif;
+          }
+          
+          th {
+            background-color: ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+          }
+          
+          /* Remove any video/iframe elements to prevent conflicts */
+          iframe, video, embed, object {
+            display: none !important;
+          }
+        </style>
+      </head>
+      <body>
+        ${cleanedHtml}
+        <script>
+          // Send height to React Native
+          function sendHeight() {
+            const height = Math.max(
+              document.body.scrollHeight,
+              document.body.offsetHeight,
+              document.documentElement.clientHeight,
+              document.documentElement.scrollHeight,
+              document.documentElement.offsetHeight
+            );
+            
             if (window.ReactNativeWebView) {
-              window.ReactNativeWebView.postMessage('link:' + e.target.href);
+              window.ReactNativeWebView.postMessage(height.toString());
             }
           }
-        });
-        
-        // Initial height send
-        setTimeout(sendHeight, 100);
-        setTimeout(sendHeight, 500);
-        setTimeout(sendHeight, 1000);
-      </script>
-    </body>
-    </html>
-  `;
+          
+          // Send height when content is loaded
+          document.addEventListener('DOMContentLoaded', sendHeight);
+          window.addEventListener('load', sendHeight);
+          
+          // Send height when images load
+          const images = document.getElementsByTagName('img');
+          for (let i = 0; i < images.length; i++) {
+            images[i].addEventListener('load', sendHeight);
+            images[i].addEventListener('error', sendHeight);
+          }
+          
+          // Handle link clicks
+          document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A') {
+              e.preventDefault();
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage('link:' + e.target.href);
+              }
+            }
+          });
+          
+          // Initial height send
+          setTimeout(sendHeight, 100);
+          setTimeout(sendHeight, 500);
+          setTimeout(sendHeight, 1000);
+        </script>
+      </body>
+      </html>
+    `;
+  }, [article, isDarkMode, theme.colors.primary]);
   
-  // Render content based on platform
-  const renderContent = () => {
+  // Memoized content renderer
+  const renderContent = useMemo(() => {
     if (Platform.OS === 'web') {
       return (
         <View style={styles.htmlContainer}>
           <div 
-            dangerouslySetInnerHTML={{ __html: cleanedHtml }}
+            dangerouslySetInnerHTML={{ __html: enhancedHtml }}
             style={{
               color: isDarkMode ? '#F9FAFB' : '#111827',
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
@@ -702,7 +668,7 @@ export default function ArticleDetailScreen() {
           </Text>
           <TouchableOpacity 
             style={[styles.fallbackButton, { backgroundColor: theme.colors.primary }]}
-            onPress={() => Linking.openURL(article.link)}
+            onPress={() => Linking.openURL(article?.link || '')}
           >
             <Text style={[styles.fallbackButtonText, { fontFamily: theme.fontFamily.semibold }]}>
               Otwórz w przeglądarce
@@ -714,6 +680,7 @@ export default function ArticleDetailScreen() {
       return (
         <View style={styles.htmlContainer}>
           <WebView
+            ref={webViewRef}
             originWhitelist={['*']}
             source={{ html: enhancedHtml }}
             style={[
@@ -780,21 +747,10 @@ export default function ArticleDetailScreen() {
         </View>
       );
     }
-  };
+  }, [enhancedHtml, webViewError, webViewHeight, isDarkMode, theme.colors, article]);
   
-  // Render YouTube video from meta field
-  const renderYouTubeVideo = () => {
-    if (!youtubeUrl) return null;
-    
-    return (
-      <View style={styles.youtubeContainer}>
-        <VideoPlayer url={youtubeUrl} title="YouTube Video" />
-      </View>
-    );
-  };
-  
-  // Render gallery (moved below content)
-  const renderGallery = () => {
+  // Memoized gallery render
+  const renderGallery = useMemo(() => {
     if (!contentLoaded) return null;
     
     if (galleryLoading) {
@@ -827,204 +783,45 @@ export default function ArticleDetailScreen() {
         </Text>
         <View style={styles.galleryGrid}>
           {galleryImages.map((image, index) => (
-            <TouchableOpacity
+            <GalleryImage
               key={image.id}
-              style={styles.galleryImageContainer}
-              onPress={() => openImageModal(index)}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ 
-                  uri: image.media_details?.sizes?.medium?.source_url || image.source_url 
-                }}
-                style={styles.galleryImage}
-                contentFit="cover"
-                transition={200}
-                placeholder="Loading..."
-                cachePolicy="memory-disk"
-              />
-            </TouchableOpacity>
+              image={image}
+              index={index}
+              onPress={openImageModal}
+            />
           ))}
         </View>
       </View>
     );
-  };
+  }, [contentLoaded, galleryLoading, galleryImages, theme.colors, openImageModal]);
   
-  // Render related articles with slider and list
-  const renderRelatedArticles = () => {
-    if (!contentLoaded) return null;
-    
+  if (loading) {
+    return <LoadingIndicator fullScreen />;
+  }
+  
+  if (error || !article) {
     return (
-      <View style={styles.relatedContainer}>
-        {/* Slider for related articles */}
-        {relatedSliderArticles.length > 0 && (
-          <RelatedArticlesSlider 
-            articles={relatedSliderArticles} 
-            title="Sprawdź również" 
-          />
-        )}
-        
-        {/* List of latest articles */}
-        {relatedListArticles.length > 0 && (
-          <View style={styles.relatedListContainer}>
-            <Text style={[
-              styles.relatedTitle, 
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.semibold
-              }
-            ]}>
-              Najnowsze artykuły
-            </Text>
-            
-            {relatedLoading ? (
-              <LoadingIndicator size="small" />
-            ) : (
-              <View style={styles.relatedList}>
-                {relatedListArticles.map((relatedArticle) => (
-                  <ArticleCard
-                    key={relatedArticle.id}
-                    article={relatedArticle}
-                    compact={true}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-      </View>
+      <EmptyState
+        title="Coś poszło nie tak"
+        message={error || "Nie udało się załadować artykułu."}
+        actionLabel="Spróbuj ponownie"
+        onAction={handleRetry}
+        icon={<RefreshCw size={48} color={theme.colors.primary} />}
+      />
     );
-  };
+  }
   
-  // Render reading progress indicator - only show when at bottom
-  const renderProgressIndicator = () => {
-    if (!isAtBottom || readingProgress < 100) return null;
-    
-    return (
-      <Animated.View 
-        style={[
-          styles.progressIndicator, 
-          { 
-            backgroundColor: theme.colors.primary,
-            opacity: progressOpacity 
-          }
-        ]}
-      >
-        <Text style={[styles.progressText, { fontFamily: theme.fontFamily.semibold }]}>
-          {readingProgress}%
-        </Text>
-      </Animated.View>
-    );
-  };
-  
-  // Render finish message
-  const renderFinishMessage = () => {
-    if (!showFinishMessage) return null;
-    
-    return (
-      <Animated.View 
-        style={[
-          styles.finishMessage, 
-          { 
-            backgroundColor: theme.colors.primary,
-            opacity: finishMessageOpacity 
-          }
-        ]}
-      >
-        <View style={styles.finishMessageContent}>
-          <Text style={[styles.finishMessageTitle, { fontFamily: theme.fontFamily.semibold }]}>
-            Koniec artykułu
-          </Text>
-          <Text style={[styles.finishMessageSubtitle, { fontFamily: theme.fontFamily.regular }]}>
-            Kliknij, aby wrócić na stronę główną
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.finishMessageButton}
-          onPress={handleReturnToHome}
-          activeOpacity={0.8}
-        >
-          <Home size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
-  
-  // Render image modal
-  const renderImageModal = () => {
-    if (selectedImageIndex === null || !galleryImages[selectedImageIndex]) {
-      return null;
+  // Get category name if available
+  let categoryName = "";
+  if (article._embedded && article._embedded["wp:term"]) {
+    const categories = article._embedded["wp:term"][0];
+    if (categories && categories.length > 0) {
+      categoryName = categories[0].name;
     }
-    
-    const currentImage = galleryImages[selectedImageIndex];
-    
-    return (
-      <Modal
-        visible={selectedImageIndex !== null}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeImageModal}
-      >
-        <View style={styles.modalContainer}>
-          <StatusBar hidden />
-          
-          {/* Close button */}
-          <TouchableOpacity
-            style={styles.modalCloseButton}
-            onPress={closeImageModal}
-            activeOpacity={0.8}
-          >
-            <X size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          
-          {/* Navigation buttons */}
-          {selectedImageIndex > 0 && (
-            <TouchableOpacity
-              style={[styles.modalNavButton, styles.modalNavButtonLeft]}
-              onPress={() => navigateImage('prev')}
-              activeOpacity={0.8}
-            >
-              <ChevronLeft size={32} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
-          
-          {selectedImageIndex < galleryImages.length - 1 && (
-            <TouchableOpacity
-              style={[styles.modalNavButton, styles.modalNavButtonRight]}
-              onPress={() => navigateImage('next')}
-              activeOpacity={0.8}
-            >
-              <ChevronRight size={32} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
-          
-          {/* Image counter */}
-          <View style={styles.modalCounter}>
-            <Text style={[styles.modalCounterText, { fontFamily: theme.fontFamily.medium }]}>
-              {selectedImageIndex + 1} / {galleryImages.length}
-            </Text>
-          </View>
-          
-          {/* Image */}
-          <Image
-            source={{ uri: currentImage.source_url }}
-            style={styles.modalImage}
-            contentFit="contain"
-            transition={200}
-          />
-          
-          {/* Caption */}
-          {currentImage.caption?.rendered && (
-            <View style={styles.modalCaptionContainer}>
-              <Text style={[styles.modalCaption, { fontFamily: theme.fontFamily.regular }]}>
-                {currentImage.caption.rendered.replace(/<[^>]*>/g, '')}
-              </Text>
-            </View>
-          )}
-        </View>
-      </Modal>
-    );
-  };
+  }
+  
+  // Display meta fields if available (removed views)
+  const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -1078,17 +875,20 @@ export default function ArticleDetailScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Featured image */}
+        {/* Featured image with increased height for Android */}
         {article.featured_media_url ? (
-          <View style={styles.featuredImageContainer}>
+          <View style={[
+            styles.featuredImageContainer,
+            Platform.OS === 'android' && styles.featuredImageContainerAndroid
+          ]}>
             <Image
               source={{ uri: article.featured_media_url }}
               style={styles.featuredImage}
               contentFit="cover"
               transition={300}
               placeholder="Loading..."
-              // Android-specific caching
-              cachePolicy={Platform.OS === 'android' ? 'memory-disk' : 'memory'}
+              cachePolicy="memory-disk"
+              priority="high"
             />
             <View style={styles.imageDarkOverlay} />
             
@@ -1158,16 +958,59 @@ export default function ArticleDetailScreen() {
           )}
           
           {/* Article content */}
-          {renderContent()}
+          {renderContent}
           
           {/* YouTube video from meta field */}
-          {renderYouTubeVideo()}
+          {youtubeUrl && (
+            <View style={styles.youtubeContainer}>
+              <VideoPlayer url={youtubeUrl} title="YouTube Video" />
+            </View>
+          )}
           
           {/* Gallery (moved below content) */}
-          {renderGallery()}
+          {renderGallery}
           
           {/* Related articles */}
-          {renderRelatedArticles()}
+          {contentLoaded && (
+            <View style={styles.relatedContainer}>
+              {/* Slider for related articles */}
+              {relatedSliderArticles.length > 0 && (
+                <RelatedArticlesSlider 
+                  articles={relatedSliderArticles} 
+                  title="Sprawdź również" 
+                />
+              )}
+              
+              {/* List of latest articles */}
+              {relatedListArticles.length > 0 && (
+                <View style={styles.relatedListContainer}>
+                  <Text style={[
+                    styles.relatedTitle, 
+                    { 
+                      color: theme.colors.text,
+                      fontFamily: theme.fontFamily.semibold
+                    }
+                  ]}>
+                    Najnowsze artykuły
+                  </Text>
+                  
+                  {relatedLoading ? (
+                    <LoadingIndicator size="small" />
+                  ) : (
+                    <View style={styles.relatedList}>
+                      {relatedListArticles.map((relatedArticle) => (
+                        <ArticleCard
+                          key={relatedArticle.id}
+                          article={relatedArticle}
+                          compact={true}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
       
@@ -1226,13 +1069,118 @@ export default function ArticleDetailScreen() {
       </View>
       
       {/* Reading progress indicator - only shows when at bottom */}
-      {renderProgressIndicator()}
+      {isAtBottom && readingProgress >= 100 && (
+        <Animated.View 
+          style={[
+            styles.progressIndicator, 
+            { 
+              backgroundColor: theme.colors.primary,
+              opacity: progressOpacity 
+            }
+          ]}
+        >
+          <Text style={[styles.progressText, { fontFamily: theme.fontFamily.semibold }]}>
+            {readingProgress}%
+          </Text>
+        </Animated.View>
+      )}
       
       {/* Finish message */}
-      {renderFinishMessage()}
+      {showFinishMessage && (
+        <Animated.View 
+          style={[
+            styles.finishMessage, 
+            { 
+              backgroundColor: theme.colors.primary,
+              opacity: finishMessageOpacity 
+            }
+          ]}
+        >
+          <View style={styles.finishMessageContent}>
+            <Text style={[styles.finishMessageTitle, { fontFamily: theme.fontFamily.semibold }]}>
+              Koniec artykułu
+            </Text>
+            <Text style={[styles.finishMessageSubtitle, { fontFamily: theme.fontFamily.regular }]}>
+              Kliknij, aby wrócić na stronę główną
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.finishMessageButton}
+            onPress={handleReturnToHome}
+            activeOpacity={0.8}
+          >
+            <Home size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
       
       {/* Image modal */}
-      {renderImageModal()}
+      {selectedImageIndex !== null && galleryImages[selectedImageIndex] && (
+        <Modal
+          visible={selectedImageIndex !== null}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={closeImageModal}
+        >
+          <View style={styles.modalContainer}>
+            <StatusBar hidden />
+            
+            {/* Close button */}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={closeImageModal}
+              activeOpacity={0.8}
+            >
+              <X size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            
+            {/* Navigation buttons */}
+            {selectedImageIndex > 0 && (
+              <TouchableOpacity
+                style={[styles.modalNavButton, styles.modalNavButtonLeft]}
+                onPress={() => navigateImage('prev')}
+                activeOpacity={0.8}
+              >
+                <ChevronLeft size={32} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+            
+            {selectedImageIndex < galleryImages.length - 1 && (
+              <TouchableOpacity
+                style={[styles.modalNavButton, styles.modalNavButtonRight]}
+                onPress={() => navigateImage('next')}
+                activeOpacity={0.8}
+              >
+                <ChevronRight size={32} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+            
+            {/* Image counter */}
+            <View style={styles.modalCounter}>
+              <Text style={[styles.modalCounterText, { fontFamily: theme.fontFamily.medium }]}>
+                {selectedImageIndex + 1} / {galleryImages.length}
+              </Text>
+            </View>
+            
+            {/* Image */}
+            <Image
+              source={{ uri: galleryImages[selectedImageIndex].source_url }}
+              style={styles.modalImage}
+              contentFit="contain"
+              transition={200}
+            />
+            
+            {/* Caption */}
+            {galleryImages[selectedImageIndex].caption?.rendered && (
+              <View style={styles.modalCaptionContainer}>
+                <Text style={[styles.modalCaption, { fontFamily: theme.fontFamily.regular }]}>
+                  {galleryImages[selectedImageIndex].caption.rendered.replace(/<[^>]*>/g, '')}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -1285,9 +1233,12 @@ const styles = StyleSheet.create({
     position: 'relative',
     height: Platform.select({
       ios: 320,
-      android: 340, // Increased height for Android
+      android: 340,
       default: 320
     }),
+  },
+  featuredImageContainerAndroid: {
+    height: 380, // Increased height for Android
   },
   featuredImage: {
     width: '100%',

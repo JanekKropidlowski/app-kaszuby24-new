@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -15,7 +15,7 @@ interface ArticleCardProps {
   onPress?: () => void;
 }
 
-export const ArticleCard: React.FC<ArticleCardProps> = ({ 
+const ArticleCard: React.FC<ArticleCardProps> = memo(({ 
   article, 
   compact = false, 
   onPress 
@@ -90,6 +90,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             contentFit="cover"
             transition={200}
             placeholder="Loading..."
+            cachePolicy="memory-disk"
+            priority="normal"
           />
         ) : (
           <View style={[styles.compactImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
@@ -219,12 +221,24 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             contentFit="cover"
             transition={300}
             placeholder="Loading..."
+            cachePolicy="memory-disk"
+            priority="normal"
           />
         )}
       </View>
     </TouchableOpacity>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.article.id === nextProps.article.id &&
+    prevProps.compact === nextProps.compact &&
+    prevProps.article.title.rendered === nextProps.article.title.rendered &&
+    prevProps.article.featured_media_url === nextProps.article.featured_media_url
+  );
+});
+
+ArticleCard.displayName = 'ArticleCard';
 
 const { width } = Dimensions.get('window');
 
@@ -345,4 +359,5 @@ const styles = StyleSheet.create({
 });
 
 // Add default export for backward compatibility
+export { ArticleCard };
 export default ArticleCard;
