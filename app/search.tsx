@@ -19,7 +19,6 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
-import SkeletonLoader from '@/components/SkeletonLoader';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -120,7 +119,7 @@ export default function SearchScreen() {
       />
       
       {loading ? (
-        <SkeletonLoader fullScreen />
+        <LoadingIndicator fullScreen />
       ) : (
         <FlatList
           data={articles}
@@ -134,10 +133,6 @@ export default function SearchScreen() {
             </View>
           )}
           contentContainerStyle={styles.listContent}
-          removeClippedSubviews={Platform.OS === 'android'}
-          initialNumToRender={Platform.OS === 'android' ? 5 : 10}
-          maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
-          windowSize={Platform.OS === 'android' ? 5 : 10}
           ListHeaderComponent={
             query.trim() ? (
               <Text 

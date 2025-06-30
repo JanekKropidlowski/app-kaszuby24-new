@@ -16,7 +16,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fetchArticles, fetchCategories } from '@/services/api';
 import { Article, Category } from '@/types/article';
-import ArticleCard from '@/components/ArticleCard';
+import { ArticleCard } from '@/components/ArticleCard';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import WelcomeNotifications from '@/components/WelcomeNotifications';
@@ -26,7 +26,6 @@ import { useThemeStore } from '@/store/themeStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
-import SkeletonLoader from '@/components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 const CAROUSEL_ITEM_WIDTH = width * 0.85;
@@ -42,8 +41,7 @@ export default function HomeScreen() {
     shouldShowWelcome, 
     shouldShowBanner, 
     dismissBanner,
-    initializePreferences,
-    userName
+    initializePreferences 
   } = useNotificationsStore();
   
   const [articles, setArticles] = useState<Article[]>([]);
@@ -195,11 +193,10 @@ export default function HomeScreen() {
     }
   };
   
-  const handleArticlePress = useCallback((article: Article) => {
+  const handleArticlePress = (article: Article) => {
+    // Add to recent articles (filtering is handled in the store)
     addRecentArticle(article);
-  }, [addRecentArticle]);
-  
-  const getArticleCardOnPress = useCallback((article: Article) => () => handleArticlePress(article), [handleArticlePress]);
+  };
   
   const navigateToSearch = () => {
     router.push('/search');
@@ -375,7 +372,7 @@ export default function HomeScreen() {
   };
   
   if (loading && !refreshing) {
-    return <SkeletonLoader fullScreen />;
+    return <LoadingIndicator fullScreen />;
   }
   
   if (error) {
@@ -399,7 +396,7 @@ export default function HomeScreen() {
           <View style={styles.articleContainer}>
             <ArticleCard 
               article={item} 
-              onPress={getArticleCardOnPress(item)}
+              onPress={() => handleArticlePress(item)}
             />
           </View>
         )}
@@ -510,7 +507,7 @@ export default function HomeScreen() {
           />
         }
         ListFooterComponent={
-          loadingMore ? <LoadingIndicator size="small" message="Ładowanie więcej..." /> : null
+          loadingMore ? <LoadingIndicator size="small" /> : null
         }
         refreshControl={
           <RefreshControl
@@ -552,17 +549,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   carouselItemContainer: {
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   carouselItem: {
     borderRadius: 20,

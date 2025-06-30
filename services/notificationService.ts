@@ -1,343 +1,321 @@
 import { Platform } from 'react-native';
-import OneSignal from 'react-native-onesignal';
-import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { useNotificationsStore } from '@/store/notificationsStore';
-import { registerPushToken } from '@/services/api';
+import { registerPushToken } from './api';
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+// Configure notification behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
-class NotificationService {
+export class NotificationService {
+  private static instance: NotificationService;
+  private periodicCheckInterval: NodeJS.Timeout | null = null;
   private isInitialized = false;
-  private checkInterval: NodeJS.Timeout | null = null;
-  private connectionStatus: ConnectionStatus = 'disconnected';
-  private initializationPromise: Promise<void> | null = null;
-
-  async setupNotificationHandlers(): Promise<void> {
-    // Return existing promise if already initializing
-    if (this.initializationPromise) {
-      return this.initializationPromise;
+  private retryCount = 0;
+  private maxRetries = 3;
+  
+  static getInstance(): NotificationService {
+    if (!NotificationService.instance) {
+      NotificationService.instance = new NotificationService();
     }
-
-    // Return immediately if already initialized
-    if (this.isInitialized) {
-      return Promise.resolve();
-    }
-
-    this.initializationPromise = this.performInitialization();
-    return this.initializationPromise;
+    return NotificationService.instance;
   }
-
-  private async performInitialization(): Promise<void> {
+  
+  async requestPermissions(): Promise<boolean> {
     try {
-      console.log('Starting notification service initialization...');
-      this.setConnectionStatus('connecting');
+      if (Platform.OS === 'web') {
+        // Web notification permissions
+        if ('Notification' in window) {
+          const permission = await Notification.requestPermission();
+          return permission === 'granted';
+        }
+        return false;
+      }
       
-      // Initialize OneSignal with proper error handling
+      // Mobile permissions
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        // Small delay to ensure UI is ready
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { status } = await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+          },
+          android: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+          },
+        });
+        finalStatus = status;
+      }
+      
+      return finalStatus === 'granted';
+    } catch (error) {
+      console.warn('Error requesting notification permissions:', error);
+      return false;
+    }
+  }
+  
+  async registerForPushNotifications(): Promise<string | null> {
+    try {
+      if (Platform.OS === 'web') {
+        console.log('Push notifications not supported on web');
+        return null;
+      }
+      
+      // Request permissions first
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        console.log('Permission not granted for push notifications');
+        return null;
+      }
+      
+      // Get the token with error handling
+      let token;
       try {
-        OneSignal.setAppId('03c10d51-376c-4651-a25e-bbc3aa7cfb63');
-        console.log('OneSignal app ID set successfully');
-      } catch (error) {
-        console.error('Failed to set OneSignal app ID:', error);
-        throw new Error('OneSignal initialization failed');
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId || 
+                         Constants.easConfig?.projectId ||
+                         Constants.manifest?.extra?.eas?.projectId;
+        
+        if (!projectId) {
+          console.warn('No project ID found for push notifications');
+          return null;
+        }
+        
+        token = await Notifications.getExpoPushTokenAsync({
+          projectId,
+        });
+      } catch (tokenError: unknown) {
+        console.error('Error getting Expo push token:', tokenError);
+        
+        // Check if the error is related to service unavailability
+        if (tokenError instanceof Error && tokenError.message.includes('SERVICE_NOT_AVAILABLE')) {
+          console.warn('Firebase Cloud Messaging service is not available. This could be due to missing Google Play Services or network issues.');
+          if (this.retryCount < this.maxRetries) {
+            this.retryCount++;
+            console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
+            return await this.registerForPushNotifications();
+          } else {
+            console.error('Max retries reached. Push notifications will not be available.');
+            this.retryCount = 0; // Reset for future attempts
+            return null;
+          }
+        }
+        
+        return null;
       }
       
-      // Set up notification handlers
-      OneSignal.setNotificationWillShowInForegroundHandler(notificationReceivedEvent => {
-        console.log('OneSignal: notification will show in foreground:', notificationReceivedEvent);
-        
-        const notification = notificationReceivedEvent.getNotification();
-        console.log('notification: ', notification);
-        
-        // Add to notification store
-        const { addNotification } = useNotificationsStore.getState();
-        
-        // Extract article ID from additional data
-        const articleId = notification.additionalData?.article_id ? 
-          parseInt(notification.additionalData.article_id, 10) : undefined;
-        
-        // Extract category ID from additional data
-        const categoryId = notification.additionalData?.category_id ? 
-          parseInt(notification.additionalData.category_id, 10) : undefined;
-        
-        // Don't add notifications for sponsored content (category 554)
-        if (categoryId === 554) {
-          notificationReceivedEvent.complete();
-          return;
-        }
-        
-        addNotification({
-          title: notification.title || 'Nowy artykuł',
-          body: notification.body || '',
-          articleId,
-          categoryId,
-          read: false,
-        });
-        
-        // Complete with notification to show it
-        notificationReceivedEvent.complete(notification);
-      });
-
-      OneSignal.setNotificationOpenedHandler(notification => {
-        console.log('OneSignal: notification opened:', notification);
-        
-        // Mark as read in store
-        const { markAsRead } = useNotificationsStore.getState();
-        const notificationId = notification.notification.notificationId;
-        if (notificationId) {
-          markAsRead(notificationId);
-        }
-        
-        // Handle navigation based on additional data
-        if (notification.notification.additionalData?.article_id) {
-          console.log('Navigate to article:', notification.notification.additionalData.article_id);
-        }
-      });
-
-      // Request permission for iOS
-      if (Platform.OS === 'ios') {
-        OneSignal.promptForPushNotificationsWithUserResponse(response => {
-          console.log('iOS permission prompt response:', response);
-          this.setConnectionStatus(response ? 'connected' : 'error');
-        });
-      }
-
-      // Get device token and register with backend
-      await this.registerDeviceToken();
+      console.log('Expo Push Token:', token.data);
       
-      this.isInitialized = true;
-      this.setConnectionStatus('connected');
-      console.log('Notification service initialized successfully');
+      // Store token in state
+      const { setExpoPushToken } = useNotificationsStore.getState();
+      setExpoPushToken(token.data);
       
+      // Register token with backend
+      await this.registerTokenWithBackend(token.data);
+      
+      // Reset retry count on successful registration
+      this.retryCount = 0;
+      return token.data;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error('Error setting up notification handlers:', errorMessage);
-      this.setConnectionStatus('error');
-      throw error;
-    }
-  }
-
-  private setConnectionStatus(status: ConnectionStatus) {
-    this.connectionStatus = status;
-    console.log('Notification connection status changed to:', status);
-    
-    // Update store with connection status
-    const store = useNotificationsStore.getState();
-    if (store.setConnectionStatus) {
-      store.setConnectionStatus(status);
-    }
-  }
-
-  getConnectionStatus(): ConnectionStatus {
-    return this.connectionStatus;
-  }
-
-  private async registerDeviceToken(): Promise<void> {
-    try {
-      console.log('Registering device token...');
-      this.setConnectionStatus('connecting');
+      console.error('Error getting push token:', error);
       
-      // Get device state with timeout
-      const deviceStatePromise = OneSignal.getDeviceState();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Device state timeout')), 10000)
-      );
-      
-      const deviceState = await Promise.race([deviceStatePromise, timeoutPromise]) as any;
-      
-      if (!deviceState?.userId) {
-        console.warn('No OneSignal user ID available');
-        this.setConnectionStatus('error');
-        return;
+      // Don't throw error - just log and continue
+      if (error instanceof Error && error.message.includes('SERVICE_NOT_AVAILABLE') && this.retryCount < this.maxRetries) {
+        this.retryCount++;
+        console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
+        return await this.registerForPushNotifications();
+      } else if (this.retryCount >= this.maxRetries) {
+        console.error('Max retries reached. Push notifications will not be available.');
+        this.retryCount = 0; // Reset for future attempts
+        return null;
       }
-
-      console.log('OneSignal device state:', deviceState);
-
-      // Get user location from store
+      
+      return null;
+    }
+  }
+  
+  async registerTokenWithBackend(token: string): Promise<void> {
+    try {
       const { userLocation } = useNotificationsStore.getState();
       
       if (!userLocation) {
-        console.log('No user location set, skipping backend registration');
-        this.setConnectionStatus('connected');
+        console.log('No user location selected, skipping token registration');
         return;
       }
-
-      // Get device info safely
-      let deviceInfo = {};
-      try {
-        if (Device.brand) {
-          deviceInfo = {
-            brand: Device.brand,
-            modelName: Device.modelName,
-            osName: Device.osName,
-            osVersion: Device.osVersion,
-          };
+      
+      await registerPushToken({
+        token,
+        location: userLocation.slug,
+        locationId: userLocation.id,
+        platform: Platform.OS,
+        deviceInfo: {
+          brand: 'unknown',
+          modelName: 'unknown',
+          osName: Platform.OS,
+          osVersion: 'unknown',
         }
-      } catch (deviceError: unknown) {
-        const deviceErrorMessage = deviceError instanceof Error ? deviceError.message : 'Unknown device error';
-        console.warn('Error getting device info:', deviceErrorMessage);
-      }
-
-      // Register with backend
-      try {
-        await registerPushToken({
-          token: deviceState.userId,
-          location: userLocation.slug,
-          locationId: userLocation.id,
-          platform: Platform.OS,
-          deviceInfo,
-        });
-        console.log('Device token registered with backend successfully');
-      } catch (backendError: unknown) {
-        const backendErrorMessage = backendError instanceof Error ? backendError.message : 'Backend registration failed';
-        console.warn('Backend registration failed, but continuing:', backendErrorMessage);
-        // Don't fail the whole process if backend registration fails
-      }
-
-      this.setConnectionStatus('connected');
+      });
       
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error during token registration';
-      console.error('Error registering device token:', errorMessage);
-      this.setConnectionStatus('error');
+      console.log('Push token registered with backend successfully');
+    } catch (error) {
+      console.error('Error registering token with backend:', error);
+      // Don't throw - this shouldn't break the app
     }
   }
-
-  startPeriodicCheck() {
-    // Clear existing interval
-    this.stopPeriodicCheck();
-    
-    // Check notification status every 30 seconds
-    this.checkInterval = setInterval(() => {
-      this.checkNotificationStatus();
-    }, 30000);
-    
-    console.log('Started periodic notification status check');
-  }
-
-  stopPeriodicCheck() {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-      console.log('Stopped periodic notification status check');
-    }
-  }
-
-  private async checkNotificationStatus() {
+  
+  async scheduleLocalNotification(title: string, body: string, data?: any): Promise<void> {
     try {
-      const deviceState = await OneSignal.getDeviceState();
-      
-      if (!deviceState?.userId) {
-        this.setConnectionStatus('disconnected');
+      // Don't schedule notifications for sponsored content
+      if (data?.categoryId === 554) {
+        console.log('Skipping notification for sponsored content');
         return;
       }
-
-      // Check if notifications are enabled
-      const isSubscribed = deviceState.isSubscribed;
       
-      if (!isSubscribed) {
-        this.setConnectionStatus('disconnected');
-      } else if (this.connectionStatus !== 'connected') {
-        this.setConnectionStatus('connected');
+      if (Platform.OS === 'web') {
+        // Web notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, {
+            body,
+            icon: '/favicon.ico',
+            data,
+          });
+        }
+        return;
       }
       
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error during status check';
-      console.warn('Error checking notification status:', errorMessage);
-      this.setConnectionStatus('error');
-    }
-  }
-
-  async updateUserTags() {
-    try {
-      console.log('Updating user tags...');
-      this.setConnectionStatus('connecting');
-      
-      const { userLocation, preferences } = useNotificationsStore.getState();
-      
-      // Set location tag
-      if (userLocation) {
-        OneSignal.sendTag('region', userLocation.slug);
-      }
-      
-      // Set enabled regions
-      const enabledRegions = preferences
-        .filter(p => p.type === 'region' && p.enabled)
-        .map(p => p.id.toString());
-      
-      if (enabledRegions.length > 0) {
-        OneSignal.sendTag('regions', enabledRegions.join(','));
-      }
-      
-      // Set enabled categories
-      const enabledCategories = preferences
-        .filter(p => p.type === 'category' && p.enabled)
-        .map(p => p.id.toString());
-      
-      if (enabledCategories.length > 0) {
-        OneSignal.sendTag('categories', enabledCategories.join(','));
-      }
-      
-      console.log('User tags updated successfully');
-      this.setConnectionStatus('connected');
-      
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error updating tags';
-      console.error('Error updating user tags:', errorMessage);
-      this.setConnectionStatus('error');
-    }
-  }
-
-  async enableNotifications() {
-    try {
-      console.log('Enabling notifications...');
-      this.setConnectionStatus('connecting');
-      
-      if (Platform.OS === 'ios') {
-        OneSignal.promptForPushNotificationsWithUserResponse(response => {
-          console.log('iOS permission prompt response:', response);
-          this.setConnectionStatus(response ? 'connected' : 'error');
-        });
-      } else {
-        // For Android, just enable
-        OneSignal.disablePush(false);
-        this.setConnectionStatus('connected');
-      }
-      
-      // Update user tags
-      await this.updateUserTags();
-      
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error enabling notifications';
-      console.error('Error enabling notifications:', errorMessage);
-      this.setConnectionStatus('error');
-    }
-  }
-
-  async disableNotifications() {
-    try {
-      OneSignal.disablePush(true);
-      this.setConnectionStatus('disconnected');
-      console.log('Notifications disabled');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error disabling notifications';
-      console.error('Error disabling notifications:', errorMessage);
-    }
-  }
-
-  // Force reconnection
-  async reconnect() {
-    console.log('Forcing notification service reconnection...');
-    this.isInitialized = false;
-    this.initializationPromise = null;
-    this.setConnectionStatus('connecting');
-    
-    try {
-      await this.setupNotificationHandlers();
+      // Mobile notification
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data,
+          sound: true,
+        },
+        trigger: null, // Show immediately
+      });
     } catch (error) {
-      console.error('Reconnection failed:', error);
-      this.setConnectionStatus('error');
+      console.warn('Error scheduling notification:', error);
+    }
+  }
+  
+  async setupNotificationHandlers(): Promise<void> {
+    try {
+      if (Platform.OS === 'web' || this.isInitialized) return;
+      
+      // Mark as initialized to prevent multiple setups
+      this.isInitialized = true;
+      
+      // Handle notification received while app is in foreground
+      Notifications.addNotificationReceivedListener(notification => {
+        console.log('Notification received:', notification);
+        
+        try {
+          // Add to notification history
+          const { addNotification } = useNotificationsStore.getState();
+          const data = notification.request.content.data || {};
+          
+          // Don't process notifications for sponsored content
+          if (data.categoryId === 554) {
+            console.log('Ignoring notification for sponsored content');
+            return;
+          }
+          
+          addNotification({
+            title: notification.request.content.title || 'Nowe powiadomienie',
+            body: notification.request.content.body || '',
+            articleId: typeof data.articleId === 'number' ? data.articleId : undefined,
+            categoryId: typeof data.categoryId === 'number' ? data.categoryId : undefined,
+            read: false,
+          });
+        } catch (error) {
+          console.warn('Error processing received notification:', error);
+        }
+      });
+      
+      // Handle notification tapped
+      Notifications.addNotificationResponseReceivedListener(response => {
+        try {
+          const data = response.notification.request.content.data || {};
+          console.log('Notification tapped:', data);
+          
+          // Don't handle taps for sponsored content
+          if (data.categoryId === 554) {
+            console.log('Ignoring tap for sponsored content notification');
+            return;
+          }
+          
+          if (data.articleId && typeof data.articleId === 'number') {
+            // This will be handled by the deep linking system
+            console.log('Navigate to article:', data.articleId);
+          }
+        } catch (error) {
+          console.warn('Error processing notification response:', error);
+        }
+      });
+      
+      // Register for push notifications with small delay
+      setTimeout(() => {
+        this.registerForPushNotifications().catch(error => {
+          console.warn('Push notification registration failed:', error);
+        });
+      }, 1000);
+    } catch (error) {
+      console.warn('Error setting up notification handlers:', error);
+    }
+  }
+  
+  async updateLocationAndReregister(): Promise<void> {
+    try {
+      const { expoPushToken } = useNotificationsStore.getState();
+      
+      if (expoPushToken) {
+        await this.registerTokenWithBackend(expoPushToken);
+      } else {
+        // If no token, try to get one
+        await this.registerForPushNotifications();
+      }
+    } catch (error) {
+      console.error('Error updating location and reregistering:', error);
+    }
+  }
+  
+  startPeriodicCheck(): void {
+    // Check for new notifications every 5 minutes when app is active
+    if (this.periodicCheckInterval) {
+      clearInterval(this.periodicCheckInterval);
+    }
+    
+    const interval = 5 * 60 * 1000; // 5 minutes
+    
+    this.periodicCheckInterval = setInterval(() => {
+      // This could be used to sync with backend for missed notifications
+      console.log('Periodic notification check');
+    }, interval);
+  }
+  
+  stopPeriodicCheck(): void {
+    if (this.periodicCheckInterval) {
+      clearInterval(this.periodicCheckInterval);
+      this.periodicCheckInterval = null;
     }
   }
 }
 
-export const notificationService = new NotificationService();
+export const notificationService = NotificationService.getInstance();

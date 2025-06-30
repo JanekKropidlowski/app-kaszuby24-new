@@ -5,8 +5,7 @@ import {
   Text, 
   FlatList, 
   TouchableOpacity,
-  Alert,
-  Platform
+  Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Bell, Trash2, CheckCheck, Clock } from 'lucide-react-native';
@@ -200,10 +199,6 @@ export default function NotificationsScreen() {
           />
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        removeClippedSubviews={Platform.OS === 'android'}
-        initialNumToRender={Platform.OS === 'android' ? 5 : 10}
-        maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
-        windowSize={Platform.OS === 'android' ? 5 : 10}
       />
     </View>
   );

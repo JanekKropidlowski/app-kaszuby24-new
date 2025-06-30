@@ -15,7 +15,7 @@ interface ArticleCardProps {
   onPress?: () => void;
 }
 
-const ArticleCard: React.FC<ArticleCardProps> = ({ 
+export const ArticleCard: React.FC<ArticleCardProps> = ({ 
   article, 
   compact = false, 
   onPress 
@@ -83,14 +83,13 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        {article.featured_media_url && (
+        {article.featured_media_url ? (
           <Image
             source={{ uri: article.featured_media_url }}
             style={styles.compactImage}
             contentFit="cover"
             transition={200}
             placeholder="Loading..."
-            priority="low"
           />
         ) : (
           <View style={[styles.compactImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
@@ -220,7 +219,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
             contentFit="cover"
             transition={300}
             placeholder="Loading..."
-            priority="low"
           />
         )}
       </View>
@@ -235,17 +233,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 1,
   },
   cardContent: {
@@ -303,17 +294,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 12,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
     borderWidth: 1,
   },
   compactImage: {
@@ -360,4 +344,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(ArticleCard);
+// Add default export for backward compatibility
+export default ArticleCard;

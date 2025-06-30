@@ -6,8 +6,7 @@ import {
   FlatList, 
   TouchableOpacity,
   Animated,
-  Dimensions,
-  Platform
+  Dimensions
 } from 'react-native';
 import { Bookmark, ChevronRight } from 'lucide-react-native';
 import ArticleCard from '@/components/ArticleCard';
@@ -79,10 +78,6 @@ export default function SavedScreen() {
           </View>
         )}
         contentContainerStyle={styles.listContent}
-        removeClippedSubviews={Platform.OS === 'android'}
-        initialNumToRender={Platform.OS === 'android' ? 5 : 10}
-        maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
-        windowSize={Platform.OS === 'android' ? 5 : 10}
         ListHeaderComponent={
           <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
@@ -161,10 +156,6 @@ export default function SavedScreen() {
                   ItemSeparatorComponent={() => <View style={styles.separator} />}
                   scrollEnabled={false}
                   contentContainerStyle={styles.recentList}
-                  removeClippedSubviews={Platform.OS === 'android'}
-                  initialNumToRender={Platform.OS === 'android' ? 5 : 10}
-                  maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
-                  windowSize={Platform.OS === 'android' ? 5 : 10}
                 />
               )}
             </Animated.View>
@@ -205,17 +196,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginHorizontal: 20,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   recentHeader: {
     flexDirection: 'row',

@@ -12,6 +12,7 @@ import {
 import { Bell, MapPin, X, Check } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { useNotificationsStore, availableLocations, UserLocation } from '@/store/notificationsStore';
+import { notificationService } from '@/services/notificationService';
 
 const { height } = Dimensions.get('window');
 
@@ -30,15 +31,13 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
     updatePreference, 
     toggleNotifications,
     completeFirstTimeSetup,
-    setUserLocation,
-    setUserName
+    setUserLocation
   } = useNotificationsStore();
   
   const [step, setStep] = useState(1);
   const [selectedLocation, setSelectedLocation] = useState<UserLocation | null>(null);
   const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
   const [isSettingUp, setIsSettingUp] = useState(false);
-  const [userName, setUserNameState] = useState('');
   
   const regions = preferences.filter(pref => pref.type === 'region');
   
@@ -63,22 +62,30 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
         setUserLocation(selectedLocation);
       }
       
-      // Enable notifications
-      toggleNotifications();
+      // Request notification permissions and register token
+      const hasPermission = await notificationService.requestPermissions();
       
-      // Update selected regions
-      selectedRegions.forEach(regionId => {
-        updatePreference(regionId, true);
-      });
-      
-      // Enable some default categories
-      const defaultCategories = preferences.filter(pref => 
-        pref.type === 'category' && 
-        ['Wiadomości', 'Kultura i Rozrywka'].includes(pref.name)
-      );
-      defaultCategories.forEach(cat => {
-        updatePreference(cat.id, true);
-      });
+      if (hasPermission) {
+        // Enable notifications
+        toggleNotifications();
+        
+        // Register for push notifications
+        await notificationService.registerForPushNotifications();
+        
+        // Update selected regions
+        selectedRegions.forEach(regionId => {
+          updatePreference(regionId, true);
+        });
+        
+        // Enable some default categories
+        const defaultCategories = preferences.filter(pref => 
+          pref.type === 'category' && 
+          ['Wiadomości', 'Kultura i Rozrywka'].includes(pref.name)
+        );
+        defaultCategories.forEach(cat => {
+          updatePreference(cat.id, true);
+        });
+      }
       
       // Mark first time setup as complete
       completeFirstTimeSetup();
@@ -102,16 +109,6 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
       setStep(2);
     } else if (step === 2 && selectedLocation) {
       setStep(3);
-    }
-  };
-  
-  const handleUserNameChange = (text: string) => {
-    setUserNameState(text);
-  };
-  
-  const handleUserNameSubmit = () => {
-    if (userName.length >= 2) {
-      setUserName(userName);
     }
   };
   

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -23,7 +23,9 @@ import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/servi
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
+import VideoPlayer from '@/components/VideoPlayer';
 import { ArticleCard } from '@/components/ArticleCard';
+import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { formatDateTime } from '@/utils/dateFormatter';
@@ -33,9 +35,6 @@ import { isSponsoredContent } from '@/utils/contentFilter';
 
 const MAX_RETRIES = 3;
 const { width, height } = Dimensions.get('window');
-
-const VideoPlayer = React.lazy(() => import('@/components/VideoPlayer'));
-const RelatedArticlesSlider = React.lazy(() => import('@/components/RelatedArticlesSlider'));
 
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -789,9 +788,7 @@ export default function ArticleDetailScreen() {
     
     return (
       <View style={styles.youtubeContainer}>
-        <Suspense fallback={null}>
-          <VideoPlayer url={youtubeUrl} title="YouTube Video" />
-        </Suspense>
+        <VideoPlayer url={youtubeUrl} title="YouTube Video" />
       </View>
     );
   };
@@ -861,12 +858,10 @@ export default function ArticleDetailScreen() {
       <View style={styles.relatedContainer}>
         {/* Slider for related articles */}
         {relatedSliderArticles.length > 0 && (
-          <Suspense fallback={null}>
-            <RelatedArticlesSlider 
-              articles={relatedSliderArticles} 
-              title="Sprawdź również" 
-            />
-          </Suspense>
+          <RelatedArticlesSlider 
+            articles={relatedSliderArticles} 
+            title="Sprawdź również" 
+          />
         )}
         
         {/* List of latest articles */}
@@ -1157,9 +1152,7 @@ export default function ArticleDetailScreen() {
           {videoUrls.length > 0 && (
             <View style={styles.videoContainer}>
               {videoUrls.map((url, index) => (
-                <Suspense fallback={null}>
-                  <VideoPlayer key={`video-${index}`} url={url} />
-                </Suspense>
+                <VideoPlayer key={`video-${index}`} url={url} />
               ))}
             </View>
           )}
@@ -1272,17 +1265,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
   headerActions: {
     flexDirection: 'row',
@@ -1420,17 +1407,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   progressText: {
     color: '#FFFFFF',
@@ -1447,17 +1428,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   finishMessageContent: {
     flex: 1,
