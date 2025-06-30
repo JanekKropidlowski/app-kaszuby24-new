@@ -66,7 +66,6 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: Platform.OS === 'android' ? 10 : 11,
-          fontWeight: '600',
           marginTop: 2,
           fontFamily: theme.fontFamily.medium,
         },
@@ -79,7 +78,6 @@ export default function TabLayout() {
           elevation: 0,
         },
         headerTitleStyle: {
-          fontWeight: '600',
           color: theme.colors.text,
           fontSize: 18,
           fontFamily: theme.fontFamily.semibold,
@@ -118,7 +116,7 @@ export default function TabLayout() {
             backgroundColor: theme.colors.notification,
             color: '#FFFFFF',
             fontSize: Platform.OS === 'android' ? 9 : 10,
-            fontWeight: '600',
+            fontFamily: theme.fontFamily.semibold,
             minWidth: Platform.OS === 'android' ? 16 : 18,
             height: Platform.OS === 'android' ? 16 : 18,
           },

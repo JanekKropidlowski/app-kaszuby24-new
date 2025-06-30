@@ -598,12 +598,10 @@ const styles = StyleSheet.create({
   carouselLabel: {
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '600',
   },
   carouselTitle: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '700',
     lineHeight: 24,
     marginBottom: 12,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
@@ -618,7 +616,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     marginRight: 4,
-    fontWeight: '600',
   },
   indicatorContainer: {
     flexDirection: 'row',
@@ -648,7 +645,6 @@ const styles = StyleSheet.create({
   },
   breakingNewsTitle: {
     fontSize: 20,
-    fontWeight: '700',
   },
   moreButton: {
     flexDirection: 'row',
@@ -656,7 +652,6 @@ const styles = StyleSheet.create({
   },
   moreText: {
     fontSize: 14,
-    fontWeight: '600',
   },
   articleContainer: {
     paddingHorizontal: 16,

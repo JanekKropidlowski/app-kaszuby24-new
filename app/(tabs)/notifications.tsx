@@ -221,7 +221,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '600',
     marginRight: 8,
   },
   unreadBadge: {
@@ -234,7 +233,6 @@ const styles = StyleSheet.create({
   unreadBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
   },
   headerActions: {
     flexDirection: 'row',
@@ -251,7 +249,6 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
     marginLeft: 4,
-    fontWeight: '500',
   },
   listContent: {
     flexGrow: 1,
@@ -277,7 +274,6 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: 16,
-    fontWeight: '500',
     flex: 1,
   },
   unreadText: {

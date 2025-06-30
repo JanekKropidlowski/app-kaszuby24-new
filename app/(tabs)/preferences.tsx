@@ -670,7 +670,6 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 20,
-    fontWeight: '600',
     marginBottom: 4,
   },
   profileEmail: {
@@ -688,11 +687,9 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
     marginHorizontal: 20,
     marginBottom: 12,
     marginTop: 8,
@@ -721,7 +718,6 @@ const styles = StyleSheet.create({
   },
   quickSetupTitle: {
     fontSize: 16,
-    fontWeight: '600',
     marginBottom: 2,
   },
   quickSetupSubtitle: {
@@ -748,7 +744,6 @@ const styles = StyleSheet.create({
   quickSetupButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
   },
   section: {
     marginHorizontal: 20,
@@ -770,7 +765,6 @@ const styles = StyleSheet.create({
   summaryText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '500',
     marginLeft: 12,
   },
   summaryStats: {
@@ -790,7 +784,6 @@ const styles = StyleSheet.create({
   },
   sectionHeaderTitle: {
     fontSize: 16,
-    fontWeight: '600',
     marginLeft: 8,
   },
   settingRow: {
