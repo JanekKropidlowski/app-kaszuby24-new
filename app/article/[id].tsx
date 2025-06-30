@@ -59,14 +59,18 @@ export default function ArticleDetailScreen() {
   const [contentLoaded, setContentLoaded] = useState(false);
   const [nextArticle, setNextArticle] = useState<Article | null>(null);
   const [prevArticle, setPrevArticle] = useState<Article | null>(null);
-  const [showRedirectInfo, setShowRedirectInfo] = useState(false);
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [showFinishMessage, setShowFinishMessage] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const swipeGesture = useRef(new Animated.Value(0)).current;
   const swipeOpacity = useRef(new Animated.Value(0)).current;
+  const progressOpacity = useRef(new Animated.Value(0)).current;
+  const finishMessageOpacity = useRef(new Animated.Value(0)).current;
   const isScrollingToEnd = useRef(false);
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const hasShownFinishMessage = useRef(false);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -387,28 +391,60 @@ export default function ArticleDetailScreen() {
     }
   };
   
-  // Handle scroll to end for auto-redirect
+  // Handle scroll for reading progress and auto-redirect
   const handleScroll = (event: any) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const scrollPosition = contentOffset.y;
     const scrollViewHeight = layoutMeasurement.height;
     const contentHeight = contentSize.height;
     
-    // Check if user has scrolled to the bottom
-    const isAtBottom = scrollPosition + scrollViewHeight >= contentHeight - 100;
+    // Calculate reading progress percentage
+    const maxScrollDistance = contentHeight - scrollViewHeight;
+    const progress = Math.min(Math.max((scrollPosition / maxScrollDistance) * 100, 0), 100);
+    setReadingProgress(Math.round(progress));
     
-    if (isAtBottom && !isScrollingToEnd.current && !showRedirectInfo) {
-      isScrollingToEnd.current = true;
-      setShowRedirectInfo(true);
+    // Show/hide progress indicator based on scroll
+    if (progress > 5 && progress < 95) {
+      Animated.timing(progressOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(progressOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+    
+    // Check if user has finished reading (reached 100%)
+    if (progress >= 100 && !hasShownFinishMessage.current) {
+      hasShownFinishMessage.current = true;
+      setShowFinishMessage(true);
+      
+      // Show finish message with animation
+      Animated.timing(finishMessageOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
       
       // Clear any existing timeout
       if (redirectTimeout.current) {
         clearTimeout(redirectTimeout.current);
       }
       
-      // Set timeout for redirect
+      // Set timeout for auto-redirect
       redirectTimeout.current = setTimeout(() => {
-        router.replace('/(tabs)');
+        // Fade out message and redirect
+        Animated.timing(finishMessageOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => {
+          router.replace('/(tabs)');
+        });
       }, 3000);
     }
   };
@@ -421,6 +457,21 @@ export default function ArticleDetailScreen() {
       }
     };
   }, []);
+  
+  // Handle manual return to home
+  const handleReturnToHome = () => {
+    if (redirectTimeout.current) {
+      clearTimeout(redirectTimeout.current);
+    }
+    
+    Animated.timing(finishMessageOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      router.replace('/(tabs)');
+    });
+  };
   
   if (loading) {
     return <LoadingIndicator fullScreen />;
@@ -862,30 +913,53 @@ export default function ArticleDetailScreen() {
     );
   };
   
-  // Render redirect info
-  const renderRedirectInfo = () => {
-    if (!showRedirectInfo) return null;
+  // Render reading progress indicator
+  const renderProgressIndicator = () => {
+    return (
+      <Animated.View 
+        style={[
+          styles.progressIndicator, 
+          { 
+            backgroundColor: theme.colors.primary,
+            opacity: progressOpacity 
+          }
+        ]}
+      >
+        <Text style={styles.progressText}>
+          {readingProgress}%
+        </Text>
+      </Animated.View>
+    );
+  };
+  
+  // Render finish message
+  const renderFinishMessage = () => {
+    if (!showFinishMessage) return null;
     
     return (
       <Animated.View 
         style={[
-          styles.redirectInfo, 
-          { backgroundColor: theme.colors.primary }
+          styles.finishMessage, 
+          { 
+            backgroundColor: theme.colors.primary,
+            opacity: finishMessageOpacity 
+          }
         ]}
       >
-        <Home size={16} color="#FFFFFF" />
-        <Text style={styles.redirectText}>
-          Przekierowanie do strony głównej za 3 sekundy...
-        </Text>
+        <View style={styles.finishMessageContent}>
+          <Text style={styles.finishMessageTitle}>
+            Koniec artykułu
+          </Text>
+          <Text style={styles.finishMessageSubtitle}>
+            Kliknij, aby wrócić na stronę główną
+          </Text>
+        </View>
         <TouchableOpacity
-          onPress={() => {
-            setShowRedirectInfo(false);
-            if (redirectTimeout.current) {
-              clearTimeout(redirectTimeout.current);
-            }
-          }}
+          style={styles.finishMessageButton}
+          onPress={handleReturnToHome}
+          activeOpacity={0.8}
         >
-          <X size={16} color="#FFFFFF" />
+          <Home size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </Animated.View>
     );
@@ -1175,11 +1249,14 @@ export default function ArticleDetailScreen() {
         </TouchableOpacity>
       </View>
       
+      {/* Reading progress indicator */}
+      {renderProgressIndicator()}
+      
       {/* Swipe indicators */}
       {renderSwipeIndicators()}
       
-      {/* Redirect info */}
-      {renderRedirectInfo()}
+      {/* Finish message */}
+      {renderFinishMessage()}
       
       {/* Image modal */}
       {renderImageModal()}
@@ -1382,28 +1459,66 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     fontWeight: '500',
   },
-  redirectInfo: {
+  progressIndicator: {
     position: 'absolute',
-    bottom: 110,
-    left: 20,
+    top: Platform.select({
+      ios: 100,
+      android: 95,
+      default: 100
+    }),
     right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
-  redirectText: {
-    flex: 1,
+  progressText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 8,
+    fontWeight: '600',
+  },
+  finishMessage: {
+    position: 'absolute',
+    bottom: 110,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  finishMessageContent: {
+    flex: 1,
+  },
+  finishMessageTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  finishMessageSubtitle: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  finishMessageButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
   },
   bottomMenuBar: {
     position: 'absolute',
