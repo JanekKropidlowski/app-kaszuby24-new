@@ -53,7 +53,6 @@ export class NotificationService {
             allowAlert: true,
             allowBadge: true,
             allowSound: true,
-            allowAnnouncements: true,
           },
           android: {
             allowAlert: true,

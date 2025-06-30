@@ -486,10 +486,7 @@ export default function ArticleDetailScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        // Android-specific optimizations
         removeClippedSubviews={Platform.OS === 'android'}
-        maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
-        windowSize={Platform.OS === 'android' ? 5 : 10}
       >
         {/* Featured image */}
         {article.featured_media_url ? (

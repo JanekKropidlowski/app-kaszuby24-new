@@ -42,12 +42,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <Stack
-        screenOptions={{
-          // Add Android-specific header options
-          headerMode: Platform.OS === 'android' ? 'screen' : 'float',
-        }}
-      >
+      <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen 
@@ -55,8 +50,6 @@ export default function RootLayout() {
           options={{ 
             title: 'Wyszukaj',
             headerBackTitle: 'Wróć',
-            // Android-specific back button
-            headerBackTitleVisible: Platform.OS !== 'android',
           }} 
         />
         <Stack.Screen 
@@ -64,8 +57,6 @@ export default function RootLayout() {
           options={{ 
             headerShown: false,
             presentation: 'card',
-            // Android-specific animation
-            animationTypeForReplace: Platform.OS === 'android' ? 'push' : 'pop',
           }} 
         />
       </Stack>
