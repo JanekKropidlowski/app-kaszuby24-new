@@ -17,7 +17,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft, Clock, Calendar, Eye, X, ChevronLeft, ChevronRight, Menu, ExternalLink } from 'lucide-react-native';
+import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Menu, ExternalLink } from 'lucide-react-native';
 import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -311,8 +311,7 @@ export default function ArticleDetailScreen() {
     }
   }
   
-  // Display meta fields if available
-  const metaViews = article.meta?.views ? `${article.meta.views}` : '';
+  // Display meta fields if available (removed views)
   const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
   
   // Enhanced HTML for Android WebView
@@ -874,21 +873,6 @@ export default function ArticleDetailScreen() {
                 {formatDateTime(article.date)}
               </Text>
             </View>
-            
-            {metaViews && (
-              <View style={styles.metaItem}>
-                <Eye size={14} color={theme.colors.textSecondary} />
-                <Text style={[
-                  styles.metaText, 
-                  { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.regular
-                  }
-                ]}>
-                  {metaViews}
-                </Text>
-              </View>
-            )}
           </View>
           
           {metaSource ? (

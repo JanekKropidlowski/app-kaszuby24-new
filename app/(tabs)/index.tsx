@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { ChevronRight, RefreshCw, WifiOff, ArrowRight } from 'lucide-react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { fetchArticles, fetchCategories } from '@/services/api';
 import { Article, Category } from '@/types/article';
 import { ArticleCard } from '@/components/ArticleCard';
@@ -146,9 +147,9 @@ export default function HomeScreen() {
   const loadCategories = useCallback(async (retry = 0) => {
     try {
       const data = await fetchCategories();
-      // Filter out sponsored categories and categories with no posts, then sort by count
+      // Filter out sponsored categories, "Wiadomości" category (ID: 3), and categories with no posts, then sort by count
       const filteredCategories = filterSponsoredCategories(data)
-        .filter(cat => cat.count > 0)
+        .filter(cat => cat.count > 0 && cat.id !== 3) // Filter out "Wiadomości" category
         .sort((a, b) => b.count - a.count);
       
       setCategories(filteredCategories);
@@ -173,8 +174,8 @@ export default function HomeScreen() {
   
   // Refresh when category changes
   useEffect(() => {
-    // Don't allow selection of sponsored category
-    if (selectedCategory === 554) {
+    // Don't allow selection of sponsored category or "Wiadomości" category
+    if (selectedCategory === 554 || selectedCategory === 3) {
       setSelectedCategory(null);
       return;
     }
@@ -314,7 +315,11 @@ export default function HomeScreen() {
             ) : (
               <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
             )}
-            <View style={styles.carouselGradient} />
+            <LinearGradient
+              colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']}
+              locations={[0, 0.4, 1]}
+              style={styles.carouselGradient}
+            />
             <View style={styles.carouselItemContent}>
               <View style={styles.carouselLabelContainer}>
                 <Text style={[
@@ -573,8 +578,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '60%',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    height: '70%',
   },
   carouselItemContent: {
     position: 'absolute',
