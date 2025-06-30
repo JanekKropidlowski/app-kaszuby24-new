@@ -80,16 +80,20 @@ class NotificationService {
     }
   };
   
-  private handleSubscriptionChange = (event: any) => {
+  private handleSubscriptionChange = async (event: any) => {
     console.log('OneSignal subscription changed:', event);
     
     const { setOneSignalPlayerId } = useNotificationsStore.getState();
     
     if (event.current.optedIn) {
-      const playerId = event.current.id;
-      if (playerId) {
-        setOneSignalPlayerId(playerId);
-        this.registerPlayerWithBackend(playerId);
+      try {
+        const playerId = await OneSignal.User.pushSubscription.getPushSubscriptionId();
+        if (playerId) {
+          setOneSignalPlayerId(playerId);
+          this.registerPlayerWithBackend(playerId);
+        }
+      } catch (error) {
+        console.warn('Failed to get OneSignal subscription ID:', error);
       }
     }
   };
@@ -128,15 +132,19 @@ class NotificationService {
       }
       
       // Get subscription ID
-      const subscriptionId = OneSignal.User.pushSubscription.id;
-      console.log('OneSignal subscription ID:', subscriptionId);
-      
-      if (subscriptionId) {
-        const { setOneSignalPlayerId } = useNotificationsStore.getState();
-        setOneSignalPlayerId(subscriptionId);
+      try {
+        const subscriptionId = await OneSignal.User.pushSubscription.getPushSubscriptionId();
+        console.log('OneSignal subscription ID:', subscriptionId);
         
-        // Register with backend
-        await this.registerPlayerWithBackend(subscriptionId);
+        if (subscriptionId) {
+          const { setOneSignalPlayerId } = useNotificationsStore.getState();
+          setOneSignalPlayerId(subscriptionId);
+          
+          // Register with backend
+          await this.registerPlayerWithBackend(subscriptionId);
+        }
+      } catch (error) {
+        console.warn('Failed to get OneSignal subscription ID:', error);
       }
       
     } catch (error) {
@@ -155,14 +163,18 @@ class NotificationService {
       OneSignal.User.pushSubscription.optIn();
       
       // Get current subscription ID
-      const subscriptionId = OneSignal.User.pushSubscription.id;
-      
-      if (subscriptionId) {
-        const { setOneSignalPlayerId } = useNotificationsStore.getState();
-        setOneSignalPlayerId(subscriptionId);
+      try {
+        const subscriptionId = await OneSignal.User.pushSubscription.getPushSubscriptionId();
         
-        // Register with backend
-        await this.registerPlayerWithBackend(subscriptionId);
+        if (subscriptionId) {
+          const { setOneSignalPlayerId } = useNotificationsStore.getState();
+          setOneSignalPlayerId(subscriptionId);
+          
+          // Register with backend
+          await this.registerPlayerWithBackend(subscriptionId);
+        }
+      } catch (error) {
+        console.warn('Failed to get OneSignal subscription ID:', error);
       }
       
       console.log('OneSignal push notifications registered');
@@ -173,7 +185,7 @@ class NotificationService {
   
   async updateLocationAndReregister() {
     try {
-      const subscriptionId = OneSignal.User.pushSubscription.id;
+      const subscriptionId = await OneSignal.User.pushSubscription.getPushSubscriptionId();
       
       if (subscriptionId) {
         // Re-register with new location
