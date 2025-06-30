@@ -120,10 +120,10 @@ export class NotificationService {
             console.log('Using device token as fallback:', deviceToken);
             // For now, we'll skip registration if Expo token fails on Android
             return null;
-          } catch (deviceTokenError) {
+          } catch (deviceTokenError: unknown) {
             console.error('Device token also failed:', deviceTokenError);
             // Check if the error is related to service unavailability
-            if (deviceTokenError.message.includes('SERVICE_NOT_AVAILABLE')) {
+            if (deviceTokenError instanceof Error && deviceTokenError.message.includes('SERVICE_NOT_AVAILABLE')) {
               console.warn('Firebase Cloud Messaging service is not available. This could be due to missing Google Play Services or network issues.');
               if (this.retryCount < this.maxRetries) {
                 this.retryCount++;
@@ -155,13 +155,13 @@ export class NotificationService {
       // Reset retry count on successful registration
       this.retryCount = 0;
       return token.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error getting push token:', error);
       
       // Don't throw error on Android - just log and continue
       if (Platform.OS === 'android') {
         console.warn('Push notifications setup failed on Android, continuing without them');
-        if (error.message.includes('SERVICE_NOT_AVAILABLE') && this.retryCount < this.maxRetries) {
+        if (error instanceof Error && error.message.includes('SERVICE_NOT_AVAILABLE') && this.retryCount < this.maxRetries) {
           this.retryCount++;
           console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
           await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
