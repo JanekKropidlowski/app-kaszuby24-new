@@ -18,7 +18,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Menu, ExternalLink } from 'lucide-react-native';
+import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home } from 'lucide-react-native';
 import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles, getAdjacentArticle } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -54,15 +54,17 @@ export default function ArticleDetailScreen() {
   const [relatedSliderArticles, setRelatedSliderArticles] = useState<Article[]>([]);
   const [relatedListArticles, setRelatedListArticles] = useState<Article[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
   const [nextArticle, setNextArticle] = useState<Article | null>(null);
   const [prevArticle, setPrevArticle] = useState<Article | null>(null);
+  const [showRedirectInfo, setShowRedirectInfo] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const swipeGesture = useRef(new Animated.Value(0)).current;
+  const swipeOpacity = useRef(new Animated.Value(0)).current;
   const isScrollingToEnd = useRef(false);
+  const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -76,6 +78,12 @@ export default function ArticleDetailScreen() {
       },
       onPanResponderGrant: () => {
         swipeGesture.setValue(0);
+        // Show swipe indicators
+        Animated.timing(swipeOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
       },
       onPanResponderMove: (evt, gestureState) => {
         // Limit the swipe distance for visual feedback
@@ -85,11 +93,18 @@ export default function ArticleDetailScreen() {
       onPanResponderRelease: (evt, gestureState) => {
         const threshold = 50;
         
+        // Hide swipe indicators
+        Animated.timing(swipeOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+        
         if (gestureState.dx > threshold && prevArticle) {
           // Swipe right - go to previous article
           Animated.timing(swipeGesture, {
             toValue: width,
-            duration: 200,
+            duration: 300,
             useNativeDriver: true,
           }).start(() => {
             router.replace(`/article/${prevArticle.id}`);
@@ -98,7 +113,7 @@ export default function ArticleDetailScreen() {
           // Swipe left - go to next article
           Animated.timing(swipeGesture, {
             toValue: -width,
-            duration: 200,
+            duration: 300,
             useNativeDriver: true,
           }).start(() => {
             router.replace(`/article/${nextArticle.id}`);
@@ -122,17 +137,13 @@ export default function ArticleDetailScreen() {
           setSelectedImageIndex(null);
           return true;
         }
-        if (showMenu) {
-          setShowMenu(false);
-          return true;
-        }
         router.back();
         return true;
       });
       
       return () => backHandler.remove();
     }
-  }, [router, selectedImageIndex, showMenu]);
+  }, [router, selectedImageIndex]);
   
   // Load adjacent articles for swipe navigation
   useEffect(() => {
@@ -281,12 +292,6 @@ export default function ArticleDetailScreen() {
     }
   };
   
-  const handleOpenInBrowser = () => {
-    if (article) {
-      Linking.openURL(article.link);
-    }
-  };
-  
   const handleRetry = () => {
     setError(null);
     setLoading(true);
@@ -345,6 +350,10 @@ export default function ArticleDetailScreen() {
     router.back();
   };
   
+  const handleGoHome = () => {
+    router.replace('/(tabs)');
+  };
+  
   const openImageModal = (index: number) => {
     setSelectedImageIndex(index);
   };
@@ -371,17 +380,32 @@ export default function ArticleDetailScreen() {
     const contentHeight = contentSize.height;
     
     // Check if user has scrolled to the bottom
-    const isAtBottom = scrollPosition + scrollViewHeight >= contentHeight - 50;
+    const isAtBottom = scrollPosition + scrollViewHeight >= contentHeight - 100;
     
-    if (isAtBottom && !isScrollingToEnd.current) {
+    if (isAtBottom && !isScrollingToEnd.current && !showRedirectInfo) {
       isScrollingToEnd.current = true;
+      setShowRedirectInfo(true);
       
-      // Delay the redirect to avoid accidental triggers
-      setTimeout(() => {
+      // Clear any existing timeout
+      if (redirectTimeout.current) {
+        clearTimeout(redirectTimeout.current);
+      }
+      
+      // Set timeout for redirect
+      redirectTimeout.current = setTimeout(() => {
         router.replace('/(tabs)');
-      }, 1000);
+      }, 3000);
     }
   };
+  
+  // Clear redirect timeout when component unmounts
+  useEffect(() => {
+    return () => {
+      if (redirectTimeout.current) {
+        clearTimeout(redirectTimeout.current);
+      }
+    };
+  }, []);
   
   if (loading) {
     return <LoadingIndicator fullScreen />;
@@ -734,7 +758,7 @@ export default function ArticleDetailScreen() {
         {relatedSliderArticles.length > 0 && (
           <RelatedArticlesSlider 
             articles={relatedSliderArticles} 
-            title="Z tej samej kategorii" 
+            title="Sprawdź również" 
           />
         )}
         
@@ -770,66 +794,63 @@ export default function ArticleDetailScreen() {
     );
   };
   
-  // Render floating menu
-  const renderFloatingMenu = () => {
-    if (!showMenu) return null;
+  // Render swipe indicators
+  const renderSwipeIndicators = () => {
+    if (!prevArticle && !nextArticle) return null;
     
     return (
-      <Modal
-        visible={showMenu}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowMenu(false)}
-      >
-        <TouchableOpacity 
-          style={styles.menuOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenu(false)}
-        >
-          <View style={[styles.menuContainer, { backgroundColor: theme.colors.card }]}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                handleShare();
-              }}
-            >
-              <Share2 size={20} color={theme.colors.text} />
-              <Text style={[styles.menuText, { color: theme.colors.text }]}>Udostępnij</Text>
-            </TouchableOpacity>
-            
-            {!isSponsoredContent(article) && (
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  setShowMenu(false);
-                  toggleSave();
-                }}
-              >
-                <Bookmark 
-                  size={20} 
-                  color={isSaved ? theme.colors.primary : theme.colors.text}
-                  fill={isSaved ? theme.colors.primary : 'transparent'} 
-                />
-                <Text style={[styles.menuText, { color: theme.colors.text }]}>
-                  {isSaved ? 'Usuń z zapisanych' : 'Zapisz artykuł'}
-                </Text>
-              </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                handleOpenInBrowser();
-              }}
-            >
-              <ExternalLink size={20} color={theme.colors.text} />
-              <Text style={[styles.menuText, { color: theme.colors.text }]}>Otwórz w przeglądarce</Text>
-            </TouchableOpacity>
+      <Animated.View style={[styles.swipeIndicators, { opacity: swipeOpacity }]}>
+        {prevArticle && (
+          <View style={[styles.swipeIndicator, styles.swipeIndicatorLeft]}>
+            <View style={[styles.swipePreview, { backgroundColor: theme.colors.card }]}>
+              <ChevronLeft size={16} color={theme.colors.primary} />
+              <Text style={[styles.swipeIndicatorText, { color: theme.colors.textSecondary }]}>
+                Poprzedni
+              </Text>
+            </View>
           </View>
+        )}
+        
+        {nextArticle && (
+          <View style={[styles.swipeIndicator, styles.swipeIndicatorRight]}>
+            <View style={[styles.swipePreview, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.swipeIndicatorText, { color: theme.colors.textSecondary }]}>
+                Następny
+              </Text>
+              <ChevronRight size={16} color={theme.colors.primary} />
+            </View>
+          </View>
+        )}
+      </Animated.View>
+    );
+  };
+  
+  // Render redirect info
+  const renderRedirectInfo = () => {
+    if (!showRedirectInfo) return null;
+    
+    return (
+      <Animated.View 
+        style={[
+          styles.redirectInfo, 
+          { backgroundColor: theme.colors.primary }
+        ]}
+      >
+        <Home size={16} color="#FFFFFF" />
+        <Text style={styles.redirectText}>
+          Przekierowanie do strony głównej za 3 sekundy...
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            setShowRedirectInfo(false);
+            if (redirectTimeout.current) {
+              clearTimeout(redirectTimeout.current);
+            }
+          }}
+        >
+          <X size={16} color="#FFFFFF" />
         </TouchableOpacity>
-      </Modal>
+      </Animated.View>
     );
   };
   
@@ -909,33 +930,6 @@ export default function ArticleDetailScreen() {
     );
   };
   
-  // Render swipe indicators
-  const renderSwipeIndicators = () => {
-    if (!prevArticle && !nextArticle) return null;
-    
-    return (
-      <View style={styles.swipeIndicators}>
-        {prevArticle && (
-          <View style={[styles.swipeIndicator, styles.swipeIndicatorLeft]}>
-            <ChevronLeft size={16} color={theme.colors.textSecondary} />
-            <Text style={[styles.swipeIndicatorText, { color: theme.colors.textSecondary }]}>
-              Poprzedni
-            </Text>
-          </View>
-        )}
-        
-        {nextArticle && (
-          <View style={[styles.swipeIndicator, styles.swipeIndicatorRight]}>
-            <Text style={[styles.swipeIndicatorText, { color: theme.colors.textSecondary }]}>
-              Następny
-            </Text>
-            <ChevronRight size={16} color={theme.colors.textSecondary} />
-          </View>
-        )}
-      </View>
-    );
-  };
-  
   return (
     <Animated.View 
       style={[
@@ -960,15 +954,6 @@ export default function ArticleDetailScreen() {
         activeOpacity={0.8}
       >
         <ArrowLeft size={20} color="#FFFFFF" />
-      </TouchableOpacity>
-      
-      {/* Floating menu button */}
-      <TouchableOpacity 
-        style={styles.floatingMenuButton} 
-        onPress={() => setShowMenu(true)}
-        activeOpacity={0.8}
-      >
-        <Menu size={20} color="#FFFFFF" />
       </TouchableOpacity>
       
       <ScrollView 
@@ -1070,14 +1055,59 @@ export default function ArticleDetailScreen() {
           
           {/* Related articles */}
           {renderRelatedArticles()}
-          
-          {/* Swipe indicators */}
-          {renderSwipeIndicators()}
         </View>
       </ScrollView>
       
-      {/* Floating menu */}
-      {renderFloatingMenu()}
+      {/* Bottom menu bar */}
+      <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleShare}
+          activeOpacity={0.7}
+        >
+          <Share2 size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+            Udostępnij
+          </Text>
+        </TouchableOpacity>
+        
+        {!isSponsoredContent(article) && (
+          <TouchableOpacity
+            style={styles.bottomMenuItem}
+            onPress={toggleSave}
+            activeOpacity={0.7}
+          >
+            <Bookmark 
+              size={20} 
+              color={isSaved ? theme.colors.primary : theme.colors.text}
+              fill={isSaved ? theme.colors.primary : 'transparent'} 
+            />
+            <Text style={[
+              styles.bottomMenuText, 
+              { color: isSaved ? theme.colors.primary : theme.colors.text }
+            ]}>
+              {isSaved ? 'Zapisane' : 'Zapisz'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoHome}
+          activeOpacity={0.7}
+        >
+          <Home size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+            Główna
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Swipe indicators */}
+      {renderSwipeIndicators()}
+      
+      {/* Redirect info */}
+      {renderRedirectInfo()}
       
       {/* Image modal */}
       {renderImageModal()}
@@ -1093,7 +1123,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 32,
+    paddingBottom: 80, // Space for bottom menu
   },
   featuredImageContainer: {
     position: 'relative',
@@ -1132,23 +1162,6 @@ const styles = StyleSheet.create({
       default: 50
     }),
     left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    elevation: 5,
-  },
-  floatingMenuButton: {
-    position: 'absolute',
-    top: Platform.select({
-      ios: 50,
-      android: 45,
-      default: 50
-    }),
-    right: 20,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -1244,15 +1257,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   swipeIndicators: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 32,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    pointerEvents: 'none',
   },
   swipeIndicator: {
-    flexDirection: 'row',
     alignItems: 'center',
-    opacity: 0.6,
   },
   swipeIndicatorLeft: {
     alignSelf: 'flex-start',
@@ -1260,9 +1275,77 @@ const styles = StyleSheet.create({
   swipeIndicatorRight: {
     alignSelf: 'flex-end',
   },
+  swipePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
   swipeIndicatorText: {
     fontSize: 12,
     marginHorizontal: 4,
+    fontWeight: '500',
+  },
+  redirectInfo: {
+    position: 'absolute',
+    bottom: 90,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  redirectText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  bottomMenuBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.select({
+      ios: 34, // Account for home indicator
+      android: 12,
+      default: 12,
+    }),
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  bottomMenuItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  bottomMenuText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
   },
   htmlContainer: {
     width: '100%',
@@ -1305,34 +1388,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
-  },
-  // Menu styles
-  menuOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuContainer: {
-    borderRadius: 16,
-    padding: 8,
-    minWidth: 200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-  },
-  menuText: {
-    marginLeft: 12,
-    fontSize: 16,
-    fontWeight: '500',
   },
   // Modal styles
   modalContainer: {

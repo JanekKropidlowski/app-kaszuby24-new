@@ -455,7 +455,7 @@ export const fetchMediaByIds = async (ids: string[]): Promise<MediaItem[]> => {
 export const fetchRelatedArticles = async (
   currentArticleId: number,
   categories: number[],
-  limit = 6 // Increased to get more for slider + list
+  limit = 8 // Increased to get more for slider (5) + list (3)
 ): Promise<{ sliderArticles: Article[], listArticles: Article[] }> => {
   try {
     const timestamp = new Date().getTime();
@@ -508,8 +508,8 @@ export const fetchRelatedArticles = async (
         // Filter out sponsored content and split results
         const filteredFallbackArticles = filterSponsoredArticles(processedFallbackArticles);
         return {
-          sliderArticles: filteredFallbackArticles.slice(0, 3),
-          listArticles: filteredFallbackArticles.slice(3, 6)
+          sliderArticles: filteredFallbackArticles.slice(0, 5), // Increased to 5
+          listArticles: filteredFallbackArticles.slice(5, 8) // Take next 3
         };
       }
       
@@ -541,8 +541,8 @@ export const fetchRelatedArticles = async (
     // Filter out sponsored content and split results
     const filteredArticles = filterSponsoredArticles(processedArticles);
     return {
-      sliderArticles: filteredArticles.slice(0, 3),
-      listArticles: filteredArticles.slice(3, 6)
+      sliderArticles: filteredArticles.slice(0, 5), // Increased to 5
+      listArticles: filteredArticles.slice(5, 8) // Take next 3
     };
   } catch (error: any) {
     console.warn('Error fetching related articles:', error);
