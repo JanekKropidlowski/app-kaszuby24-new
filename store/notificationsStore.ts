@@ -113,7 +113,7 @@ export const availableLocations: UserLocation[] = [
 export const useNotificationsStore = create<NotificationsState>()(
   persist(
     (set, get) => ({
-      connectionStatus: 'disconnected',
+      connectionStatus: 'connecting',
       userLocation: null,
       preferences: [],
       notificationsEnabled: false,
@@ -134,7 +134,11 @@ export const useNotificationsStore = create<NotificationsState>()(
       },
       
       setUserLocation: (location: UserLocation) => {
-        OneSignal.sendTag('region', location.slug);
+        try {
+          OneSignal.sendTag('region', location.slug);
+        } catch (error) {
+          console.warn('Failed to send OneSignal tag:', error);
+        }
         set({
           userLocation: location,
           hasSelectedLocation: true,
@@ -150,16 +154,20 @@ export const useNotificationsStore = create<NotificationsState>()(
             pref.id === id ? { ...pref, enabled } : pref
           );
           
-          // Update OneSignal tags
-          const enabledRegions = newPreferences.filter(p => p.type === 'region' && p.enabled);
-          const regionSlugs = enabledRegions.map(region => {
-            const loc = availableLocations.find(l => l.id === region.id);
-            return loc ? loc.slug : null;
-          }).filter(Boolean);
-          OneSignal.sendTag('regions', regionSlugs.join(','));
-          
-          const enabledCategories = newPreferences.filter(p => p.type === 'category' && p.enabled);
-          OneSignal.sendTag('categories', enabledCategories.map(c => c.id.toString()).join(','));
+          // Update OneSignal tags safely
+          try {
+            const enabledRegions = newPreferences.filter(p => p.type === 'region' && p.enabled);
+            const regionSlugs = enabledRegions.map(region => {
+              const loc = availableLocations.find(l => l.id === region.id);
+              return loc ? loc.slug : null;
+            }).filter(Boolean);
+            OneSignal.sendTag('regions', regionSlugs.join(','));
+            
+            const enabledCategories = newPreferences.filter(p => p.type === 'category' && p.enabled);
+            OneSignal.sendTag('categories', enabledCategories.map(c => c.id.toString()).join(','));
+          } catch (error) {
+            console.warn('Failed to update OneSignal tags:', error);
+          }
           
           return { preferences: newPreferences };
         });
@@ -246,8 +254,8 @@ export const useNotificationsStore = create<NotificationsState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.notifications = state.notifications.filter(notif => notif.categoryId !== 554);
-          // Reset connection status on app restart
-          state.connectionStatus = 'disconnected';
+          // Start with connecting status on app restart
+          state.connectionStatus = 'connecting';
         }
       },
     }
