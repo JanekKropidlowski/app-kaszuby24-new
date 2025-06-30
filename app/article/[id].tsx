@@ -947,35 +947,35 @@ export default function ArticleDetailScreen() {
         barStyle="light-content" 
       />
       
-      {/* Header bar - same as main page */}
-      <View style={[styles.headerBar, { backgroundColor: theme.colors.card }]}>
+      {/* Header bar with circular icons */}
+      <View style={styles.headerBar}>
         <TouchableOpacity 
-          style={styles.headerButton} 
+          style={styles.circularButton} 
           onPress={handleGoBack}
           activeOpacity={0.8}
         >
-          <ArrowLeft size={20} color={theme.colors.text} />
+          <ArrowLeft size={20} color="#FFFFFF" />
         </TouchableOpacity>
         
         <View style={styles.headerActions}>
           <TouchableOpacity
-            style={styles.headerButton}
+            style={styles.circularButton}
             onPress={handleShare}
             activeOpacity={0.7}
           >
-            <Share2 size={20} color={theme.colors.text} />
+            <Share2 size={20} color="#FFFFFF" />
           </TouchableOpacity>
           
           {!isSponsoredContent(article) && (
             <TouchableOpacity
-              style={styles.headerButton}
+              style={styles.circularButton}
               onPress={toggleSave}
               activeOpacity={0.7}
             >
               <Bookmark 
                 size={20} 
-                color={isSaved ? theme.colors.primary : theme.colors.text}
-                fill={isSaved ? theme.colors.primary : 'transparent'} 
+                color="#FFFFFF"
+                fill={isSaved ? "#FFFFFF" : 'transparent'} 
               />
             </TouchableOpacity>
           )}
@@ -1084,7 +1084,7 @@ export default function ArticleDetailScreen() {
         </View>
       </ScrollView>
       
-      {/* Bottom menu bar - identical to main page */}
+      {/* Bottom menu bar - same as main page */}
       <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
         <TouchableOpacity
           style={styles.bottomMenuItem}
@@ -1146,6 +1146,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1156,21 +1160,20 @@ const styles = StyleSheet.create({
       default: 50
     }),
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
     zIndex: 1000,
   },
-  headerButton: {
+  circularButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
   headerActions: {
     flexDirection: 'row',
