@@ -50,6 +50,23 @@ export const extractVideoUrls = (html: string): string[] => {
   return videoUrls;
 };
 
+// Extract YouTube URL from meta field
+export const extractYouTubeUrl = (youtubeField: string): string | null => {
+  if (!youtubeField) return null;
+  
+  // If it's already a full URL, return it
+  if (youtubeField.includes('youtube.com') || youtubeField.includes('youtu.be')) {
+    return youtubeField;
+  }
+  
+  // If it's just a video ID, construct the URL
+  if (youtubeField.length === 11 && /^[a-zA-Z0-9_-]+$/.test(youtubeField)) {
+    return `https://www.youtube.com/watch?v=${youtubeField}`;
+  }
+  
+  return null;
+};
+
 // Clean HTML content for rendering
 export const cleanHtml = (html: string): string => {
   if (!html) return '';
@@ -80,7 +97,7 @@ export const cleanHtml = (html: string): string => {
         border-radius: 12px;
       }
       a {
-        color: #FF3B30;
+        color: #224A96;
         text-decoration: none;
       }
       p {
@@ -93,7 +110,7 @@ export const cleanHtml = (html: string): string => {
         font-weight: 600;
       }
       blockquote {
-        border-left: 4px solid #FF3B30;
+        border-left: 4px solid #224A96;
         padding-left: 16px;
         margin-left: 0;
         color: #6c757d;
@@ -108,10 +125,11 @@ export const cleanHtml = (html: string): string => {
           background-color: transparent;
         }
         a {
-          color: #FF3B30;
+          color: #4A7BC8;
         }
         blockquote {
           color: #adb5bd;
+          border-left-color: #4A7BC8;
         }
       }
     </style>

@@ -7,9 +7,10 @@ import { useThemeStore } from '@/store/themeStore';
 
 interface VideoPlayerProps {
   url: string;
+  title?: string;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
   const { theme } = useThemeStore();
   
   // Extract video IDs
@@ -18,14 +19,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   
   // Determine which platform the video is from
   let embedUrl = '';
-  let videoTitle = 'Video';
+  let videoTitle = title;
   
   if (youtubeId) {
-    embedUrl = `https://www.youtube.com/embed/${youtubeId}?playsinline=1&modestbranding=1&rel=0`;
-    videoTitle = 'YouTube Video';
+    embedUrl = `https://www.youtube.com/embed/${youtubeId}?playsinline=1&modestbranding=1&rel=0&autoplay=0`;
+    videoTitle = title || 'YouTube Video';
   } else if (vimeoId) {
-    embedUrl = `https://player.vimeo.com/video/${vimeoId}?title=0&byline=0&portrait=0`;
-    videoTitle = 'Vimeo Video';
+    embedUrl = `https://player.vimeo.com/video/${vimeoId}?title=0&byline=0&portrait=0&autoplay=0`;
+    videoTitle = title || 'Vimeo Video';
   } else {
     // If we can't determine the platform, show a fallback
     return (

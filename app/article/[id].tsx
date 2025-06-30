@@ -12,26 +12,28 @@ import {
   StatusBar,
   BackHandler,
   Modal,
-  FlatList
+  PanResponder,
+  Animated
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Menu, ExternalLink } from 'lucide-react-native';
-import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
+import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles, getAdjacentArticle } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import VideoPlayer from '@/components/VideoPlayer';
 import { ArticleCard } from '@/components/ArticleCard';
+import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
 import { useArticlesStore } from '@/store/articlesStore';
 import { formatDateTime } from '@/utils/dateFormatter';
-import { cleanHtml, extractVideoUrls, processGalleryIds } from '@/utils/htmlParser';
+import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
 
 const MAX_RETRIES = 3;
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,18 +45,74 @@ export default function ArticleDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
   const [webViewHeight, setWebViewHeight] = useState(300);
   const [webViewError, setWebViewError] = useState(false);
   const [galleryImages, setGalleryImages] = useState<MediaItem[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
+  const [relatedSliderArticles, setRelatedSliderArticles] = useState<Article[]>([]);
+  const [relatedListArticles, setRelatedListArticles] = useState<Article[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
+  const [nextArticle, setNextArticle] = useState<Article | null>(null);
+  const [prevArticle, setPrevArticle] = useState<Article | null>(null);
+  
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const swipeGesture = useRef(new Animated.Value(0)).current;
+  const isScrollingToEnd = useRef(false);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
+  
+  // Swipe gesture handler
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only respond to horizontal swipes
+        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
+      },
+      onPanResponderGrant: () => {
+        swipeGesture.setValue(0);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        // Limit the swipe distance for visual feedback
+        const clampedDx = Math.max(-100, Math.min(100, gestureState.dx));
+        swipeGesture.setValue(clampedDx);
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        const threshold = 50;
+        
+        if (gestureState.dx > threshold && prevArticle) {
+          // Swipe right - go to previous article
+          Animated.timing(swipeGesture, {
+            toValue: width,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            router.replace(`/article/${prevArticle.id}`);
+          });
+        } else if (gestureState.dx < -threshold && nextArticle) {
+          // Swipe left - go to next article
+          Animated.timing(swipeGesture, {
+            toValue: -width,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            router.replace(`/article/${nextArticle.id}`);
+          });
+        } else {
+          // Snap back
+          Animated.spring(swipeGesture, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
   
   // Handle Android back button
   useEffect(() => {
@@ -75,6 +133,15 @@ export default function ArticleDetailScreen() {
       return () => backHandler.remove();
     }
   }, [router, selectedImageIndex, showMenu]);
+  
+  // Load adjacent articles for swipe navigation
+  useEffect(() => {
+    if (articleId) {
+      // Load next and previous articles
+      getAdjacentArticle(articleId, 'next').then(setNextArticle);
+      getAdjacentArticle(articleId, 'prev').then(setPrevArticle);
+    }
+  }, [articleId]);
   
   useEffect(() => {
     const loadArticle = async (retry = 0) => {
@@ -97,6 +164,12 @@ export default function ArticleDetailScreen() {
         if (data.content.rendered) {
           const videos = extractVideoUrls(data.content.rendered);
           setVideoUrls(videos);
+        }
+        
+        // Extract YouTube URL from meta field
+        if (data.meta?.youtube) {
+          const youtubeVideoUrl = extractYouTubeUrl(data.meta.youtube);
+          setYoutubeUrl(youtubeVideoUrl);
         }
         
         // Add to recent articles (filtering is handled in the store)
@@ -154,8 +227,9 @@ export default function ArticleDetailScreen() {
   const loadRelatedArticles = async (currentArticle: Article) => {
     setRelatedLoading(true);
     try {
-      const related = await fetchRelatedArticles(currentArticle.id, currentArticle.categories);
-      setRelatedArticles(related);
+      const { sliderArticles, listArticles } = await fetchRelatedArticles(currentArticle.id, currentArticle.categories);
+      setRelatedSliderArticles(sliderArticles);
+      setRelatedListArticles(listArticles);
     } catch (error) {
       console.warn('Failed to load related articles:', error);
     } finally {
@@ -236,6 +310,12 @@ export default function ArticleDetailScreen() {
           setVideoUrls(videos);
         }
         
+        // Extract YouTube URL from meta field
+        if (data.meta?.youtube) {
+          const youtubeVideoUrl = extractYouTubeUrl(data.meta.youtube);
+          setYoutubeUrl(youtubeVideoUrl);
+        }
+        
         // Load gallery images if available
         if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
           setTimeout(() => {
@@ -280,6 +360,26 @@ export default function ArticleDetailScreen() {
       setSelectedImageIndex(selectedImageIndex - 1);
     } else if (direction === 'next' && selectedImageIndex < galleryImages.length - 1) {
       setSelectedImageIndex(selectedImageIndex + 1);
+    }
+  };
+  
+  // Handle scroll to end for auto-redirect
+  const handleScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const scrollPosition = contentOffset.y;
+    const scrollViewHeight = layoutMeasurement.height;
+    const contentHeight = contentSize.height;
+    
+    // Check if user has scrolled to the bottom
+    const isAtBottom = scrollPosition + scrollViewHeight >= contentHeight - 50;
+    
+    if (isAtBottom && !isScrollingToEnd.current) {
+      isScrollingToEnd.current = true;
+      
+      // Delay the redirect to avoid accidental triggers
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 1000);
     }
   };
   
@@ -556,6 +656,17 @@ export default function ArticleDetailScreen() {
     }
   };
   
+  // Render YouTube video from meta field
+  const renderYouTubeVideo = () => {
+    if (!youtubeUrl) return null;
+    
+    return (
+      <View style={styles.youtubeContainer}>
+        <VideoPlayer url={youtubeUrl} title="YouTube Video" />
+      </View>
+    );
+  };
+  
   // Render gallery (moved below content)
   const renderGallery = () => {
     if (!contentLoaded) return null;
@@ -613,33 +724,46 @@ export default function ArticleDetailScreen() {
     );
   };
   
-  // Render related articles
+  // Render related articles with slider and list
   const renderRelatedArticles = () => {
-    if (!contentLoaded || relatedArticles.length === 0) return null;
+    if (!contentLoaded) return null;
     
     return (
       <View style={styles.relatedContainer}>
-        <Text style={[
-          styles.relatedTitle, 
-          { 
-            color: theme.colors.text,
-            fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
-          }
-        ]}>
-          Powiązane artykuły
-        </Text>
+        {/* Slider for related articles */}
+        {relatedSliderArticles.length > 0 && (
+          <RelatedArticlesSlider 
+            articles={relatedSliderArticles} 
+            title="Z tej samej kategorii" 
+          />
+        )}
         
-        {relatedLoading ? (
-          <LoadingIndicator size="small" />
-        ) : (
-          <View style={styles.relatedList}>
-            {relatedArticles.map((relatedArticle) => (
-              <ArticleCard
-                key={relatedArticle.id}
-                article={relatedArticle}
-                compact={true}
-              />
-            ))}
+        {/* List of latest articles */}
+        {relatedListArticles.length > 0 && (
+          <View style={styles.relatedListContainer}>
+            <Text style={[
+              styles.relatedTitle, 
+              { 
+                color: theme.colors.text,
+                fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
+              }
+            ]}>
+              Najnowsze artykuły
+            </Text>
+            
+            {relatedLoading ? (
+              <LoadingIndicator size="small" />
+            ) : (
+              <View style={styles.relatedList}>
+                {relatedListArticles.map((relatedArticle) => (
+                  <ArticleCard
+                    key={relatedArticle.id}
+                    article={relatedArticle}
+                    compact={true}
+                  />
+                ))}
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -785,8 +909,44 @@ export default function ArticleDetailScreen() {
     );
   };
   
+  // Render swipe indicators
+  const renderSwipeIndicators = () => {
+    if (!prevArticle && !nextArticle) return null;
+    
+    return (
+      <View style={styles.swipeIndicators}>
+        {prevArticle && (
+          <View style={[styles.swipeIndicator, styles.swipeIndicatorLeft]}>
+            <ChevronLeft size={16} color={theme.colors.textSecondary} />
+            <Text style={[styles.swipeIndicatorText, { color: theme.colors.textSecondary }]}>
+              Poprzedni
+            </Text>
+          </View>
+        )}
+        
+        {nextArticle && (
+          <View style={[styles.swipeIndicator, styles.swipeIndicatorRight]}>
+            <Text style={[styles.swipeIndicatorText, { color: theme.colors.textSecondary }]}>
+              Następny
+            </Text>
+            <ChevronRight size={16} color={theme.colors.textSecondary} />
+          </View>
+        )}
+      </View>
+    );
+  };
+  
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <Animated.View 
+      style={[
+        styles.container, 
+        { 
+          backgroundColor: theme.colors.background,
+          transform: [{ translateX: swipeGesture }]
+        }
+      ]}
+      {...panResponder.panHandlers}
+    >
       <StatusBar 
         translucent 
         backgroundColor="transparent" 
@@ -812,10 +972,13 @@ export default function ArticleDetailScreen() {
       </TouchableOpacity>
       
       <ScrollView 
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={Platform.OS === 'android'}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         {/* Featured image */}
         {article.featured_media_url ? (
@@ -833,7 +996,7 @@ export default function ArticleDetailScreen() {
             
             {/* Category badge */}
             {categoryName && (
-              <View style={styles.categoryBadge}>
+              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary }]}>
                 <Text style={[
                   styles.categoryText,
                   { 
@@ -899,11 +1062,17 @@ export default function ArticleDetailScreen() {
           {/* Article content */}
           {renderContent()}
           
+          {/* YouTube video from meta field */}
+          {renderYouTubeVideo()}
+          
           {/* Gallery (moved below content) */}
           {renderGallery()}
           
           {/* Related articles */}
           {renderRelatedArticles()}
+          
+          {/* Swipe indicators */}
+          {renderSwipeIndicators()}
         </View>
       </ScrollView>
       
@@ -912,7 +1081,7 @@ export default function ArticleDetailScreen() {
       
       {/* Image modal */}
       {renderImageModal()}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -949,7 +1118,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 4,
-    backgroundColor: '#FF3B30',
   },
   categoryText: {
     fontSize: 12,
@@ -1024,6 +1192,10 @@ const styles = StyleSheet.create({
   videoContainer: {
     marginBottom: 24,
   },
+  youtubeContainer: {
+    marginTop: 24,
+    marginBottom: 24,
+  },
   galleryContainer: {
     marginTop: 32,
     marginBottom: 24,
@@ -1059,13 +1231,38 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(0, 0, 0, 0.1)',
   },
+  relatedListContainer: {
+    marginTop: 24,
+  },
   relatedTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
+    marginHorizontal: 24,
   },
   relatedList: {
     gap: 12,
+  },
+  swipeIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 32,
+    paddingHorizontal: 16,
+  },
+  swipeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    opacity: 0.6,
+  },
+  swipeIndicatorLeft: {
+    alignSelf: 'flex-start',
+  },
+  swipeIndicatorRight: {
+    alignSelf: 'flex-end',
+  },
+  swipeIndicatorText: {
+    fontSize: 12,
+    marginHorizontal: 4,
   },
   htmlContainer: {
     width: '100%',

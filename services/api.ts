@@ -455,15 +455,15 @@ export const fetchMediaByIds = async (ids: string[]): Promise<MediaItem[]> => {
 export const fetchRelatedArticles = async (
   currentArticleId: number,
   categories: number[],
-  limit = 3
-): Promise<Article[]> => {
+  limit = 6 // Increased to get more for slider + list
+): Promise<{ sliderArticles: Article[], listArticles: Article[] }> => {
   try {
     const timestamp = new Date().getTime();
     
     // Filter out sponsored category from categories
     const filteredCategories = categories.filter(catId => catId !== 554);
     
-    let url = `${API_BASE_URL}/posts?_embed&per_page=${limit + 1}&exclude=${currentArticleId}&_=${timestamp}`;
+    let url = `${API_BASE_URL}/posts?_embed&per_page=${limit * 2}&exclude=${currentArticleId}&_=${timestamp}`;
     
     // If we have categories, use them for related articles
     if (filteredCategories.length > 0) {
@@ -478,16 +478,16 @@ export const fetchRelatedArticles = async (
     if (!response.ok) {
       // If categories-based search fails, try without categories
       if (filteredCategories.length > 0) {
-        const fallbackUrl = `${API_BASE_URL}/posts?_embed&per_page=${limit + 1}&exclude=${currentArticleId}&categories_exclude=554&_=${timestamp}`;
+        const fallbackUrl = `${API_BASE_URL}/posts?_embed&per_page=${limit * 2}&exclude=${currentArticleId}&categories_exclude=554&_=${timestamp}`;
         const fallbackResponse = await fetchWithTimeout(fallbackUrl);
         
         if (!fallbackResponse.ok) {
-          return [];
+          return { sliderArticles: [], listArticles: [] };
         }
         
         const fallbackArticles = await fallbackResponse.json();
         if (!Array.isArray(fallbackArticles)) {
-          return [];
+          return { sliderArticles: [], listArticles: [] };
         }
         
         const processedFallbackArticles = fallbackArticles.map((article: Article) => {
@@ -505,18 +505,21 @@ export const fetchRelatedArticles = async (
           };
         });
         
-        // Filter out sponsored content and limit results
+        // Filter out sponsored content and split results
         const filteredFallbackArticles = filterSponsoredArticles(processedFallbackArticles);
-        return filteredFallbackArticles.slice(0, limit);
+        return {
+          sliderArticles: filteredFallbackArticles.slice(0, 3),
+          listArticles: filteredFallbackArticles.slice(3, 6)
+        };
       }
       
-      return [];
+      return { sliderArticles: [], listArticles: [] };
     }
     
     const articles = await response.json();
     
     if (!Array.isArray(articles)) {
-      return [];
+      return { sliderArticles: [], listArticles: [] };
     }
     
     // Process articles to extract featured image URL
@@ -535,12 +538,70 @@ export const fetchRelatedArticles = async (
       };
     });
     
-    // Filter out sponsored content and limit results
+    // Filter out sponsored content and split results
     const filteredArticles = filterSponsoredArticles(processedArticles);
-    return filteredArticles.slice(0, limit);
+    return {
+      sliderArticles: filteredArticles.slice(0, 3),
+      listArticles: filteredArticles.slice(3, 6)
+    };
   } catch (error: any) {
     console.warn('Error fetching related articles:', error);
-    return [];
+    return { sliderArticles: [], listArticles: [] };
+  }
+};
+
+// Get next/previous article for swipe navigation
+export const getAdjacentArticle = async (
+  currentArticleId: number,
+  direction: 'next' | 'prev'
+): Promise<Article | null> => {
+  try {
+    const timestamp = new Date().getTime();
+    
+    // For next article, get articles with ID greater than current
+    // For prev article, get articles with ID less than current
+    const operator = direction === 'next' ? 'after' : 'before';
+    const order = direction === 'next' ? 'asc' : 'desc';
+    
+    let url = `${API_BASE_URL}/posts?_embed&per_page=1&${operator}=${currentArticleId}&order=${order}&categories_exclude=554&_=${timestamp}`;
+    
+    const response = await fetchWithTimeout(url);
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const articles = await response.json();
+    
+    if (!Array.isArray(articles) || articles.length === 0) {
+      return null;
+    }
+    
+    const article = articles[0];
+    
+    // Process article to extract featured image URL
+    let featured_media_url = undefined;
+    
+    if (article._embedded && 
+        article._embedded['wp:featuredmedia'] && 
+        article._embedded['wp:featuredmedia'][0]) {
+      featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+    }
+    
+    const processedArticle = {
+      ...article,
+      featured_media_url
+    };
+    
+    // Check if this is sponsored content
+    if (filterSponsoredArticles([processedArticle]).length === 0) {
+      return null;
+    }
+    
+    return processedArticle;
+  } catch (error: any) {
+    console.warn('Error fetching adjacent article:', error);
+    return null;
   }
 };
 

@@ -1,8 +1,8 @@
 // Color palette for the application
 export const colors = {
   light: {
-    primary: '#4361EE', // Modern vibrant blue
-    secondary: '#F72585', // Vibrant pink accent
+    primary: '#224A96', // Brand main color
+    secondary: '#FECC00', // Brand secondary color
     background: '#F9FAFB',
     card: '#FFFFFF',
     text: '#111827',
@@ -16,8 +16,8 @@ export const colors = {
     shadow: '#000000',
   },
   dark: {
-    primary: '#4CC9F0', // Lighter blue for dark mode
-    secondary: '#F72585', // Vibrant pink for dark mode
+    primary: '#4A7BC8', // Lighter version of brand color for dark mode
+    secondary: '#FECC00', // Brand secondary color
     background: '#111827',
     card: '#1F2937',
     text: '#F9FAFB',
