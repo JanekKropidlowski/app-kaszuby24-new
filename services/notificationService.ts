@@ -1,195 +1,293 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+import OneSignal from 'react-native-onesignal';
 import { Platform } from 'react-native';
 import { useNotificationsStore } from '@/store/notificationsStore';
-import { registerPushToken } from './api';
+import { registerOneSignalPlayer } from './api';
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// OneSignal App ID
+const ONESIGNAL_APP_ID = '03c10d51-376c-4651-a25e-bbc3aa7cfb63';
 
 class NotificationService {
-  private checkInterval: NodeJS.Timeout | null = null;
   private isInitialized = false;
   
   async setupNotificationHandlers() {
     if (this.isInitialized) return;
     
     try {
-      // Handle notifications received while app is in foreground
-      Notifications.addNotificationReceivedListener(this.handleNotificationReceived);
+      // Initialize OneSignal
+      OneSignal.setAppId(ONESIGNAL_APP_ID);
+      
+      // Handle notification received while app is in foreground
+      OneSignal.setNotificationWillShowInForegroundHandler(this.handleNotificationReceived);
       
       // Handle notification taps
-      Notifications.addNotificationResponseReceivedListener(this.handleNotificationResponse);
+      OneSignal.setNotificationOpenedHandler(this.handleNotificationOpened);
       
-      // Request permissions and get token
+      // Handle subscription changes
+      OneSignal.addSubscriptionObserver(this.handleSubscriptionChange);
+      
+      // Request permissions and get player ID
       await this.requestPermissionsAndRegister();
       
       this.isInitialized = true;
+      console.log('OneSignal notification handlers setup complete');
     } catch (error) {
-      console.warn('Failed to setup notification handlers:', error);
+      console.warn('Failed to setup OneSignal notification handlers:', error);
     }
   }
   
-  private handleNotificationReceived = (notification: Notifications.Notification) => {
-    console.log('Notification received in foreground:', notification);
+  private handleNotificationReceived = (notification: any) => {
+    console.log('OneSignal notification received in foreground:', notification);
     
     // Add to store
     const { addNotification } = useNotificationsStore.getState();
     addNotification({
-      title: notification.request.content.title || 'Nowe powiadomienie',
-      body: notification.request.content.body || '',
-      data: notification.request.content.data || {},
+      title: notification.title || 'Nowe powiadomienie',
+      body: notification.body || '',
+      data: notification.additionalData || {},
       read: false,
+      articleId: notification.additionalData?.articleId ? parseInt(notification.additionalData.articleId) : undefined,
+      categoryId: notification.additionalData?.categoryId ? parseInt(notification.additionalData.categoryId) : undefined,
     });
+    
+    // Display the notification
+    notification.complete(notification);
   };
   
-  private handleNotificationResponse = (response: Notifications.NotificationResponse) => {
-    console.log('Notification tapped:', response);
+  private handleNotificationOpened = (result: any) => {
+    console.log('OneSignal notification opened:', result);
+    
+    const notification = result.notification;
     
     // Mark as read
     const { markAsRead } = useNotificationsStore.getState();
-    markAsRead(response.notification.request.identifier);
+    markAsRead(notification.notificationId);
     
     // Handle navigation based on notification data
-    const data = response.notification.request.content.data;
+    const data = notification.additionalData;
     if (data?.articleId) {
       // Navigate to article - this would need to be implemented with navigation
       console.log('Navigate to article:', data.articleId);
     }
   };
   
-  async requestPermissionsAndRegister() {
-    if (!Device.isDevice) {
-      console.log('Must use physical device for Push Notifications');
-      return;
-    }
+  private handleSubscriptionChange = (event: any) => {
+    console.log('OneSignal subscription changed:', event);
     
+    const { setOneSignalPlayerId } = useNotificationsStore.getState();
+    
+    if (event.to.isSubscribed) {
+      const playerId = event.to.userId;
+      if (playerId) {
+        setOneSignalPlayerId(playerId);
+        this.registerPlayerWithBackend(playerId);
+      }
+    }
+  };
+  
+  async requestPermissions(): Promise<boolean> {
     try {
-      // Request permissions
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+      if (Platform.OS === 'web') {
+        console.log('OneSignal not supported on web');
+        return false;
       }
       
-      if (finalStatus !== 'granted') {
-        console.log('Failed to get push token for push notification!');
+      // Request permission
+      const permission = await OneSignal.promptForPushNotificationsWithUserResponse();
+      console.log('OneSignal permission result:', permission);
+      
+      return permission;
+    } catch (error) {
+      console.error('Error requesting OneSignal permissions:', error);
+      return false;
+    }
+  }
+  
+  async requestPermissionsAndRegister() {
+    try {
+      if (Platform.OS === 'web') {
+        console.log('OneSignal not supported on web');
         return;
       }
       
-      // Get push token
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: '457899111233', // Your project ID from google-services.json
-      });
+      // Request permission
+      const hasPermission = await this.requestPermissions();
       
-      console.log('Push token:', tokenData.data);
-      
-      // Register token with backend
-      await this.registerTokenWithBackend(tokenData.data);
-      
-      // Configure notification channel for Android
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-        });
+      if (!hasPermission) {
+        console.log('OneSignal permission denied');
+        return;
       }
       
-    } catch (error: unknown) {
-      const deviceTokenError = error as Error;
-      console.error('Error getting push token:', deviceTokenError);
+      // Get device state to check subscription
+      const deviceState = await OneSignal.getDeviceState();
+      console.log('OneSignal device state:', deviceState);
       
-      // Handle specific Firebase errors
-      if (deviceTokenError.message?.includes('SERVICE_NOT_AVAILABLE')) {
-        console.warn('Google Play Services not available. Push notifications will not work.');
-      } else if (deviceTokenError.message?.includes('NETWORK_ERROR')) {
-        console.warn('Network error while getting push token. Will retry later.');
+      if (deviceState?.userId) {
+        const { setOneSignalPlayerId } = useNotificationsStore.getState();
+        setOneSignalPlayerId(deviceState.userId);
+        
+        // Register with backend
+        await this.registerPlayerWithBackend(deviceState.userId);
       }
+      
+    } catch (error) {
+      console.error('Error setting up OneSignal:', error);
     }
   }
   
-  private async registerTokenWithBackend(token: string) {
+  async registerForPushNotifications() {
     try {
-      const deviceInfo = Device.isDevice ? {
-        brand: Device.brand,
-        modelName: Device.modelName,
-        osName: Device.osName,
-        osVersion: Device.osVersion,
-      } : undefined;
+      if (Platform.OS === 'web') {
+        console.log('OneSignal not supported on web');
+        return;
+      }
       
-      await registerPushToken({
-        token,
-        location: 'Kaszuby', // Default location
-        locationId: 1, // Default location ID
+      // Enable notifications
+      OneSignal.disablePush(false);
+      
+      // Get current device state
+      const deviceState = await OneSignal.getDeviceState();
+      
+      if (deviceState?.userId) {
+        const { setOneSignalPlayerId } = useNotificationsStore.getState();
+        setOneSignalPlayerId(deviceState.userId);
+        
+        // Register with backend
+        await this.registerPlayerWithBackend(deviceState.userId);
+      }
+      
+      console.log('OneSignal push notifications registered');
+    } catch (error) {
+      console.error('Error registering for OneSignal push notifications:', error);
+    }
+  }
+  
+  async updateLocationAndReregister() {
+    try {
+      const deviceState = await OneSignal.getDeviceState();
+      
+      if (deviceState?.userId) {
+        // Re-register with new location
+        await this.registerPlayerWithBackend(deviceState.userId);
+      }
+    } catch (error) {
+      console.error('Error updating location for OneSignal:', error);
+    }
+  }
+  
+  private async registerPlayerWithBackend(playerId: string) {
+    try {
+      const { userLocation } = useNotificationsStore.getState();
+      
+      await registerOneSignalPlayer({
+        playerId,
+        location: userLocation?.name || 'Kaszuby',
+        locationId: userLocation?.id || 1,
         platform: Platform.OS,
-        deviceInfo,
       });
       
-      console.log('Push token registered successfully');
-    } catch (error: unknown) {
-      const registrationError = error as Error;
-      console.warn('Failed to register push token with backend:', registrationError);
+      console.log('OneSignal player registered with backend successfully');
+    } catch (error) {
+      console.warn('Failed to register OneSignal player with backend:', error);
     }
   }
   
-  startPeriodicCheck() {
-    // Check for new notifications every 5 minutes when app is active
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
+  async setTags(tags: Record<string, string>) {
+    try {
+      if (Platform.OS === 'web') {
+        return;
+      }
+      
+      OneSignal.sendTags(tags);
+      console.log('OneSignal tags set:', tags);
+    } catch (error) {
+      console.warn('Failed to set OneSignal tags:', error);
     }
-    
-    this.checkInterval = setInterval(() => {
-      // This could fetch latest notifications from server
-      // For now, we'll just log
-      console.log('Periodic notification check');
-    }, 5 * 60 * 1000); // 5 minutes
   }
   
-  stopPeriodicCheck() {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
+  async updatePreferences() {
+    try {
+      const { preferences, userLocation } = useNotificationsStore.getState();
+      
+      // Create tags based on enabled preferences
+      const tags: Record<string, string> = {};
+      
+      // Add location tag
+      if (userLocation) {
+        tags.location = userLocation.slug;
+        tags.locationId = userLocation.id.toString();
+      }
+      
+      // Add enabled region tags
+      const enabledRegions = preferences
+        .filter(pref => pref.type === 'region' && pref.enabled)
+        .map(pref => pref.id.toString());
+      
+      if (enabledRegions.length > 0) {
+        tags.regions = enabledRegions.join(',');
+      }
+      
+      // Add enabled category tags
+      const enabledCategories = preferences
+        .filter(pref => pref.type === 'category' && pref.enabled)
+        .map(pref => pref.id.toString());
+      
+      if (enabledCategories.length > 0) {
+        tags.categories = enabledCategories.join(',');
+      }
+      
+      // Set tags in OneSignal
+      await this.setTags(tags);
+      
+    } catch (error) {
+      console.warn('Failed to update OneSignal preferences:', error);
     }
   }
   
   async scheduleLocalNotification(title: string, body: string, data?: any) {
     try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title,
-          body,
-          data,
-        },
-        trigger: null, // Show immediately
+      if (Platform.OS === 'web') {
+        return;
+      }
+      
+      // OneSignal doesn't have local notifications, but we can add to store
+      const { addNotification } = useNotificationsStore.getState();
+      addNotification({
+        title,
+        body,
+        data: data || {},
+        read: false,
       });
+      
     } catch (error) {
       console.warn('Failed to schedule local notification:', error);
     }
   }
   
-  async cancelAllNotifications() {
+  async clearNotifications() {
     try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      if (Platform.OS === 'web') {
+        return;
+      }
+      
+      OneSignal.clearOneSignalNotifications();
     } catch (error) {
-      console.warn('Failed to cancel notifications:', error);
+      console.warn('Failed to clear OneSignal notifications:', error);
     }
   }
   
+  startPeriodicCheck() {
+    // OneSignal handles this automatically, no need for manual checks
+    console.log('OneSignal handles notification checks automatically');
+  }
+  
+  stopPeriodicCheck() {
+    // OneSignal handles this automatically, no need for manual checks
+    console.log('OneSignal handles notification checks automatically');
+  }
+  
   cleanup() {
-    this.stopPeriodicCheck();
     this.isInitialized = false;
+    console.log('OneSignal notification service cleaned up');
   }
 }
 

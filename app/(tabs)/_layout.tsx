@@ -23,7 +23,7 @@ export default function TabLayout() {
         await notificationService.setupNotificationHandlers();
         notificationService.startPeriodicCheck();
       } catch (error) {
-        console.warn('Notification setup failed:', error);
+        console.warn('OneSignal notification setup failed:', error);
       }
     };
     

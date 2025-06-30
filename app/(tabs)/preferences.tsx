@@ -44,7 +44,7 @@ export default function PreferencesScreen() {
     isFirstTimeUser,
     userLocation,
     setUserLocation,
-    expoPushToken
+    oneSignalPlayerId
   } = useNotificationsStore();
   
   const { isDarkMode, toggleTheme, theme } = useThemeStore();
@@ -53,6 +53,13 @@ export default function PreferencesScreen() {
   useEffect(() => {
     initializePreferences();
   }, [initializePreferences]);
+  
+  // Update OneSignal preferences when they change
+  useEffect(() => {
+    if (notificationsEnabled && oneSignalPlayerId) {
+      notificationService.updatePreferences();
+    }
+  }, [preferences, notificationsEnabled, oneSignalPlayerId, userLocation]);
   
   const handleToggleNotifications = async () => {
     if (!notificationsEnabled) {
@@ -133,7 +140,7 @@ export default function PreferencesScreen() {
           text: location.name,
           onPress: async () => {
             setUserLocation(location);
-            // Re-register push token with new location
+            // Re-register with new location
             await notificationService.updateLocationAndReregister();
             Alert.alert(
               'Lokalizacja zmieniona',
@@ -451,7 +458,7 @@ export default function PreferencesScreen() {
           ]}>
             Wybrano {enabledCount} z {preferences.length} sekcji
           </Text>
-          {expoPushToken && (
+          {oneSignalPlayerId && (
             <Text style={[
               styles.statsText, 
               { 
@@ -459,7 +466,7 @@ export default function PreferencesScreen() {
                 fontFamily: theme.fontFamily.regular
               }
             ]}>
-              Token zarejestrowany ✓
+              OneSignal zarejestrowany ✓
             </Text>
           )}
         </View>

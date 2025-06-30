@@ -14,18 +14,12 @@ const CACHE_DURATION = 60 * 60 * 1000; // Cache for 1 hour
 // Request deduplication map
 const pendingRequests = new Map<string, Promise<any>>();
 
-// Push notification registration interface
-export interface PushTokenRegistration {
-  token: string;
+// OneSignal player registration interface
+export interface OneSignalPlayerRegistration {
+  playerId: string;
   location: string;
   locationId: number;
   platform: string;
-  deviceInfo?: {
-    brand?: string | null;
-    modelName?: string | null;
-    osName?: string | null;
-    osVersion?: string | null;
-  };
 }
 
 // Helper function to handle fetch with timeout and retries
@@ -650,10 +644,10 @@ export const getAdjacentArticle = async (
   });
 };
 
-// Register push token with backend
-export const registerPushToken = async (registration: PushTokenRegistration): Promise<void> => {
+// Register OneSignal player with backend
+export const registerOneSignalPlayer = async (registration: OneSignalPlayerRegistration): Promise<void> => {
   try {
-    const url = 'https://kaszuby24.pl/wp-json/kaszuby24/v1/register-push-token';
+    const url = 'https://kaszuby24.pl/wp-json/kaszuby24/v1/register-onesignal-player';
     
     const response = await fetchWithTimeout(url, {
       method: 'POST',
@@ -664,11 +658,13 @@ export const registerPushToken = async (registration: PushTokenRegistration): Pr
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to register push token: ${response.status}`);
+      throw new Error(`Failed to register OneSignal player: ${response.status}`);
     }
+    
+    console.log('OneSignal player registered successfully');
   } catch (error) {
     // Don't throw here - we don't want to break the app if registration fails
-    console.warn('Push token registration failed:', error);
+    console.warn('OneSignal player registration failed:', error);
   }
 };
 

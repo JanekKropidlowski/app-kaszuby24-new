@@ -62,7 +62,7 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
         setUserLocation(selectedLocation);
       }
       
-      // Request notification permissions and register token
+      // Request notification permissions
       const hasPermission = await notificationService.requestPermissions();
       
       if (hasPermission) {
@@ -93,7 +93,7 @@ const WelcomeNotifications: React.FC<WelcomeNotificationsProps> = ({
       // Close modal
       onClose();
     } catch (error) {
-      console.error('Error setting up notifications:', error);
+      console.error('Error setting up OneSignal notifications:', error);
     } finally {
       setIsSettingUp(false);
     }
