@@ -88,6 +88,9 @@ export class NotificationService {
       if (Platform.OS === 'android') {
         const devicePushToken = await Notifications.getDevicePushTokenAsync();
         console.log('Android device push token:', devicePushToken);
+        // Note: For Android, Firebase Cloud Messaging (FCM) is used under the hood by Expo.
+        // Ensure that google-services.json is properly configured in your app.json for builds.
+        // The file should be placed in the root directory and referenced in app.json under android.googleServicesFile.
       }
       
       // Get the token with error handling for Android
