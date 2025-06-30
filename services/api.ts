@@ -1,4 +1,4 @@
-import { Article, Category } from '@/types/article';
+import { Article, Category, MediaItem } from '@/types/article';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
@@ -8,6 +8,7 @@ const API_TIMEOUT = Platform.OS === 'android' ? 60000 : 30000; // Increased time
 const MAX_RETRIES = Platform.OS === 'android' ? 5 : 3; // More retries for Android
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
+const CACHE_KEY_MEDIA = 'cached_media';
 const CACHE_DURATION = 60 * 60 * 1000; // Cache for 1 hour
 
 // Push notification registration interface
@@ -396,6 +397,57 @@ export const searchArticles = async (
     }
     
     throw new Error('Wystąpił problem podczas wyszukiwania artykułów. Spróbuj ponownie później.');
+  }
+};
+
+// Fetch media items by IDs for gallery
+export const fetchMediaByIds = async (ids: string[]): Promise<MediaItem[]> => {
+  if (!ids || ids.length === 0) {
+    return [];
+  }
+  
+  try {
+    const timestamp = new Date().getTime();
+    const idsString = ids.join(',');
+    const cacheKey = `${CACHE_KEY_MEDIA}_${idsString}`;
+    
+    // Check cache first
+    const cachedData = await getCachedData(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+    
+    const url = `${API_BASE_URL}/media?include=${idsString}&per_page=100&_=${timestamp}`;
+    
+    const response = await fetchWithTimeout(url);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        return []; // No media found
+      } else if (response.status === 429) {
+        throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+      } else if (response.status >= 500) {
+        throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+      } else {
+        throw new Error(`Błąd API: ${response.status}`);
+      }
+    }
+    
+    const media = await response.json();
+    
+    if (!Array.isArray(media)) {
+      return [];
+    }
+    
+    // Cache the media data
+    await cacheData(cacheKey, media);
+    
+    return media;
+  } catch (error: any) {
+    console.warn('Error fetching media:', error);
+    
+    // Return empty array on error to not break the UI
+    return [];
   }
 };
 

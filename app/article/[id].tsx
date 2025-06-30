@@ -10,14 +10,16 @@ import {
   Dimensions,
   Linking,
   StatusBar,
-  BackHandler
+  BackHandler,
+  Modal,
+  FlatList
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft, Clock, Calendar, Eye } from 'lucide-react-native';
-import { fetchArticleById } from '@/services/api';
-import { Article } from '@/types/article';
+import { Bookmark, Share2, RefreshCw, ArrowLeft, Clock, Calendar, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { fetchArticleById, fetchMediaByIds } from '@/services/api';
+import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import VideoPlayer from '@/components/VideoPlayer';
@@ -42,6 +44,9 @@ export default function ArticleDetailScreen() {
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [webViewHeight, setWebViewHeight] = useState(300);
   const [webViewError, setWebViewError] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<MediaItem[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -50,13 +55,17 @@ export default function ArticleDetailScreen() {
   useEffect(() => {
     if (Platform.OS === 'android') {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (selectedImageIndex !== null) {
+          setSelectedImageIndex(null);
+          return true;
+        }
         router.back();
         return true;
       });
       
       return () => backHandler.remove();
     }
-  }, [router]);
+  }, [router, selectedImageIndex]);
   
   useEffect(() => {
     const loadArticle = async (retry = 0) => {
@@ -78,6 +87,19 @@ export default function ArticleDetailScreen() {
         if (data.content.rendered) {
           const videos = extractVideoUrls(data.content.rendered);
           setVideoUrls(videos);
+        }
+        
+        // Load gallery images if available
+        if (data.meta?.galeria && data.meta.galeria.length > 0) {
+          setGalleryLoading(true);
+          try {
+            const mediaItems = await fetchMediaByIds(data.meta.galeria);
+            setGalleryImages(mediaItems);
+          } catch (galleryError) {
+            console.warn('Failed to load gallery images:', galleryError);
+          } finally {
+            setGalleryLoading(false);
+          }
         }
         
         // Add to recent articles (filtering is handled in the store)
@@ -169,6 +191,21 @@ export default function ArticleDetailScreen() {
           setVideoUrls(videos);
         }
         
+        // Load gallery images if available
+        if (data.meta?.galeria && data.meta.galeria.length > 0) {
+          setGalleryLoading(true);
+          fetchMediaByIds(data.meta.galeria)
+            .then(mediaItems => {
+              setGalleryImages(mediaItems);
+            })
+            .catch(galleryError => {
+              console.warn('Failed to load gallery images:', galleryError);
+            })
+            .finally(() => {
+              setGalleryLoading(false);
+            });
+        }
+        
         // Add to recent articles (filtering is handled in the store)
         addRecentArticle(data);
       })
@@ -183,6 +220,24 @@ export default function ArticleDetailScreen() {
   
   const handleGoBack = () => {
     router.back();
+  };
+  
+  const openImageModal = (index: number) => {
+    setSelectedImageIndex(index);
+  };
+  
+  const closeImageModal = () => {
+    setSelectedImageIndex(null);
+  };
+  
+  const navigateImage = (direction: 'prev' | 'next') => {
+    if (selectedImageIndex === null) return;
+    
+    if (direction === 'prev' && selectedImageIndex > 0) {
+      setSelectedImageIndex(selectedImageIndex - 1);
+    } else if (direction === 'next' && selectedImageIndex < galleryImages.length - 1) {
+      setSelectedImageIndex(selectedImageIndex + 1);
+    }
   };
   
   if (loading) {
@@ -459,6 +514,137 @@ export default function ArticleDetailScreen() {
     }
   };
   
+  // Render gallery
+  const renderGallery = () => {
+    if (galleryLoading) {
+      return (
+        <View style={styles.galleryContainer}>
+          <Text style={[styles.galleryTitle, { color: theme.colors.text }]}>
+            Galeria
+          </Text>
+          <View style={styles.galleryLoadingContainer}>
+            <LoadingIndicator size="small" />
+          </View>
+        </View>
+      );
+    }
+    
+    if (galleryImages.length === 0) {
+      return null;
+    }
+    
+    return (
+      <View style={styles.galleryContainer}>
+        <Text style={[
+          styles.galleryTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
+          }
+        ]}>
+          Galeria ({galleryImages.length})
+        </Text>
+        <View style={styles.galleryGrid}>
+          {galleryImages.map((image, index) => (
+            <TouchableOpacity
+              key={image.id}
+              style={styles.galleryImageContainer}
+              onPress={() => openImageModal(index)}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={{ 
+                  uri: image.media_details?.sizes?.medium?.source_url || image.source_url 
+                }}
+                style={styles.galleryImage}
+                contentFit="cover"
+                transition={200}
+                placeholder="Loading..."
+                cachePolicy="memory-disk"
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+  
+  // Render image modal
+  const renderImageModal = () => {
+    if (selectedImageIndex === null || !galleryImages[selectedImageIndex]) {
+      return null;
+    }
+    
+    const currentImage = galleryImages[selectedImageIndex];
+    
+    return (
+      <Modal
+        visible={selectedImageIndex !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeImageModal}
+      >
+        <View style={styles.modalContainer}>
+          <StatusBar hidden />
+          
+          {/* Close button */}
+          <TouchableOpacity
+            style={styles.modalCloseButton}
+            onPress={closeImageModal}
+            activeOpacity={0.8}
+          >
+            <X size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          {/* Navigation buttons */}
+          {selectedImageIndex > 0 && (
+            <TouchableOpacity
+              style={[styles.modalNavButton, styles.modalNavButtonLeft]}
+              onPress={() => navigateImage('prev')}
+              activeOpacity={0.8}
+            >
+              <ChevronLeft size={32} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+          
+          {selectedImageIndex < galleryImages.length - 1 && (
+            <TouchableOpacity
+              style={[styles.modalNavButton, styles.modalNavButtonRight]}
+              onPress={() => navigateImage('next')}
+              activeOpacity={0.8}
+            >
+              <ChevronRight size={32} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+          
+          {/* Image counter */}
+          <View style={styles.modalCounter}>
+            <Text style={styles.modalCounterText}>
+              {selectedImageIndex + 1} / {galleryImages.length}
+            </Text>
+          </View>
+          
+          {/* Image */}
+          <Image
+            source={{ uri: currentImage.source_url }}
+            style={styles.modalImage}
+            contentFit="contain"
+            transition={200}
+          />
+          
+          {/* Caption */}
+          {currentImage.caption?.rendered && (
+            <View style={styles.modalCaptionContainer}>
+              <Text style={styles.modalCaption}>
+                {currentImage.caption.rendered.replace(/<[^>]*>/g, '')}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
+    );
+  };
+  
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar 
@@ -603,10 +789,16 @@ export default function ArticleDetailScreen() {
             </View>
           )}
           
+          {/* Gallery */}
+          {renderGallery()}
+          
           {/* Article content */}
           {renderContent()}
         </View>
       </ScrollView>
+      
+      {/* Image modal */}
+      {renderImageModal()}
     </View>
   );
 }
@@ -736,6 +928,34 @@ const styles = StyleSheet.create({
   videoContainer: {
     marginBottom: 24,
   },
+  galleryContainer: {
+    marginBottom: 24,
+  },
+  galleryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  galleryLoadingContainer: {
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  galleryImageContainer: {
+    width: (width - 64) / 2, // 2 columns with padding and gap
+    height: 120,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+  },
   htmlContainer: {
     width: '100%',
     minHeight: 200,
@@ -777,5 +997,85 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: Platform.select({
+      ios: 50,
+      android: 40,
+      default: 50
+    }),
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  modalNavButton: {
+    position: 'absolute',
+    top: '50%',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    marginTop: -22,
+  },
+  modalNavButtonLeft: {
+    left: 20,
+  },
+  modalNavButtonRight: {
+    right: 20,
+  },
+  modalCounter: {
+    position: 'absolute',
+    top: Platform.select({
+      ios: 50,
+      android: 40,
+      default: 50
+    }),
+    left: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    zIndex: 1000,
+  },
+  modalCounterText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  modalImage: {
+    width: width,
+    height: '70%',
+  },
+  modalCaptionContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalCaption: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });

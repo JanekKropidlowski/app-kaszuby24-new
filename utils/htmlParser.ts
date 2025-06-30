@@ -135,3 +135,14 @@ export const cleanHtml = (html: string): string => {
   
   return cleanedHtml;
 };
+
+// Process gallery IDs to ensure they are strings
+export const processGalleryIds = (galeria: string[] | undefined): string[] => {
+  if (!galeria || !Array.isArray(galeria)) {
+    return [];
+  }
+  
+  return galeria
+    .map(id => String(id).trim())
+    .filter(id => id && id !== '0' && !isNaN(Number(id)));
+};

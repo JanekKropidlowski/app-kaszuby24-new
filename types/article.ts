@@ -77,3 +77,33 @@ export interface Category {
   taxonomy: string;
   parent: number;
 }
+
+export interface MediaItem {
+  id: number;
+  source_url: string;
+  alt_text: string;
+  caption?: {
+    rendered: string;
+  };
+  media_details?: {
+    width: number;
+    height: number;
+    sizes?: {
+      medium?: {
+        source_url: string;
+        width: number;
+        height: number;
+      };
+      thumbnail?: {
+        source_url: string;
+        width: number;
+        height: number;
+      };
+      large?: {
+        source_url: string;
+        width: number;
+        height: number;
+      };
+    };
+  };
+}
