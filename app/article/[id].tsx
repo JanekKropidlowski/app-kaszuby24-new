@@ -246,84 +246,42 @@ export default function ArticleDetailScreen() {
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>');
       
-      const shareContent = {
+      // Simplified native sharing
+      const result = await Share.share({
         title: cleanTitle,
-        message: Platform.select({
-          android: `${cleanTitle}
-
-${article.link}`,
-          ios: cleanTitle,
-          default: `${cleanTitle}
-
-${article.link}`,
-        }),
-        url: Platform.select({
-          ios: article.link,
-          default: undefined,
-        }),
-      };
+        message: `${cleanTitle}\n\n${article.link}`,
+        url: article.link,
+      });
       
-      if (Platform.OS === 'web') {
-        // Web Share API implementation
-        if (navigator.share && navigator.canShare && navigator.canShare({ title: shareContent.title, url: article.link })) {
-          await navigator.share({
-            title: shareContent.title,
-            text: 'Sprawdź ten artykuł z Kaszuby24!',
-            url: article.link,
-          });
-        } else {
-          // Fallback for browsers that don't support Web Share API
-          try {
-            await navigator.clipboard.writeText(`${shareContent.title}
-
-${article.link}`);
-            Alert.alert(
-              'Link skopiowany!',
-              'Link do artykułu został skopiowany do schowka.',
-              [{ text: 'OK' }]
-            );
-          } catch (clipboardError) {
-            // Final fallback - show the link in an alert
-            Alert.alert(
-              'Udostępnij artykuł',
-              `Skopiuj ten link aby udostępnić:
-
-${article.link}`,
-              [{ text: 'OK' }]
-            );
-          }
-        }
-      } else {
-        // Native implementation for iOS and Android
-        const result = await Share.share(shareContent, {
-          dialogTitle: 'Udostępnij artykuł',
-          subject: cleanTitle,
-          excludedActivityTypes: Platform.select({
-            ios: [
-              'com.apple.UIKit.activity.AirDrop', // Remove if you want AirDrop
-            ],
-            default: undefined,
-          }),
-        });
-        
-        if (result.action === Share.sharedAction) {
-          console.log('Article shared successfully');
-          if (result.activityType) {
-            console.log('Shared via:', result.activityType);
-          }
-        } else if (result.action === Share.dismissedAction) {
-          console.log('Share dialog dismissed');
-        }
+      if (result.action === Share.sharedAction) {
+        console.log('Article shared successfully');
       }
     } catch (error: any) {
       console.error('Error sharing article:', error);
       
-      // Show user-friendly error message
-      Alert.alert(
-        'Błąd udostępniania',
-        'Nie udało się udostępnić artykułu. Spróbuj ponownie.',
-        [{ text: 'OK' }]
-      );
+      // Fallback - copy to clipboard
+      if (Platform.OS === 'web') {
+        try {
+          await navigator.clipboard.writeText(`${cleanTitle}\n\n${article.link}`);
+          Alert.alert(
+            'Link skopiowany!',
+            'Link do artykułu został skopiowany do schowka.',
+            [{ text: 'OK' }]
+          );
+        } catch (clipboardError) {
+          Alert.alert(
+            'Udostępnij artykuł',
+            `Skopiuj ten link:\n\n${article.link}`,
+            [{ text: 'OK' }]
+          );
+        }
+      } else {
+        Alert.alert(
+          'Błąd udostępniania',
+          'Nie udało się udostępnić artykułu. Spróbuj ponownie.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   }, [article]);
   
@@ -407,7 +365,7 @@ ${article.link}`,
         }).start();
       }
       
-      // Check if user has finished reading (reached actual bottom)
+      // Show finish message when user reaches the bottom (but don't auto-redirect)
       if (isAtActualBottom && progress >= 100 && !hasShownFinishMessage.current) {
         hasShownFinishMessage.current = true;
         setShowFinishMessage(true);
@@ -424,17 +382,16 @@ ${article.link}`,
           clearTimeout(redirectTimeout.current);
         }
         
-        // Set timeout for auto-redirect (longer delay)
+        // Auto-hide message after 8 seconds (but don't redirect)
         redirectTimeout.current = setTimeout(() => {
-          // Fade out message and redirect
           Animated.timing(finishMessageOpacity, {
             toValue: 0,
             duration: 300,
             useNativeDriver: true,
           }).start(() => {
-            router.replace('/(tabs)');
+            setShowFinishMessage(false);
           });
-        }, 5000); // 5 seconds instead of 3
+        }, 8000);
       }
     } else {
       // Reset progress when not at bottom
@@ -1233,14 +1190,15 @@ const styles = StyleSheet.create({
   },
   featuredImageContainer: {
     position: 'relative',
-    height: Platform.select({
-      ios: 320,
-      android: 400, // Increased height for Android
-      default: 320
-    }),
+    width: '100%',
+    aspectRatio: 16/9, // Consistent aspect ratio
+    minHeight: 280,
+    maxHeight: 400,
   },
   featuredImageContainerAndroid: {
-    height: 420, // Even more height for Android
+    aspectRatio: 16/9, // Same aspect ratio for Android
+    minHeight: 300,
+    maxHeight: 420,
   },
   featuredImage: {
     width: '100%',
