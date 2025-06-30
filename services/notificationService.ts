@@ -82,10 +82,11 @@ class NotificationService {
       
       const notification = response.notification;
       
-      // Mark as read
+      // Mark as read - fix type error by ensuring we have a string identifier
       const { markAsRead } = useNotificationsStore.getState();
-      if (notification.request.identifier) {
-        markAsRead(notification.request.identifier);
+      const notificationId = notification.request.identifier;
+      if (notificationId && typeof notificationId === 'string') {
+        markAsRead(notificationId);
       }
       
       // Handle navigation based on notification data
