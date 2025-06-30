@@ -159,7 +159,7 @@ export default function ArticleDetailScreen() {
           if (processedGalleryIds.length > 0) {
             loadGalleryImages(processedGalleryIds);
           }
-        }, 500);
+        }, Platform.OS === 'android' ? 800 : 500);
       }
     } catch (err) {
       console.error('Error loading article:', err);
@@ -707,7 +707,7 @@ ${article.link}`,
                 // Adjust WebView height based on content
                 const height = parseInt(message, 10);
                 if (height > 0 && height !== webViewHeight) {
-                  setWebViewHeight(Math.max(height + 50, 300)); // Add padding for Android
+                  setWebViewHeight(Math.max(height + (Platform.OS === 'android' ? 100 : 50), 300));
                 }
               }
             }}
@@ -727,7 +727,7 @@ ${article.link}`,
               console.warn('WebView render process gone');
               setWebViewError(true);
             }}
-            // Android-specific props
+            // Android-specific props - removed invalid props
             androidLayerType="hardware"
             mixedContentMode="compatibility"
             allowsFullscreenVideo={false}
@@ -872,7 +872,7 @@ ${article.link}`,
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={Platform.OS === 'android'}
         onScroll={handleScroll}
-        scrollEventThrottle={16}
+        scrollEventThrottle={Platform.OS === 'android' ? 32 : 16}
       >
         {/* Featured image with increased height for Android */}
         {article.featured_media_url ? (
@@ -1232,12 +1232,12 @@ const styles = StyleSheet.create({
     position: 'relative',
     height: Platform.select({
       ios: 320,
-      android: 340,
+      android: 400, // Increased height for Android
       default: 320
     }),
   },
   featuredImageContainerAndroid: {
-    height: 380, // Increased height for Android
+    height: 420, // Even more height for Android
   },
   featuredImage: {
     width: '100%',
@@ -1268,10 +1268,10 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   title: {
-    fontSize: Platform.OS === 'android' ? 20 : 22,
+    fontSize: Platform.OS === 'android' ? 22 : 22,
     fontWeight: '700',
     marginBottom: 16,
-    lineHeight: Platform.OS === 'android' ? 28 : 30,
+    lineHeight: Platform.OS === 'android' ? 30 : 30,
   },
   metaContainer: {
     flexDirection: 'row',

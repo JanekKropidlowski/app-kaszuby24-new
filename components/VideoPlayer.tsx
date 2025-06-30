@@ -104,9 +104,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
               </Text>
             </View>
           )}
-          // Improved Android support
+          // Improved Android support - removed invalid props
           androidLayerType="hardware"
-          androidHardwareAccelerationDisabled={false}
           mixedContentMode="compatibility"
           cacheEnabled={true}
         />

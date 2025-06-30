@@ -77,34 +77,43 @@ export const cleanHtml = (html: string): string => {
     'src="https://kaszuby24.pl/$1"'
   );
   
-  // Add necessary styles for web view
+  // Enhanced styles for better Android rendering
   const webStyles = `
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+      
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         line-height: 1.8;
         color: #212529;
         padding: 0;
         margin: 0;
-        font-size: 16px;
+        font-size: ${Platform.OS === 'android' ? '17px' : '16px'};
         background-color: transparent;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
       }
       
       p {
         margin-bottom: 16px;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.8;
       }
       
       img {
-        max-width: 100%;
-        height: auto;
-        display: block;
+        max-width: 100% !important;
+        height: auto !important;
+        border-radius: 8px;
         margin: 16px 0;
-        border-radius: 12px;
+        display: block;
       }
       
       a {
         color: #224A96;
         text-decoration: none;
+        word-break: break-word;
       }
       
       a:hover {
@@ -117,6 +126,7 @@ export const cleanHtml = (html: string): string => {
         margin-bottom: 16px;
         line-height: 1.3;
         font-weight: 600;
+        font-family: 'Poppins', sans-serif;
       }
       
       blockquote {
@@ -127,10 +137,11 @@ export const cleanHtml = (html: string): string => {
         border-radius: 16px;
         border-left: 4px solid #224A96;
         font-style: italic;
-        font-size: 17px;
+        font-size: ${Platform.OS === 'android' ? '18px' : '17px'};
         line-height: 1.6;
         color: #475569;
         box-shadow: 0 4px 20px rgba(34, 74, 150, 0.1);
+        font-family: 'Poppins', sans-serif;
       }
       
       blockquote::before {
@@ -143,17 +154,69 @@ export const cleanHtml = (html: string): string => {
         color: #224A96;
         opacity: 0.3;
         line-height: 1;
+        font-family: 'Poppins', sans-serif;
       }
       
       blockquote p {
         margin: 0;
         position: relative;
         z-index: 1;
+        font-family: 'Poppins', sans-serif;
       }
       
       ul, ol {
         padding-left: 24px;
+        margin: 16px 0;
       }
+      
+      li {
+        margin-bottom: 8px;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.6;
+      }
+      
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: ${Platform.OS === 'android' ? '15px' : '14px'};
+      }
+      
+      th, td {
+        border: 1px solid rgba(0,0,0,0.2);
+        padding: 12px 8px;
+        text-align: left;
+        font-family: 'Poppins', sans-serif;
+      }
+      
+      th {
+        background-color: rgba(0,0,0,0.1);
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+      }
+      
+      /* Remove any video/iframe elements to prevent conflicts */
+      iframe, video, embed, object {
+        display: none !important;
+      }
+      
+      /* Android-specific optimizations */
+      ${Platform.OS === 'android' ? `
+        * {
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        
+        body {
+          font-weight: 400;
+          letter-spacing: 0.01em;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+          font-weight: 600;
+          letter-spacing: -0.01em;
+        }
+      ` : ''}
       
       @media (prefers-color-scheme: dark) {
         body {
@@ -178,6 +241,14 @@ export const cleanHtml = (html: string): string => {
         
         blockquote::before {
           color: #4A7BC8;
+        }
+        
+        th, td {
+          border-color: rgba(255,255,255,0.2);
+        }
+        
+        th {
+          background-color: rgba(255,255,255,0.1);
         }
       }
     </style>

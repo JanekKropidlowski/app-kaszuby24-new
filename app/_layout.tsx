@@ -29,7 +29,7 @@ export default function RootLayout() {
       // Hide splash screen with a small delay to ensure fonts are loaded
       const timer = setTimeout(() => {
         SplashScreen.hideAsync();
-      }, 100);
+      }, Platform.OS === 'android' ? 200 : 100);
       
       return () => clearTimeout(timer);
     }
@@ -50,15 +50,20 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
-          // Performance optimizations
+          // Performance optimizations for Android
           animation: Platform.select({
             ios: 'default',
             android: 'fade',
             default: 'default',
           }),
           animationDuration: Platform.select({
-            android: 200,
+            android: 150,
             default: undefined,
+          }),
+          // Android-specific optimizations
+          ...(Platform.OS === 'android' && {
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
           }),
         }}
       >
@@ -69,6 +74,10 @@ export default function RootLayout() {
             headerShown: false,
             presentation: 'card',
             gestureEnabled: true,
+            // Android-specific optimizations
+            ...(Platform.OS === 'android' && {
+              animationTypeForReplace: 'push',
+            }),
           }} 
         />
         <Stack.Screen 

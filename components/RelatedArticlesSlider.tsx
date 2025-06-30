@@ -13,7 +13,7 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width - 32; // Full width minus padding
+const ITEM_WIDTH = width - 48; // Full width minus padding
 const ITEM_SPACING = 16;
 
 // Memoized article item component for better performance
@@ -140,9 +140,9 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         snapToInterval={ITEM_WIDTH + ITEM_SPACING}
         decelerationRate="fast"
         removeClippedSubviews={false}
-        initialNumToRender={3}
-        maxToRenderPerBatch={3}
-        windowSize={5}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={3}
         pagingEnabled={false}
         // Performance optimizations
         getItemLayout={(data, index) => ({

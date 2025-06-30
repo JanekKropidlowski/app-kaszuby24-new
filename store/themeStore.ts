@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export interface Theme {
   colors: {
@@ -23,54 +24,123 @@ export interface Theme {
     medium: string;
     semibold: string;
     bold: string;
+    light: string;
+    extralight: string;
+    thin: string;
+    extrabold: string;
+    black: string;
   };
 }
 
 const lightTheme: Theme = {
   colors: {
-    primary: '#3B82F6',
-    secondary: '#8B5CF6',
-    background: '#F9FAFB',
-    card: '#FFFFFF',
-    text: '#111827',
-    textSecondary: '#6B7280',
-    border: '#E5E7EB',
+    primary: '#224A96',
+    secondary: '#FECC00',
+    background: '#FFFFFF',
+    card: '#F8FAFC',
+    text: '#1E293B',
+    textSecondary: '#64748B',
+    border: '#E2E8F0',
     notification: '#EF4444',
     success: '#10B981',
     error: '#EF4444',
     warning: '#F59E0B',
-    subtle: '#F3F4F6',
+    subtle: '#F1F5F9',
     shadow: '#000000',
   },
   fontFamily: {
-    regular: 'Poppins-Regular',
-    medium: 'Poppins-Medium',
-    semibold: 'Poppins-SemiBold',
-    bold: 'Poppins-Bold',
+    regular: Platform.select({
+      default: 'Poppins-Regular',
+      android: 'Poppins-Regular',
+    }) || 'Poppins-Regular',
+    medium: Platform.select({
+      default: 'Poppins-Medium',
+      android: 'Poppins-Medium',
+    }) || 'Poppins-Medium',
+    semibold: Platform.select({
+      default: 'Poppins-SemiBold',
+      android: 'Poppins-SemiBold',
+    }) || 'Poppins-SemiBold',
+    bold: Platform.select({
+      default: 'Poppins-Bold',
+      android: 'Poppins-Bold',
+    }) || 'Poppins-Bold',
+    light: Platform.select({
+      default: 'Poppins-Light',
+      android: 'Poppins-Light',
+    }) || 'Poppins-Light',
+    extralight: Platform.select({
+      default: 'Poppins-ExtraLight',
+      android: 'Poppins-ExtraLight',
+    }) || 'Poppins-ExtraLight',
+    thin: Platform.select({
+      default: 'Poppins-Thin',
+      android: 'Poppins-Thin',
+    }) || 'Poppins-Thin',
+    extrabold: Platform.select({
+      default: 'Poppins-ExtraBold',
+      android: 'Poppins-ExtraBold',
+    }) || 'Poppins-ExtraBold',
+    black: Platform.select({
+      default: 'Poppins-Black',
+      android: 'Poppins-Black',
+    }) || 'Poppins-Black',
   },
 };
 
 const darkTheme: Theme = {
   colors: {
-    primary: '#60A5FA',
-    secondary: '#A78BFA',
-    background: '#111827',
-    card: '#1F2937',
-    text: '#F9FAFB',
-    textSecondary: '#9CA3AF',
-    border: '#374151',
+    primary: '#4A7BC8',
+    secondary: '#FECC00',
+    background: '#0F172A',
+    card: '#1E293B',
+    text: '#F1F5F9',
+    textSecondary: '#94A3B8',
+    border: '#334155',
     notification: '#F87171',
     success: '#34D399',
     error: '#F87171',
     warning: '#FBBF24',
-    subtle: '#374151',
+    subtle: '#334155',
     shadow: '#000000',
   },
   fontFamily: {
-    regular: 'Poppins-Regular',
-    medium: 'Poppins-Medium',
-    semibold: 'Poppins-SemiBold',
-    bold: 'Poppins-Bold',
+    regular: Platform.select({
+      default: 'Poppins-Regular',
+      android: 'Poppins-Regular',
+    }) || 'Poppins-Regular',
+    medium: Platform.select({
+      default: 'Poppins-Medium',
+      android: 'Poppins-Medium',
+    }) || 'Poppins-Medium',
+    semibold: Platform.select({
+      default: 'Poppins-SemiBold',
+      android: 'Poppins-SemiBold',
+    }) || 'Poppins-SemiBold',
+    bold: Platform.select({
+      default: 'Poppins-Bold',
+      android: 'Poppins-Bold',
+    }) || 'Poppins-Bold',
+    light: Platform.select({
+      default: 'Poppins-Light',
+      android: 'Poppins-Light',
+    }) || 'Poppins-Light',
+    extralight: Platform.select({
+      default: 'Poppins-ExtraLight',
+      android: 'Poppins-ExtraLight',
+    }) || 'Poppins-ExtraLight',
+    thin: Platform.select({
+      default: 'Poppins-Thin',
+      android: 'Poppins-Thin',
+    }) || 'Poppins-Thin',
+    extrabold: Platform.select({
+      default: 'Poppins-ExtraBold',
+      android: 'Poppins-ExtraBold',
+    }) || 'Poppins-ExtraBold',
+    black: Platform.select({
+      default: 'Poppins-Black',
+      android: 'Poppins-Black',
+    }) || 'Poppins-Black',
   },
 };
 
