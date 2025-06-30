@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Bell, Settings, Bookmark } from 'lucide-react-native';
@@ -46,12 +46,12 @@ export default function TabLayout() {
       case 'connecting':
         return 'Łączenie...';
       case 'connected':
-        return null; // Don't show anything when connected
+        return 'Połączono';
       case 'error':
         return 'Błąd';
       case 'disconnected':
       default:
-        return null; // Don't show disconnected status
+        return 'Offline';
     }
   };
 
@@ -146,23 +146,21 @@ export default function TabLayout() {
                 placeholder="Kaszuby24"
                 cachePolicy="memory-disk"
               />
-              {getConnectionStatusText() && (
-                <View style={{ 
-                  marginLeft: 8, 
-                  paddingHorizontal: 8, 
-                  paddingVertical: 2, 
-                  backgroundColor: getConnectionStatusColor(), 
-                  borderRadius: 8 
+              <View style={{ 
+                marginLeft: 8, 
+                paddingHorizontal: 8, 
+                paddingVertical: 2, 
+                backgroundColor: getConnectionStatusColor(), 
+                borderRadius: 8 
+              }}>
+                <Text style={{ 
+                  color: '#FFFFFF', 
+                  fontSize: 10, 
+                  fontFamily: theme.fontFamily.medium 
                 }}>
-                  <Text style={{ 
-                    color: '#FFFFFF', 
-                    fontSize: 10, 
-                    fontFamily: theme.fontFamily.medium 
-                  }}>
-                    {getConnectionStatusText()}
-                  </Text>
-                </View>
-              )}
+                  {getConnectionStatusText()}
+                </Text>
+              </View>
             </View>
           ),
         }}
