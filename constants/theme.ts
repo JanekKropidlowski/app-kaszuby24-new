@@ -1,9 +1,29 @@
 import { Platform } from 'react-native';
 
-// Helper function to get font family - prioritize custom fonts on all platforms
+// Helper function to get font family with proper Android fallbacks
 const getFontFamily = (fontName: string) => {
-  // Always try to use custom fonts first
+  if (Platform.OS === 'android') {
+    // On Android, ensure we have proper fallbacks
+    return fontName;
+  }
   return fontName;
+};
+
+// System font fallbacks for Android
+const getSystemFontFallback = (weight: string) => {
+  if (Platform.OS === 'android') {
+    switch (weight) {
+      case 'light':
+        return 'sans-serif-light';
+      case 'medium':
+        return 'sans-serif-medium';
+      case 'bold':
+        return 'sans-serif';
+      default:
+        return 'sans-serif';
+    }
+  }
+  return 'System';
 };
 
 export const lightTheme = {
@@ -23,15 +43,42 @@ export const lightTheme = {
     shadow: '#000000',
   },
   fontFamily: {
-    regular: getFontFamily('Poppins-Regular'),
-    medium: getFontFamily('Poppins-Medium'),
-    semibold: getFontFamily('Poppins-SemiBold'),
-    bold: getFontFamily('Poppins-Bold'),
-    light: getFontFamily('Poppins-Light'),
-    extralight: getFontFamily('Poppins-ExtraLight'),
-    thin: getFontFamily('Poppins-Thin'),
-    extrabold: getFontFamily('Poppins-ExtraBold'),
-    black: getFontFamily('Poppins-Black'),
+    regular: Platform.select({
+      default: getFontFamily('Poppins-Regular'),
+      android: 'Poppins-Regular',
+    }),
+    medium: Platform.select({
+      default: getFontFamily('Poppins-Medium'),
+      android: 'Poppins-Medium',
+    }),
+    semibold: Platform.select({
+      default: getFontFamily('Poppins-SemiBold'),
+      android: 'Poppins-SemiBold',
+    }),
+    bold: Platform.select({
+      default: getFontFamily('Poppins-Bold'),
+      android: 'Poppins-Bold',
+    }),
+    light: Platform.select({
+      default: getFontFamily('Poppins-Light'),
+      android: 'Poppins-Light',
+    }),
+    extralight: Platform.select({
+      default: getFontFamily('Poppins-ExtraLight'),
+      android: 'Poppins-ExtraLight',
+    }),
+    thin: Platform.select({
+      default: getFontFamily('Poppins-Thin'),
+      android: 'Poppins-Thin',
+    }),
+    extrabold: Platform.select({
+      default: getFontFamily('Poppins-ExtraBold'),
+      android: 'Poppins-ExtraBold',
+    }),
+    black: Platform.select({
+      default: getFontFamily('Poppins-Black'),
+      android: 'Poppins-Black',
+    }),
   },
 };
 
@@ -52,14 +99,41 @@ export const darkTheme = {
     shadow: '#000000',
   },
   fontFamily: {
-    regular: getFontFamily('Poppins-Regular'),
-    medium: getFontFamily('Poppins-Medium'),
-    semibold: getFontFamily('Poppins-SemiBold'),
-    bold: getFontFamily('Poppins-Bold'),
-    light: getFontFamily('Poppins-Light'),
-    extralight: getFontFamily('Poppins-ExtraLight'),
-    thin: getFontFamily('Poppins-Thin'),
-    extrabold: getFontFamily('Poppins-ExtraBold'),
-    black: getFontFamily('Poppins-Black'),
+    regular: Platform.select({
+      default: getFontFamily('Poppins-Regular'),
+      android: 'Poppins-Regular',
+    }),
+    medium: Platform.select({
+      default: getFontFamily('Poppins-Medium'),
+      android: 'Poppins-Medium',
+    }),
+    semibold: Platform.select({
+      default: getFontFamily('Poppins-SemiBold'),
+      android: 'Poppins-SemiBold',
+    }),
+    bold: Platform.select({
+      default: getFontFamily('Poppins-Bold'),
+      android: 'Poppins-Bold',
+    }),
+    light: Platform.select({
+      default: getFontFamily('Poppins-Light'),
+      android: 'Poppins-Light',
+    }),
+    extralight: Platform.select({
+      default: getFontFamily('Poppins-ExtraLight'),
+      android: 'Poppins-ExtraLight',
+    }),
+    thin: Platform.select({
+      default: getFontFamily('Poppins-Thin'),
+      android: 'Poppins-Thin',
+    }),
+    extrabold: Platform.select({
+      default: getFontFamily('Poppins-ExtraBold'),
+      android: 'Poppins-ExtraBold',
+    }),
+    black: Platform.select({
+      default: getFontFamily('Poppins-Black'),
+      android: 'Poppins-Black',
+    }),
   },
 };

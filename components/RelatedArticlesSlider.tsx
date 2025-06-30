@@ -13,7 +13,7 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.7;
+const ITEM_WIDTH = width * 0.8; // Increased width for full width
 const ITEM_SPACING = 16;
 
 export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
@@ -115,6 +115,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({
         initialNumToRender={3}
         maxToRenderPerBatch={3}
         windowSize={5}
+        pagingEnabled={false}
       />
     </View>
   );
@@ -132,6 +133,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingLeft: 24,
+    paddingRight: 8, // Small padding at the end
   },
   articleContainer: {
     borderRadius: 16,

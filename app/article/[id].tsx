@@ -200,24 +200,42 @@ export default function ArticleDetailScreen() {
     if (!article) return;
     
     try {
+      // Clean title for sharing
+      const cleanTitle = article.title.rendered
+        .replace(/&#8211;/g, '-')
+        .replace(/&#8217;/g, "'")
+        .replace(/&#8220;/g, '"')
+        .replace(/&#8221;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+      
       const shareContent = {
-        title: article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'"),
-        message: `${article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")} - ${article.link}`,
-        url: article.link,
+        title: cleanTitle,
+        message: Platform.select({
+          android: `${cleanTitle}\n\n${article.link}`,
+          ios: cleanTitle,
+          default: `${cleanTitle}\n\n${article.link}`,
+        }),
+        url: Platform.select({
+          ios: article.link,
+          default: undefined,
+        }),
       };
       
       if (Platform.OS === 'web') {
-        // Check if Web Share API is supported
-        if (navigator.share && navigator.canShare && navigator.canShare(shareContent)) {
+        // Web Share API implementation
+        if (navigator.share && navigator.canShare && navigator.canShare({ title: shareContent.title, url: article.link })) {
           await navigator.share({
             title: shareContent.title,
             text: 'Sprawdź ten artykuł z Kaszuby24!',
-            url: shareContent.url,
+            url: article.link,
           });
         } else {
           // Fallback for browsers that don't support Web Share API
           try {
-            await navigator.clipboard.writeText(`${shareContent.title} - ${shareContent.url}`);
+            await navigator.clipboard.writeText(`${shareContent.title}\n\n${article.link}`);
             Alert.alert(
               'Link skopiowany!',
               'Link do artykułu został skopiowany do schowka.',
@@ -227,26 +245,29 @@ export default function ArticleDetailScreen() {
             // Final fallback - show the link in an alert
             Alert.alert(
               'Udostępnij artykuł',
-              `Skopiuj ten link aby udostępnić:
-
-${shareContent.url}`,
+              `Skopiuj ten link aby udostępnić:\n\n${article.link}`,
               [{ text: 'OK' }]
             );
           }
         }
       } else {
         // Native implementation for iOS and Android
-        const result = await Share.share({
-          title: shareContent.title,
-          message: shareContent.message,
-          url: shareContent.url,
-        }, {
+        const result = await Share.share(shareContent, {
           dialogTitle: 'Udostępnij artykuł',
-          subject: shareContent.title,
+          subject: cleanTitle,
+          excludedActivityTypes: Platform.select({
+            ios: [
+              'com.apple.UIKit.activity.AirDrop', // Remove if you want AirDrop
+            ],
+            default: undefined,
+          }),
         });
         
         if (result.action === Share.sharedAction) {
           console.log('Article shared successfully');
+          if (result.activityType) {
+            console.log('Shared via:', result.activityType);
+          }
         } else if (result.action === Share.dismissedAction) {
           console.log('Share dialog dismissed');
         }
@@ -494,8 +515,10 @@ ${shareContent.url}`,
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
       <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
           font-size: 16px;
           line-height: 1.8;
           color: ${isDarkMode ? '#F9FAFB' : '#111827'};
@@ -508,6 +531,7 @@ ${shareContent.url}`,
         
         p {
           margin-bottom: 16px;
+          font-family: 'Poppins', sans-serif;
         }
         
         img {
@@ -531,6 +555,8 @@ ${shareContent.url}`,
           color: ${isDarkMode ? '#F9FAFB' : '#111827'};
           margin: 24px 0 16px 0;
           line-height: 1.4;
+          font-family: 'Poppins', sans-serif;
+          font-weight: 600;
         }
         
         blockquote {
@@ -545,6 +571,7 @@ ${shareContent.url}`,
           line-height: 1.6;
           color: ${isDarkMode ? '#E2E8F0' : '#475569'};
           box-shadow: ${isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(34, 74, 150, 0.1)'};
+          font-family: 'Poppins', sans-serif;
         }
         
         blockquote::before {
@@ -557,12 +584,14 @@ ${shareContent.url}`,
           color: ${theme.colors.primary};
           opacity: 0.3;
           line-height: 1;
+          font-family: 'Poppins', sans-serif;
         }
         
         blockquote p {
           margin: 0;
           position: relative;
           z-index: 1;
+          font-family: 'Poppins', sans-serif;
         }
         
         ul, ol {
@@ -572,6 +601,7 @@ ${shareContent.url}`,
         
         li {
           margin-bottom: 8px;
+          font-family: 'Poppins', sans-serif;
         }
         
         table {
@@ -584,11 +614,13 @@ ${shareContent.url}`,
           border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
           padding: 8px;
           text-align: left;
+          font-family: 'Poppins', sans-serif;
         }
         
         th {
           background-color: ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
-          font-weight: bold;
+          font-weight: 600;
+          font-family: 'Poppins', sans-serif;
         }
         
         /* Remove any video/iframe elements to prevent conflicts */
@@ -665,14 +697,14 @@ ${shareContent.url}`,
       // Fallback for Android when WebView fails
       return (
         <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
-          <Text style={[styles.fallbackText, { color: theme.colors.text }]}>
+          <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.regular }]}>
             Treść artykułu nie może być wyświetlona w aplikacji.
           </Text>
           <TouchableOpacity 
             style={[styles.fallbackButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => Linking.openURL(article.link)}
           >
-            <Text style={styles.fallbackButtonText}>
+            <Text style={[styles.fallbackButtonText, { fontFamily: theme.fontFamily.semibold }]}>
               Otwórz w przeglądarce
             </Text>
           </TouchableOpacity>
@@ -878,7 +910,7 @@ ${shareContent.url}`,
           }
         ]}
       >
-        <Text style={styles.progressText}>
+        <Text style={[styles.progressText, { fontFamily: theme.fontFamily.semibold }]}>
           {readingProgress}%
         </Text>
       </Animated.View>
@@ -900,10 +932,10 @@ ${shareContent.url}`,
         ]}
       >
         <View style={styles.finishMessageContent}>
-          <Text style={styles.finishMessageTitle}>
+          <Text style={[styles.finishMessageTitle, { fontFamily: theme.fontFamily.semibold }]}>
             Koniec artykułu
           </Text>
-          <Text style={styles.finishMessageSubtitle}>
+          <Text style={[styles.finishMessageSubtitle, { fontFamily: theme.fontFamily.regular }]}>
             Kliknij, aby wrócić na stronę główną
           </Text>
         </View>
@@ -968,7 +1000,7 @@ ${shareContent.url}`,
           
           {/* Image counter */}
           <View style={styles.modalCounter}>
-            <Text style={styles.modalCounterText}>
+            <Text style={[styles.modalCounterText, { fontFamily: theme.fontFamily.medium }]}>
               {selectedImageIndex + 1} / {galleryImages.length}
             </Text>
           </View>
@@ -984,7 +1016,7 @@ ${shareContent.url}`,
           {/* Caption */}
           {currentImage.caption?.rendered && (
             <View style={styles.modalCaptionContainer}>
-              <Text style={styles.modalCaption}>
+              <Text style={[styles.modalCaption, { fontFamily: theme.fontFamily.regular }]}>
                 {currentImage.caption.rendered.replace(/<[^>]*>/g, '')}
               </Text>
             </View>
@@ -1163,7 +1195,7 @@ ${shareContent.url}`,
           </Text>
           {unreadCount > 0 && (
             <View style={[styles.badge, { backgroundColor: theme.colors.notification }]}>
-              <Text style={styles.badgeText}>
+              <Text style={[styles.badgeText, { fontFamily: theme.fontFamily.semibold }]}>
                 {unreadCount > 9 ? '9+' : unreadCount.toString()}
               </Text>
             </View>
@@ -1252,9 +1284,9 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     position: 'relative',
     height: Platform.select({
-      ios: 300,
-      android: 280,
-      default: 300
+      ios: 320,
+      android: 340, // Increased height for Android
+      default: 320
     }),
   },
   featuredImage: {
