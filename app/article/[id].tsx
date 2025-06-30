@@ -86,9 +86,6 @@ export default function ArticleDetailScreen() {
   const [relatedListArticles, setRelatedListArticles] = useState<Article[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
-  const [readingProgress, setReadingProgress] = useState(0);
-  const [showFinishMessage, setShowFinishMessage] = useState(false);
-  const [isAtBottom, setIsAtBottom] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const progressOpacity = useRef(new Animated.Value(0)).current;
@@ -329,82 +326,12 @@ export default function ArticleDetailScreen() {
     }
   }, [selectedImageIndex, galleryImages.length]);
   
-  // Optimized scroll handler with throttling
+  // Simplified scroll handler - removed reading progress logic
   const handleScroll = useCallback((event: any) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    const scrollPosition = contentOffset.y;
-    const scrollViewHeight = layoutMeasurement.height;
-    const contentHeight = contentSize.height;
-    
-    // Calculate if user is at the very bottom (with small buffer)
-    const bottomBuffer = 50; // 50px buffer from actual bottom
-    const isNearBottom = scrollPosition + scrollViewHeight >= contentHeight - bottomBuffer;
-    const isAtActualBottom = scrollPosition + scrollViewHeight >= contentHeight - 10;
-    
-    setIsAtBottom(isAtActualBottom);
-    
-    // Only start calculating progress when user is near the bottom
-    if (isNearBottom) {
-      // Calculate reading progress percentage only when near bottom
-      const maxScrollDistance = contentHeight - scrollViewHeight;
-      const progress = Math.min(Math.max((scrollPosition / maxScrollDistance) * 100, 0), 100);
-      setReadingProgress(Math.round(progress));
-      
-      // Show progress indicator only when at bottom and progress is 100%
-      if (progress >= 100) {
-        Animated.timing(progressOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-      } else {
-        Animated.timing(progressOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-      }
-      
-      // Show finish message when user reaches the bottom (but don't auto-redirect)
-      if (isAtActualBottom && progress >= 100 && !hasShownFinishMessage.current) {
-        hasShownFinishMessage.current = true;
-        setShowFinishMessage(true);
-        
-        // Show finish message with animation
-        Animated.timing(finishMessageOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }).start();
-        
-        // Clear any existing timeout
-        if (redirectTimeout.current) {
-          clearTimeout(redirectTimeout.current);
-        }
-        
-        // Auto-hide message after 8 seconds (but don't redirect)
-        redirectTimeout.current = setTimeout(() => {
-          Animated.timing(finishMessageOpacity, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }).start(() => {
-            setShowFinishMessage(false);
-          });
-        }, 8000);
-      }
-    } else {
-      // Reset progress when not at bottom
-      setReadingProgress(0);
-      Animated.timing(progressOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [progressOpacity, finishMessageOpacity, router]);
+    // Keep only basic scroll handling if needed
+  }, []);
   
-  // Clear redirect timeout when component unmounts
+  // Cleanup timeout when component unmounts
   useEffect(() => {
     return () => {
       if (redirectTimeout.current) {
@@ -412,21 +339,6 @@ export default function ArticleDetailScreen() {
       }
     };
   }, []);
-  
-  // Handle manual return to home
-  const handleReturnToHome = useCallback(() => {
-    if (redirectTimeout.current) {
-      clearTimeout(redirectTimeout.current);
-    }
-    
-    Animated.timing(finishMessageOpacity, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      router.replace('/(tabs)');
-    });
-  }, [finishMessageOpacity, router]);
   
   // Memoized enhanced HTML for better performance
   const enhancedHtml = useMemo(() => {
@@ -831,8 +743,6 @@ export default function ArticleDetailScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={Platform.OS === 'android'}
-        onScroll={handleScroll}
-        scrollEventThrottle={Platform.OS === 'android' ? 32 : 16}
       >
         {/* Featured image with increased height for Android */}
         {article.featured_media_url ? (
@@ -1027,52 +937,6 @@ export default function ArticleDetailScreen() {
         </TouchableOpacity>
       </View>
       
-      {/* Reading progress indicator - only shows when at bottom */}
-      {isAtBottom && readingProgress >= 100 && (
-        <Animated.View 
-          style={[
-            styles.progressIndicator, 
-            { 
-              backgroundColor: theme.colors.primary,
-              opacity: progressOpacity 
-            }
-          ]}
-        >
-          <Text style={[styles.progressText, { fontFamily: theme.fontFamily.semibold }]}>
-            {readingProgress}%
-          </Text>
-        </Animated.View>
-      )}
-      
-      {/* Finish message */}
-      {showFinishMessage && (
-        <Animated.View 
-          style={[
-            styles.finishMessage, 
-            { 
-              backgroundColor: theme.colors.primary,
-              opacity: finishMessageOpacity 
-            }
-          ]}
-        >
-          <View style={styles.finishMessageContent}>
-            <Text style={[styles.finishMessageTitle, { fontFamily: theme.fontFamily.semibold }]}>
-              Koniec artykułu
-            </Text>
-            <Text style={[styles.finishMessageSubtitle, { fontFamily: theme.fontFamily.regular }]}>
-              Kliknij, aby wrócić na stronę główną
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.finishMessageButton}
-            onPress={handleReturnToHome}
-            activeOpacity={0.8}
-          >
-            <Home size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
-      
       {/* Image modal */}
       {selectedImageIndex !== null && galleryImages[selectedImageIndex] && (
         <Modal
@@ -1191,14 +1055,14 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    aspectRatio: 16/9, // Consistent aspect ratio
-    minHeight: 280,
-    maxHeight: 400,
+    height: 300, // Fixed height instead of aspect ratio
+    minHeight: 300,
+    maxHeight: 300,
   },
   featuredImageContainerAndroid: {
-    aspectRatio: 16/9, // Same aspect ratio for Android
-    minHeight: 300,
-    maxHeight: 420,
+    height: 320, // Slightly taller for Android
+    minHeight: 320,
+    maxHeight: 320,
   },
   featuredImage: {
     width: '100%',
@@ -1306,67 +1170,6 @@ const styles = StyleSheet.create({
   },
   relatedList: {
     gap: 12,
-  },
-  progressIndicator: {
-    position: 'absolute',
-    top: Platform.select({
-      ios: 100,
-      android: 95,
-      default: 100
-    }),
-    right: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  progressText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  finishMessage: {
-    position: 'absolute',
-    bottom: 110,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  finishMessageContent: {
-    flex: 1,
-  },
-  finishMessageTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  finishMessageSubtitle: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  finishMessageButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 12,
   },
   bottomMenuBar: {
     position: 'absolute',
@@ -1538,5 +1341,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
+  },
+  // Reading progress indicator - only shows when at bottom
+  progressIndicator: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Finish message
+  finishMessage: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    height: 100,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  finishMessageContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  finishMessageTitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  finishMessageSubtitle: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  finishMessageButton: {
+    marginTop: 16,
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
   },
 });

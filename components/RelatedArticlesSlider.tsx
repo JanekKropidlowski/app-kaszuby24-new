@@ -13,8 +13,8 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width - 48; // Full width minus padding
-const ITEM_SPACING = 16;
+const ITEM_WIDTH = width * 0.9; // 90% of screen width
+const ITEM_SPACING = 12;
 
 // Memoized article item component for better performance
 const RelatedArticleItem = memo(({ 
@@ -159,45 +159,46 @@ RelatedArticlesSlider.displayName = 'RelatedArticlesSlider';
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 20,
     marginHorizontal: 24,
   },
   listContainer: {
     paddingLeft: 24,
-    paddingRight: 8, // Small padding at the end
+    paddingRight: 12,
   },
   articleContainer: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
   articleImage: {
     width: '100%',
-    height: 140,
+    height: 160,
   },
   imagePlaceholder: {
     width: '100%',
-    height: 140,
+    height: 160,
   },
   articleContent: {
-    padding: 16,
+    padding: 20,
   },
   articleTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
-    lineHeight: 22,
-    marginBottom: 8,
+    lineHeight: 24,
+    marginBottom: 12,
   },
   articleDate: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '400',
+    opacity: 0.7,
   },
 });

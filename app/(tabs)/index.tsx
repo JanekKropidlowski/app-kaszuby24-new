@@ -28,8 +28,8 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-const CAROUSEL_ITEM_WIDTH = width * 0.85;
-const CAROUSEL_ITEM_SPACING = 16;
+const CAROUSEL_ITEM_WIDTH = width * 0.92;
+const CAROUSEL_ITEM_SPACING = 12;
 
 const MAX_RETRIES = 3;
 
@@ -650,26 +650,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 100, // Space for bottom tab bar
+    paddingBottom: 100,
   },
   carouselContainer: {
-    marginTop: 20,
-    marginBottom: 24,
+    marginTop: 16,
+    marginBottom: 32,
   },
   carouselListContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   carouselItemContainer: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   carouselItem: {
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
-    height: 220,
+    height: 240,
   },
   carouselImageContainer: {
     position: 'relative',
@@ -689,37 +689,38 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '70%',
+    height: '75%',
   },
   carouselItemContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    padding: 24,
   },
   carouselLabelContainer: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     alignSelf: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   carouselLabel: {
     color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   carouselTitle: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
-    lineHeight: 24,
-    marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    lineHeight: 26,
+    marginBottom: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   carouselFooter: {
     flexDirection: 'row',
@@ -727,50 +728,54 @@ const styles = StyleSheet.create({
   },
   carouselReadMore: {
     color: '#FFFFFF',
-    fontSize: 13,
-    marginRight: 4,
-    fontWeight: '600',
+    fontSize: 14,
+    marginRight: 6,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   indicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 16,
   },
   indicator: {
-    height: 6,
-    width: 6,
-    borderRadius: 3,
-    marginHorizontal: 3,
+    height: 8,
+    width: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
   },
   categoriesContainer: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   breakingNewsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   breakingNewsTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
+    letterSpacing: -0.3,
   },
   moreButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   moreText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
   articleContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
 });
