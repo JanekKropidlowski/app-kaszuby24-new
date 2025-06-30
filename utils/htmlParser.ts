@@ -89,6 +89,11 @@ export const cleanHtml = (html: string): string => {
         font-size: 16px;
         background-color: transparent;
       }
+      
+      p {
+        margin-bottom: 16px;
+      }
+      
       img {
         max-width: 100%;
         height: auto;
@@ -96,40 +101,83 @@ export const cleanHtml = (html: string): string => {
         margin: 16px 0;
         border-radius: 12px;
       }
+      
       a {
         color: #224A96;
         text-decoration: none;
       }
-      p {
-        margin: 16px 0;
+      
+      a:hover {
+        text-decoration: underline;
       }
+      
       h1, h2, h3, h4, h5, h6 {
+        color: #212529;
         margin-top: 28px;
         margin-bottom: 16px;
         line-height: 1.3;
         font-weight: 600;
       }
+      
       blockquote {
+        position: relative;
+        margin: 24px 0;
+        padding: 20px 24px 20px 60px;
+        background: linear-gradient(135deg, rgba(34, 74, 150, 0.08) 0%, rgba(254, 204, 0, 0.08) 100%);
+        border-radius: 16px;
         border-left: 4px solid #224A96;
-        padding-left: 16px;
-        margin-left: 0;
-        color: #6c757d;
         font-style: italic;
+        font-size: 17px;
+        line-height: 1.6;
+        color: #475569;
+        box-shadow: 0 4px 20px rgba(34, 74, 150, 0.1);
       }
+      
+      blockquote::before {
+        content: '"';
+        position: absolute;
+        left: 20px;
+        top: 12px;
+        font-size: 48px;
+        font-weight: bold;
+        color: #224A96;
+        opacity: 0.3;
+        line-height: 1;
+      }
+      
+      blockquote p {
+        margin: 0;
+        position: relative;
+        z-index: 1;
+      }
+      
       ul, ol {
         padding-left: 24px;
       }
+      
       @media (prefers-color-scheme: dark) {
         body {
           color: #f8f9fa;
           background-color: transparent;
         }
+        
+        h1, h2, h3, h4, h5, h6 {
+          color: #f8f9fa;
+        }
+        
         a {
           color: #4A7BC8;
         }
+        
         blockquote {
-          color: #adb5bd;
+          background: linear-gradient(135deg, rgba(74, 123, 200, 0.1) 0%, rgba(254, 204, 0, 0.05) 100%);
+          color: #E2E8F0;
           border-left-color: #4A7BC8;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        blockquote::before {
+          color: #4A7BC8;
         }
       }
     </style>

@@ -18,7 +18,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home } from 'lucide-react-native';
+import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings } from 'lucide-react-native';
 import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles, getAdjacentArticle } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -27,6 +27,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import { ArticleCard } from '@/components/ArticleCard';
 import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
 import { useArticlesStore } from '@/store/articlesStore';
+import { useNotificationsStore } from '@/store/notificationsStore';
 import { formatDateTime } from '@/utils/dateFormatter';
 import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
@@ -39,6 +40,7 @@ export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isArticleSaved, saveArticle, removeArticle, addRecentArticle } = useArticlesStore();
+  const { getUnreadCount } = useNotificationsStore();
   const { theme, isDarkMode } = useThemeStore();
   
   const [article, setArticle] = useState<Article | null>(null);
@@ -68,6 +70,7 @@ export default function ArticleDetailScreen() {
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
+  const unreadCount = getUnreadCount();
   
   // Swipe gesture handler
   const panResponder = useRef(
@@ -354,6 +357,18 @@ export default function ArticleDetailScreen() {
     router.replace('/(tabs)');
   };
   
+  const handleGoNotifications = () => {
+    router.replace('/(tabs)/notifications');
+  };
+  
+  const handleGoSaved = () => {
+    router.replace('/(tabs)/saved');
+  };
+  
+  const handleGoSettings = () => {
+    router.replace('/(tabs)/preferences');
+  };
+  
   const openImageModal = (index: number) => {
     setSelectedImageIndex(index);
   };
@@ -486,13 +501,35 @@ export default function ArticleDetailScreen() {
         }
         
         blockquote {
+          position: relative;
+          margin: 24px 0;
+          padding: 20px 24px 20px 60px;
+          background: ${isDarkMode ? 'linear-gradient(135deg, rgba(74, 123, 200, 0.1) 0%, rgba(254, 204, 0, 0.05) 100%)' : 'linear-gradient(135deg, rgba(34, 74, 150, 0.08) 0%, rgba(254, 204, 0, 0.08) 100%)'};
+          border-radius: 16px;
           border-left: 4px solid ${theme.colors.primary};
-          padding-left: 16px;
-          margin: 16px 0;
           font-style: italic;
-          background-color: ${isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
-          padding: 16px;
-          border-radius: 8px;
+          font-size: 17px;
+          line-height: 1.6;
+          color: ${isDarkMode ? '#E2E8F0' : '#475569'};
+          box-shadow: ${isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(34, 74, 150, 0.1)'};
+        }
+        
+        blockquote::before {
+          content: '"';
+          position: absolute;
+          left: 20px;
+          top: 12px;
+          font-size: 48px;
+          font-weight: bold;
+          color: ${theme.colors.primary};
+          opacity: 0.3;
+          line-height: 1;
+        }
+        
+        blockquote p {
+          margin: 0;
+          position: relative;
+          z-index: 1;
         }
         
         ul, ol {
@@ -1099,34 +1136,43 @@ export default function ArticleDetailScreen() {
         
         <TouchableOpacity
           style={styles.bottomMenuItem}
-          onPress={handleShare}
+          onPress={handleGoNotifications}
           activeOpacity={0.7}
         >
-          <Share2 size={20} color={theme.colors.text} />
+          <Bell size={20} color={theme.colors.text} />
           <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
-            Udostępnij
+            Powiadomienia
+          </Text>
+          {unreadCount > 0 && (
+            <View style={[styles.badge, { backgroundColor: theme.colors.notification }]}>
+              <Text style={styles.badgeText}>
+                {unreadCount > 9 ? '9+' : unreadCount.toString()}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoSaved}
+          activeOpacity={0.7}
+        >
+          <Bookmark size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+            Zapisane
           </Text>
         </TouchableOpacity>
         
-        {!isSponsoredContent(article) && (
-          <TouchableOpacity
-            style={styles.bottomMenuItem}
-            onPress={toggleSave}
-            activeOpacity={0.7}
-          >
-            <Bookmark 
-              size={20} 
-              color={isSaved ? theme.colors.primary : theme.colors.text}
-              fill={isSaved ? theme.colors.primary : 'transparent'} 
-            />
-            <Text style={[
-              styles.bottomMenuText, 
-              { color: isSaved ? theme.colors.primary : theme.colors.text }
-            ]}>
-              {isSaved ? 'Zapisane' : 'Zapisz'}
-            </Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoSettings}
+          activeOpacity={0.7}
+        >
+          <Settings size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+            Ustawienia
+          </Text>
+        </TouchableOpacity>
       </View>
       
       {/* Swipe indicators */}
@@ -1183,7 +1229,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 80, // Space for bottom menu
+    paddingBottom: 100, // Space for bottom menu
   },
   featuredImageContainer: {
     position: 'relative',
@@ -1269,11 +1315,11 @@ const styles = StyleSheet.create({
   galleryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12, // Improved spacing
+    gap: 16,
     justifyContent: 'space-between',
   },
   galleryImageContainer: {
-    width: (width - 72) / 2, // Better calculation for 2 columns
+    width: (width - 72) / 2,
     height: 120,
     borderRadius: 12,
     overflow: 'hidden',
@@ -1338,7 +1384,7 @@ const styles = StyleSheet.create({
   },
   redirectInfo: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 110,
     left: 20,
     right: 20,
     flexDirection: 'row',
@@ -1385,11 +1431,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    position: 'relative',
   },
   bottomMenuText: {
     fontSize: 12,
     fontWeight: '500',
     marginTop: 4,
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: '25%',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
   htmlContainer: {
     width: '100%',
