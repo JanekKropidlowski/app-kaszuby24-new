@@ -8,16 +8,20 @@ const ONESIGNAL_APP_ID = '03c10d51-376c-4651-a25e-bbc3aa7cfb63';
 
 class NotificationService {
   private isInitialized = false;
+  private initializationFailed = false;
   
   async setupNotificationHandlers() {
-    if (this.isInitialized) return;
+    if (this.isInitialized || this.initializationFailed) return;
     
     try {
       if (Platform.OS === 'web') {
         console.log('OneSignal not supported on web');
+        this.initializationFailed = true;
         return;
       }
 
+      console.log('Initializing OneSignal...');
+      
       // Initialize OneSignal
       OneSignal.initialize(ONESIGNAL_APP_ID);
       
@@ -30,78 +34,93 @@ class NotificationService {
       // Handle subscription changes
       OneSignal.User.pushSubscription.addEventListener('change', this.handleSubscriptionChange);
       
-      // Request permissions and get player ID
-      await this.requestPermissionsAndRegister();
-      
       this.isInitialized = true;
       console.log('OneSignal notification handlers setup complete');
+      
+      // Request permissions after setup
+      setTimeout(() => {
+        this.requestPermissionsAndRegister().catch(console.warn);
+      }, 1000);
+      
     } catch (error) {
       console.warn('Failed to setup OneSignal notification handlers:', error);
+      this.initializationFailed = true;
+      // Don't throw - let the app continue without notifications
     }
   }
   
   private handleNotificationReceived = (event: any) => {
-    console.log('OneSignal notification received in foreground:', event);
-    
-    const notification = event.notification;
-    
-    // Add to store
-    const { addNotification } = useNotificationsStore.getState();
-    addNotification({
-      title: notification.title || 'Nowe powiadomienie',
-      body: notification.body || '',
-      data: notification.additionalData || {},
-      read: false,
-      articleId: notification.additionalData?.articleId ? parseInt(notification.additionalData.articleId) : undefined,
-      categoryId: notification.additionalData?.categoryId ? parseInt(notification.additionalData.categoryId) : undefined,
-    });
-    
-    // Display the notification
-    event.preventDefault();
-    event.notification.display();
+    try {
+      console.log('OneSignal notification received in foreground:', event);
+      
+      const notification = event.notification;
+      
+      // Add to store
+      const { addNotification } = useNotificationsStore.getState();
+      addNotification({
+        title: notification.title || 'Nowe powiadomienie',
+        body: notification.body || '',
+        data: notification.additionalData || {},
+        read: false,
+        articleId: notification.additionalData?.articleId ? parseInt(notification.additionalData.articleId) : undefined,
+        categoryId: notification.additionalData?.categoryId ? parseInt(notification.additionalData.categoryId) : undefined,
+      });
+      
+      // Display the notification
+      event.preventDefault();
+      event.notification.display();
+    } catch (error) {
+      console.warn('Error handling notification received:', error);
+    }
   };
   
   private handleNotificationOpened = (event: any) => {
-    console.log('OneSignal notification opened:', event);
-    
-    const notification = event.notification;
-    
-    // Mark as read
-    const { markAsRead } = useNotificationsStore.getState();
-    if (notification.notificationId) {
-      markAsRead(notification.notificationId);
-    }
-    
-    // Handle navigation based on notification data
-    const data = notification.additionalData;
-    if (data?.articleId) {
-      // Navigate to article - this would need to be implemented with navigation
-      console.log('Navigate to article:', data.articleId);
+    try {
+      console.log('OneSignal notification opened:', event);
+      
+      const notification = event.notification;
+      
+      // Mark as read
+      const { markAsRead } = useNotificationsStore.getState();
+      if (notification.notificationId) {
+        markAsRead(notification.notificationId);
+      }
+      
+      // Handle navigation based on notification data
+      const data = notification.additionalData;
+      if (data?.articleId) {
+        console.log('Navigate to article:', data.articleId);
+      }
+    } catch (error) {
+      console.warn('Error handling notification opened:', error);
     }
   };
   
   private handleSubscriptionChange = async (event: any) => {
-    console.log('OneSignal subscription changed:', event);
-    
-    const { setOneSignalPlayerId } = useNotificationsStore.getState();
-    
-    if (event.current.optedIn) {
-      try {
-        const playerId = await OneSignal.User.pushSubscription.getPushSubscriptionId();
-        if (playerId) {
-          setOneSignalPlayerId(playerId);
-          this.registerPlayerWithBackend(playerId);
+    try {
+      console.log('OneSignal subscription changed:', event);
+      
+      const { setOneSignalPlayerId } = useNotificationsStore.getState();
+      
+      if (event.current.optedIn) {
+        try {
+          const playerId = await OneSignal.User.pushSubscription.getPushSubscriptionId();
+          if (playerId) {
+            setOneSignalPlayerId(playerId);
+            this.registerPlayerWithBackend(playerId);
+          }
+        } catch (error) {
+          console.warn('Failed to get OneSignal subscription ID:', error);
         }
-      } catch (error) {
-        console.warn('Failed to get OneSignal subscription ID:', error);
       }
+    } catch (error) {
+      console.warn('Error handling subscription change:', error);
     }
   };
   
   async requestPermissions(): Promise<boolean> {
     try {
-      if (Platform.OS === 'web') {
-        console.log('OneSignal not supported on web');
+      if (Platform.OS === 'web' || this.initializationFailed) {
         return false;
       }
       
@@ -118,8 +137,7 @@ class NotificationService {
   
   async requestPermissionsAndRegister() {
     try {
-      if (Platform.OS === 'web') {
-        console.log('OneSignal not supported on web');
+      if (Platform.OS === 'web' || this.initializationFailed) {
         return;
       }
       
@@ -215,7 +233,7 @@ class NotificationService {
   
   async setTags(tags: Record<string, string>) {
     try {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === 'web' || this.initializationFailed) {
         return;
       }
       
@@ -309,7 +327,7 @@ class NotificationService {
   
   cleanup() {
     try {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === 'web' || this.initializationFailed) {
         return;
       }
       

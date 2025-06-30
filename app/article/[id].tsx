@@ -120,10 +120,13 @@ export default function ArticleDetailScreen() {
   // Optimized article loading with better error handling
   const loadArticle = useCallback(async (retry = 0) => {
     try {
+      console.log(`Loading article ${articleId}, retry: ${retry}`);
       setLoading(true);
       setError(null);
       
       const data = await fetchArticleById(articleId);
+      
+      console.log('Article loaded successfully:', data.title.rendered);
       
       // Check if this is sponsored content
       if (isSponsoredContent(data)) {
@@ -146,7 +149,7 @@ export default function ArticleDetailScreen() {
         setYoutubeUrl(youtubeVideoUrl);
       }
       
-      // Add to recent articles (filtering is handled in the store)
+      // Add to recent articles
       addRecentArticle(data);
       
       // Load related articles
@@ -161,7 +164,7 @@ export default function ArticleDetailScreen() {
           }
         }, Platform.OS === 'android' ? 800 : 500);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading article:', err);
       
       // Retry logic
@@ -169,11 +172,12 @@ export default function ArticleDetailScreen() {
         console.log(`Retrying article load (${retry + 1}/${MAX_RETRIES})...`);
         setTimeout(() => {
           loadArticle(retry + 1);
-        }, 1000 * (retry + 1)); // Exponential backoff
+        }, 1000 * (retry + 1));
         return;
       }
       
-      setError('Nie udało się załadować artykułu. Spróbuj ponownie.');
+      const errorMessage = err.message || 'Nie udało się załadować artykułu. Sprawdź połączenie internetowe i spróbuj ponownie.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -727,12 +731,11 @@ ${article.link}`,
               console.warn('WebView render process gone');
               setWebViewError(true);
             }}
-            // Android-specific props - removed invalid props
+            // Simplified Android props
             androidLayerType="hardware"
             mixedContentMode="compatibility"
             allowsFullscreenVideo={false}
             mediaPlaybackRequiresUserAction={true}
-            // Reduce memory usage on Android
             cacheEnabled={Platform.OS === 'android'}
             domStorageEnabled={true}
             javaScriptEnabled={true}

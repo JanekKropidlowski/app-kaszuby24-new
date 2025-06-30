@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
+import { notificationService } from '@/services/notificationService';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -28,14 +29,24 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
+        console.log('App initialization started...');
+        
         // Pre-load fonts, make any API calls you need to do here
         if (loaded || error) {
-          // Fonts loaded successfully or failed to load
+          console.log('Fonts loaded:', loaded ? 'success' : 'failed');
+          
+          // Initialize notification service (don't wait for it)
+          if (Platform.OS !== 'web') {
+            notificationService.setupNotificationHandlers().catch((err) => {
+              console.warn('Notification service setup failed:', err);
+            });
+          }
+          
           setAppIsReady(true);
         }
       } catch (e) {
-        console.warn('Error loading fonts:', e);
-        // Even if fonts fail, we should still show the app
+        console.warn('Error during app preparation:', e);
+        // Even if something fails, we should still show the app
         setAppIsReady(true);
       }
     }
@@ -45,10 +56,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (appIsReady) {
+      console.log('App is ready, hiding splash screen...');
       // Hide splash screen with a small delay to ensure everything is ready
       const timer = setTimeout(() => {
         SplashScreen.hideAsync().catch(console.warn);
-      }, Platform.OS === 'android' ? 200 : 100);
+      }, Platform.OS === 'android' ? 300 : 100);
       
       return () => clearTimeout(timer);
     }
@@ -75,7 +87,6 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
-          // Performance optimizations
           animation: Platform.select({
             ios: 'default',
             android: 'fade',
@@ -86,7 +97,6 @@ export default function RootLayout() {
             android: 150,
             default: undefined,
           }),
-          // Android-specific optimizations
           ...(Platform.OS === 'android' && {
             gestureEnabled: true,
             gestureDirection: 'horizontal',
@@ -100,7 +110,6 @@ export default function RootLayout() {
             headerShown: false,
             presentation: 'card',
             gestureEnabled: true,
-            // Android-specific optimizations
             ...(Platform.OS === 'android' && {
               animationTypeForReplace: 'push',
             }),

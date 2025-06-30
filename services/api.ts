@@ -4,12 +4,12 @@ import { Platform } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
-const API_TIMEOUT = 30000; // Consistent timeout across platforms
-const MAX_RETRIES = 3; // Consistent retry count
+const API_TIMEOUT = 15000; // Reduced timeout for faster feedback
+const MAX_RETRIES = 2; // Reduced retries
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_KEY_MEDIA = 'cached_media';
-const CACHE_DURATION = 60 * 60 * 1000; // Cache for 1 hour
+const CACHE_DURATION = 30 * 60 * 1000; // Reduced cache duration to 30 minutes
 
 // Request deduplication map
 const pendingRequests = new Map<string, Promise<any>>();
@@ -32,6 +32,8 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
   }, API_TIMEOUT);
   
   try {
+    console.log(`Fetching: ${url}`); // Debug log
+    
     const fetchOptions = {
       ...options,
       signal,
@@ -43,22 +45,24 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
           ios: 'Kaszuby24-iOS/1.0',
           default: 'Kaszuby24-App/1.0'
         }),
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
         ...((options as any)?.headers || {}),
       },
     };
     
     const response = await fetch(url, fetchOptions);
     clearTimeout(timeout);
+    
+    console.log(`Response status: ${response.status} for ${url}`); // Debug log
+    
     return response;
   } catch (error: any) {
     clearTimeout(timeout);
     
-    // Handle network errors with retries
-    if (retries < MAX_RETRIES) {
-      const delay = Math.min(1000 * Math.pow(2, retries), 10000); // Exponential backoff with max 10s
-      
+    console.error(`Fetch error for ${url}:`, error); // Debug log
+    
+    // Retry logic with exponential backoff
+    if (retries < MAX_RETRIES && !error.name?.includes('AbortError')) {
+      const delay = Math.min(1000 * Math.pow(2, retries), 5000);
       console.log(`Retrying request (${retries + 1}/${MAX_RETRIES}) after ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithTimeout(url, options, retries + 1);
@@ -67,10 +71,8 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     // Enhanced error handling
     if (error.name === 'AbortError') {
       throw new Error('Zapytanie przekroczyło limit czasu. Sprawdź połączenie internetowe.');
-    } else if (error.message.includes('Network request failed')) {
+    } else if (error.message?.includes('Network request failed') || error.message?.includes('fetch')) {
       throw new Error('Brak połączenia z internetem. Sprawdź ustawienia sieci.');
-    } else if (error.message.includes('Unable to resolve host')) {
-      throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe.');
     }
     
     throw error;
@@ -142,8 +144,9 @@ export const fetchArticles = async (
   
   return deduplicateRequest(requestKey, async () => {
     try {
-      const timestamp = new Date().getTime();
-      let url = `${API_BASE_URL}/posts?_embed&page=${page}&per_page=${perPage}&_=${timestamp}`;
+      console.log(`Loading articles: page=${page}, perPage=${perPage}, categories=${categories?.join(',') || 'all'}`);
+      
+      let url = `${API_BASE_URL}/posts?_embed&page=${page}&per_page=${perPage}`;
       
       // Filter out sponsored category (554) from categories filter
       if (categories && categories.length > 0) {
@@ -159,6 +162,7 @@ export const fetchArticles = async (
       const response = await fetchWithTimeout(url);
       
       if (!response.ok) {
+        console.error(`API Error: ${response.status} ${response.statusText}`);
         if (response.status === 429) {
           throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
         } else if (response.status >= 500) {
@@ -173,7 +177,10 @@ export const fetchArticles = async (
       const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
       const articles = await response.json();
       
+      console.log(`Loaded ${articles.length} articles, total pages: ${totalPages}`);
+      
       if (!Array.isArray(articles)) {
+        console.error('Invalid API response format:', articles);
         throw new Error('Nieprawidłowy format odpowiedzi API');
       }
       
@@ -193,8 +200,25 @@ export const fetchArticles = async (
         };
       });
       
-      // Filter out sponsored content as additional safety measure
-      const filteredArticles = filterSponsoredArticles(processedArticles);
+      // Filter out sponsored content - but don't filter too aggressively
+      const filteredArticles = processedArticles.filter(article => {
+        // Check if article has sponsored category
+        if (article.categories && article.categories.includes(554)) {
+          return false;
+        }
+        
+        // Check embedded categories
+        if (article._embedded && article._embedded["wp:term"]) {
+          const categories = article._embedded["wp:term"][0];
+          if (categories && Array.isArray(categories)) {
+            return !categories.some((cat: any) => cat.id === 554);
+          }
+        }
+        
+        return true;
+      });
+      
+      console.log(`After filtering: ${filteredArticles.length} articles`);
       
       // Cache the articles (only first page to avoid memory issues)
       if (page === 1) {
@@ -206,31 +230,23 @@ export const fetchArticles = async (
         totalPages 
       };
     } catch (error: any) {
+      console.error('Error in fetchArticles:', error);
+      
       // Attempt to load from cache if fetch fails
       if (page === 1) {
         const cachedData = await getCachedData(CACHE_KEY_ARTICLES);
         if (cachedData) {
           console.log('Using cached articles data');
-          // Filter cached data as well
-          const filteredCachedArticles = filterSponsoredArticles(cachedData.articles);
-          return { ...cachedData, articles: filteredCachedArticles };
+          return cachedData;
         }
       }
       
       // Provide more user-friendly error messages
-      if (error instanceof TypeError && error.message.includes('Network request failed')) {
-        throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
-      } else if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
-      } else if (error.message === 'Failed to fetch') {
-        throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
-      }
-      
       if (error.message) {
         throw error;
       }
       
-      throw new Error('Wystąpił problem podczas ładowania artykułów. Spróbuj ponownie później.');
+      throw new Error('Wystąpił problem podczas ładowania artykułów. Sprawdź połączenie internetowe i spróbuj ponownie.');
     }
   });
 };

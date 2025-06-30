@@ -144,6 +144,7 @@ export default function HomeScreen() {
   
   // Initialize and check for first time user
   useEffect(() => {
+    console.log('HomeScreen: Initializing...');
     initializePreferences();
     
     // Show welcome modal for first time users after a short delay
@@ -159,6 +160,7 @@ export default function HomeScreen() {
   // Optimized load articles function with better error handling
   const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
     try {
+      console.log(`Loading articles: page=${pageNum}, refresh=${refresh}, retry=${retry}`);
       setError(null);
       setIsOffline(false);
       
@@ -170,39 +172,45 @@ export default function HomeScreen() {
       
       // Don't include sponsored category (554) in filter
       const categoryFilter = selectedCategory && selectedCategory !== 554 ? [selectedCategory] : undefined;
+      
+      console.log('Calling fetchArticles with:', { pageNum, categoryFilter });
+      
       const { articles: newArticles, totalPages: total } = await fetchArticles(
         pageNum,
         12,
         categoryFilter
       );
       
-      // Additional client-side filtering to ensure no sponsored content
-      const filteredArticles = filterSponsoredArticles(newArticles);
+      console.log(`Received ${newArticles.length} articles`);
       
       if (refresh || pageNum === 1) {
-        if (filteredArticles.length > 0) {
+        if (newArticles.length > 0) {
           // Take first 3 articles for featured carousel
-          setFeaturedArticles(filteredArticles.slice(0, 3));
-          setArticles(filteredArticles.slice(3)); // Skip first 3 for regular list
+          setFeaturedArticles(newArticles.slice(0, 3));
+          setArticles(newArticles.slice(3)); // Skip first 3 for regular list
         } else {
           setArticles([]);
           setFeaturedArticles([]);
         }
       } else {
-        setArticles((prev) => [...prev, ...filteredArticles]);
+        setArticles((prev) => [...prev, ...newArticles]);
       }
       
       setTotalPages(total);
       setPage(pageNum);
       setRetryCount(0); // Reset retry count on success
+      
+      console.log('Articles loaded successfully');
     } catch (err: any) {
       console.error('Error loading articles:', err);
       
       // Use the error message from the API service if available
-      const errorMessage = err.message || 'Nie udało się załadować artykułów. Spróbuj ponownie.';
+      const errorMessage = err.message || 'Nie udało się załadować artykułów. Sprawdź połączenie internetowe i spróbuj ponownie.';
       
       // Check if it's a network error
-      if (errorMessage.includes('Brak połączenia z internetem') || errorMessage.includes('Nie można połączyć się z serwerem')) {
+      if (errorMessage.includes('Brak połączenia z internetem') || 
+          errorMessage.includes('Nie można połączyć się z serwerem') ||
+          errorMessage.includes('Network request failed')) {
         setIsOffline(true);
       }
       
@@ -227,13 +235,15 @@ export default function HomeScreen() {
   
   const loadCategories = useCallback(async (retry = 0) => {
     try {
+      console.log('Loading categories...');
       const data = await fetchCategories();
       // Filter out sponsored categories, "Wiadomości" category (ID: 3), and categories with no posts, then sort by count
-      const filteredCategories = filterSponsoredCategories(data)
-        .filter(cat => cat.count > 0 && cat.id !== 3) // Filter out "Wiadomości" category
+      const filteredCategories = data
+        .filter(cat => cat.count > 0 && cat.id !== 3 && cat.id !== 554) // Filter out "Wiadomości" and sponsored categories
         .sort((a, b) => b.count - a.count);
       
       setCategories(filteredCategories);
+      console.log(`Loaded ${filteredCategories.length} categories`);
     } catch (err) {
       console.error('Error loading categories:', err);
       
@@ -249,6 +259,7 @@ export default function HomeScreen() {
   
   // Initial load
   useEffect(() => {
+    console.log('HomeScreen: Starting initial load...');
     loadArticles();
     loadCategories();
   }, [loadArticles, loadCategories]);

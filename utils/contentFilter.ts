@@ -13,23 +13,29 @@ interface EmbeddedCategory {
  * @returns true if the article is sponsored and should be filtered out
  */
 export const isSponsoredContent = (article: Article): boolean => {
-  // Check if article has embedded categories
-  if (article._embedded && article._embedded["wp:term"]) {
-    const categories = article._embedded["wp:term"][0];
-    if (categories && Array.isArray(categories)) {
-      return categories.some((category: EmbeddedCategory) => 
-        category.id === 554 || 
-        category.slug === 'sponsorowany'
-      );
+  try {
+    // Check if article has embedded categories
+    if (article._embedded && article._embedded["wp:term"]) {
+      const categories = article._embedded["wp:term"][0];
+      if (categories && Array.isArray(categories)) {
+        return categories.some((category: EmbeddedCategory) => 
+          category.id === 554 || 
+          category.slug === 'sponsorowany'
+        );
+      }
     }
+    
+    // Check if article has categories array directly
+    if (article.categories && Array.isArray(article.categories)) {
+      return article.categories.includes(554);
+    }
+    
+    return false;
+  } catch (error) {
+    console.warn('Error checking sponsored content:', error);
+    // If there's an error, don't filter out the article
+    return false;
   }
-  
-  // Check if article has categories array directly
-  if (article.categories && Array.isArray(article.categories)) {
-    return article.categories.includes(554);
-  }
-  
-  return false;
 };
 
 /**
@@ -38,7 +44,25 @@ export const isSponsoredContent = (article: Article): boolean => {
  * @returns Filtered array without sponsored content
  */
 export const filterSponsoredArticles = (articles: Article[]): Article[] => {
-  return articles.filter(article => !isSponsoredContent(article));
+  try {
+    if (!Array.isArray(articles)) {
+      console.warn('filterSponsoredArticles: articles is not an array:', articles);
+      return [];
+    }
+    
+    return articles.filter(article => {
+      if (!article || typeof article !== 'object') {
+        console.warn('Invalid article object:', article);
+        return false;
+      }
+      
+      return !isSponsoredContent(article);
+    });
+  } catch (error) {
+    console.warn('Error filtering sponsored articles:', error);
+    // If there's an error, return the original array
+    return Array.isArray(articles) ? articles : [];
+  }
 };
 
 /**
@@ -47,7 +71,12 @@ export const filterSponsoredArticles = (articles: Article[]): Article[] => {
  * @returns true if the category is sponsored
  */
 export const isSponsoredCategory = (category: Category): boolean => {
-  return category.id === 554 || category.slug === 'sponsorowany';
+  try {
+    return category.id === 554 || category.slug === 'sponsorowany';
+  } catch (error) {
+    console.warn('Error checking sponsored category:', error);
+    return false;
+  }
 };
 
 /**
@@ -56,5 +85,23 @@ export const isSponsoredCategory = (category: Category): boolean => {
  * @returns Filtered array without sponsored category
  */
 export const filterSponsoredCategories = (categories: Category[]): Category[] => {
-  return categories.filter(category => !isSponsoredCategory(category));
+  try {
+    if (!Array.isArray(categories)) {
+      console.warn('filterSponsoredCategories: categories is not an array:', categories);
+      return [];
+    }
+    
+    return categories.filter(category => {
+      if (!category || typeof category !== 'object') {
+        console.warn('Invalid category object:', category);
+        return false;
+      }
+      
+      return !isSponsoredCategory(category);
+    });
+  } catch (error) {
+    console.warn('Error filtering sponsored categories:', error);
+    // If there's an error, return the original array
+    return Array.isArray(categories) ? categories : [];
+  }
 };
