@@ -26,7 +26,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import { ArticleCard } from '@/components/ArticleCard';
 import { useArticlesStore } from '@/store/articlesStore';
 import { formatDateTime } from '@/utils/dateFormatter';
-import { cleanHtml, extractVideoUrls } from '@/utils/htmlParser';
+import { cleanHtml, extractVideoUrls, processGalleryIds } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
 
@@ -108,7 +108,10 @@ export default function ArticleDetailScreen() {
         // Load gallery images with delay for better performance
         if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
           setTimeout(() => {
-            loadGalleryImages(data.meta.galeria);
+            const processedGalleryIds = processGalleryIds(data.meta?.galeria);
+            if (processedGalleryIds.length > 0) {
+              loadGalleryImages(processedGalleryIds);
+            }
           }, 500);
         }
       } catch (err) {
@@ -133,6 +136,10 @@ export default function ArticleDetailScreen() {
   }, [articleId, addRecentArticle]);
   
   const loadGalleryImages = async (galleryIds: string[]) => {
+    if (!galleryIds || galleryIds.length === 0) {
+      return;
+    }
+    
     setGalleryLoading(true);
     try {
       const mediaItems = await fetchMediaByIds(galleryIds);
@@ -232,7 +239,10 @@ export default function ArticleDetailScreen() {
         // Load gallery images if available
         if (data.meta?.galeria && Array.isArray(data.meta.galeria) && data.meta.galeria.length > 0) {
           setTimeout(() => {
-            loadGalleryImages(data.meta.galeria);
+            const processedGalleryIds = processGalleryIds(data.meta?.galeria);
+            if (processedGalleryIds.length > 0) {
+              loadGalleryImages(processedGalleryIds);
+            }
           }, 500);
         }
         
