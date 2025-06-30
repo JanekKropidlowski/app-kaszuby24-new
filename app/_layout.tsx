@@ -26,16 +26,16 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded || error) {
-      // Hide splash screen even if fonts fail to load on Android
       SplashScreen.hideAsync();
       
-      if (error && Platform.OS === 'android') {
-        console.warn('Font loading failed on Android:', error);
+      if (error) {
+        console.warn('Font loading failed:', error);
       }
     }
   }, [loaded, error]);
 
-  // Don't block the app if fonts fail to load on Android
+  // Always render the app, even if fonts fail to load
+  // The theme system will handle fallbacks
   if (!loaded && !error) {
     return null;
   }

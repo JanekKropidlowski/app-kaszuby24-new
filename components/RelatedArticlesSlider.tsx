@@ -12,24 +12,17 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.7;
+const CARD_WIDTH = width - 48; // Full width minus padding
 const CARD_MARGIN = 16;
-const PEEK_AMOUNT = 20; // 20% peek of next card
 
 export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ articles, title }) => {
   const { theme } = useThemeStore();
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [scrollPosition, setScrollPosition] = useState(0);
 
-  // Limit to max 5 articles and duplicate them for infinity scroll
+  // Limit to max 5 articles
   const limitedArticles = articles.slice(0, 5);
-  
-  // Create infinite scroll by duplicating articles
-  const infiniteArticles = limitedArticles.length > 0 
-    ? [...limitedArticles, ...limitedArticles, ...limitedArticles] 
-    : [];
 
   if (limitedArticles.length === 0) return null;
 
@@ -39,40 +32,9 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
 
   const handleScroll = (event: any) => {
     const scrollX = event.nativeEvent.contentOffset.x;
-    setScrollPosition(scrollX);
-    
-    const totalWidth = (CARD_WIDTH + CARD_MARGIN) * limitedArticles.length;
-    const index = Math.round(scrollX / (CARD_WIDTH + CARD_MARGIN)) % limitedArticles.length;
+    const index = Math.round(scrollX / (CARD_WIDTH + CARD_MARGIN));
     setCurrentIndex(Math.max(0, Math.min(index, limitedArticles.length - 1)));
-    
-    // Handle infinite scroll - reset position when reaching end or beginning
-    if (scrollX >= totalWidth * 2) {
-      // Reset to middle section
-      scrollViewRef.current?.scrollTo({ 
-        x: totalWidth, 
-        animated: false 
-      });
-    } else if (scrollX <= 0) {
-      // Reset to middle section
-      scrollViewRef.current?.scrollTo({ 
-        x: totalWidth, 
-        animated: false 
-      });
-    }
   };
-
-  // Initialize scroll position to middle section
-  useEffect(() => {
-    if (infiniteArticles.length > 0) {
-      const initialPosition = (CARD_WIDTH + CARD_MARGIN) * limitedArticles.length;
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ 
-          x: initialPosition, 
-          animated: false 
-        });
-      }, 100);
-    }
-  }, [infiniteArticles.length, limitedArticles.length]);
 
   const renderArticleCard = (article: Article, index: number) => (
     <TouchableOpacity
@@ -82,7 +44,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
         { 
           backgroundColor: theme.colors.card,
           width: CARD_WIDTH,
-          marginRight: CARD_MARGIN,
+          marginRight: index === limitedArticles.length - 1 ? 0 : CARD_MARGIN,
         },
       ]}
       onPress={() => handleArticlePress(article)}
@@ -106,7 +68,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
             styles.cardTitle, 
             { 
               color: theme.colors.text,
-              fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
+              fontFamily: theme.fontFamily.semibold
             }
           ]}
           numberOfLines={2}
@@ -119,7 +81,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
             styles.cardDate, 
             { 
               color: theme.colors.textSecondary,
-              fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.regular
+              fontFamily: theme.fontFamily.regular
             }
           ]}
         >
@@ -153,7 +115,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
         styles.title, 
         { 
           color: theme.colors.text,
-          fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
+          fontFamily: theme.fontFamily.semibold
         }
       ]}>
         {title}
@@ -163,10 +125,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingRight: PEEK_AMOUNT }
-        ]}
+        contentContainerStyle={styles.scrollContent}
         snapToInterval={CARD_WIDTH + CARD_MARGIN}
         snapToAlignment="start"
         decelerationRate="fast"
@@ -175,7 +134,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = ({ ar
         pagingEnabled={false}
         onMomentumScrollEnd={handleScroll}
       >
-        {infiniteArticles.map((article, index) => renderArticleCard(article, index))}
+        {limitedArticles.map((article, index) => renderArticleCard(article, index))}
       </ScrollView>
       
       {limitedArticles.length > 1 && renderIndicators()}
@@ -204,7 +163,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
-    marginBottom: 8, // Add space for shadow
+    marginBottom: 8,
   },
   imageContainer: {
     position: 'relative',

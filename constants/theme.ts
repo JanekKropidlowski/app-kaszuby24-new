@@ -1,3 +1,28 @@
+import { Platform } from 'react-native';
+
+// Helper function to get font family with Android fallback
+const getFontFamily = (fontName: string) => {
+  if (Platform.OS === 'android') {
+    // On Android, use system fonts as fallback if custom fonts fail
+    switch (fontName) {
+      case 'Poppins-Bold':
+      case 'Poppins-ExtraBold':
+      case 'Poppins-Black':
+        return 'sans-serif-medium';
+      case 'Poppins-SemiBold':
+      case 'Poppins-Medium':
+        return 'sans-serif-medium';
+      case 'Poppins-Light':
+      case 'Poppins-ExtraLight':
+      case 'Poppins-Thin':
+        return 'sans-serif-light';
+      default:
+        return 'sans-serif';
+    }
+  }
+  return fontName;
+};
+
 export const lightTheme = {
   colors: {
     primary: '#224A96',
@@ -15,15 +40,15 @@ export const lightTheme = {
     shadow: '#000000',
   },
   fontFamily: {
-    regular: 'Poppins-Regular',
-    medium: 'Poppins-Medium',
-    semibold: 'Poppins-SemiBold',
-    bold: 'Poppins-Bold',
-    light: 'Poppins-Light',
-    extralight: 'Poppins-ExtraLight',
-    thin: 'Poppins-Thin',
-    extrabold: 'Poppins-ExtraBold',
-    black: 'Poppins-Black',
+    regular: getFontFamily('Poppins-Regular'),
+    medium: getFontFamily('Poppins-Medium'),
+    semibold: getFontFamily('Poppins-SemiBold'),
+    bold: getFontFamily('Poppins-Bold'),
+    light: getFontFamily('Poppins-Light'),
+    extralight: getFontFamily('Poppins-ExtraLight'),
+    thin: getFontFamily('Poppins-Thin'),
+    extrabold: getFontFamily('Poppins-ExtraBold'),
+    black: getFontFamily('Poppins-Black'),
   },
 };
 
@@ -44,14 +69,14 @@ export const darkTheme = {
     shadow: '#000000',
   },
   fontFamily: {
-    regular: 'Poppins-Regular',
-    medium: 'Poppins-Medium',
-    semibold: 'Poppins-SemiBold',
-    bold: 'Poppins-Bold',
-    light: 'Poppins-Light',
-    extralight: 'Poppins-ExtraLight',
-    thin: 'Poppins-Thin',
-    extrabold: 'Poppins-ExtraBold',
-    black: 'Poppins-Black',
+    regular: getFontFamily('Poppins-Regular'),
+    medium: getFontFamily('Poppins-Medium'),
+    semibold: getFontFamily('Poppins-SemiBold'),
+    bold: getFontFamily('Poppins-Bold'),
+    light: getFontFamily('Poppins-Light'),
+    extralight: getFontFamily('Poppins-ExtraLight'),
+    thin: getFontFamily('Poppins-Thin'),
+    extrabold: getFontFamily('Poppins-ExtraBold'),
+    black: getFontFamily('Poppins-Black'),
   },
 };

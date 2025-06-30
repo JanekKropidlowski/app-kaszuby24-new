@@ -12,7 +12,6 @@ import {
   StatusBar,
   BackHandler,
   Modal,
-  PanResponder,
   Animated,
   Alert
 } from 'react-native';
@@ -20,7 +19,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings } from 'lucide-react-native';
-import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles, getAdjacentArticle } from '@/services/api';
+import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
@@ -58,85 +57,19 @@ export default function ArticleDetailScreen() {
   const [relatedListArticles, setRelatedListArticles] = useState<Article[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
-  const [nextArticle, setNextArticle] = useState<Article | null>(null);
-  const [prevArticle, setPrevArticle] = useState<Article | null>(null);
   const [readingProgress, setReadingProgress] = useState(0);
   const [showFinishMessage, setShowFinishMessage] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const swipeGesture = useRef(new Animated.Value(0)).current;
-  const swipeOpacity = useRef(new Animated.Value(0)).current;
   const progressOpacity = useRef(new Animated.Value(0)).current;
   const finishMessageOpacity = useRef(new Animated.Value(0)).current;
-  const isScrollingToEnd = useRef(false);
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
   const hasShownFinishMessage = useRef(false);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
   const unreadCount = getUnreadCount();
-  
-  // Swipe gesture handler
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only respond to horizontal swipes
-        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
-      },
-      onPanResponderGrant: () => {
-        swipeGesture.setValue(0);
-        // Show swipe indicators
-        Animated.timing(swipeOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        // Limit the swipe distance for visual feedback
-        const clampedDx = Math.max(-100, Math.min(100, gestureState.dx));
-        swipeGesture.setValue(clampedDx);
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        const threshold = 50;
-        
-        // Hide swipe indicators
-        Animated.timing(swipeOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
-        
-        if (gestureState.dx > threshold && prevArticle) {
-          // Swipe right - go to previous article
-          Animated.timing(swipeGesture, {
-            toValue: width,
-            duration: 300,
-            useNativeDriver: true,
-          }).start(() => {
-            router.replace(`/article/${prevArticle.id}`);
-          });
-        } else if (gestureState.dx < -threshold && nextArticle) {
-          // Swipe left - go to next article
-          Animated.timing(swipeGesture, {
-            toValue: -width,
-            duration: 300,
-            useNativeDriver: true,
-          }).start(() => {
-            router.replace(`/article/${nextArticle.id}`);
-          });
-        } else {
-          // Snap back
-          Animated.spring(swipeGesture, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
   
   // Handle Android back button
   useEffect(() => {
@@ -153,15 +86,6 @@ export default function ArticleDetailScreen() {
       return () => backHandler.remove();
     }
   }, [router, selectedImageIndex]);
-  
-  // Load adjacent articles for swipe navigation
-  useEffect(() => {
-    if (articleId) {
-      // Load next and previous articles
-      getAdjacentArticle(articleId, 'next').then(setNextArticle);
-      getAdjacentArticle(articleId, 'prev').then(setPrevArticle);
-    }
-  }, [articleId]);
   
   useEffect(() => {
     const loadArticle = async (retry = 0) => {
@@ -303,7 +227,9 @@ export default function ArticleDetailScreen() {
             // Final fallback - show the link in an alert
             Alert.alert(
               'Udostępnij artykuł',
-              `Skopiuj ten link aby udostępnić:\n\n${shareContent.url}`,
+              `Skopiuj ten link aby udostępnić:
+
+${shareContent.url}`,
               [{ text: 'OK' }]
             );
           }
@@ -842,7 +768,7 @@ export default function ArticleDetailScreen() {
     if (galleryLoading) {
       return (
         <View style={styles.galleryContainer}>
-          <Text style={[styles.galleryTitle, { color: theme.colors.text }]}>
+          <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
             Galeria
           </Text>
           <View style={styles.galleryLoadingContainer}>
@@ -862,7 +788,7 @@ export default function ArticleDetailScreen() {
           styles.galleryTitle, 
           { 
             color: theme.colors.text,
-            fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
+            fontFamily: theme.fontFamily.semibold
           }
         ]}>
           Galeria ({galleryImages.length})
@@ -913,7 +839,7 @@ export default function ArticleDetailScreen() {
               styles.relatedTitle, 
               { 
                 color: theme.colors.text,
-                fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
+                fontFamily: theme.fontFamily.semibold
               }
             ]}>
               Najnowsze artykuły
@@ -935,37 +861,6 @@ export default function ArticleDetailScreen() {
           </View>
         )}
       </View>
-    );
-  };
-  
-  // Render swipe indicators
-  const renderSwipeIndicators = () => {
-    if (!prevArticle && !nextArticle) return null;
-    
-    return (
-      <Animated.View style={[styles.swipeIndicators, { opacity: swipeOpacity }]}>
-        {prevArticle && (
-          <View style={[styles.swipeIndicator, styles.swipeIndicatorLeft]}>
-            <View style={[styles.swipePreview, { backgroundColor: theme.colors.card }]}>
-              <ChevronLeft size={16} color={theme.colors.primary} />
-              <Text style={[styles.swipeIndicatorText, { color: theme.colors.textSecondary }]}>
-                Poprzedni
-              </Text>
-            </View>
-          </View>
-        )}
-        
-        {nextArticle && (
-          <View style={[styles.swipeIndicator, styles.swipeIndicatorRight]}>
-            <View style={[styles.swipePreview, { backgroundColor: theme.colors.card }]}>
-              <Text style={[styles.swipeIndicatorText, { color: theme.colors.textSecondary }]}>
-                Następny
-              </Text>
-              <ChevronRight size={16} color={theme.colors.primary} />
-            </View>
-          </View>
-        )}
-      </Animated.View>
     );
   };
   
@@ -1100,16 +995,7 @@ export default function ArticleDetailScreen() {
   };
   
   return (
-    <Animated.View 
-      style={[
-        styles.container, 
-        { 
-          backgroundColor: theme.colors.background,
-          transform: [{ translateX: swipeGesture }]
-        }
-      ]}
-      {...panResponder.panHandlers}
-    >
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar 
         translucent 
         backgroundColor="transparent" 
@@ -1180,7 +1066,7 @@ export default function ArticleDetailScreen() {
                 <Text style={[
                   styles.categoryText,
                   { 
-                    fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold 
+                    fontFamily: theme.fontFamily.semibold 
                   }
                 ]}>
                   {categoryName}
@@ -1197,7 +1083,7 @@ export default function ArticleDetailScreen() {
             styles.title, 
             { 
               color: theme.colors.text,
-              fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.bold
+              fontFamily: theme.fontFamily.bold
             }
           ]}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
@@ -1210,7 +1096,7 @@ export default function ArticleDetailScreen() {
                 styles.metaText, 
                 { 
                   color: theme.colors.textSecondary,
-                  fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.regular
+                  fontFamily: theme.fontFamily.regular
                 }
               ]}>
                 {formatDateTime(article.date)}
@@ -1223,7 +1109,7 @@ export default function ArticleDetailScreen() {
               styles.source, 
               { 
                 color: theme.colors.textSecondary,
-                fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.regular
+                fontFamily: theme.fontFamily.regular
               }
             ]}>
               Źródło: {metaSource}
@@ -1261,7 +1147,7 @@ export default function ArticleDetailScreen() {
           activeOpacity={0.7}
         >
           <Home size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Główna
           </Text>
         </TouchableOpacity>
@@ -1272,7 +1158,7 @@ export default function ArticleDetailScreen() {
           activeOpacity={0.7}
         >
           <Bell size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Powiadomienia
           </Text>
           {unreadCount > 0 && (
@@ -1290,7 +1176,7 @@ export default function ArticleDetailScreen() {
           activeOpacity={0.7}
         >
           <Bookmark size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Zapisane
           </Text>
         </TouchableOpacity>
@@ -1301,7 +1187,7 @@ export default function ArticleDetailScreen() {
           activeOpacity={0.7}
         >
           <Settings size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text }]}>
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Ustawienia
           </Text>
         </TouchableOpacity>
@@ -1310,15 +1196,12 @@ export default function ArticleDetailScreen() {
       {/* Reading progress indicator - only shows when at bottom */}
       {renderProgressIndicator()}
       
-      {/* Swipe indicators */}
-      {renderSwipeIndicators()}
-      
       {/* Finish message */}
       {renderFinishMessage()}
       
       {/* Image modal */}
       {renderImageModal()}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -1480,42 +1363,6 @@ const styles = StyleSheet.create({
   },
   relatedList: {
     gap: 12,
-  },
-  swipeIndicators: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    pointerEvents: 'none',
-  },
-  swipeIndicator: {
-    alignItems: 'center',
-  },
-  swipeIndicatorLeft: {
-    alignSelf: 'flex-start',
-  },
-  swipeIndicatorRight: {
-    alignSelf: 'flex-end',
-  },
-  swipePreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  swipeIndicatorText: {
-    fontSize: 12,
-    marginHorizontal: 4,
-    fontWeight: '500',
   },
   progressIndicator: {
     position: 'absolute',
