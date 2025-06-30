@@ -19,6 +19,8 @@ export class NotificationService {
   private static instance: NotificationService;
   private periodicCheckInterval: NodeJS.Timeout | null = null;
   private isInitialized = false;
+  private retryCount = 0;
+  private maxRetries = 3;
   
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -120,6 +122,20 @@ export class NotificationService {
             return null;
           } catch (deviceTokenError) {
             console.error('Device token also failed:', deviceTokenError);
+            // Check if the error is related to service unavailability
+            if (deviceTokenError.message.includes('SERVICE_NOT_AVAILABLE')) {
+              console.warn('Firebase Cloud Messaging service is not available. This could be due to missing Google Play Services or network issues.');
+              if (this.retryCount < this.maxRetries) {
+                this.retryCount++;
+                console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
+                await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
+                return await this.registerForPushNotifications();
+              } else {
+                console.error('Max retries reached. Push notifications will not be available.');
+                this.retryCount = 0; // Reset for future attempts
+                return null;
+              }
+            }
             return null;
           }
         }
@@ -136,6 +152,8 @@ export class NotificationService {
       // Register token with backend
       await this.registerTokenWithBackend(token.data);
       
+      // Reset retry count on successful registration
+      this.retryCount = 0;
       return token.data;
     } catch (error) {
       console.error('Error getting push token:', error);
@@ -143,6 +161,16 @@ export class NotificationService {
       // Don't throw error on Android - just log and continue
       if (Platform.OS === 'android') {
         console.warn('Push notifications setup failed on Android, continuing without them');
+        if (error.message.includes('SERVICE_NOT_AVAILABLE') && this.retryCount < this.maxRetries) {
+          this.retryCount++;
+          console.log(`Retrying token retrieval (${this.retryCount}/${this.maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 3000 * this.retryCount)); // Exponential backoff
+          return await this.registerForPushNotifications();
+        } else if (this.retryCount >= this.maxRetries) {
+          console.error('Max retries reached. Push notifications will not be available.');
+          this.retryCount = 0; // Reset for future attempts
+          return null;
+        }
         return null;
       }
       
