@@ -6,9 +6,10 @@ import {
   TouchableOpacity, 
   Platform,
   Animated,
-  Keyboard
+  Keyboard,
+  Alert
 } from 'react-native';
-import { Search, X, Mic } from 'lucide-react-native';
+import { Search, X, Mic, MicOff } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 
 interface SearchBarProps {
@@ -27,9 +28,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const { theme } = useThemeStore();
   const [query, setQuery] = useState(initialValue);
   const [isFocused, setIsFocused] = useState(autoFocus);
+  const [isListening, setIsListening] = useState(false);
   
   const inputRef = useRef<TextInput>(null);
   const animatedWidth = useRef(new Animated.Value(0)).current;
+  const recognitionRef = useRef<any>(null);
   
   useEffect(() => {
     // Animate the search bar focus state
@@ -45,6 +48,59 @@ const SearchBar: React.FC<SearchBarProps> = ({
       }, 100);
     }
   }, [isFocused, autoFocus]);
+
+  useEffect(() => {
+    // Initialize speech recognition for web
+    if (Platform.OS === 'web' && 'webkitSpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'pl-PL';
+
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setQuery(transcript);
+          onSearch(transcript);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          
+          let errorMessage = 'Wystąpił błąd podczas rozpoznawania mowy.';
+          switch (event.error) {
+            case 'no-speech':
+              errorMessage = 'Nie wykryto mowy. Spróbuj ponownie.';
+              break;
+            case 'audio-capture':
+              errorMessage = 'Nie można uzyskać dostępu do mikrofonu.';
+              break;
+            case 'not-allowed':
+              errorMessage = 'Dostęp do mikrofonu został zablokowany.';
+              break;
+            case 'network':
+              errorMessage = 'Błąd sieci. Sprawdź połączenie internetowe.';
+              break;
+          }
+          
+          Alert.alert('Błąd rozpoznawania mowy', errorMessage);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [onSearch]);
   
   const handleClear = () => {
     setQuery('');
@@ -67,10 +123,47 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
   };
   
-  const handleVoiceSearch = () => {
-    // This would integrate with speech recognition
-    // For now, just focus the input
-    inputRef.current?.focus();
+  const handleVoiceSearch = async () => {
+    if (Platform.OS === 'web') {
+      // Web implementation using Web Speech API
+      if (!recognitionRef.current) {
+        Alert.alert(
+          'Rozpoznawanie mowy niedostępne',
+          'Twoja przeglądarka nie obsługuje rozpoznawania mowy. Spróbuj użyć Chrome lub Edge.'
+        );
+        return;
+      }
+
+      if (isListening) {
+        recognitionRef.current.stop();
+        setIsListening(false);
+        return;
+      }
+
+      try {
+        setIsListening(true);
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        setIsListening(false);
+        Alert.alert(
+          'Błąd rozpoznawania mowy',
+          'Nie można uruchomić rozpoznawania mowy. Spróbuj ponownie.'
+        );
+      }
+    } else {
+      // Native implementation - show info that it's not available yet
+      Alert.alert(
+        'Wyszukiwanie głosowe',
+        'Wyszukiwanie głosowe będzie dostępne w przyszłych aktualizacjach aplikacji.',
+        [
+          {
+            text: 'OK',
+            onPress: () => inputRef.current?.focus()
+          }
+        ]
+      );
+    }
   };
   
   const borderRadius = animatedWidth.interpolate({
@@ -82,6 +175,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
     inputRange: [0, 1],
     outputRange: [0.05, 0.15],
   });
+  
+  const micIconColor = isListening 
+    ? theme.colors.primary 
+    : (isFocused ? theme.colors.primary : theme.colors.textSecondary);
   
   return (
     <Animated.View
@@ -137,10 +234,17 @@ const SearchBar: React.FC<SearchBarProps> = ({
       ) : (
         <TouchableOpacity 
           onPress={handleVoiceSearch} 
-          style={styles.iconButton}
+          style={[
+            styles.iconButton,
+            isListening && styles.listeningButton
+          ]}
           hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
         >
-          <Mic size={18} color={theme.colors.textSecondary} />
+          {isListening ? (
+            <MicOff size={18} color={micIconColor} />
+          ) : (
+            <Mic size={18} color={micIconColor} />
+          )}
         </TouchableOpacity>
       )}
     </Animated.View>
@@ -170,6 +274,11 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 4,
+  },
+  listeningButton: {
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    borderRadius: 12,
+    padding: 8,
   },
   clearButton: {
     width: 22,

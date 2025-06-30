@@ -5,10 +5,11 @@ import {
   Text, 
   FlatList, 
   ActivityIndicator,
-  TouchableOpacity
+  TouchableOpacity,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Search as SearchIcon } from 'lucide-react-native';
+import { Search as SearchIcon, Mic } from 'lucide-react-native';
 import { searchArticles } from '@/services/api';
 import { Article } from '@/types/article';
 import ArticleCard from '@/components/ArticleCard';
@@ -85,10 +86,37 @@ export default function SearchScreen() {
     // Add to recent articles (filtering is handled in the store)
     addRecentArticle(article);
   };
+
+  const renderEmptySearch = () => (
+    <View style={styles.emptySearchContainer}>
+      <View style={[styles.iconContainer, { backgroundColor: theme.colors.subtle }]}>
+        <SearchIcon size={32} color={theme.colors.primary} />
+      </View>
+      <Text style={[styles.emptySearchTitle, { color: theme.colors.text }]}>
+        Wyszukaj artykuły
+      </Text>
+      <Text style={[styles.emptySearchSubtitle, { color: theme.colors.textSecondary }]}>
+        Wpisz słowa kluczowe lub użyj wyszukiwania głosowego
+      </Text>
+      
+      {Platform.OS === 'web' && 'webkitSpeechRecognition' in window && (
+        <View style={styles.voiceSearchHint}>
+          <Mic size={16} color={theme.colors.primary} />
+          <Text style={[styles.voiceSearchText, { color: theme.colors.primary }]}>
+            Kliknij mikrofon aby wyszukać głosowo
+          </Text>
+        </View>
+      )}
+    </View>
+  );
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <SearchBar onSearch={handleSearch} placeholder="Szukaj wiadomości..." />
+      <SearchBar 
+        onSearch={handleSearch} 
+        placeholder="Szukaj wiadomości..." 
+        autoFocus={false}
+      />
       
       {loading ? (
         <LoadingIndicator fullScreen />
@@ -117,16 +145,7 @@ export default function SearchScreen() {
                   ? 'Nie znaleziono wyników'
                   : `Znaleziono ${articles.length} wyników dla "${query}"`}
               </Text>
-            ) : (
-              <View style={styles.emptySearchContainer}>
-                <View style={[styles.iconContainer, { backgroundColor: theme.colors.subtle }]}>
-                  <SearchIcon size={32} color={theme.colors.primary} />
-                </View>
-                <Text style={[styles.emptySearchText, { color: theme.colors.textSecondary }]}>
-                  Wyszukaj artykuły
-                </Text>
-              </View>
-            )
+            ) : null
           }
           ListEmptyComponent={
             query.trim() && !loading ? (
@@ -135,7 +154,7 @@ export default function SearchScreen() {
                 message={`Nie znaleźliśmy żadnych artykułów pasujących do "${query}". Spróbuj innego hasła.`}
                 icon={<SearchIcon size={48} color={theme.colors.primary} />}
               />
-            ) : null
+            ) : !query.trim() ? renderEmptySearch() : null
           }
           ListFooterComponent={
             loadingMore ? <LoadingIndicator size="small" /> : null
@@ -171,6 +190,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 100,
+    paddingHorizontal: 32,
   },
   iconContainer: {
     width: 64,
@@ -180,7 +200,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
   },
-  emptySearchText: {
+  emptySearchTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySearchSubtitle: {
     fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  voiceSearchHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+  },
+  voiceSearchText: {
+    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: '500',
   },
 });
