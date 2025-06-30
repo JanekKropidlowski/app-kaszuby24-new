@@ -246,7 +246,9 @@ export default function ArticleDetailScreen() {
       // Simplified native sharing
       const result = await Share.share({
         title: cleanTitle,
-        message: `${cleanTitle}\n\n${article.link}`,
+        message: `${cleanTitle}
+
+${article.link}`,
         url: article.link,
       });
       
@@ -259,7 +261,19 @@ export default function ArticleDetailScreen() {
       // Fallback - copy to clipboard
       if (Platform.OS === 'web') {
         try {
-          await navigator.clipboard.writeText(`${cleanTitle}\n\n${article.link}`);
+          const cleanTitle = article.title.rendered
+            .replace(/&#8211;/g, '-')
+            .replace(/&#8217;/g, "'")
+            .replace(/&#8220;/g, '"')
+            .replace(/&#8221;/g, '"')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>');
+            
+          await navigator.clipboard.writeText(`${cleanTitle}
+
+${article.link}`);
           Alert.alert(
             'Link skopiowany!',
             'Link do artykułu został skopiowany do schowka.',
@@ -268,7 +282,9 @@ export default function ArticleDetailScreen() {
         } catch (clipboardError) {
           Alert.alert(
             'Udostępnij artykuł',
-            `Skopiuj ten link:\n\n${article.link}`,
+            `Skopiuj ten link:
+
+${article.link}`,
             [{ text: 'OK' }]
           );
         }
