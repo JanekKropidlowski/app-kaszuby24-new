@@ -17,12 +17,13 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft, Clock, Calendar, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { fetchArticleById, fetchMediaByIds } from '@/services/api';
+import { Bookmark, Share2, RefreshCw, ArrowLeft, Clock, Calendar, Eye, X, ChevronLeft, ChevronRight, Menu, ExternalLink } from 'lucide-react-native';
+import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import VideoPlayer from '@/components/VideoPlayer';
+import { ArticleCard } from '@/components/ArticleCard';
 import { useArticlesStore } from '@/store/articlesStore';
 import { formatDateTime } from '@/utils/dateFormatter';
 import { cleanHtml, extractVideoUrls } from '@/utils/htmlParser';
@@ -47,6 +48,10 @@ export default function ArticleDetailScreen() {
   const [galleryImages, setGalleryImages] = useState<MediaItem[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [contentLoaded, setContentLoaded] = useState(false);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -59,13 +64,17 @@ export default function ArticleDetailScreen() {
           setSelectedImageIndex(null);
           return true;
         }
+        if (showMenu) {
+          setShowMenu(false);
+          return true;
+        }
         router.back();
         return true;
       });
       
       return () => backHandler.remove();
     }
-  }, [router, selectedImageIndex]);
+  }, [router, selectedImageIndex, showMenu]);
   
   useEffect(() => {
     const loadArticle = async (retry = 0) => {
@@ -82,6 +91,7 @@ export default function ArticleDetailScreen() {
         }
         
         setArticle(data);
+        setContentLoaded(true);
         
         // Extract video URLs from content
         if (data.content.rendered) {
@@ -89,21 +99,18 @@ export default function ArticleDetailScreen() {
           setVideoUrls(videos);
         }
         
-        // Load gallery images if available
-        if (data.meta?.galeria && data.meta.galeria.length > 0) {
-          setGalleryLoading(true);
-          try {
-            const mediaItems = await fetchMediaByIds(data.meta.galeria);
-            setGalleryImages(mediaItems);
-          } catch (galleryError) {
-            console.warn('Failed to load gallery images:', galleryError);
-          } finally {
-            setGalleryLoading(false);
-          }
-        }
-        
         // Add to recent articles (filtering is handled in the store)
         addRecentArticle(data);
+        
+        // Load related articles
+        loadRelatedArticles(data);
+        
+        // Load gallery images with delay for better performance
+        if (data.meta?.galeria && data.meta.galeria.length > 0) {
+          setTimeout(() => {
+            loadGalleryImages(data.meta.galeria);
+          }, 500);
+        }
       } catch (err) {
         console.error('Error loading article:', err);
         
@@ -124,6 +131,30 @@ export default function ArticleDetailScreen() {
     
     loadArticle();
   }, [articleId, addRecentArticle]);
+  
+  const loadGalleryImages = async (galleryIds: string[]) => {
+    setGalleryLoading(true);
+    try {
+      const mediaItems = await fetchMediaByIds(galleryIds);
+      setGalleryImages(mediaItems);
+    } catch (galleryError) {
+      console.warn('Failed to load gallery images:', galleryError);
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+  
+  const loadRelatedArticles = async (currentArticle: Article) => {
+    setRelatedLoading(true);
+    try {
+      const related = await fetchRelatedArticles(currentArticle.id, currentArticle.categories);
+      setRelatedArticles(related);
+    } catch (error) {
+      console.warn('Failed to load related articles:', error);
+    } finally {
+      setRelatedLoading(false);
+    }
+  };
   
   const toggleSave = () => {
     if (!article) return;
@@ -169,6 +200,12 @@ export default function ArticleDetailScreen() {
     }
   };
   
+  const handleOpenInBrowser = () => {
+    if (article) {
+      Linking.openURL(article.link);
+    }
+  };
+  
   const handleRetry = () => {
     setError(null);
     setLoading(true);
@@ -184,6 +221,7 @@ export default function ArticleDetailScreen() {
         }
         
         setArticle(data);
+        setContentLoaded(true);
         
         // Extract video URLs from content
         if (data.content.rendered) {
@@ -193,21 +231,16 @@ export default function ArticleDetailScreen() {
         
         // Load gallery images if available
         if (data.meta?.galeria && data.meta.galeria.length > 0) {
-          setGalleryLoading(true);
-          fetchMediaByIds(data.meta.galeria)
-            .then(mediaItems => {
-              setGalleryImages(mediaItems);
-            })
-            .catch(galleryError => {
-              console.warn('Failed to load gallery images:', galleryError);
-            })
-            .finally(() => {
-              setGalleryLoading(false);
-            });
+          setTimeout(() => {
+            loadGalleryImages(data.meta.galeria);
+          }, 500);
         }
         
         // Add to recent articles (filtering is handled in the store)
         addRecentArticle(data);
+        
+        // Load related articles
+        loadRelatedArticles(data);
       })
       .catch(err => {
         console.error('Error reloading article:', err);
@@ -514,8 +547,10 @@ export default function ArticleDetailScreen() {
     }
   };
   
-  // Render gallery
+  // Render gallery (moved below content)
   const renderGallery = () => {
+    if (!contentLoaded) return null;
+    
     if (galleryLoading) {
       return (
         <View style={styles.galleryContainer}>
@@ -566,6 +601,102 @@ export default function ArticleDetailScreen() {
           ))}
         </View>
       </View>
+    );
+  };
+  
+  // Render related articles
+  const renderRelatedArticles = () => {
+    if (!contentLoaded || relatedArticles.length === 0) return null;
+    
+    return (
+      <View style={styles.relatedContainer}>
+        <Text style={[
+          styles.relatedTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: Platform.OS === 'android' ? undefined : theme.fontFamily.semibold
+          }
+        ]}>
+          Powiązane artykuły
+        </Text>
+        
+        {relatedLoading ? (
+          <LoadingIndicator size="small" />
+        ) : (
+          <View style={styles.relatedList}>
+            {relatedArticles.map((relatedArticle) => (
+              <ArticleCard
+                key={relatedArticle.id}
+                article={relatedArticle}
+                compact={true}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+  
+  // Render floating menu
+  const renderFloatingMenu = () => {
+    if (!showMenu) return null;
+    
+    return (
+      <Modal
+        visible={showMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}
+        >
+          <View style={[styles.menuContainer, { backgroundColor: theme.colors.card }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                handleShare();
+              }}
+            >
+              <Share2 size={20} color={theme.colors.text} />
+              <Text style={[styles.menuText, { color: theme.colors.text }]}>Udostępnij</Text>
+            </TouchableOpacity>
+            
+            {!isSponsoredContent(article) && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMenu(false);
+                  toggleSave();
+                }}
+              >
+                <Bookmark 
+                  size={20} 
+                  color={isSaved ? theme.colors.primary : theme.colors.text}
+                  fill={isSaved ? theme.colors.primary : 'transparent'} 
+                />
+                <Text style={[styles.menuText, { color: theme.colors.text }]}>
+                  {isSaved ? 'Usuń z zapisanych' : 'Zapisz artykuł'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                handleOpenInBrowser();
+              }}
+            >
+              <ExternalLink size={20} color={theme.colors.text} />
+              <Text style={[styles.menuText, { color: theme.colors.text }]}>Otwórz w przeglądarce</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     );
   };
   
@@ -662,32 +793,14 @@ export default function ArticleDetailScreen() {
         <ArrowLeft size={20} color="#FFFFFF" />
       </TouchableOpacity>
       
-      {/* Floating share button */}
+      {/* Floating menu button */}
       <TouchableOpacity 
-        style={styles.floatingShareButton} 
-        onPress={handleShare}
+        style={styles.floatingMenuButton} 
+        onPress={() => setShowMenu(true)}
         activeOpacity={0.8}
       >
-        <Share2 size={20} color="#FFFFFF" />
+        <Menu size={20} color="#FFFFFF" />
       </TouchableOpacity>
-      
-      {/* Floating bookmark button - only show if not sponsored content */}
-      {!isSponsoredContent(article) && (
-        <TouchableOpacity 
-          style={[
-            styles.floatingBookmarkButton,
-            isSaved && { backgroundColor: theme.colors.primary }
-          ]} 
-          onPress={toggleSave}
-          activeOpacity={0.8}
-        >
-          <Bookmark 
-            size={20} 
-            color="#FFFFFF" 
-            fill={isSaved ? "#FFFFFF" : "transparent"} 
-          />
-        </TouchableOpacity>
-      )}
       
       <ScrollView 
         style={styles.scrollView}
@@ -789,13 +902,19 @@ export default function ArticleDetailScreen() {
             </View>
           )}
           
-          {/* Gallery */}
-          {renderGallery()}
-          
           {/* Article content */}
           {renderContent()}
+          
+          {/* Gallery (moved below content) */}
+          {renderGallery()}
+          
+          {/* Related articles */}
+          {renderRelatedArticles()}
         </View>
       </ScrollView>
+      
+      {/* Floating menu */}
+      {renderFloatingMenu()}
       
       {/* Image modal */}
       {renderImageModal()}
@@ -860,24 +979,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     elevation: 5,
   },
-  floatingShareButton: {
-    position: 'absolute',
-    top: Platform.select({
-      ios: 50,
-      android: 45,
-      default: 50
-    }),
-    right: 70,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    elevation: 5,
-  },
-  floatingBookmarkButton: {
+  floatingMenuButton: {
     position: 'absolute',
     top: Platform.select({
       ios: 50,
@@ -929,6 +1031,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   galleryContainer: {
+    marginTop: 32,
     marginBottom: 24,
   },
   galleryTitle: {
@@ -955,6 +1058,20 @@ const styles = StyleSheet.create({
   galleryImage: {
     width: '100%',
     height: '100%',
+  },
+  relatedContainer: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  relatedTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  relatedList: {
+    gap: 12,
   },
   htmlContainer: {
     width: '100%',
@@ -997,6 +1114,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
+  },
+  // Menu styles
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContainer: {
+    borderRadius: 16,
+    padding: 8,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+  },
+  menuText: {
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '500',
   },
   // Modal styles
   modalContainer: {

@@ -451,6 +451,99 @@ export const fetchMediaByIds = async (ids: string[]): Promise<MediaItem[]> => {
   }
 };
 
+// Fetch related articles based on categories
+export const fetchRelatedArticles = async (
+  currentArticleId: number,
+  categories: number[],
+  limit = 3
+): Promise<Article[]> => {
+  try {
+    const timestamp = new Date().getTime();
+    
+    // Filter out sponsored category from categories
+    const filteredCategories = categories.filter(catId => catId !== 554);
+    
+    let url = `${API_BASE_URL}/posts?_embed&per_page=${limit + 1}&exclude=${currentArticleId}&_=${timestamp}`;
+    
+    // If we have categories, use them for related articles
+    if (filteredCategories.length > 0) {
+      url += `&categories=${filteredCategories.join(',')}`;
+    }
+    
+    // Always exclude sponsored category
+    url += `&categories_exclude=554`;
+    
+    const response = await fetchWithTimeout(url);
+    
+    if (!response.ok) {
+      // If categories-based search fails, try without categories
+      if (filteredCategories.length > 0) {
+        const fallbackUrl = `${API_BASE_URL}/posts?_embed&per_page=${limit + 1}&exclude=${currentArticleId}&categories_exclude=554&_=${timestamp}`;
+        const fallbackResponse = await fetchWithTimeout(fallbackUrl);
+        
+        if (!fallbackResponse.ok) {
+          return [];
+        }
+        
+        const fallbackArticles = await fallbackResponse.json();
+        if (!Array.isArray(fallbackArticles)) {
+          return [];
+        }
+        
+        const processedFallbackArticles = fallbackArticles.map((article: Article) => {
+          let featured_media_url = undefined;
+          
+          if (article._embedded && 
+              article._embedded['wp:featuredmedia'] && 
+              article._embedded['wp:featuredmedia'][0]) {
+            featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+          }
+          
+          return {
+            ...article,
+            featured_media_url
+          };
+        });
+        
+        // Filter out sponsored content and limit results
+        const filteredFallbackArticles = filterSponsoredArticles(processedFallbackArticles);
+        return filteredFallbackArticles.slice(0, limit);
+      }
+      
+      return [];
+    }
+    
+    const articles = await response.json();
+    
+    if (!Array.isArray(articles)) {
+      return [];
+    }
+    
+    // Process articles to extract featured image URL
+    const processedArticles = articles.map((article: Article) => {
+      let featured_media_url = undefined;
+      
+      if (article._embedded && 
+          article._embedded['wp:featuredmedia'] && 
+          article._embedded['wp:featuredmedia'][0]) {
+        featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+      }
+      
+      return {
+        ...article,
+        featured_media_url
+      };
+    });
+    
+    // Filter out sponsored content and limit results
+    const filteredArticles = filterSponsoredArticles(processedArticles);
+    return filteredArticles.slice(0, limit);
+  } catch (error: any) {
+    console.warn('Error fetching related articles:', error);
+    return [];
+  }
+};
+
 // Register push token with backend
 export const registerPushToken = async (registration: PushTokenRegistration): Promise<void> => {
   try {
