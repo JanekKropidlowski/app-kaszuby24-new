@@ -22,7 +22,10 @@ export const useScrollStore = create<ScrollState>((set, get) => ({
     }
     
     const isScrollingUp = scrollY < lastScrollY;
-    const showLogo = scrollY < 50 || isScrollingUp; // Show logo when near top or scrolling up
+    
+    // Show logo when near top (scrollY < 30) or when scrolling up
+    // This makes the header more responsive to scroll direction
+    const showLogo = scrollY < 30 || isScrollingUp;
     
     set({
       isScrollingUp,

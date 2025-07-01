@@ -30,7 +30,7 @@ export const colors = {
     warning: '#FBBF24',
     subtle: '#374151',
     shadow: '#000000',
-    tabBarBackground: '#1F2937', // Dark background for tab bar gap
+    tabBarBackground: '#111827', // Dark background for tab bar gap
   },
 };
 

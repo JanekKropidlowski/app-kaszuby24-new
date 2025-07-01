@@ -48,7 +48,7 @@ export const lightTheme = {
     warning: '#F59E0B',
     subtle: '#F1F5F9',
     shadow: '#000000',
-    tabBarBackground: '#FFFFFF',
+    tabBarBackground: '#FFFFFF', // Added for tab bar background
   },
   fontFamily: {
     regular: Platform.select({
@@ -117,7 +117,7 @@ export const darkTheme = {
     warning: '#FBBF24',
     subtle: '#334155',
     shadow: '#000000',
-    tabBarBackground: '#1E293B',
+    tabBarBackground: '#1E293B', // Added for tab bar background
   },
   fontFamily: {
     regular: Platform.select({

@@ -40,16 +40,54 @@ const AnimatedLogo = () => {
       style={{
         opacity: logoOpacity,
         transform: [{ scale: logoScale }],
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <Image
         source={{ uri: theme.logo.header }}
-        style={{ width: 110, height: 32 }}
+        style={{ width: 140, height: 40 }}
         contentFit="contain"
         placeholder="Kaszuby24"
         cachePolicy="memory-disk"
         transition={200}
       />
+    </Animated.View>
+  );
+};
+
+// Animated header component that wraps the logo
+const AnimatedHeader = () => {
+  const { showLogo } = useScrollStore();
+  const headerOpacity = React.useRef(new Animated.Value(1)).current;
+  const headerTranslateY = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerOpacity, {
+        toValue: showLogo ? 1 : 0.5,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(headerTranslateY, {
+        toValue: showLogo ? 0 : -10,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [showLogo, headerOpacity, headerTranslateY]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: headerOpacity,
+        transform: [{ translateY: headerTranslateY }],
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <AnimatedLogo />
     </Animated.View>
   );
 };
@@ -140,7 +178,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Home size={size} color={color} strokeWidth={2} />
             ),
-            headerTitle: () => <AnimatedLogo />,
+            headerTitle: () => <AnimatedHeader />,
           }}
         />
         
@@ -151,7 +189,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Search size={size} color={color} strokeWidth={2} />
             ),
-            headerTitle: () => <AnimatedLogo />,
+            headerTitle: () => <AnimatedHeader />,
           }}
         />
         
@@ -171,7 +209,7 @@ export default function TabLayout() {
               minWidth: 18,
               height: 18,
             },
-            headerTitle: () => <AnimatedLogo />,
+            headerTitle: () => <AnimatedHeader />,
           }}
         />
         
@@ -182,7 +220,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Bookmark size={size} color={color} strokeWidth={2} />
             ),
-            headerTitle: () => <AnimatedLogo />,
+            headerTitle: () => <AnimatedHeader />,
           }}
         />
         
@@ -193,7 +231,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Settings size={size} color={color} strokeWidth={2} />
             ),
-            headerTitle: () => <AnimatedLogo />,
+            headerTitle: () => <AnimatedHeader />,
           }}
         />
       </Tabs>
@@ -205,8 +243,8 @@ export default function TabLayout() {
           bottom: 0,
           left: 0,
           right: 0,
-          height: 20,
-          backgroundColor: theme.colors.background,
+          height: 30, // Increased height to ensure no gap
+          backgroundColor: theme.colors.tabBarBackground || theme.colors.background,
           zIndex: -1,
         }}
       />
