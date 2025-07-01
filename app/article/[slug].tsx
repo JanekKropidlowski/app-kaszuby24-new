@@ -13,12 +13,13 @@ import {
   BackHandler,
   Modal,
   Animated,
-  Alert
+  Alert,
+  Speech
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings, Search } from 'lucide-react-native';
+import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings, Search, Headphones, Square, ChevronDown } from 'lucide-react-native';
 import { fetchArticleBySlug, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -30,7 +31,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { formatDateTime } from '@/utils/dateFormatter';
-import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl, getYouTubeVideoId } from '@/utils/htmlParser';
+import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl, getYouTubeVideoId, stripHtmlForTTS } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
 
@@ -113,6 +114,14 @@ export default function ArticleSlugScreen() {
   
   const isSaved = article ? isArticleSaved(article.id) : false;
   const unreadCount = getUnreadCount();
+  
+  // TTS state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<Speech.Voice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [showVoiceSelector, setShowVoiceSelector] = useState(false);
+  const [ttsAvailable, setTtsAvailable] = useState(true);
+  const [ttsText, setTtsText] = useState<string>('');
   
   // Load article data
   useEffect(() => {
@@ -969,6 +978,9 @@ export default function ArticleSlugScreen() {
             )}
           </View>
           
+          {/* TTS Controls */}
+          {renderTTSControls}
+          
           {/* Display videos if any */}
           {videoUrls.length > 0 && (
             <View style={styles.videoContainer}>
@@ -1204,6 +1216,218 @@ export default function ArticleSlugScreen() {
     </View>
   );
 }
+
+// TTS Controls Component
+const renderTTSControls = useMemo(() => {
+  if (!ttsAvailable || !ttsText) {
+    return (
+      <View style={styles.ttsContainer}>
+        <Text style={[
+          styles.ttsUnavailableText, 
+          { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.regular
+          }
+        ]}>
+          📢 Odczytywanie głosowe niedostępne na tym urządzeniu
+        </Text>
+      </View>
+    );
+  }
+  
+  return (
+    <View style={styles.ttsContainer}>
+      <View style={styles.ttsControls}>
+        <TouchableOpacity
+          style={[
+            styles.ttsButton,
+            { 
+              backgroundColor: isSpeaking ? theme.colors.notification : theme.colors.primary,
+              opacity: isSpeaking ? 0.8 : 1
+            }
+          ]}
+          onPress={isSpeaking ? handleStopTTS : handlePlayTTS}
+          activeOpacity={0.8}
+          disabled={!ttsText}
+        >
+          {isSpeaking ? (
+            <Square size={18} color="#FFFFFF" fill="#FFFFFF" />
+          ) : (
+            <Headphones size={18} color="#FFFFFF" />
+          )}
+          <Text style={[
+            styles.ttsButtonText,
+            { fontFamily: theme.fontFamily.semibold }
+          ]}>
+            {isSpeaking ? 'Zatrzymaj' : 'Odczytaj'}
+          </Text>
+        </TouchableOpacity>
+        
+        {availableVoices.length > 1 && (
+          <TouchableOpacity
+            style={[
+              styles.voiceSelector,
+              { 
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border
+              }
+            ]}
+            onPress={() => setShowVoiceSelector(!showVoiceSelector)}
+            activeOpacity={0.8}
+          >
+            <Text style={[
+              styles.voiceSelectorText,
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              Głos
+            </Text>
+            <ChevronDown 
+              size={16} 
+              color={theme.colors.text}
+              style={{
+                transform: [{ rotate: showVoiceSelector ? '180deg' : '0deg' }]
+              }}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+      
+      {showVoiceSelector && availableVoices.length > 1 && (
+        <View style={[
+          styles.voiceDropdown,
+          { 
+            backgroundColor: theme.colors.card,
+            borderColor: theme.colors.border
+          }
+        ]}>
+          {availableVoices.map((voice) => (
+            <TouchableOpacity
+              key={voice.identifier}
+              style={[
+                styles.voiceOption,
+                selectedVoice === voice.identifier && {
+                  backgroundColor: theme.colors.primary + '15'
+                }
+              ]}
+              onPress={() => handleVoiceSelect(voice.identifier)}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.voiceOptionText,
+                { 
+                  color: selectedVoice === voice.identifier ? theme.colors.primary : theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                {voice.name || voice.identifier}
+              </Text>
+              <Text style={[
+                styles.voiceLanguage,
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.regular
+                }
+              ]}>
+                {voice.language}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}, [
+  ttsAvailable, 
+  ttsText, 
+  isSpeaking, 
+  availableVoices, 
+  selectedVoice, 
+  showVoiceSelector, 
+  theme,
+  handlePlayTTS,
+  handleStopTTS,
+  handleVoiceSelect
+]);
+
+// Initialize TTS when article loads
+useEffect(() => {
+  const initializeTTS = async () => {
+    try {
+      // Check if TTS is available
+      const voices = await Speech.getAvailableVoicesAsync();
+      
+      // Filter for Polish voices or fallback to any available voice
+      const polishVoices = voices.filter(voice => 
+        voice.language.toLowerCase().includes('pl') || 
+        voice.language.toLowerCase().includes('polish')
+      );
+      
+      const voicesToUse = polishVoices.length > 0 ? polishVoices : voices.slice(0, 3);
+      setAvailableVoices(voicesToUse);
+      
+      if (voicesToUse.length > 0) {
+        setSelectedVoice(voicesToUse[0].identifier);
+      }
+      
+      setTtsAvailable(voices.length > 0);
+    } catch (error) {
+      console.warn('TTS not available:', error);
+      setTtsAvailable(false);
+    }
+  };
+  
+  if (article) {
+    // Prepare TTS text
+    const cleanText = stripHtmlForTTS(article.content.rendered);
+    setTtsText(cleanText);
+    initializeTTS();
+  }
+}, [article]);
+
+// TTS Functions
+const handlePlayTTS = useCallback(async () => {
+  if (!ttsText || !ttsAvailable) return;
+  
+  try {
+    setIsSpeaking(true);
+    
+    const options: Speech.SpeechOptions = {
+      language: 'pl-PL',
+      pitch: 1.0,
+      rate: 0.9,
+      onDone: () => setIsSpeaking(false),
+      onStopped: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+    };
+    
+    if (selectedVoice) {
+      options.voice = selectedVoice;
+    }
+    
+    await Speech.speak(ttsText, options);
+  } catch (error) {
+    console.warn('TTS playback failed:', error);
+    setIsSpeaking(false);
+  }
+}, [ttsText, ttsAvailable, selectedVoice]);
+  
+const handleStopTTS = useCallback(async () => {
+  try {
+    await Speech.stop();
+    setIsSpeaking(false);
+  } catch (error) {
+    console.warn('TTS stop failed:', error);
+    setIsSpeaking(false);
+  }
+}, []);
+  
+const handleVoiceSelect = useCallback((voiceId: string) => {
+  setSelectedVoice(voiceId);
+  setShowVoiceSelector(false);
+}, []);
 
 const styles = StyleSheet.create({
   container: {
@@ -1587,5 +1811,82 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
+  },
+  ttsContainer: {
+    marginVertical: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  ttsControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ttsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ttsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  voiceSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  voiceSelectorText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  voiceDropdown: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  voiceOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  voiceOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  voiceLanguage: {
+    fontSize: 12,
+    fontWeight: '400',
+  },
+  ttsUnavailableText: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    lineHeight: 20,
   },
 });
