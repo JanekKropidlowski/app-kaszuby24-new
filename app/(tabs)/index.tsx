@@ -467,6 +467,21 @@ export default function HomeScreen() {
     dismissBanner();
   }, [dismissBanner]);
   
+  const handleDotPress = useCallback((index: number) => {
+    if (flatListRef.current && index < featuredArticles.length) {
+      try {
+        setActiveCarouselIndex(index);
+        flatListRef.current.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.5,
+        });
+      } catch (error) {
+        console.warn('Dot press scroll failed:', error);
+      }
+    }
+  }, [featuredArticles.length]);
+  
   // Optimized item layout for FlatList
   const getItemLayout = useCallback((data: any, index: number) => {
     const length = CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING;
