@@ -153,12 +153,14 @@ export default function ArticleDetailScreen() {
       if (data.content.rendered) {
         const videos = extractVideoUrls(data.content.rendered);
         setVideoUrls(videos);
+        console.log('Found video URLs in content:', videos.length);
       }
       
       // Extract YouTube URL from meta field
       if (data.meta?.youtube) {
         const youtubeVideoUrl = extractYouTubeUrl(data.meta.youtube);
         setYoutubeUrl(youtubeVideoUrl);
+        console.log('Found YouTube URL in meta:', youtubeVideoUrl);
       }
       
       // Add to recent articles
@@ -180,8 +182,8 @@ export default function ArticleDetailScreen() {
       console.error('Error loading article:', err);
       
       // Retry logic
-      if (retry < 2) {
-        console.log(`Retrying article load (${retry + 1}/2)...`);
+      if (retry < MAX_RETRIES - 1) {
+        console.log(`Retrying article load (${retry + 1}/${MAX_RETRIES - 1})...`);
         setTimeout(() => {
           loadArticle(retry + 1);
         }, 1000 * (retry + 1));
@@ -1016,7 +1018,7 @@ ${article.link}`,
           {/* Article content */}
           {renderContent}
           
-          {/* YouTube video from meta field - moved after content */}
+          {/* YouTube video from meta field - positioned directly after content */}
           {youtubeUrl && (
             <View style={styles.youtubeContainer}>
               <Text style={[
@@ -1032,7 +1034,29 @@ ${article.link}`,
             </View>
           )}
           
-          {/* Gallery (moved below content) */}
+          {/* Additional YouTube videos from content */}
+          {videoUrls.length > 0 && (
+            <View style={styles.additionalVideosContainer}>
+              <Text style={[
+                styles.sectionTitle,
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold
+                }
+              ]}>
+                Powiązane wideo
+              </Text>
+              {videoUrls.map((url, index) => (
+                <VideoPlayer 
+                  key={`additional-video-${index}`} 
+                  url={url} 
+                  title={`Wideo ${index + 1}`} 
+                />
+              ))}
+            </View>
+          )}
+          
+          {/* Gallery (moved below content and videos) */}
           {renderGallery}
           
           {/* Source and photo credits */}
@@ -1317,6 +1341,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     letterSpacing: -0.3,
   },
+  additionalVideosContainer: {
+    marginTop: 28,
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
   galleryContainer: {
     marginTop: 32,
     marginBottom: 24,
@@ -1569,5 +1603,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
+  },
+  // Additional videos container
+  additionalVideosContainer: {
+    marginTop: 28,
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    letterSpacing: -0.3,
   },
 });

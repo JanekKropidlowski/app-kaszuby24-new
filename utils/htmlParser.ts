@@ -34,7 +34,9 @@ export const extractVideoUrls = (html: string): string[] => {
   
   while ((match = iframeRegex.exec(html)) !== null) {
     if (match[1]) {
-      videoUrls.push(match[1]);
+      // Convert embed URLs to watch URLs for consistency
+      const url = match[1].replace('youtube.com/embed/', 'youtube.com/watch?v=');
+      videoUrls.push(url);
     }
   }
   
@@ -42,7 +44,7 @@ export const extractVideoUrls = (html: string): string[] => {
   const linkRegex = /<a[^>]*href=["']([^"']*(?:youtube|vimeo)[^"']*)["'][^>]*>/gi;
   
   while ((match = linkRegex.exec(html)) !== null) {
-    if (match[1]) {
+    if (match[1] && !videoUrls.includes(match[1])) {
       videoUrls.push(match[1]);
     }
   }
@@ -58,7 +60,15 @@ export const extractVideoUrls = (html: string): string[] => {
     }
   }
   
-  return videoUrls;
+  // Remove duplicates and ensure all URLs are properly formatted
+  return [...new Set(videoUrls)].map(url => {
+    // Convert youtu.be links to youtube.com/watch?v= format
+    if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1].split('?')[0].split('&')[0];
+      return `https://www.youtube.com/watch?v=${videoId}`;
+    }
+    return url;
+  });
 };
 
 // Extract YouTube URL from meta field - improved to handle more formats
