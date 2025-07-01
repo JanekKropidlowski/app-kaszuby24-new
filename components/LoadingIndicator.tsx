@@ -37,7 +37,11 @@ const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size={size} color={theme.colors.primary} />
+      <ActivityIndicator 
+        size={size} 
+        color={theme.colors.primary}
+        style={styles.spinner}
+      />
       {message && (
         <Text style={[styles.message, { color: theme.colors.text, fontFamily: theme.fontFamily?.medium }]}>
           {message}
@@ -49,9 +53,12 @@ const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  spinner: {
+    opacity: 0.9,
   },
   fullScreen: {
     flex: 1,

@@ -146,6 +146,7 @@ export default function HomeScreen() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasMoreArticles, setHasMoreArticles] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [reachedEnd, setReachedEnd] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -189,6 +190,7 @@ export default function HomeScreen() {
       if (pageNum === 1) {
         setLoading(true);
         setHasMoreArticles(true);
+        setReachedEnd(false);
       } else {
         setIsLoadingMore(true);
       }
@@ -240,8 +242,7 @@ export default function HomeScreen() {
       // Check if we have more articles to load
       const hasMore = pageNum < total && newArticles.length > 0;
       setHasMoreArticles(hasMore);
-      
-      setRetryCount(0); // Reset retry count on success
+      setReachedEnd(!hasMore);
       
       console.log(`Articles loaded successfully. Has more: ${hasMore}, Current page: ${pageNum}, Total pages: ${total}`);
     } catch (err: any) {
@@ -910,7 +911,7 @@ export default function HomeScreen() {
                 Ładowanie kolejnych artykułów...
               </Text>
             </View>
-          ) : !hasMoreArticles && articles.length > 0 ? (
+          ) : reachedEnd && articles.length > 0 ? (
             <View style={styles.endOfListContainer}>
               <View style={[styles.endOfListDivider, { backgroundColor: theme.colors.border }]} />
               <Text style={[
@@ -929,7 +930,7 @@ export default function HomeScreen() {
                   fontFamily: theme.fontFamily.regular
                 }
               ]}>
-                Odśwież stronę, aby sprawdzić nowe treści
+                Przeciągnij w dół, aby odświeżyć i sprawdzić nowe treści
               </Text>
             </View>
           ) : null
@@ -943,7 +944,7 @@ export default function HomeScreen() {
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
+        onEndReachedThreshold={0.2}
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
@@ -1107,8 +1108,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.02)',
-    marginTop: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    marginTop: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   infiniteLoadingText: {
     fontSize: 14,
@@ -1122,6 +1130,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 16,
+    marginBottom: 24,
+    backgroundColor: 'rgba(0,0,0,0.01)',
+    borderRadius: 12,
   },
   endOfListDivider: {
     width: 60,

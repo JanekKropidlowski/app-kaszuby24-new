@@ -198,6 +198,9 @@ export const fetchArticles = async (
       // Exclude sponsored category from all requests and ensure newest first
       url += `&categories_exclude=554&orderby=date&order=desc`;
       
+      // Add a small random parameter to prevent caching issues
+      url += `&_=${Date.now()}`;
+      
       const response = await fetchWithTimeout(url);
       
       if (!response.ok) {
