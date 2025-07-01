@@ -38,7 +38,7 @@ export const lightTheme = {
     primary: '#224A96',
     secondary: '#FECC00',
     background: '#F8FAFC',
-    card: '#F8FAFC',
+    card: '#FFFFFF',
     text: '#1E293B',
     textSecondary: '#64748B',
     border: '#E2E8F0',
@@ -48,6 +48,7 @@ export const lightTheme = {
     warning: '#F59E0B',
     subtle: '#F1F5F9',
     shadow: '#000000',
+    tabBarBackground: '#FFFFFF', // White background for tab bar gap
   },
   fontFamily: {
     regular: Platform.select({
@@ -113,6 +114,7 @@ export const darkTheme = {
     warning: '#FBBF24',
     subtle: '#334155',
     shadow: '#000000',
+    tabBarBackground: '#1E293B', // Dark background for tab bar gap
   },
   fontFamily: {
     regular: Platform.select({

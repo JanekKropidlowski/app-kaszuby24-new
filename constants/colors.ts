@@ -3,7 +3,7 @@ export const colors = {
   light: {
     primary: '#224A96', // Brand main color
     secondary: '#FECC00', // Brand secondary color
-    background: '#F9FAFB',
+    background: '#F8FAFC',
     card: '#FFFFFF',
     text: '#111827',
     textSecondary: '#6B7280',
@@ -14,6 +14,7 @@ export const colors = {
     warning: '#F59E0B',
     subtle: '#F3F4F6',
     shadow: '#000000',
+    tabBarBackground: '#FFFFFF', // White background for tab bar gap
   },
   dark: {
     primary: '#4A7BC8', // Lighter version of brand color for dark mode
@@ -29,6 +30,7 @@ export const colors = {
     warning: '#FBBF24',
     subtle: '#374151',
     shadow: '#000000',
+    tabBarBackground: '#1F2937', // Dark background for tab bar gap
   },
 };
 

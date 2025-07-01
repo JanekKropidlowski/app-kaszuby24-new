@@ -112,11 +112,13 @@ export default function SearchScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <SearchBar 
-        onSearch={handleSearch} 
-        placeholder="Szukaj wiadomości..." 
-        autoFocus={false}
-      />
+      <View style={[styles.searchContainer, { backgroundColor: theme.colors.card }]}>
+        <SearchBar 
+          onSearch={handleSearch} 
+          placeholder="Szukaj wiadomości..." 
+          autoFocus={false}
+        />
+      </View>
       
       {loading ? (
         <LoadingIndicator fullScreen />
@@ -135,16 +137,21 @@ export default function SearchScreen() {
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             query.trim() ? (
-              <Text 
-                style={[
-                  styles.resultsText, 
-                  { color: theme.colors.text }
-                ]}
-              >
-                {articles.length === 0
-                  ? 'Nie znaleziono wyników'
-                  : `Znaleziono ${articles.length} wyników dla "${query}"`}
-              </Text>
+              <View style={styles.resultsHeader}>
+                <Text 
+                  style={[
+                    styles.resultsText, 
+                    { 
+                      color: theme.colors.text,
+                      fontFamily: theme.fontFamily.semibold
+                    }
+                  ]}
+                >
+                  {articles.length === 0
+                    ? 'Nie znaleziono wyników'
+                    : `Znaleziono ${articles.length} wyników dla "${query}"`}
+                </Text>
+              </View>
             ) : null
           }
           ListEmptyComponent={
@@ -161,6 +168,7 @@ export default function SearchScreen() {
           }
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -171,58 +179,83 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
   listContent: {
-    paddingBottom: 16,
+    paddingBottom: 120, // Extra padding for tab bar
     flexGrow: 1,
+  },
+  resultsHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(34, 74, 150, 0.03)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   articleContainer: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   resultsText: {
-    fontSize: 16,
-    marginHorizontal: 16,
-    marginVertical: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   emptySearchContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 100,
+    marginTop: 80,
     paddingHorizontal: 32,
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   emptySearchTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 10,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   emptySearchSubtitle: {
     fontSize: 16,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
+    opacity: 0.8,
   },
   voiceSearchHint: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    marginTop: 28,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 24,
+    backgroundColor: 'rgba(34, 74, 150, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   voiceSearchText: {
     fontSize: 14,
-    marginLeft: 8,
-    fontWeight: '500',
+    marginLeft: 10,
+    fontWeight: '600',
+    letterSpacing: 0.1,
   },
 });
