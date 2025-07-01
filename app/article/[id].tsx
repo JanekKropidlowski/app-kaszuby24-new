@@ -106,6 +106,9 @@ export default function ArticleDetailScreen() {
   const webViewRef = useRef<WebView>(null);
   const progressBarWidth = useRef(new Animated.Value(0)).current;
   
+  // Add refs to track animated values
+  const progressOpacityValue = useRef(0);
+  
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
   const unreadCount = getUnreadCount();
@@ -358,6 +361,17 @@ ${article.link}`,
     }
   }, [selectedImageIndex, galleryImages.length]);
   
+  // Set up listeners for animated values in useEffect
+  useEffect(() => {
+    const opacityListener = progressOpacity.addListener(({ value }) => {
+      progressOpacityValue.current = value;
+    });
+    
+    return () => {
+      progressOpacity.removeListener(opacityListener);
+    };
+  }, [progressOpacity]);
+  
   // Enhanced scroll handler with reading progress tracking
   const handleScroll = useCallback((event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -380,7 +394,7 @@ ${article.link}`,
     }).start();
     
     // Show progress bar when scrolling starts
-    if (scrollY > 50 && progressOpacity._value === 0) {
+    if (scrollY > 50 && progressOpacityValue.current === 0) {
       Animated.timing(progressOpacity, {
         toValue: 1,
         duration: 200,
@@ -389,7 +403,7 @@ ${article.link}`,
     }
     
     // Hide progress bar when at the top
-    if (scrollY < 50 && progressOpacity._value === 1) {
+    if (scrollY < 50 && progressOpacityValue.current === 1) {
       Animated.timing(progressOpacity, {
         toValue: 0,
         duration: 200,
