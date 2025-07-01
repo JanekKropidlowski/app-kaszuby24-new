@@ -1072,50 +1072,6 @@ ${article.link}`,
         </View>
       </ScrollView>
       
-      {/* Sticky footer with actions */}
-      <View style={[styles.stickyFooter, { backgroundColor: theme.colors.card }]}>
-        <TouchableOpacity
-          style={[styles.footerButton, { backgroundColor: theme.colors.primary }]}
-          onPress={handleShare}
-          activeOpacity={0.8}
-        >
-          <Share2 size={18} color="#FFFFFF" />
-          <Text style={[styles.footerButtonText, { fontFamily: theme.fontFamily.semibold }]}>
-            Udostępnij
-          </Text>
-        </TouchableOpacity>
-        
-        {!isSponsoredContent(article) && (
-          <TouchableOpacity
-            style={[
-              styles.footerButton, 
-              { 
-                backgroundColor: isSaved ? 'rgba(34, 74, 150, 0.15)' : theme.colors.subtle,
-                borderWidth: isSaved ? 1 : 0,
-                borderColor: theme.colors.primary
-              }
-            ]}
-            onPress={toggleSave}
-            activeOpacity={0.8}
-          >
-            <Bookmark 
-              size={18} 
-              color={isSaved ? theme.colors.primary : theme.colors.text}
-              fill={isSaved ? theme.colors.primary : 'transparent'} 
-            />
-            <Text style={[
-              styles.footerButtonText, 
-              { 
-                fontFamily: theme.fontFamily.semibold,
-                color: isSaved ? theme.colors.primary : theme.colors.text
-              }
-            ]}>
-              {isSaved ? 'Zapisano' : 'Zapisz'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      
       {/* Bottom menu bar */}
       <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
         <TouchableOpacity
@@ -1283,7 +1239,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 180, // Extra space for bottom menu and sticky footer
+    paddingBottom: 120, // Reduced padding since we removed the sticky footer
   },
   featuredImageContainer: {
     position: 'relative',
@@ -1420,44 +1376,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 8,
     fontStyle: 'italic',
-  },
-  // Sticky footer
-  stickyFooter: {
-    position: 'absolute',
-    bottom: Platform.select({
-      ios: 83, // Account for bottom tab bar on iOS
-      android: 56,
-      default: 56,
-    }),
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
-    zIndex: 100,
-  },
-  footerButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginHorizontal: 6,
-  },
-  footerButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 8,
   },
   // Bottom menu bar
   bottomMenuBar: {
