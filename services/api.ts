@@ -1,4 +1,4 @@
-import { Article, Category, MediaItem } from '@/types/article';
+import { Article, Category, MediaItem, Nekrolog } from '@/types/article';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, Vibration } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
@@ -1001,21 +1001,91 @@ export const registerExpoPushToken = async (registration: ExpoPushTokenRegistrat
 // Clear all caches (useful for debugging or when user wants to refresh)
 export const clearAllCaches = async (): Promise<void> => {
   try {
-    await Promise.all([
-      AsyncStorage.removeItem(CACHE_KEY_ARTICLES),
-      AsyncStorage.removeItem(CACHE_KEY_CATEGORIES),
-      // Clear all media cache keys (this is a simplified approach)
-      AsyncStorage.getAllKeys().then(keys => {
-        const mediaCacheKeys = keys.filter(key => key.startsWith(CACHE_KEY_MEDIA));
-        return AsyncStorage.multiRemove(mediaCacheKeys);
-      })
-    ]);
+    console.log('Clearing all caches...');
+    
+    // Clear AsyncStorage cache
+    const keys = await AsyncStorage.getAllKeys();
+    const cacheKeys = keys.filter(key => 
+      key.includes(CACHE_KEY_ARTICLES) || 
+      key.includes(CACHE_KEY_CATEGORIES) ||
+      key.includes(CACHE_KEY_MEDIA) ||
+      key.includes(CACHE_KEY_SINGLE_ARTICLE)
+    );
+    
+    if (cacheKeys.length > 0) {
+      await AsyncStorage.multiRemove(cacheKeys);
+      console.log(`Cleared ${cacheKeys.length} cache entries`);
+    }
     
     // Clear pending requests
-    pendingRequests.clear();
+    cancelAllRequests();
     
     console.log('All caches cleared successfully');
   } catch (error) {
-    console.warn('Failed to clear caches:', error);
+    console.error('Error clearing caches:', error);
   }
+};
+
+// Function to fetch nekrologi (obituaries)
+export const fetchNekrologi = async (
+  page = 1,
+  perPage = 10
+): Promise<{ nekrologi: Nekrolog[], totalPages: number }> => {
+  const requestKey = `nekrologi_${page}_${perPage}`;
+  
+  return deduplicateRequest(requestKey, async () => {
+    try {
+      console.log(`Loading nekrologi: page=${page}, perPage=${perPage}`);
+      
+      let url = `${API_BASE_URL}/nekrolog?page=${page}&per_page=${perPage}&orderby=date&order=desc`;
+      
+      // Add timestamp to prevent caching issues
+      url += `&_=${Date.now()}`;
+      
+      const response = await fetchWithTimeout(url);
+      
+      if (!response.ok) {
+        console.error(`API Error for nekrologi: ${response.status} ${response.statusText}`);
+        if (response.status === 429) {
+          throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+        } else if (response.status >= 500) {
+          throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+        } else if (response.status === 404) {
+          throw new Error('Nie znaleziono nekrologów.');
+        } else {
+          throw new Error(`Błąd API: ${response.status}`);
+        }
+      }
+      
+      const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
+      const nekrologi = await response.json();
+      
+      console.log(`Loaded ${nekrologi.length} nekrologi, total pages: ${totalPages}`);
+      
+      if (!Array.isArray(nekrologi)) {
+        console.error('Invalid nekrologi API response format:', nekrologi);
+        throw new Error('Nieprawidłowy format odpowiedzi API');
+      }
+      
+      // Sort nekrologi by date (newest first)
+      const sortedNekrologi = nekrologi.sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      
+      console.log(`After sorting: ${sortedNekrologi.length} nekrologi`);
+      
+      return { 
+        nekrologi: sortedNekrologi, 
+        totalPages 
+      };
+    } catch (error: any) {
+      console.error('Error in fetchNekrologi:', error);
+      
+      if (error.message) {
+        throw error;
+      }
+      
+      throw new Error('Wystąpił problem podczas ładowania nekrologów. Sprawdź połączenie internetowe i spróbuj ponownie.');
+    }
+  });
 };

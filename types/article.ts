@@ -68,6 +68,29 @@ export interface Article {
   };
 }
 
+export interface Nekrolog {
+  id: number;
+  date: string;
+  date_gmt: string;
+  modified: string;
+  modified_gmt: string;
+  slug: string;
+  status: string;
+  type: "nekrolog";
+  link: string;
+  title: {
+    rendered: string;
+  };
+  content: {
+    rendered: string;
+    protected: boolean;
+  };
+  featured_media: number;
+  template: string;
+  region: number[];
+  class_list: string[];
+}
+
 export interface Category {
   id: number;
   count: number;

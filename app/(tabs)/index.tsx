@@ -15,8 +15,8 @@ import { useRouter } from 'expo-router';
 import { ChevronRight, RefreshCw, WifiOff, ArrowRight } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fetchArticles, fetchCategories, MAX_RETRIES, cancelAllRequests, cancelRequest } from '@/services/api';
-import { Article, Category } from '@/types/article';
+import { fetchArticles, fetchCategories, MAX_RETRIES, cancelAllRequests, cancelRequest, fetchNekrologi } from '@/services/api';
+import { Article, Category, Nekrolog } from '@/types/article';
 import { ArticleCard } from '@/components/ArticleCard';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
@@ -143,6 +143,8 @@ export default function HomeScreen() {
   // Simplified state management for reliable infinite scroll
   const [articles, setArticles] = useState<Article[]>([]);
   const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
+  const [nekrologi, setNekrologi] = useState<Nekrolog[]>([]);
+  const [mixedContent, setMixedContent] = useState<(Article | Nekrolog)[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   
@@ -325,37 +327,83 @@ export default function HomeScreen() {
       
       if (!isMountedRef.current) return;
       
-      // Filter to show only cities, regions and departments/sections
-      // Assuming categories with certain names/patterns are cities, regions, and departments
-      const allowedCategoryNames = [
-        // Miasta (przykłady typowych nazw miast kaszubskich)
-        'gdańsk', 'gdynia', 'sopot', 'słupsk', 'bytów', 'lębork', 'wejherowo', 'kartuzy', 'kościerzyna', 'chojnice', 'człuchów', 'żukowo', 'reda', 'rumia', 'puck', 'władysławowo', 'jastarnia', 'hel', 'ustka', 'miastko', 'debrzno',
-        // Regiony
-        'kaszuby', 'pomorze', 'powiaty', 'gminy', 'region', 'obszar', 'ziemia',
-        // Działy
-        'sport', 'kultura', 'turystyka', 'wydarzenia', 'gospodarka', 'społeczeństwo', 'historia', 'tradycje', 'język', 'muzyka', 'sztuka', 'festiwale', 'kulinaria', 'rzemiosło', 'edukacja', 'nauka', 'technologia', 'środowisko', 'przyroda'
+      // Filter to show only specific categories by ID
+      const allowedCategoryIds = [
+        2583, // Wejherowo
+        7,    // Trójmiasto
+        2128, // Puck
+        66165, // Kraj
+        65546, // Kościerzyna
+        65545, // Kartuzy
+        65556, // Chojnice
+        76797, // Reda
+        65558  // Lębork
       ];
       
       const filteredCategories = data
         .filter(cat => {
-          // Include categories with count > 0, exclude specific IDs (3, 554)
-          if (cat.count <= 0 || cat.id === 3 || cat.id === 554) return false;
-          
-          // Check if category name matches allowed patterns
-          const categoryName = cat.name.toLowerCase();
-          return allowedCategoryNames.some(allowed => 
-            categoryName.includes(allowed) || allowed.includes(categoryName)
-          );
+          // Include only categories with specific IDs and count > 0, exclude specific IDs (3, 554)
+          return allowedCategoryIds.includes(cat.id) && cat.count > 0 && cat.id !== 3 && cat.id !== 554;
         })
         .sort((a, b) => b.count - a.count);
       
       setCategories(filteredCategories);
-      console.log(`Loaded ${filteredCategories.length} filtered categories (cities, regions, departments)`);
+      console.log(`Loaded ${filteredCategories.length} filtered categories (specific IDs)`);
     } catch (err) {
       if (!isMountedRef.current) return;
       console.error('Error loading categories:', err);
     }
   }, []);
+  
+  // Load nekrologi - sorted by date
+  const loadNekrologi = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    
+    try {
+      console.log('Loading nekrologi...');
+      const { nekrologi: loadedNekrologi } = await fetchNekrologi(1, 20);
+      
+      if (!isMountedRef.current) return;
+      
+      // Sort nekrologi by date (newest first)
+      const sortedNekrologi = loadedNekrologi.sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      
+      setNekrologi(sortedNekrologi);
+      console.log(`Loaded ${sortedNekrologi.length} nekrologi`);
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      console.error('Error loading nekrologi:', err);
+    }
+  }, []);
+
+  // Mix articles with nekrologi (insert nekrolog every 5th position)
+  const mixContentWithNekrologi = useCallback((articlesList: Article[], nekrologiList: Nekrolog[]) => {
+    const mixed: (Article | Nekrolog)[] = [];
+    let nekrologIndex = 0;
+    
+    articlesList.forEach((article, index) => {
+      mixed.push(article);
+      
+      // Insert nekrolog every 5th position (after 4th, 9th, 14th, etc.)
+      if ((index + 1) % 5 === 0 && nekrologIndex < nekrologiList.length) {
+        mixed.push(nekrologiList[nekrologIndex]);
+        nekrologIndex++;
+      }
+    });
+    
+    return mixed;
+  }, []);
+  
+  // Update mixed content when articles or nekrologi change
+  useEffect(() => {
+    if (articles.length > 0 || nekrologi.length > 0) {
+      const mixed = mixContentWithNekrologi(articles, nekrologi);
+      setMixedContent(mixed);
+      console.log(`Mixed content updated: ${mixed.length} items (${articles.length} articles + ${nekrologi.length} nekrologi)`);
+    }
+  }, [articles, nekrologi, mixContentWithNekrologi]);
   
   // Component mount/unmount tracking
   useEffect(() => {
@@ -383,7 +431,8 @@ export default function HomeScreen() {
         try {
           await Promise.allSettled([
             loadArticles(1, false),
-            loadCategories()
+            loadCategories(),
+            loadNekrologi()
           ]);
         } catch (error) {
           console.warn('Error during initial load:', error);
@@ -392,7 +441,7 @@ export default function HomeScreen() {
       
       loadData();
     }
-  }, [loadArticles, loadCategories]);
+  }, [loadArticles, loadCategories, loadNekrologi]);
   
   // Handle category changes
   useEffect(() => {
@@ -580,8 +629,46 @@ export default function HomeScreen() {
     />
   ), [handleArticlePress]);
 
-  // Key extractor
-  const keyExtractor = useCallback((item: Article) => item.id.toString(), []);
+  // Nekrolog render function
+  const renderNekrolog = useCallback(({ item }: { item: Nekrolog }) => (
+    <View style={[styles.nekrologCard, { 
+      backgroundColor: theme.colors.card,
+      borderColor: theme.colors.border 
+    }]}>
+      <View style={styles.nekrologHeader}>
+        <Text style={[styles.nekrologBadge, { 
+          backgroundColor: theme.colors.subtle,
+          color: theme.colors.textSecondary 
+        }]}>
+          Nekrolog
+        </Text>
+      </View>
+      <Text style={[styles.nekrologTitle, { 
+        color: theme.colors.text,
+        fontFamily: theme.fontFamily.semibold 
+      }]}>
+        {item.title.rendered}
+      </Text>
+      <Text style={[styles.nekrologDate, { 
+        color: theme.colors.textSecondary,
+        fontFamily: theme.fontFamily.regular 
+      }]}>
+        {new Date(item.date).toLocaleDateString('pl-PL')}
+      </Text>
+    </View>
+  ), [theme]);
+
+  // Mixed content render function
+  const renderMixedItem = useCallback(({ item }: { item: Article | Nekrolog }) => {
+    if (item.type === 'nekrolog') {
+      return renderNekrolog({ item: item as Nekrolog });
+    } else {
+      return renderArticle({ item: item as Article });
+    }
+  }, [renderArticle, renderNekrolog]);
+
+  // Key extractor for mixed content
+  const keyExtractor = useCallback((item: Article | Nekrolog) => `${item.type}-${item.id}`, []);
 
   // Handler functions that need to be defined within component scope
   const handleCategoryChange = useCallback((categoryId: number | null) => {
@@ -712,7 +799,7 @@ export default function HomeScreen() {
       );
     }
     
-    if (!hasMoreArticles && articles.length > 0) {
+    if (!hasMoreArticles && mixedContent.length > 0) {
       return (
         <View style={[styles.endFooter, { backgroundColor: theme.colors.background }]}>
           <View style={[styles.endDivider, { backgroundColor: theme.colors.border }]} />
@@ -733,13 +820,13 @@ export default function HomeScreen() {
     }
     
     return null;
-  }, [loadingMore, hasMoreArticles, articles.length, theme]);
+  }, [loadingMore, hasMoreArticles, mixedContent.length, theme]);
 
   if (initialLoading) {
     return <SkeletonLoader type="home" count={5} />;
   }
 
-  if (error && articles.length === 0) {
+  if (error && mixedContent.length === 0) {
     return (
       <EmptyState
         title={isOffline ? "Brak połączenia z internetem" : "Coś poszło nie tak"}
@@ -754,9 +841,9 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <FlatList
-        data={articles}
+        data={mixedContent}
         keyExtractor={keyExtractor}
-        renderItem={renderArticle}
+        renderItem={renderMixedItem}
         contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -1094,5 +1181,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     opacity: 0.7,
+  },
+  nekrologCard: {
+    padding: 16,
+    margin: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  nekrologHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  nekrologBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  nekrologTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  nekrologDate: {
+    fontSize: 12,
+    fontWeight: '400',
   },
 });
