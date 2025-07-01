@@ -17,20 +17,21 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
   const animatedScale = new Animated.Value(1);
   
   const handlePress = () => {
-    // Animate the pill press
+    // Instant visual feedback for responsiveness
     Animated.sequence([
       Animated.timing(animatedScale, {
-        toValue: 0.92,
-        duration: 100,
+        toValue: 0.95,
+        duration: 80,
         useNativeDriver: true,
       }),
       Animated.timing(animatedScale, {
         toValue: 1,
-        duration: 100,
+        duration: 80,
         useNativeDriver: true,
       }),
     ]).start();
     
+    // Immediate callback for instant filtering
     onPress();
   };
   
@@ -48,10 +49,11 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
               : theme.colors.border,
             shadowColor: isSelected ? theme.colors.primary : theme.colors.border,
             shadowOpacity: isSelected ? 0.4 : 0.1,
+            transform: [{ scale: isSelected ? 1.02 : 1 }],
           },
         ]}
         onPress={handlePress}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
         <Text
           style={[

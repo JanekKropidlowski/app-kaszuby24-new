@@ -143,7 +143,7 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isScreenFocused = useRef(true);
-  const isMountedRef = useRef(true); // Track if component is mounted
+  const isMountedRef = useRef(true);
   
   // Initialize and check for first time user
   useEffect(() => {
@@ -160,7 +160,7 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [initializePreferences, shouldShowWelcome]);
   
-  // Optimized load articles function with better error handling and cleanup
+  // Optimized load articles function with instant filtering
   const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
     // Don't proceed if component is unmounted
     if (!isMountedRef.current) {
@@ -186,7 +186,7 @@ export default function HomeScreen() {
       
       const { articles: newArticles, totalPages: total } = await fetchArticles(
         pageNum,
-        12,
+        15, // Increased to get more articles for better slider selection
         categoryFilter
       );
       
@@ -200,15 +200,23 @@ export default function HomeScreen() {
       
       if (refresh || pageNum === 1) {
         if (newArticles.length > 0) {
-          // Take first 5 articles for featured carousel
-          setFeaturedArticles(newArticles.slice(0, 5));
-          setArticles(newArticles.slice(5)); // Skip first 5 for regular list
+          // Always take the 5 most recent articles for featured carousel
+          const sortedArticles = [...newArticles].sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          
+          setFeaturedArticles(sortedArticles.slice(0, 5));
+          setArticles(sortedArticles.slice(5)); // Skip first 5 for regular list
         } else {
           setArticles([]);
           setFeaturedArticles([]);
         }
       } else {
-        setArticles((prev) => [...prev, ...newArticles]);
+        // For pagination, sort new articles and append
+        const sortedNewArticles = [...newArticles].sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        setArticles((prev) => [...prev, ...sortedNewArticles]);
       }
       
       setTotalPages(total);
@@ -317,16 +325,38 @@ export default function HomeScreen() {
     }
   }, [loadArticles, loadCategories]);
   
-  // Refresh when category changes
+  // Instant category filter handler for responsive filtering
+  const handleCategoryChange = useCallback((categoryId: number | null) => {
+    // Don't allow selection of sponsored category or "Wiadomości" category
+    if (categoryId === 554 || categoryId === 3) {
+      return;
+    }
+    
+    // Instant UI update for responsiveness
+    setSelectedCategory(categoryId);
+    setLoading(true);
+    setError(null);
+    
+    // Reset pagination
+    setPage(1);
+    setArticles([]);
+    setFeaturedArticles([]);
+    
+    // Load articles with new filter - this will trigger the useEffect
+  }, []);
+  
+  // Updated useEffect for category changes with instant response
   useEffect(() => {
     if (!isMountedRef.current) return;
     
-    // Don't allow selection of sponsored category or "Wiadomości" category
-    if (selectedCategory === 554 || selectedCategory === 3) {
-      setSelectedCategory(null);
-      return;
-    }
-    loadArticles(1, true);
+    // Debounce the actual API call slightly for better performance
+    const timeoutId = setTimeout(() => {
+      if (isMountedRef.current) {
+        loadArticles(1, true);
+      }
+    }, 100); // Very short delay for instant feel but prevents rapid API calls
+    
+    return () => clearTimeout(timeoutId);
   }, [selectedCategory, loadArticles]);
   
   // Create infinite scroll data by duplicating articles
@@ -650,7 +680,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
-            {/* Notifications Banner for users who haven't set up notifications */}
+            {/* Notifications Banner */}
             {shouldShowBanner() && (
               <NotificationsBanner
                 onPress={handleBannerPress}
@@ -658,7 +688,7 @@ export default function HomeScreen() {
               />
             )}
             
-            {/* Improved Featured Articles Carousel with Perfect Center Mode and Infinite Loop */}
+            {/* Latest Articles Carousel - Always shows newest articles */}
             {infiniteArticles.length > 0 && (
               <View style={styles.carouselContainer}>
                 <FlatList
@@ -684,7 +714,6 @@ export default function HomeScreen() {
                     
                     // Handle infinite scroll logic
                     if (newIndex <= 0) {
-                      // At start duplicates, jump to end of real items
                       const jumpToIndex = infiniteArticles.length - duplicateCount - 1;
                       setTimeout(() => {
                         if (flatListRef.current) {
@@ -698,7 +727,6 @@ export default function HomeScreen() {
                         }
                       }, 50);
                     } else if (newIndex >= infiniteArticles.length - duplicateCount) {
-                      // At end duplicates, jump to start of real items
                       setTimeout(() => {
                         if (flatListRef.current) {
                           flatListRef.current.scrollToIndex({
@@ -711,11 +739,9 @@ export default function HomeScreen() {
                         }
                       }, 50);
                     } else {
-                      // Normal scroll within real items
                       const clampedIndex = Math.max(0, Math.min(newIndex, infiniteArticles.length - 1));
                       setActiveCarouselIndex(clampedIndex);
                       
-                      // Calculate real index for dots
                       const realIndex = clampedIndex - duplicateCount;
                       setRealActiveIndex(Math.max(0, Math.min(realIndex, featuredArticles.length - 1)));
                     }
@@ -732,30 +758,8 @@ export default function HomeScreen() {
               </View>
             )}
             
-            {/* Categories */}
-            {categories.length > 0 && (
-              <View style={styles.categoriesContainer}>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.categoriesContent}
-                >
-                  <CategoryPill
-                    name="Wszystkie"
-                    isSelected={selectedCategory === null}
-                    onPress={() => setSelectedCategory(null)}
-                  />
-                  {categories.map((category) => (
-                    <CategoryPill
-                      key={`category-${category.id}`}
-                      name={category.name}
-                      isSelected={selectedCategory === category.id}
-                      onPress={() => setSelectedCategory(category.id)}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+            {/* Responsive Category Filters */}
+            {renderCategoryPills}
             
             <View style={styles.sectionHeader}>
               <Text style={[
@@ -765,7 +769,7 @@ export default function HomeScreen() {
                   fontFamily: theme.fontFamily.bold
                 }
               ]}>
-                Najnowsze artykuły
+                {selectedCategory ? 'Filtrowane artykuły' : 'Najnowsze artykuły'}
               </Text>
               <TouchableOpacity 
                 onPress={navigateToSearch}
@@ -786,12 +790,14 @@ export default function HomeScreen() {
           </View>
         }
         ListEmptyComponent={
-          <EmptyState
-            title="Nie znaleziono artykułów"
-            message="Spróbuj wybrać inną kategorię lub sprawdź ponownie później."
-            actionLabel="Odśwież"
-            onAction={handleRefresh}
-          />
+          !loading ? (
+            <EmptyState
+              title={selectedCategory ? "Brak artykułów w tej kategorii" : "Nie znaleziono artykułów"}
+              message={selectedCategory ? "Spróbuj wybrać inną kategorię." : "Spróbuj odświeżyć stronę."}
+              actionLabel="Odśwież"
+              onAction={handleRefresh}
+            />
+          ) : null
         }
         ListFooterComponent={
           loadingMore ? <LoadingIndicator size="small" /> : null

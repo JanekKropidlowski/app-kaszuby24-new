@@ -35,11 +35,10 @@ export const useArticlesStore = create<ArticlesState>()(
             return state;
           }
           
-          // Limit saved articles to prevent memory issues (max 100)
-          const newSavedArticles = [article, ...state.savedArticles];
-          if (newSavedArticles.length > 100) {
-            newSavedArticles.splice(100);
-          }
+          // Sort saved articles by date (newest first) and limit to 100
+          const newSavedArticles = [article, ...state.savedArticles]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 100);
           
           return { savedArticles: newSavedArticles };
         }),
@@ -58,8 +57,11 @@ export const useArticlesStore = create<ArticlesState>()(
           
           // Remove if already exists to avoid duplicates
           const filtered = state.recentArticles.filter(a => a.id !== article.id);
-          // Keep only the last 20 articles to prevent memory issues
-          const newRecentArticles = [article, ...filtered].slice(0, 20);
+          
+          // Add new article and sort by date (newest first), keep only last 20
+          const newRecentArticles = [article, ...filtered]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 20);
           
           return { 
             recentArticles: newRecentArticles
@@ -91,11 +93,16 @@ export const useArticlesStore = create<ArticlesState>()(
         recentArticles: state.recentArticles.slice(0, 10), // Limit persisted recent articles
       }),
       
-      // Filter out any sponsored content that might have been saved before this update
+      // Filter out any sponsored content and ensure proper sorting after rehydration
       onRehydrateStorage: () => (state) => {
         if (state) {
+          // Filter out sponsored content
           state.savedArticles = filterSponsoredArticles(state.savedArticles);
           state.recentArticles = filterSponsoredArticles(state.recentArticles);
+          
+          // Sort by date (newest first)
+          state.savedArticles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          state.recentArticles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           
           // Ensure limits are respected after rehydration
           if (state.savedArticles.length > 100) {

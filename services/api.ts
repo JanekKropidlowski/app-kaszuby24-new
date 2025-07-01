@@ -185,8 +185,8 @@ export const fetchArticles = async (
         }
       }
       
-      // Exclude sponsored category from all requests
-      url += `&categories_exclude=554`;
+      // Exclude sponsored category from all requests and ensure newest first
+      url += `&categories_exclude=554&orderby=date&order=desc`;
       
       const response = await fetchWithTimeout(url);
       
@@ -229,23 +229,25 @@ export const fetchArticles = async (
         };
       });
       
-      // Filter out sponsored content
-      const filteredArticles = processedArticles.filter(article => {
-        if (article.categories && article.categories.includes(554)) {
-          return false;
-        }
-        
-        if (article._embedded && article._embedded["wp:term"]) {
-          const categories = article._embedded["wp:term"][0];
-          if (categories && Array.isArray(categories)) {
-            return !categories.some((cat: any) => cat.id === 554);
+      // Filter out sponsored content and sort by date (newest first)
+      const filteredArticles = processedArticles
+        .filter(article => {
+          if (article.categories && article.categories.includes(554)) {
+            return false;
           }
-        }
-        
-        return true;
-      });
+          
+          if (article._embedded && article._embedded["wp:term"]) {
+            const categories = article._embedded["wp:term"][0];
+            if (categories && Array.isArray(categories)) {
+              return !categories.some((cat: any) => cat.id === 554);
+            }
+          }
+          
+          return true;
+        })
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
-      console.log(`After filtering: ${filteredArticles.length} articles`);
+      console.log(`After filtering and sorting: ${filteredArticles.length} articles`);
       
       // Cache the articles (only first page to avoid memory issues)
       if (page === 1) {
