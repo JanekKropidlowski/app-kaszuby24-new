@@ -88,15 +88,14 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
         style={[
           styles.compactContainer,
           { 
-            backgroundColor: theme.colors.card, 
-            borderColor: theme.colors.border,
-            shadowColor: Platform.OS === 'android' ? theme.colors.shadow : '#000',
+            borderBottomColor: theme.colors.border,
           }
         ]} 
         onPress={handlePress}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
         disabled={false}
       >
+        {/* Image on the left */}
         {article.featured_media_url ? (
           <Image
             source={{ uri: article.featured_media_url }}
@@ -111,6 +110,7 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
           <View style={[styles.compactImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
         )}
         
+        {/* Text content on the right */}
         <View style={styles.compactContent}>
           <Text style={[
             styles.compactTitle, 
@@ -160,87 +160,87 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
       style={[
         styles.container,
         { 
-          backgroundColor: theme.colors.card, 
-          borderColor: theme.colors.border,
-          shadowColor: Platform.OS === 'android' ? theme.colors.shadow : '#000',
+          borderBottomColor: theme.colors.border,
         }
       ]} 
       onPress={handlePress}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
       disabled={false}
     >
-      <View style={styles.cardContent}>
-        <View style={styles.textContent}>
-          {categoryName && (
-            <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '15' }]}>
-              <Text style={[
-                styles.categoryText, 
-                { 
-                  color: theme.colors.primary,
-                  fontFamily: theme.fontFamily.semibold
-                }
-              ]}>
-                {categoryName}
-              </Text>
-            </View>
-          )}
-          
-          <Text style={[
-            styles.title, 
-            { 
-              color: theme.colors.text, 
-              fontFamily: theme.fontFamily.medium
-            }
-          ]} numberOfLines={2}>
-            {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-          </Text>
-          
-          <View style={styles.footer}>
-            <View style={styles.timeContainer}>
-              <Clock size={14} color={theme.colors.textSecondary} />
-              <Text style={[
-                styles.date, 
-                { 
-                  color: theme.colors.textSecondary, 
-                  fontFamily: theme.fontFamily.regular
-                }
-              ]}>
-                {getRelativeTime(article.date)}
-              </Text>
-            </View>
-            
-            {/* Only show bookmark button for non-sponsored content */}
-            {!isSponsored && (
-              <TouchableOpacity 
-                onPress={toggleSave} 
-                style={[
-                  styles.bookmarkButton,
-                  isSaved && { backgroundColor: theme.colors.primary + '20' }
-                ]}
-                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                activeOpacity={0.7}
-              >
-                <Bookmark 
-                  size={18} 
-                  color={isSaved ? theme.colors.primary : theme.colors.textSecondary} 
-                  fill={isSaved ? theme.colors.primary : 'transparent'} 
-                />
-              </TouchableOpacity>
-            )}
+      {/* Image on the left */}
+      {article.featured_media_url ? (
+        <Image
+          source={{ uri: article.featured_media_url }}
+          style={styles.image}
+          contentFit="cover"
+          transition={200}
+          placeholder="Loading..."
+          cachePolicy="memory-disk"
+          priority="normal"
+        />
+      ) : (
+        <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+      )}
+      
+      {/* Text content on the right */}
+      <View style={styles.textContent}>
+        {categoryName && (
+          <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '15' }]}>
+            <Text style={[
+              styles.categoryText, 
+              { 
+                color: theme.colors.primary,
+                fontFamily: theme.fontFamily.semibold
+              }
+            ]}>
+              {categoryName}
+            </Text>
           </View>
-        </View>
-        
-        {article.featured_media_url && (
-          <Image
-            source={{ uri: article.featured_media_url }}
-            style={styles.image}
-            contentFit="cover"
-            transition={300}
-            placeholder="Loading..."
-            cachePolicy="memory-disk"
-            priority="normal"
-          />
         )}
+        
+        <Text style={[
+          styles.title, 
+          { 
+            color: theme.colors.text, 
+            fontFamily: theme.fontFamily.medium
+          }
+        ]} numberOfLines={2}>
+          {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+        </Text>
+        
+        <View style={styles.footer}>
+          <View style={styles.timeContainer}>
+            <Clock size={14} color={theme.colors.textSecondary} />
+            <Text style={[
+              styles.date, 
+              { 
+                color: theme.colors.textSecondary, 
+                fontFamily: theme.fontFamily.regular
+              }
+            ]}>
+              {getRelativeTime(article.date)}
+            </Text>
+          </View>
+          
+          {/* Only show bookmark button for non-sponsored content */}
+          {!isSponsored && (
+            <TouchableOpacity 
+              onPress={toggleSave} 
+              style={[
+                styles.bookmarkButton,
+                isSaved && { backgroundColor: theme.colors.primary + '20' }
+              ]}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+              activeOpacity={0.7}
+            >
+              <Bookmark 
+                size={16} 
+                color={isSaved ? theme.colors.primary : theme.colors.textSecondary} 
+                fill={isSaved ? theme.colors.primary : 'transparent'} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -261,124 +261,129 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
-    borderWidth: 0,
-  },
-  cardContent: {
     flexDirection: 'row',
-    padding: 16,
-  },
-  textContent: {
-    flex: 1,
-    marginRight: 16,
-    justifyContent: 'space-between',
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   image: {
     width: 80,
     height: 80,
-    borderRadius: 16,
+    borderRadius: 12,
+    marginRight: 16,
+  },
+  imagePlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 16,
+  },
+  textContent: {
+    flex: 1,
+    justifyContent: 'space-between',
   },
   categoryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     alignSelf: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   categoryText: {
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 12,
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 22,
+    marginBottom: 8,
     letterSpacing: -0.2,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   date: {
-    fontSize: 11,
+    fontSize: 12,
     marginLeft: 6,
     opacity: 0.7,
     fontWeight: '500',
   },
   bookmarkButton: {
     padding: 8,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   
   // Compact styles - improved
   compactContainer: {
     flexDirection: 'row',
-    borderRadius: 28,
-    marginBottom: 20,
+    borderRadius: 16,
+    marginBottom: 12,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 0,
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.04)',
   },
   compactImage: {
-    width: 110,
-    height: 110,
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 16,
   },
   compactImagePlaceholder: {
-    width: 110,
-    height: 110,
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 16,
   },
   compactContent: {
     flex: 1,
-    padding: 24,
     justifyContent: 'space-between',
   },
   compactTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 8,
+    lineHeight: 20,
     letterSpacing: -0.2,
   },
   compactFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
   compactTimeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   compactDate: {
-    fontSize: 12,
+    fontSize: 11,
     marginLeft: 6,
     opacity: 0.7,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   compactCategory: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   compactCategoryText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });
 

@@ -73,9 +73,7 @@ export default function SavedScreen() {
         data={filteredSavedArticles}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.articleContainer}>
-            <ArticleCard article={item} />
-          </View>
+          <ArticleCard article={item} />
         )}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
@@ -174,7 +172,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 20,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 24,
@@ -187,10 +185,6 @@ const styles = StyleSheet.create({
   listContent: {
     flexGrow: 1,
     paddingBottom: 16,
-  },
-  articleContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
   },
   recentSection: {
     marginTop: 24,

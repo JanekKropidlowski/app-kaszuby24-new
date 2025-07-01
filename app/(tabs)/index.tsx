@@ -576,7 +576,7 @@ export default function HomeScreen() {
       }
     }
   }, [featuredArticles.length, infiniteArticles.length]);
-
+  
   // Optimized item layout for FlatList
   const getItemLayout = useCallback((data: any, index: number) => {
     const length = CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING;
@@ -645,14 +645,12 @@ export default function HomeScreen() {
   
   // Memoized article render function with proper onPress handling
   const renderArticle = useCallback(({ item }: { item: Article }) => (
-    <View style={styles.articleContainer}>
-      <ArticleCard 
-        article={item} 
-        onPress={() => handleArticlePress(item)}
-      />
-    </View>
+    <ArticleCard 
+      article={item} 
+      onPress={() => handleArticlePress(item)}
+    />
   ), [handleArticlePress]);
-
+  
   // Memoized key extractor
   const keyExtractor = useCallback((item: Article) => item.id.toString(), []);
   
@@ -979,7 +977,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    marginBottom: 16,
+    marginBottom: 8,
     marginTop: 6,
   },
   sectionTitle: {
@@ -999,9 +997,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginRight: 4,
-  },
-  articleContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 8,
   },
 });

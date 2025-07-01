@@ -196,10 +196,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  articleContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
   resultsText: {
     fontSize: 15,
     fontWeight: '600',
