@@ -195,38 +195,6 @@ export const cleanHtml = (html: string): string => {
   return cleanedHtml;
 };
 
-// Strip HTML tags and decode HTML entities for TTS
-export const stripHtmlForTTS = (html: string): string => {
-  if (!html) return '';
-  
-  // Remove HTML tags
-  let text = html.replace(/<[^>]*>/g, ' ');
-  
-  // Decode common HTML entities
-  text = text
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#8211;/g, '-')
-    .replace(/&#8217;/g, "'")
-    .replace(/&#8220;/g, '"')
-    .replace(/&#8221;/g, '"')
-    .replace(/&#8230;/g, '...')
-    .replace(/&hellip;/g, '...')
-    .replace(/&mdash;/g, '—')
-    .replace(/&ndash;/g, '–');
-  
-  // Clean up extra whitespace
-  text = text
-    .replace(/\s+/g, ' ')
-    .replace(/\n\s*\n/g, '\n')
-    .trim();
-  
-  return text;
-};
-
 // Process gallery IDs to ensure they are strings
 export const processGalleryIds = (galeria: string[] | undefined): string[] => {
   if (!galeria || !Array.isArray(galeria)) {
