@@ -8,7 +8,8 @@ import {
   TouchableOpacity, 
   ScrollView,
   Dimensions,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronRight, RefreshCw, WifiOff, ArrowRight } from 'lucide-react-native';
@@ -139,33 +140,35 @@ export default function HomeScreen() {
     initializePreferences 
   } = useNotificationsStore();
   
+  // Simplified state management for reliable infinite scroll
   const [articles, setArticles] = useState<Article[]>([]);
   const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // Loading states
+  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isOffline, setIsOffline] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasMoreArticles, setHasMoreArticles] = useState(true);
+  
+  // Carousel and modal states
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [infiniteArticles, setInfiniteArticles] = useState<Article[]>([]);
   const [realActiveIndex, setRealActiveIndex] = useState(0);
-  const [initialLoading, setInitialLoading] = useState(true);
-  
-  // Replace these state variables with the ones from search tab
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [endReached, setEndReached] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const isMountedRef = useRef(true);
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isScreenFocused = useRef(true);
+  const loadingRef = useRef(false); // Prevent duplicate requests
 
   // Initialize and check for first time user
   useEffect(() => {
@@ -182,124 +185,113 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [initializePreferences, shouldShowWelcome]);
   
-  // Optimized load articles function with infinite scroll support
-  const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
-    // Don't proceed if component is unmounted
+  // Main function to load articles with proper pagination
+  const loadArticles = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
+    // Prevent multiple simultaneous requests
+    if (loadingRef.current) {
+      console.log('Already loading, skipping request');
+      return;
+    }
+    
     if (!isMountedRef.current) {
       console.log('Component unmounted, cancelling request');
       return;
     }
-    
-    // Prevent multiple simultaneous requests for the same page
-    if (pageNum > 1 && loadingMore) {
-      console.log('Already loading more articles, skipping request');
-      return;
-    }
-    
+
     try {
-      console.log(`Loading articles: page=${pageNum}, refresh=${refresh}, retry=${retry}`);
+      loadingRef.current = true;
       setError(null);
       setIsOffline(false);
       
+      // Set appropriate loading state
       if (pageNum === 1) {
-        setLoading(true);
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setInitialLoading(true);
+        }
       } else {
         setLoadingMore(true);
       }
+      
+      console.log(`Loading articles: page=${pageNum}, refresh=${isRefresh}, category=${selectedCategory}`);
       
       const categoryFilter = selectedCategory && selectedCategory !== 554 ? [selectedCategory] : undefined;
       
       const { articles: newArticles, totalPages: total } = await fetchArticles(
         pageNum,
-        20,
+        20, // Articles per page
         categoryFilter
       );
       
-      // Check if component is still mounted before updating state
       if (!isMountedRef.current) {
         console.log('Component unmounted during request, ignoring response');
         return;
       }
       
-      console.log(`Received ${newArticles.length} articles`);
+      console.log(`Received ${newArticles.length} articles for page ${pageNum}`);
       
-      if (refresh || pageNum === 1) {
+      if (pageNum === 1) {
+        // First page or refresh - replace all articles
         if (newArticles.length > 0) {
-          // Always take the 5 most recent articles for featured carousel
           const sortedArticles = [...newArticles].sort((a, b) => 
             new Date(b.date).getTime() - new Date(a.date).getTime()
           );
           
+          // Take first 5 for featured carousel
           setFeaturedArticles(sortedArticles.slice(0, 5));
-          setArticles(sortedArticles.slice(5)); // Skip first 5 for regular list
+          // Rest go to main list
+          setArticles(sortedArticles.slice(5));
         } else {
           setArticles([]);
           setFeaturedArticles([]);
         }
-        setPage(1);
+        setCurrentPage(1);
       } else {
-        // For infinite scroll, sort new articles and append
-        const sortedNewArticles = [...newArticles].sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        setArticles((prev) => [...prev, ...sortedNewArticles]);
-        setPage(pageNum);
+        // Append to existing articles
+        if (newArticles.length > 0) {
+          const sortedNewArticles = [...newArticles].sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          setArticles(prev => [...prev, ...sortedNewArticles]);
+          setCurrentPage(pageNum);
+        }
       }
       
       setTotalPages(total);
       
-      // Check if we have more articles to load
-      const hasMoreArticles = pageNum < total && newArticles.length > 0;
-      setHasMore(hasMoreArticles);
-      setEndReached(!hasMoreArticles);
+      // Update pagination state
+      const hasMore = pageNum < total && newArticles.length > 0;
+      setHasMoreArticles(hasMore);
       
-      console.log(`Articles loaded successfully. Has more: ${hasMoreArticles}, Current page: ${pageNum}, Total pages: ${total}`);
+      console.log(`Load complete. Page: ${pageNum}/${total}, Has more: ${hasMore}, Articles: ${newArticles.length}`);
+      
     } catch (err: any) {
-      // Don't update state if component is unmounted
-      if (!isMountedRef.current) {
-        console.log('Component unmounted during error handling, ignoring error');
-        return;
-      }
+      if (!isMountedRef.current) return;
       
       console.error('Error loading articles:', err);
       
-      // Use the error message from the API service if available
       const errorMessage = err.message || 'Nie udało się załadować artykułów. Sprawdź połączenie internetowe i spróbuj ponownie.';
       
-      // Check if it's a network error
       if (errorMessage.includes('Brak połączenia z internetem') || 
           errorMessage.includes('Nie można połączyć się z serwerem') ||
-          errorMessage.includes('Network request failed') ||
-          errorMessage.includes('zostało przerwane')) {
+          errorMessage.includes('Network request failed')) {
         setIsOffline(true);
       }
       
-      // Retry logic - but don't retry if request was aborted due to component unmount
-      if (retry < MAX_RETRIES && !errorMessage.includes('zostało przerwane')) {
-        console.log(`Retrying (${retry + 1}/${MAX_RETRIES})...`);
-        const delay = 1000 * (retry + 1);
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            loadArticles(pageNum, refresh, retry + 1);
-          }
-        }, delay);
-        return;
-      }
-      
-      setRetryCount(retry);
       setError(errorMessage);
     } finally {
       if (isMountedRef.current) {
-        setLoading(false);
+        loadingRef.current = false;
+        setInitialLoading(false);
         setRefreshing(false);
         setLoadingMore(false);
-        setIsLoadingMore(false);
-        setInitialLoading(false);
       }
     }
-  }, [selectedCategory, loadingMore]);
+  }, [selectedCategory]);
   
-  const loadCategories = useCallback(async (retry = 0) => {
+  // Load categories
+  const loadCategories = useCallback(async () => {
     if (!isMountedRef.current) return;
     
     try {
@@ -308,7 +300,6 @@ export default function HomeScreen() {
       
       if (!isMountedRef.current) return;
       
-      // Filter out sponsored categories, "Wiadomości" category (ID: 3), and categories with no posts, then sort by count
       const filteredCategories = data
         .filter(cat => cat.count > 0 && cat.id !== 3 && cat.id !== 554)
         .sort((a, b) => b.count - a.count);
@@ -317,18 +308,7 @@ export default function HomeScreen() {
       console.log(`Loaded ${filteredCategories.length} categories`);
     } catch (err) {
       if (!isMountedRef.current) return;
-      
       console.error('Error loading categories:', err);
-      
-      // Retry logic for categories
-      if (retry < MAX_RETRIES) {
-        const delay = 1000 * (retry + 1);
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            loadCategories(retry + 1);
-          }
-        }, delay);
-      }
     }
   }, []);
   
@@ -339,9 +319,9 @@ export default function HomeScreen() {
     return () => {
       console.log('HomeScreen unmounting, cancelling all requests');
       isMountedRef.current = false;
+      loadingRef.current = false;
       cancelAllRequests();
       
-      // Clear carousel interval
       if (carouselIntervalRef.current) {
         clearInterval(carouselIntervalRef.current);
       }
@@ -352,57 +332,42 @@ export default function HomeScreen() {
   useEffect(() => {
     if (isMountedRef.current) {
       console.log('HomeScreen: Starting initial load...');
-      
-      // Set a timeout to show skeleton loader for at least 800ms for better UX
-      const minLoadingTime = 800;
-      const startTime = Date.now();
-      
       Promise.all([
-        loadArticles(),
+        loadArticles(1, false),
         loadCategories()
-      ]).finally(() => {
-        const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
-        
-        // Ensure skeleton loader shows for at least minLoadingTime
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            setInitialLoading(false);
-          }
-        }, remainingTime);
-      });
+      ]);
     }
   }, [loadArticles, loadCategories]);
   
-  // Updated useEffect for category changes with infinite scroll reset
+  // Handle category changes
   useEffect(() => {
     if (!isMountedRef.current) return;
     
-    // Reset infinite scroll state when category changes
-    setHasMore(true);
-    setIsLoadingMore(false);
+    console.log('Category changed to:', selectedCategory);
     
-    // Debounce the actual API call slightly for better performance
+    // Reset pagination state
+    setCurrentPage(1);
+    setHasMoreArticles(true);
+    
+    // Load first page with new category
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current) {
-        loadArticles(1, true);
+        loadArticles(1, false);
       }
-    }, 100); // Very short delay for instant feel but prevents rapid API calls
+    }, 100);
     
     return () => clearTimeout(timeoutId);
   }, [selectedCategory, loadArticles]);
   
-  // Create infinite scroll data by duplicating articles
+  // Create infinite scroll data for carousel
   useEffect(() => {
     if (featuredArticles.length > 0) {
-      // Create infinite scroll by adding duplicates at start and end
       const duplicateCount = Math.min(2, featuredArticles.length);
       const startDuplicates = featuredArticles.slice(-duplicateCount);
       const endDuplicates = featuredArticles.slice(0, duplicateCount);
       
       setInfiniteArticles([...startDuplicates, ...featuredArticles, ...endDuplicates]);
       
-      // Set initial position to first real item (after start duplicates)
       setTimeout(() => {
         if (flatListRef.current && featuredArticles.length > 0) {
           const initialIndex = duplicateCount;
@@ -418,7 +383,7 @@ export default function HomeScreen() {
     }
   }, [featuredArticles]);
   
-  // Optimized carousel auto-scroll with infinite loop
+  // Carousel auto-scroll
   useEffect(() => {
     const startCarouselAutoScroll = () => {
       if (carouselIntervalRef.current) {
@@ -432,7 +397,6 @@ export default function HomeScreen() {
           setActiveCarouselIndex(prevIndex => {
             const nextIndex = prevIndex + 1;
             
-            // Scroll to next index
             if (flatListRef.current && infiniteArticles.length > 0) {
               try {
                 flatListRef.current.scrollToIndex({
@@ -460,13 +424,12 @@ export default function HomeScreen() {
     };
   }, [infiniteArticles.length]);
   
-  // Handle screen focus/blur for performance
+  // Handle screen focus/blur
   useEffect(() => {
     const handleAppStateChange = (nextAppState: string) => {
       isScreenFocused.current = nextAppState === 'active';
       
       if (nextAppState === 'active') {
-        // Restart carousel when app becomes active
         if (infiniteArticles.length > 1) {
           const startCarouselAutoScroll = () => {
             if (carouselIntervalRef.current) {
@@ -498,15 +461,12 @@ export default function HomeScreen() {
           startCarouselAutoScroll();
         }
       } else {
-        // Stop carousel when app goes to background
         if (carouselIntervalRef.current) {
           clearInterval(carouselIntervalRef.current);
         }
       }
     };
     
-    // Note: In a real app, you'd use AppState.addEventListener
-    // For now, we'll just handle component unmount
     return () => {
       isScreenFocused.current = false;
       if (carouselIntervalRef.current) {
@@ -515,50 +475,39 @@ export default function HomeScreen() {
     };
   }, [infiniteArticles.length]);
   
+  // Refresh handler
   const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    setHasMore(true);
-    setIsLoadingMore(false);
-    setPage(1);
+    console.log('Refresh triggered');
+    setCurrentPage(1);
+    setHasMoreArticles(true);
     loadArticles(1, true);
   }, [loadArticles]);
   
-  // Replace handleLoadMore with the implementation from search tab
-  const handleLoadMore = async () => {
-    if (page >= totalPages || loadingMore || !hasMore) return;
-    
-    try {
-      setLoadingMore(true);
-      setIsLoadingMore(true);
-      
-      const nextPage = page + 1;
-      await loadArticles(nextPage, false);
-    } catch (err) {
-      console.error('Error loading more articles:', err);
-    } finally {
-      setLoadingMore(false);
-      setIsLoadingMore(false);
+  // Robust infinite scroll handler
+  const handleLoadMore = useCallback(() => {
+    // Don't load if already loading, no more articles, or at end
+    if (loadingMore || !hasMoreArticles || currentPage >= totalPages || loadingRef.current) {
+      console.log('Skipping load more:', { loadingMore, hasMoreArticles, currentPage, totalPages, loadingRef: loadingRef.current });
+      return;
     }
-  };
+    
+    const nextPage = currentPage + 1;
+    console.log(`Loading more articles: page ${nextPage}`);
+    loadArticles(nextPage, false);
+  }, [loadingMore, hasMoreArticles, currentPage, totalPages, loadArticles]);
 
-  // Enhanced article press handler with prefetching
+  // Enhanced article press handler
   const handleArticlePress = useCallback((article: Article) => {
-    // Start performance measurement
     const perfMeasure = MemoryOptimizer.measureArticleLoadTime(article.id);
-    
-    // Add to recent articles
     addRecentArticle(article);
-    
-    // Navigate to article detail
     router.push(`/article/${article.id}`);
     
-    // End performance measurement after navigation
     setTimeout(() => {
       perfMeasure.end();
     }, 100);
   }, [addRecentArticle, router]);
 
-  // Enhanced carousel render function
+  // Carousel render function
   const renderCarouselItem = useCallback(({ item, index }: { item: Article; index: number }) => (
     <View style={styles.carouselItemWrapper}>
       <CarouselItemEnhanced
@@ -570,7 +519,7 @@ export default function HomeScreen() {
     </View>
   ), [infiniteArticles.length, handleArticlePress]);
 
-  // Enhanced article render function with prefetching
+  // Article render function
   const renderArticle = useCallback(({ item }: { item: Article }) => (
     <ArticleCard 
       article={item} 
@@ -578,10 +527,84 @@ export default function HomeScreen() {
     />
   ), [handleArticlePress]);
 
-  // Memoized key extractor
+  // Key extractor
   const keyExtractor = useCallback((item: Article) => item.id.toString(), []);
 
-  // Memoized category pills render function
+  // Handler functions that need to be defined within component scope
+  const handleCategoryChange = useCallback((categoryId: number | null) => {
+    setSelectedCategory(categoryId);
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setCurrentPage(1);
+    setHasMoreArticles(true);
+    loadArticles(1, false);
+  }, [loadArticles]);
+
+  const handleBannerPress = useCallback(() => {
+    router.push('/(tabs)/notifications');
+  }, [router]);
+
+  const handleBannerDismiss = useCallback(() => {
+    dismissBanner();
+  }, [dismissBanner]);
+
+  const handleScrollToIndexFailed = useCallback((info: any) => {
+    console.warn('Scroll to index failed:', info);
+    setTimeout(() => {
+      if (flatListRef.current && infiniteArticles.length > 0) {
+        try {
+          const safeIndex = Math.min(info.index, infiniteArticles.length - 1);
+          flatListRef.current.scrollToIndex({
+            index: safeIndex,
+            animated: false,
+            viewPosition: 0.5,
+          });
+        } catch (error) {
+          console.warn('Fallback scroll failed:', error);
+        }
+      }
+    }, 100);
+  }, [infiniteArticles.length]);
+
+  const renderCarouselIndicator = useMemo(() => {
+    if (featuredArticles.length <= 1) return null;
+    
+    return (
+      <View style={styles.indicatorContainer}>
+        {featuredArticles.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.indicator,
+              {
+                backgroundColor: index === realActiveIndex 
+                  ? theme.colors.primary 
+                  : 'rgba(0, 0, 0, 0.2)'
+              }
+            ]}
+          />
+        ))}
+      </View>
+    );
+  }, [featuredArticles.length, realActiveIndex, theme.colors.primary]);
+
+  const navigateToSearch = useCallback(() => {
+    router.push('/(tabs)/search');
+  }, [router]);
+
+  const getItemLayout = useCallback((data: any, index: number) => ({
+    length: 200,
+    offset: 200 * index,
+    index,
+  }), []);
+
+  const handleWelcomeClose = useCallback(() => {
+    setShowWelcomeModal(false);
+  }, []);
+
+  // Category pills render function
   const renderCategoryPills = useMemo(() => {
     if (categories.length === 0) return null;
     
@@ -614,21 +637,56 @@ export default function HomeScreen() {
     MemoryOptimizer.throttle((event: any) => {
       const scrollY = event.nativeEvent.contentOffset.y;
       setScrollDirection(scrollY);
-    }, 16), // 60fps throttling
+    }, 16),
     [setScrollDirection]
   );
 
   const listConfig = useMemo(() => MemoryOptimizer.getOptimalListConfig(), []);
 
+  // Loading footer component with clear feedback
+  const renderFooter = useCallback(() => {
+    if (loadingMore) {
+      return (
+        <View style={[styles.loadingFooter, { backgroundColor: theme.colors.background }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.medium 
+          }]}>
+            Ładowanie artykułów...
+          </Text>
+        </View>
+      );
+    }
+    
+    if (!hasMoreArticles && articles.length > 0) {
+      return (
+        <View style={[styles.endFooter, { backgroundColor: theme.colors.background }]}>
+          <View style={[styles.endDivider, { backgroundColor: theme.colors.border }]} />
+          <Text style={[styles.endText, { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold 
+          }]}>
+            To wszystkie artykuły
+          </Text>
+          <Text style={[styles.endSubtext, { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.regular 
+          }]}>
+            Sprawdź później czy są nowe artykuły
+          </Text>
+        </View>
+      );
+    }
+    
+    return null;
+  }, [loadingMore, hasMoreArticles, articles.length, theme]);
+
   if (initialLoading) {
     return <SkeletonLoader type="home" count={5} />;
   }
 
-  if (loading && !refreshing) {
-    return <SkeletonLoader type="home" count={5} />;
-  }
-
-  if (error) {
+  if (error && articles.length === 0) {
     return (
       <EmptyState
         title={isOffline ? "Brak połączenia z internetem" : "Coś poszło nie tak"}
@@ -659,7 +717,7 @@ export default function HomeScreen() {
               />
             )}
             
-            {/* Latest Articles Carousel - Always shows newest articles */}
+            {/* Latest Articles Carousel */}
             {infiniteArticles.length > 0 && (
               <View style={styles.carouselContainer}>
                 <FlatList
@@ -683,7 +741,6 @@ export default function HomeScreen() {
                     
                     const duplicateCount = Math.min(2, featuredArticles.length);
                     
-                    // Handle infinite scroll logic
                     if (newIndex <= 0) {
                       const jumpToIndex = infiniteArticles.length - duplicateCount - 1;
                       setTimeout(() => {
@@ -734,7 +791,7 @@ export default function HomeScreen() {
               </View>
             )}
             
-            {/* Responsive Category Filters */}
+            {/* Category Filters */}
             {renderCategoryPills}
             
             <View style={styles.sectionHeader}>
@@ -766,7 +823,7 @@ export default function HomeScreen() {
           </View>
         }
         ListEmptyComponent={
-          !loading ? (
+          !initialLoading ? (
             <EmptyState
               title={selectedCategory ? "Brak artykułów w tej kategorii" : "Nie znaleziono artykułów"}
               message={selectedCategory ? "Spróbuj wybrać inną kategorię." : "Spróbuj odświeżyć stronę."}
@@ -775,9 +832,7 @@ export default function HomeScreen() {
             />
           ) : null
         }
-        ListFooterComponent={
-          loadingMore ? <LoadingIndicator size="small" /> : null
-        }
+        ListFooterComponent={renderFooter}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -787,7 +842,7 @@ export default function HomeScreen() {
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.3} // Trigger when 30% from bottom
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
@@ -819,7 +874,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   carouselListContent: {
-    paddingHorizontal: CAROUSEL_PEEK_WIDTH + 20, // Better balanced padding
+    paddingHorizontal: CAROUSEL_PEEK_WIDTH + 20,
     paddingVertical: 6,
   },
   carouselItemWrapper: {
@@ -946,126 +1001,46 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 4,
   },
-  loadingMoreContainer: {
+  // New improved footer styles
+  loadingFooter: {
     paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.03)',
     marginTop: 16,
     marginBottom: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
   },
-  loadingMoreText: {
+  loadingText: {
     fontSize: 14,
     marginTop: 12,
     textAlign: 'center',
     fontWeight: '500',
   },
-  endOfListContainer: {
+  endFooter: {
     paddingVertical: 40,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 24,
     marginBottom: 24,
-    backgroundColor: 'rgba(0,0,0,0.01)',
-    borderRadius: 12,
   },
-  endOfListDivider: {
+  endDivider: {
     width: 60,
     height: 2,
     borderRadius: 1,
     marginBottom: 16,
     opacity: 0.3,
   },
-  endOfListText: {
+  endText: {
     fontSize: 16,
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 8,
   },
-  endOfListSubtext: {
+  endSubtext: {
     fontSize: 13,
     textAlign: 'center',
     opacity: 0.7,
   },
 });
 
-const handleCategoryChange = useCallback((categoryId: number | null) => {
-  setSelectedCategory(categoryId);
-}, []);
-
-const handleRetry = useCallback(() => {
-  setError(null);
-  setRetryCount(0);
-  loadArticles(1, true);
-}, []);
-
-const handleBannerPress = useCallback(() => {
-  router.push('/(tabs)/notifications');
-}, []);
-
-const handleBannerDismiss = useCallback(() => {
-  dismissBanner();
-}, []);
-
-const handleScrollToIndexFailed = useCallback((info: any) => {
-  console.warn('Scroll to index failed:', info);
-  // Fallback: scroll to a safe index
-  setTimeout(() => {
-    if (flatListRef.current && infiniteArticles.length > 0) {
-      try {
-        const safeIndex = Math.min(info.index, infiniteArticles.length - 1);
-        flatListRef.current.scrollToIndex({
-          index: safeIndex,
-          animated: false,
-          viewPosition: 0.5,
-        });
-      } catch (error) {
-        console.warn('Fallback scroll failed:', error);
-      }
-    }
-  }, 100);
-}, []);
-
-const renderCarouselIndicator = useMemo(() => {
-  if (featuredArticles.length <= 1) return null;
-  
-  return (
-    <View style={styles.indicatorContainer}>
-      {featuredArticles.map((_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.indicator,
-            {
-              backgroundColor: index === realActiveIndex 
-                ? theme.colors.primary 
-                : 'rgba(0, 0, 0, 0.2)'
-            }
-          ]}
-        />
-      ))}
-    </View>
-  );
-}, [featuredArticles.length, realActiveIndex, theme.colors.primary]);
-
-const navigateToSearch = useCallback(() => {
-  router.push('/(tabs)/search');
-}, []);
-
-const getItemLayout = useCallback((data: any, index: number) => ({
-  length: 200, // Estimated item height
-  offset: 200 * index,
-  index,
-}), []);
-
-const handleWelcomeClose = useCallback(() => {
-  setShowWelcomeModal(false);
-}, []);

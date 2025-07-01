@@ -164,7 +164,7 @@ export default function ArticleDetailScreen() {
           setGalleryLoading(true);
           setTimeout(async () => {
             try {
-              const galleryIds = processGalleryIds(articleData.meta?.galeria || '');
+              const galleryIds = processGalleryIds(articleData.meta?.galeria);
               
               if (galleryIds.length > 0) {
                 const mediaItems = await fetchMediaByIds(galleryIds);
