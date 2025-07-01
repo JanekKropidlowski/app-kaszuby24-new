@@ -33,6 +33,7 @@ import { formatDateTime } from '@/utils/dateFormatter';
 import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl, getYouTubeVideoId } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
+import { progressBarStyles } from '@/styles/progressBar';
 
 const MAX_RETRIES = 3;
 const { width, height } = Dimensions.get('window');
@@ -336,7 +337,7 @@ export default function ArticleDetailScreen() {
     };
   }, [progressOpacity, progressBarWidth]);
   
-  // Enhanced scroll handler with reading progress tracking
+  // Enhanced scroll handler with reading progress tracking - FIXED ANIMATION CONFLICTS
   const handleScroll = useCallback((event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
     const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
@@ -350,19 +351,19 @@ export default function ArticleDetailScreen() {
     
     setReadingProgress(progress);
     
-    // Animate progress bar width - ensure useNativeDriver is false
+    // Animate progress bar width - FIXED: ensure useNativeDriver is false for width
     Animated.timing(progressBarWidth, {
       toValue: progress,
       duration: 100,
-      useNativeDriver: false,
+      useNativeDriver: false, // Width is not supported by native driver
     }).start();
     
-    // Show progress bar when scrolling starts
+    // Show progress bar when scrolling starts - FIXED: separate animation for opacity
     if (scrollY > 50 && progressOpacityValue.current === 0) {
       Animated.timing(progressOpacity, {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: true, // Opacity is supported by native driver
       }).start();
     }
     
@@ -371,7 +372,7 @@ export default function ArticleDetailScreen() {
       Animated.timing(progressOpacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: true, // Opacity is supported by native driver
       }).start();
     }
   }, [progressOpacity, progressBarWidth]);
@@ -855,20 +856,28 @@ export default function ArticleDetailScreen() {
         barStyle="light-content" 
       />
       
-      {/* Reading progress bar */}
+      {/* Reading progress bar - FIXED ANIMATION STRUCTURE */}
       <Animated.View 
         style={[
           styles.progressBar,
           { 
-            opacity: progressOpacity,
+            opacity: progressOpacity, // Native driver animation
             backgroundColor: theme.colors.primary,
-            width: progressBarWidth.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0%', '100%']
-            })
           }
         ]} 
-      />
+      >
+        <Animated.View
+          style={[
+            styles.progressBarFill,
+            {
+              width: progressBarWidth.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', '100%']
+              })
+            }
+          ]}
+        />
+      </Animated.View>
       
       {/* Header bar with circular icons */}
       <View style={styles.headerBar}>
@@ -1509,13 +1518,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
   },
-  progressBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    height: 3,
-    zIndex: 2000,
-  },
+  progressBar: progressBarStyles.progressBar,
+  progressBarFill: progressBarStyles.progressBarFill,
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.96)',

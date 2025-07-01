@@ -35,11 +35,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const recognitionRef = useRef<any>(null);
   
   useEffect(() => {
-    // Animate the search bar focus state - ensure useNativeDriver is false for layout properties
+    // Animate the search bar focus state - FIXED: ensure useNativeDriver is false for layout properties
     Animated.timing(animatedWidth, {
       toValue: isFocused ? 1 : 0,
       duration: 200,
-      useNativeDriver: false,
+      useNativeDriver: false, // Layout properties not supported by native driver
     }).start();
     
     if (autoFocus) {
