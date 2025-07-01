@@ -866,14 +866,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 4,
   },
-  logoContainer: {
-    alignItems: 'center',
-    padding: 16,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-  },
   articleContainer: {
     paddingHorizontal: 20,
     marginBottom: 12,
