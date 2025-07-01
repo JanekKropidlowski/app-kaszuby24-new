@@ -171,7 +171,6 @@ export default function TabLayout() {
               </View>
             ),
             headerShown: false,
-            tabBarStyle: { display: 'none' }, // Keep hidden on home screen as it has custom menu
           }}
         />
         <Tabs.Screen
@@ -215,7 +214,7 @@ export default function TabLayout() {
                 />
               </View>
             ),
-            headerTitle: 'Zapisane artykuły',
+            headerShown: false,
           }}
         />
         <Tabs.Screen
@@ -248,7 +247,7 @@ export default function TabLayout() {
                 )}
               </View>
             ),
-            headerTitle: 'Powiadomienia',
+            headerShown: false,
           }}
         />
         <Tabs.Screen

@@ -10,7 +10,8 @@ import {
   ScrollView
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Search as SearchIcon, MapPin, Calendar, Heart, TrendingUp, Clock, Filter } from 'lucide-react-native';
+import { Search as SearchIcon, MapPin, Calendar, Heart, TrendingUp, Clock, Filter, Home, Bell, Settings, Bookmark } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { searchArticles } from '@/services/api';
 import { Article } from '@/types/article';
 import ArticleCard from '@/components/ArticleCard';
@@ -22,6 +23,27 @@ import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
 import { useScrollStore } from '@/store/scrollStore';
+import { useNotificationsStore } from '@/store/notificationsStore';
+
+// Header component with logo
+const SearchHeader = () => {
+  const { theme } = useThemeStore();
+
+  return (
+    <View style={[styles.searchHeader, { backgroundColor: theme.colors.background }]}>
+      <Image
+        source={{ 
+          uri: theme.isDarkMode 
+            ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-białe-01-scaled.png'
+            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+        }}
+        style={styles.headerLogo}
+        contentFit="contain"
+        transition={200}
+      />
+    </View>
+  );
+};
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -29,6 +51,7 @@ export default function SearchScreen() {
   const { theme } = useThemeStore();
   const { addRecentArticle } = useArticlesStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
+  const { getUnreadCount } = useNotificationsStore();
   
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
@@ -63,6 +86,29 @@ export default function SearchScreen() {
     { id: 'biznes', name: 'Biznes', icon: TrendingUp, color: '#FFE66D' },
     { id: 'wydarzenia', name: 'Wydarzenia', icon: Clock, color: '#A8E6CF' },
   ];
+
+  // Bottom navigation functions
+  const handleGoHome = useCallback(() => {
+    router.push('/(tabs)/');
+  }, [router]);
+
+  const handleGoSearch = useCallback(() => {
+    // Already on search
+  }, []);
+
+  const handleGoSaved = useCallback(() => {
+    router.push('/(tabs)/saved');
+  }, [router]);
+
+  const handleGoNotifications = useCallback(() => {
+    router.push('/(tabs)/notifications');
+  }, [router]);
+
+  const handleGoSettings = useCallback(() => {
+    router.push('/(tabs)/preferences');
+  }, [router]);
+
+  const unreadCount = getUnreadCount();
   
   const handleSearch = async (searchQuery: string) => {
     setQuery(searchQuery);
@@ -379,6 +425,9 @@ export default function SearchScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* Header with logo */}
+      <SearchHeader />
+      
       <View style={[styles.searchContainer, { backgroundColor: theme.colors.card }]}>
         <SearchBar 
           onSearch={handleSearch} 
@@ -446,6 +495,85 @@ export default function SearchScreen() {
           windowSize={10}
         />
       )}
+      
+      {/* Enhanced Bottom Navigation Menu - Modern & Comfortable */}
+      <View style={[styles.modernBottomBar, { backgroundColor: theme.colors.tabBarBackground }]}>
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoSearch}
+          activeOpacity={0.8}
+        >
+          <View style={[
+            styles.modernBottomIconWrapper, 
+            styles.modernBottomIconWrapperActive,
+            { backgroundColor: theme.colors.primary }
+          ]}>
+            <SearchIcon size={26} color="#FFFFFF" strokeWidth={2.5} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.primary, fontFamily: theme.fontFamily.semibold }]}>
+            Szukaj
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoSaved}
+          activeOpacity={0.8}
+        >
+          <View style={styles.modernBottomIconWrapper}>
+            <Bookmark size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Zapisane
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoHome}
+          activeOpacity={0.8}
+        >
+          <View style={styles.modernBottomIconWrapper}>
+            <Home size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Główna
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoNotifications}
+          activeOpacity={0.8}
+        >
+          <View style={styles.modernBottomIconWrapper}>
+            <Bell size={24} color={theme.colors.text} strokeWidth={2} />
+            {unreadCount > 0 && (
+              <View style={[styles.modernBadge, { backgroundColor: theme.colors.notification }]}>
+                <Text style={[styles.modernBadgeText, { fontFamily: theme.fontFamily.bold }]}>
+                  {unreadCount > 9 ? '9+' : unreadCount.toString()}
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Powiadomienia
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoSettings}
+          activeOpacity={0.8}
+        >
+          <View style={styles.modernBottomIconWrapper}>
+            <Settings size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Ustawienia
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -554,8 +682,96 @@ const styles = StyleSheet.create({
      borderRadius: 20,
      marginTop: 16,
    },
-   clearFiltersText: {
+      clearFiltersText: {
      fontSize: 14,
      fontWeight: '600',
    },
-});
+   // Header styles
+   searchHeader: {
+     paddingVertical: 16,
+     paddingHorizontal: 20,
+     alignItems: 'center',
+     borderBottomWidth: 1,
+     borderBottomColor: 'rgba(0,0,0,0.05)',
+   },
+   headerLogo: {
+     width: 120,
+     height: 32,
+   },
+   // Enhanced Modern Bottom Bar Styles
+   modernBottomBar: {
+     position: 'absolute',
+     bottom: 0,
+     left: 0,
+     right: 0,
+     flexDirection: 'row',
+     paddingHorizontal: 8,
+     paddingBottom: Platform.select({
+       ios: 28,
+       android: 20,
+       default: 20,
+     }),
+     paddingTop: 12,
+     borderTopWidth: 0,
+     borderTopLeftRadius: 28,
+     borderTopRightRadius: 28,
+     height: Platform.select({
+       ios: 100,
+       android: 88,
+       default: 88
+     }),
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: -4 },
+     shadowOpacity: 0.15,
+     shadowRadius: 12,
+     elevation: 12,
+   },
+   modernBottomItem: {
+     flex: 1,
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingVertical: 6,
+   },
+   modernBottomItemActive: {
+     opacity: 1,
+   },
+   modernBottomIconWrapper: {
+     width: 48,
+     height: 48,
+     borderRadius: 24,
+     alignItems: 'center',
+     justifyContent: 'center',
+     marginBottom: 4,
+     position: 'relative',
+   },
+   modernBottomIconWrapperActive: {
+     shadowColor: '#E84142',
+     shadowOffset: { width: 0, height: 4 },
+     shadowOpacity: 0.3,
+     shadowRadius: 8,
+     elevation: 6,
+   },
+   modernBottomText: {
+     fontSize: 11,
+     fontWeight: '600',
+     letterSpacing: 0.1,
+   },
+   modernBadge: {
+     position: 'absolute',
+     top: -4,
+     right: -4,
+     minWidth: 22,
+     height: 22,
+     borderRadius: 11,
+     alignItems: 'center',
+     justifyContent: 'center',
+     paddingHorizontal: 6,
+     borderWidth: 2,
+     borderColor: '#FFFFFF',
+   },
+   modernBadgeText: {
+     color: '#FFFFFF',
+     fontSize: 11,
+     fontWeight: '700',
+   },
+ });

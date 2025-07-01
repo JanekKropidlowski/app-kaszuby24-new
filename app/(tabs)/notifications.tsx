@@ -5,15 +5,37 @@ import {
   Text, 
   FlatList, 
   TouchableOpacity,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, Trash2, CheckCheck, Clock } from 'lucide-react-native';
+import { Bell, Trash2, CheckCheck, Clock, Home, Settings, Search, Bookmark } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { useNotificationsStore, NotificationItem } from '@/store/notificationsStore';
 import EmptyState from '@/components/EmptyState';
 import { formatDateTime, getRelativeTime } from '@/utils/dateFormatter';
 import { useThemeStore } from '@/store/themeStore';
 import { useScrollStore } from '@/store/scrollStore';
+
+// Header component with logo
+const NotificationsHeader = () => {
+  const { theme } = useThemeStore();
+
+  return (
+    <View style={[styles.notificationsHeader, { backgroundColor: theme.colors.background }]}>
+      <Image
+        source={{ 
+          uri: theme.isDarkMode 
+            ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-białe-01-scaled.png'
+            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+        }}
+        style={styles.headerLogo}
+        contentFit="contain"
+        transition={200}
+      />
+    </View>
+  );
+};
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -77,6 +99,27 @@ export default function NotificationsScreen() {
     );
   };
   
+  // Bottom navigation functions
+  const handleGoHome = useCallback(() => {
+    router.push('/(tabs)/');
+  }, [router]);
+
+  const handleGoSearch = useCallback(() => {
+    router.push('/(tabs)/search');
+  }, [router]);
+
+  const handleGoSaved = useCallback(() => {
+    router.push('/(tabs)/saved');
+  }, [router]);
+
+  const handleGoNotifications = useCallback(() => {
+    // Already on notifications
+  }, []);
+
+  const handleGoSettings = useCallback(() => {
+    router.push('/(tabs)/preferences');
+  }, [router]);
+  
   const renderNotification = ({ item }: { item: NotificationItem }) => (
     <TouchableOpacity
       style={[
@@ -138,6 +181,9 @@ export default function NotificationsScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* Header with logo */}
+      <NotificationsHeader />
+      
       <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
         <View style={styles.headerTop}>
           <Text style={[
@@ -218,6 +264,78 @@ export default function NotificationsScreen() {
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
+      
+      {/* Enhanced Bottom Navigation Menu - Modern & Comfortable */}
+      <View style={[styles.modernBottomBar, { backgroundColor: theme.colors.tabBarBackground }]}>
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoSearch}
+          activeOpacity={0.8}
+        >
+          <View style={styles.modernBottomIconWrapper}>
+            <Search size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Szukaj
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoSaved}
+          activeOpacity={0.8}
+        >
+          <View style={styles.modernBottomIconWrapper}>
+            <Bookmark size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Zapisane
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoHome}
+          activeOpacity={0.8}
+        >
+          <View style={styles.modernBottomIconWrapper}>
+            <Home size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Główna
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.modernBottomItem, styles.modernBottomItemActive]}
+          onPress={handleGoNotifications}
+          activeOpacity={0.8}
+        >
+          <View style={[
+            styles.modernBottomIconWrapper, 
+            styles.modernBottomIconWrapperActive,
+            { backgroundColor: theme.colors.primary }
+          ]}>
+            <Bell size={26} color="#FFFFFF" strokeWidth={2.5} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.primary, fontFamily: theme.fontFamily.semibold }]}>
+            Powiadomienia
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
+          onPress={handleGoSettings}
+          activeOpacity={0.8}
+        >
+          <View style={styles.modernBottomIconWrapper}>
+            <Settings size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Ustawienia
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -322,5 +440,92 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 8,
+  },
+  notificationsHeader: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  headerLogo: {
+    width: 120,
+    height: 32,
+  },
+  // Enhanced Modern Bottom Bar Styles
+  modernBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    paddingBottom: Platform.select({
+      ios: 28,
+      android: 20,
+      default: 20,
+    }),
+    paddingTop: 12,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    height: Platform.select({
+      ios: 100,
+      android: 88,
+      default: 88
+    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  modernBottomItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  modernBottomItemActive: {
+    opacity: 1,
+  },
+  modernBottomIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    position: 'relative',
+  },
+  modernBottomIconWrapperActive: {
+    shadowColor: '#E84142',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  modernBottomText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+  },
+  modernBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  modernBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

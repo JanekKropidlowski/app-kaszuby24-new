@@ -1039,31 +1039,7 @@ export default function HomeScreen() {
     return null;
   }, [loadingMore, hasMoreArticles, mixedContent.length, theme]);
 
-  // Bottom navigation functions
-  const handleGoHome = useCallback(() => {
-    // Already on home, scroll to top
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-    }
-  }, []);
 
-  const handleGoSearch = useCallback(() => {
-    router.push('/(tabs)/search');
-  }, [router]);
-
-  const handleGoSaved = useCallback(() => {
-    router.push('/(tabs)/saved');
-  }, [router]);
-
-  const handleGoNotifications = useCallback(() => {
-    router.push('/(tabs)/notifications');
-  }, [router]);
-
-  const handleGoSettings = useCallback(() => {
-    router.push('/(tabs)/preferences');
-  }, [router]);
-
-  const unreadCount = getUnreadCount();
 
   if (initialLoading) {
     return <SkeletonLoader type="home" count={5} />;
@@ -1166,19 +1142,6 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             
-            {/* Region Filters Section Header - Moved after "Najnowsze artykuły" */}
-            <View style={styles.regionFilterHeader}>
-              <View style={styles.regionFilterTitleRow}>
-                <MapPin size={20} color={theme.colors.primary} />
-                <Text style={[styles.regionFilterTitle, { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.bold 
-                }]}>
-                  Wiadomości z regionu
-                </Text>
-              </View>
-            </View>
-            
             {/* Category Filters - Updated with better UI */}
             {renderCategoryPills()}
           </View>
@@ -1219,84 +1182,7 @@ export default function HomeScreen() {
         onClose={handleWelcomeClose}
       />
 
-      {/* Enhanced Bottom Navigation Menu - Modern & Comfortable */}
-      <View style={[styles.modernBottomBar, { backgroundColor: theme.colors.tabBarBackground }]}>
-        <TouchableOpacity
-          style={[styles.modernBottomItem, { opacity: 0.7 }]}
-          onPress={handleGoSearch}
-          activeOpacity={0.8}
-        >
-          <View style={styles.modernBottomIconWrapper}>
-            <Search size={24} color={theme.colors.text} strokeWidth={2} />
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Szukaj
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.modernBottomItem, { opacity: 0.7 }]}
-          onPress={handleGoSaved}
-          activeOpacity={0.8}
-        >
-          <View style={styles.modernBottomIconWrapper}>
-            <Bookmark size={24} color={theme.colors.text} strokeWidth={2} />
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Zapisane
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.modernBottomItem, styles.modernBottomItemActive]}
-          onPress={handleGoHome}
-          activeOpacity={0.8}
-        >
-          <View style={[
-            styles.modernBottomIconWrapper, 
-            styles.modernBottomIconWrapperActive,
-            { backgroundColor: theme.colors.primary }
-          ]}>
-            <Home size={26} color="#FFFFFF" strokeWidth={2.5} />
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.primary, fontFamily: theme.fontFamily.semibold }]}>
-            Główna
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.modernBottomItem, { opacity: 0.7 }]}
-          onPress={handleGoNotifications}
-          activeOpacity={0.8}
-        >
-          <View style={styles.modernBottomIconWrapper}>
-            <Bell size={24} color={theme.colors.text} strokeWidth={2} />
-            {unreadCount > 0 && (
-              <View style={[styles.modernBadge, { backgroundColor: theme.colors.notification }]}>
-                <Text style={[styles.modernBadgeText, { fontFamily: theme.fontFamily.bold }]}>
-                  {unreadCount > 9 ? '9+' : unreadCount.toString()}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Powiadomienia
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.modernBottomItem, { opacity: 0.7 }]}
-          onPress={handleGoSettings}
-          activeOpacity={0.8}
-        >
-          <View style={styles.modernBottomIconWrapper}>
-            <Settings size={24} color={theme.colors.text} strokeWidth={2} />
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Ustawienia
-          </Text>
-        </TouchableOpacity>
-      </View>
+
     </View>
   );
 }
@@ -1536,86 +1422,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '400',
   },
-  // Enhanced Modern Bottom Bar Styles
-  modernBottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingBottom: Platform.select({
-      ios: 28,
-      android: 20,
-      default: 20,
-    }),
-    paddingTop: 12,
-    borderTopWidth: 0,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    height: Platform.select({
-      ios: 100,
-      android: 88,
-      default: 88
-    }),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  modernBottomItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-  },
-  modernBottomItemActive: {
-    opacity: 1,
-  },
-  modernBottomIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-    position: 'relative',
-  },
-  modernBottomIconWrapperActive: {
-    shadowColor: '#E84142',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  modernBottomText: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.1,
-  },
-  modernBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  modernBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
+
   // Modern header styles
   modernHeaderWrapper: {
     paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0, // Full width
+    width: '100%',
   },
   modernHeaderGradient: {
     position: 'absolute',
@@ -1630,6 +1442,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 1,
+    paddingHorizontal: 20, // Move padding here
+    width: '100%',
   },
   headerLeftSection: {
     flexDirection: 'row',
