@@ -35,6 +35,7 @@ export interface Article {
     views?: string;
     zrudlo?: string;
     footnotes?: string;
+    photo_credit?: string;
   };
   _embedded?: {
     author?: Array<{
