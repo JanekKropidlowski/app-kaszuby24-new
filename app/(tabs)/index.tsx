@@ -9,12 +9,30 @@ import {
   ScrollView,
   Dimensions,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  StatusBar
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronRight, RefreshCw, WifiOff, ArrowRight, Heart, Home, Bell, Search, Bookmark, Settings } from 'lucide-react-native';
+import { 
+  ChevronRight, 
+  RefreshCw, 
+  WifiOff, 
+  ArrowRight, 
+  Heart, 
+  Home, 
+  Bell, 
+  Search, 
+  Bookmark, 
+  Settings,
+  Eye,
+  TrendingUp,
+  Clock,
+  Calendar,
+  MapPin
+} from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { fetchArticles, fetchCategories, MAX_RETRIES, cancelAllRequests, cancelRequest, fetchNekrologi } from '@/services/api';
 import { Article, Category, Nekrolog } from '@/types/article';
 import { ArticleCard } from '@/components/ArticleCard';
@@ -34,33 +52,242 @@ import { WelcomeGreeting } from '@/components/WelcomeGreeting';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import * as Haptics from 'expo-haptics';
 
-const { width } = Dimensions.get('window');
-// Improved carousel sizing for center mode with peek - better balanced spacing
-const CAROUSEL_PEEK_WIDTH = 25; // Reduced for better balance
-const CAROUSEL_ITEM_SPACING = 12; // Reduced spacing
-const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 40; // Wider cards, 40px total side margin
+const { width, height } = Dimensions.get('window');
 
-// Non-sticky header component for scrollable content
-const ScrollableHeader = () => {
+// New carousel dimensions for "Most Read This Week"
+const WEEKLY_PEEK_WIDTH = 35;
+const WEEKLY_ITEM_SPACING = 16;
+const WEEKLY_ITEM_WIDTH = width - (WEEKLY_PEEK_WIDTH * 2) - 32;
+
+// Original carousel dimensions
+const CAROUSEL_PEEK_WIDTH = 25;
+const CAROUSEL_ITEM_SPACING = 12;
+const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 40;
+
+// New component for Weekly Most Read Slider with center mode
+const WeeklyMostReadSlider = ({ articles }: { articles: Article[] }) => {
   const { theme } = useThemeStore();
+  const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  
+  const handleArticlePress = useCallback((article: Article) => {
+    const { addRecentArticle } = useArticlesStore.getState();
+    addRecentArticle(article);
+    router.push(`/article/${article.id}`);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [router]);
 
-  return (
-    <View style={[styles.scrollableHeaderWrapper, { backgroundColor: theme.colors.background }]}>
-      <View 
+  const renderItem = ({ item, index }: { item: Article; index: number }) => {
+    const isActive = index === activeIndex;
+    const isAdjacent = Math.abs(index - activeIndex) === 1;
+    
+    return (
+      <TouchableOpacity
         style={[
-          styles.scrollableHeaderContainer, 
-          { 
-            backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+          styles.weeklyCardContainer,
+          {
+            width: WEEKLY_ITEM_WIDTH,
+            transform: [
+              { scale: isActive ? 1 : isAdjacent ? 0.9 : 0.85 },
+            ],
+            opacity: isActive ? 1 : isAdjacent ? 0.7 : 0.5,
           }
         ]}
+        onPress={() => handleArticlePress(item)}
+        activeOpacity={0.9}
       >
-        <View style={styles.scrollableHeaderContent}>
-          {/* Left: Greeting */}
-          <WelcomeGreeting />
+        <View style={[styles.weeklyCard, { backgroundColor: theme.colors.cardBackground }]}>
+          {/* Image with overlay */}
+          <View style={styles.weeklyImageContainer}>
+            {item.featured_media_url ? (
+              <Image
+                source={{ uri: item.featured_media_url }}
+                style={styles.weeklyImage}
+                contentFit="cover"
+                transition={200}
+              />
+            ) : (
+              <View style={[styles.weeklyImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+            )}
+            
+            {/* Gradient overlay */}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              style={styles.weeklyGradient}
+            />
+            
+            {/* Stats overlay */}
+            <View style={styles.weeklyStatsOverlay}>
+              <View style={styles.weeklyStatBadge}>
+                <Eye size={12} color="#FFFFFF" />
+                <Text style={[styles.weeklyStatText, { fontFamily: theme.fontFamily.semibold }]}>
+                  {item.meta?.views || '0'}
+                </Text>
+              </View>
+            </View>
+          </View>
           
-          {/* Right: Weather */}
-          <WeatherWidget />
+          {/* Content */}
+          <View style={styles.weeklyContent}>
+            {/* Category badge */}
+            {item.categories && item.categories.length > 0 && (
+              <View style={[styles.weeklyCategoryBadge, { backgroundColor: theme.colors.primary + '20' }]}>
+                <MapPin size={10} color={theme.colors.primary} />
+                <Text style={[styles.weeklyCategoryText, { 
+                  color: theme.colors.primary,
+                  fontFamily: theme.fontFamily.medium 
+                }]}>
+                  {item.categories[0].name}
+                </Text>
+              </View>
+            )}
+            
+            {/* Title */}
+            <Text style={[styles.weeklyTitle, { 
+              color: theme.colors.text,
+              fontFamily: theme.fontFamily.bold 
+            }]} numberOfLines={2}>
+              {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+            </Text>
+            
+            {/* Meta info */}
+            <View style={styles.weeklyMeta}>
+              <View style={styles.weeklyMetaItem}>
+                <Clock size={12} color={theme.colors.textSecondary} />
+                <Text style={[styles.weeklyMetaText, { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.regular 
+                }]}>
+                  {new Date(item.date).toLocaleDateString('pl-PL', { 
+                    day: 'numeric',
+                    month: 'short'
+                  })}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const onMomentumScrollEnd = (event: any) => {
+    const newIndex = Math.round(event.nativeEvent.contentOffset.x / (WEEKLY_ITEM_WIDTH + WEEKLY_ITEM_SPACING));
+    setActiveIndex(newIndex);
+  };
+
+  const handleDotPress = (index: number) => {
+    flatListRef.current?.scrollToIndex({ index, animated: true });
+    setActiveIndex(index);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  return (
+    <View style={styles.weeklySliderContainer}>
+      {/* Section Header */}
+      <View style={styles.weeklySectionHeader}>
+        <View style={styles.weeklySectionTitleRow}>
+          <TrendingUp size={24} color={theme.colors.primary} />
+          <Text style={[styles.weeklySectionTitle, { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.bold 
+          }]}>
+            Najchętniej czytane w tym tygodniu
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.weeklyViewAllButton}
+          onPress={() => router.push('/(tabs)/search')}
+        >
+          <Text style={[styles.weeklyViewAllText, { 
+            color: theme.colors.primary,
+            fontFamily: theme.fontFamily.medium 
+          }]}>
+            Zobacz wszystkie
+          </Text>
+          <ChevronRight size={16} color={theme.colors.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Slider */}
+      <FlatList
+        ref={flatListRef}
+        data={articles}
+        renderItem={renderItem}
+        keyExtractor={(item) => `weekly-${item.id}`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={WEEKLY_ITEM_WIDTH + WEEKLY_ITEM_SPACING}
+        decelerationRate="fast"
+        contentContainerStyle={styles.weeklySliderContent}
+        onMomentumScrollEnd={onMomentumScrollEnd}
+      />
+
+      {/* Dots indicator */}
+      <View style={styles.weeklyDotsContainer}>
+        {articles.map((_, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => handleDotPress(index)}
+            style={[
+              styles.weeklyDot,
+              {
+                backgroundColor: index === activeIndex 
+                  ? theme.colors.primary 
+                  : theme.colors.textSecondary + '30',
+                width: index === activeIndex ? 24 : 8,
+              }
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+// Modern header component with enhanced UI
+const ModernHeader = () => {
+  const { theme } = useThemeStore();
+  const router = useRouter();
+
+  return (
+    <View style={[styles.modernHeaderWrapper, { backgroundColor: theme.colors.background }]}>
+      {/* Background gradient */}
+      <LinearGradient
+        colors={theme.isDarkMode 
+          ? ['rgba(232,65,66,0.08)', 'rgba(232,65,66,0)', 'transparent'] 
+          : ['rgba(232,65,66,0.06)', 'rgba(232,65,66,0)', 'transparent']}
+        style={styles.modernHeaderGradient}
+      />
+      
+      <View style={styles.modernHeaderContent}>
+        {/* Left side - Logo and Greeting */}
+        <View style={styles.headerLeftSection}>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/')}
+            activeOpacity={0.8}
+            style={styles.logoContainer}
+          >
+            <Image
+              source={{ 
+                uri: theme.isDarkMode 
+                  ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-białe-01-scaled.png'
+                  : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+              }}
+              style={styles.headerLogo}
+              contentFit="contain"
+              transition={200}
+            />
+          </TouchableOpacity>
+          
+          <View style={styles.greetingSection}>
+            <WelcomeGreeting compact />
+          </View>
+        </View>
+        
+        {/* Right side - Weather Widget */}
+        <WeatherWidget enhanced />
       </View>
     </View>
   );
@@ -1039,8 +1266,8 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
         ListHeaderComponent={
           <View>
-            {/* Non-sticky Header with Greeting and Weather */}
-            <ScrollableHeader />
+            {/* Modern Header */}
+            <ModernHeader />
             
             {/* Notifications Banner */}
             {shouldShowBanner() && (
@@ -1048,6 +1275,11 @@ export default function HomeScreen() {
                 onPress={handleBannerPress}
                 onDismiss={handleBannerDismiss}
               />
+            )}
+            
+            {/* Weekly Most Read Section - New! */}
+            {featuredArticles.length >= 5 && (
+              <WeeklyMostReadSlider articles={featuredArticles.slice(0, 10)} />
             )}
             
             {/* Enhanced Latest Articles Carousel */}
@@ -1086,8 +1318,21 @@ export default function HomeScreen() {
               </View>
             )}
             
-            {/* Category Filters */}
-            {renderCategoryPills}
+            {/* Region Filters Section Header - New! */}
+            <View style={styles.regionFilterHeader}>
+              <View style={styles.regionFilterTitleRow}>
+                <MapPin size={20} color={theme.colors.primary} />
+                <Text style={[styles.regionFilterTitle, { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold 
+                }]}>
+                  Wiadomości z regionu
+                </Text>
+              </View>
+            </View>
+            
+            {/* Category Filters - Updated with better UI */}
+            {renderCategoryPills()}
             
             <View style={styles.sectionHeader}>
               <Text style={[
@@ -1153,66 +1398,80 @@ export default function HomeScreen() {
         onClose={handleWelcomeClose}
       />
 
-      {/* Bottom Navigation Menu */}
-      <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.tabBarBackground }]}>
+      {/* Enhanced Bottom Navigation Menu - Modern & Comfortable */}
+      <View style={[styles.modernBottomBar, { backgroundColor: theme.colors.tabBarBackground }]}>
         <TouchableOpacity
-          style={styles.bottomMenuItem}
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
           onPress={handleGoSearch}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Search size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+          <View style={styles.modernBottomIconWrapper}>
+            <Search size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Szukaj
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={styles.bottomMenuItem}
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
           onPress={handleGoSaved}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Bookmark size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+          <View style={styles.modernBottomIconWrapper}>
+            <Bookmark size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Zapisane
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={styles.bottomMenuItem}
+          style={[styles.modernBottomItem, styles.modernBottomItemActive]}
           onPress={handleGoHome}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Home size={22} color={theme.colors.primary} strokeWidth={2.5} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.primary, fontFamily: theme.fontFamily.medium }]}>
+          <View style={[
+            styles.modernBottomIconWrapper, 
+            styles.modernBottomIconWrapperActive,
+            { backgroundColor: theme.colors.primary }
+          ]}>
+            <Home size={26} color="#FFFFFF" strokeWidth={2.5} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.primary, fontFamily: theme.fontFamily.semibold }]}>
             Główna
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={styles.bottomMenuItem}
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
           onPress={handleGoNotifications}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Bell size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+          <View style={styles.modernBottomIconWrapper}>
+            <Bell size={24} color={theme.colors.text} strokeWidth={2} />
+            {unreadCount > 0 && (
+              <View style={[styles.modernBadge, { backgroundColor: theme.colors.notification }]}>
+                <Text style={[styles.modernBadgeText, { fontFamily: theme.fontFamily.bold }]}>
+                  {unreadCount > 9 ? '9+' : unreadCount.toString()}
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Powiadomienia
           </Text>
-          {unreadCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: theme.colors.notification }]}>
-              <Text style={[styles.badgeText, { fontFamily: theme.fontFamily.semibold }]}>
-                {unreadCount > 9 ? '9+' : unreadCount.toString()}
-              </Text>
-            </View>
-          )}
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={styles.bottomMenuItem}
+          style={[styles.modernBottomItem, { opacity: 0.7 }]}
           onPress={handleGoSettings}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Settings size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+          <View style={styles.modernBottomIconWrapper}>
+            <Settings size={24} color={theme.colors.text} strokeWidth={2} />
+          </View>
+          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Ustawienia
           </Text>
         </TouchableOpacity>
@@ -1226,7 +1485,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 120, // Increased from 80 to accommodate bottom menu
+    paddingBottom: 140, // Increased to accommodate bigger modern bottom menu
     paddingTop: Platform.OS === 'ios' ? 54 : 34, // Add padding for status bar
   },
   carouselContainer: {
@@ -1458,77 +1717,293 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '400',
   },
-  bottomMenuBar: {
+  // Enhanced Modern Bottom Bar Styles
+  modernBottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingBottom: Platform.select({
-      ios: 20,
-      android: 15,
-      default: 15,
+      ios: 28,
+      android: 20,
+      default: 20,
     }),
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: 0,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     height: Platform.select({
-      ios: 85,
-      android: 75,
-      default: 75
+      ios: 100,
+      android: 88,
+      default: 88
     }),
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 12,
   },
-  bottomMenuItem: {
+  modernBottomItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: 6,
+  },
+  modernBottomItemActive: {
+    opacity: 1,
+  },
+  modernBottomIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
     position: 'relative',
   },
-  bottomMenuText: {
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 4,
-    letterSpacing: 0.2,
+  modernBottomIconWrapperActive: {
+    shadowColor: '#E84142',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  badge: {
+  modernBottomText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+  },
+  modernBadge: {
     position: 'absolute',
-    top: -2,
-    right: '25%',
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    top: -4,
+    right: -4,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  badgeText: {
+  modernBadgeText: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
   },
-  // Scrollable header styles
-  scrollableHeaderWrapper: {
-    paddingBottom: 12,
+  // Modern header styles
+  modernHeaderWrapper: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
-  scrollableHeaderContainer: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+  modernHeaderGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.5,
   },
-  scrollableHeaderContent: {
+  modernHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 1,
+  },
+  headerLeftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  logoContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginRight: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 2,
+  },
+  headerLogo: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 23,
+  },
+  greetingSection: {
+    flexDirection: 'column',
+    flex: 1,
+  },
+  // Region Filter Header Styles
+  regionFilterHeader: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  regionFilterTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  regionFilterTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    marginLeft: 8,
+  },
+  // New component for Weekly Most Read Slider with center mode
+  weeklySliderContainer: {
+    marginTop: 24,
+    marginBottom: 28,
+    width: '100%',
+  },
+  weeklySectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 8,
+    marginTop: 6,
+  },
+  weeklySectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  weeklySectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    marginLeft: 8,
+  },
+  weeklyViewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(34, 74, 150, 0.06)',
+    borderRadius: 16,
+  },
+  weeklyViewAllText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  weeklySliderContent: {
+    paddingHorizontal: WEEKLY_PEEK_WIDTH + 20,
+    paddingVertical: 6,
+  },
+  weeklyCardContainer: {
+    width: WEEKLY_ITEM_WIDTH,
+    marginRight: WEEKLY_ITEM_SPACING,
+  },
+  weeklyCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    height: 280,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  weeklyImageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  },
+  weeklyImage: {
+    width: '100%',
+    height: '100%',
+  },
+  weeklyImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+  },
+  weeklyGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '75%',
+  },
+  weeklyStatsOverlay: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  weeklyStatBadge: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backdropFilter: 'blur(10px)',
+  },
+  weeklyStatText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  weeklyContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+  },
+  weeklyCategoryBadge: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  weeklyCategoryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  weeklyTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 24,
+    marginBottom: 14,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  weeklyMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  weeklyMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  weeklyMetaText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '400',
+  },
+  weeklyDotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  weeklyDot: {
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+    transition: 'all 0.3s ease',
   },
 });
