@@ -113,6 +113,79 @@ export default function ArticleDetailScreen() {
   const isSaved = isArticleSaved(articleId);
   const unreadCount = getUnreadCount();
   
+  // Function to handle retry when article loading fails
+  const handleRetry = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    // Implement retry logic here
+    // For example, refetch the article data
+  }, []);
+
+  // Function to handle going back
+  const handleGoBack = useCallback(() => {
+    router.back();
+  }, [router]);
+
+  // Function to handle sharing the article
+  const handleShare = useCallback(() => {
+    if (article) {
+      Share.share({
+        message: article.title.rendered,
+        url: article.link,
+        title: article.title.rendered,
+      });
+    }
+  }, [article]);
+
+  // Function to toggle saving/unsaving the article
+  const toggleSave = useCallback(() => {
+    if (article) {
+      if (isSaved) {
+        removeArticle(article.id);
+      } else {
+        saveArticle(article);
+      }
+    }
+  }, [article, isSaved, removeArticle, saveArticle]);
+
+  // Function to open image modal
+  const openImageModal = useCallback((index: number) => {
+    setSelectedImageIndex(index);
+  }, []);
+
+  // Function to close image modal
+  const closeImageModal = useCallback(() => {
+    setSelectedImageIndex(null);
+  }, []);
+
+  // Function to navigate between images in the modal
+  const navigateImage = useCallback((direction: 'prev' | 'next') => {
+    if (selectedImageIndex === null || !galleryImages.length) return;
+    
+    if (direction === 'prev' && selectedImageIndex > 0) {
+      setSelectedImageIndex(selectedImageIndex - 1);
+    } else if (direction === 'next' && selectedImageIndex < galleryImages.length - 1) {
+      setSelectedImageIndex(selectedImageIndex + 1);
+    }
+  }, [selectedImageIndex, galleryImages]);
+
+  // Navigation functions for bottom menu
+  const handleGoHome = useCallback(() => {
+    router.replace('/(tabs)');
+  }, [router]);
+
+  const handleGoNotifications = useCallback(() => {
+    router.push('/(tabs)/notifications');
+  }, [router]);
+
+  const handleGoSaved = useCallback(() => {
+    router.push('/(tabs)/saved');
+  }, [router]);
+
+  const handleGoSettings = useCallback(() => {
+    router.push('/(tabs)/preferences');
+  }, [router]);
+
   // Handle Android back button
   useEffect(() => {
     if (Platform.OS === 'android') {
