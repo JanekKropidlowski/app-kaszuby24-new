@@ -28,10 +28,8 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-const CAROUSEL_ITEM_WIDTH = width * 0.75; // Smaller to show parts of adjacent items
-const CAROUSEL_ITEM_SPACING = 12; // Reduced spacing
-
-const MAX_RETRIES = 3;
+const CAROUSEL_ITEM_WIDTH = width * 0.8; // Better centering
+const CAROUSEL_ITEM_SPACING = 16;
 
 // Memoized carousel item component for better performance
 const CarouselItem = React.memo(({ 
@@ -523,7 +521,7 @@ export default function HomeScreen() {
               <View style={styles.carouselContainer}>
                 <FlatList
                   ref={flatListRef}
-                  data={[...featuredArticles, ...featuredArticles, ...featuredArticles]} // Triple for infinite effect
+                  data={[...featuredArticles, ...featuredArticles, ...featuredArticles]}
                   keyExtractor={(item, index) => `carousel-${item.id}-${index}`}
                   renderItem={({ item, index }) => (
                     <CarouselItem
@@ -539,7 +537,7 @@ export default function HomeScreen() {
                   snapToAlignment="center"
                   decelerationRate="fast"
                   contentContainerStyle={styles.carouselListContent}
-                  initialScrollIndex={featuredArticles.length} // Start at middle set
+                  initialScrollIndex={featuredArticles.length}
                   getItemLayout={(data, index) => ({
                     length: CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING,
                     offset: (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING) * index,
@@ -640,8 +638,7 @@ export default function HomeScreen() {
         initialNumToRender={Platform.OS === 'android' ? 5 : 10}
         maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
         windowSize={Platform.OS === 'android' ? 5 : 10}
-        // Performance optimizations
-        getItemLayout={undefined} // Let FlatList calculate automatically for main list
+        getItemLayout={undefined}
         updateCellsBatchingPeriod={50}
         legacyImplementation={false}
       />
@@ -667,7 +664,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   carouselListContent: {
-    paddingHorizontal: (width - CAROUSEL_ITEM_WIDTH) / 2, // Center the active item
+    paddingHorizontal: (width - CAROUSEL_ITEM_WIDTH) / 2, // Perfect centering
     paddingVertical: 8,
   },
   carouselItemContainer: {

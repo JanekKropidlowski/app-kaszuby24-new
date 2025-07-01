@@ -379,7 +379,7 @@ ${article.link}`,
           
           body {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-            font-size: 15px;
+            font-size: 14px !important;
             line-height: 1.6;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
             background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
@@ -397,7 +397,7 @@ ${article.link}`,
             margin-bottom: 16px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 15px !important;
+            font-size: 14px !important;
             line-height: 1.6 !important;
             font-weight: 400 !important;
           }
@@ -432,12 +432,12 @@ ${article.link}`,
             letter-spacing: -0.02em !important;
           }
           
-          h1 { font-size: 26px !important; }
-          h2 { font-size: 22px !important; }
-          h3 { font-size: 18px !important; }
-          h4 { font-size: 16px !important; }
-          h5 { font-size: 15px !important; }
-          h6 { font-size: 14px !important; }
+          h1 { font-size: 24px !important; }
+          h2 { font-size: 20px !important; }
+          h3 { font-size: 17px !important; }
+          h4 { font-size: 15px !important; }
+          h5 { font-size: 14px !important; }
+          h6 { font-size: 13px !important; }
           
           blockquote {
             position: relative !important;
@@ -447,7 +447,7 @@ ${article.link}`,
             border-radius: 16px !important;
             border-left: 4px solid ${theme.colors.primary} !important;
             font-style: italic !important;
-            font-size: 16px !important;
+            font-size: 15px !important;
             line-height: 1.5 !important;
             color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
             box-shadow: ${isDarkMode ? '0 6px 24px rgba(0, 0, 0, 0.2)' : '0 6px 24px rgba(34, 74, 150, 0.06)'} !important;
@@ -473,7 +473,7 @@ ${article.link}`,
             z-index: 1 !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
-            font-size: 16px !important;
+            font-size: 15px !important;
           }
           
           ul, ol {
@@ -485,7 +485,7 @@ ${article.link}`,
             margin-bottom: 10px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 15px !important;
+            font-size: 14px !important;
             line-height: 1.5 !important;
           }
           
@@ -504,7 +504,7 @@ ${article.link}`,
             text-align: left !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 14px !important;
+            font-size: 13px !important;
           }
           
           th {
@@ -592,14 +592,15 @@ ${article.link}`,
   const renderContent = useMemo(() => {
     if (Platform.OS === 'web') {
       return (
-        <View style={styles.htmlContainer}>
+        <View style={[styles.htmlContainer, { backgroundColor: theme.colors.background }]}>
           <div 
             dangerouslySetInnerHTML={{ __html: enhancedHtml }}
             style={{
               color: isDarkMode ? '#F1F5F9' : '#1E293B',
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              fontSize: '15px', // Reduced font size
+              fontSize: '14px',
               lineHeight: '1.6',
+              backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC',
             }}
           />
         </View>
@@ -607,7 +608,7 @@ ${article.link}`,
     } else if (webViewError) {
       // Fallback for Android when WebView fails
       return (
-        <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
+        <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.background }]}>
           <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.regular }]}>
             Treść artykułu nie może być wyświetlona w aplikacji.
           </Text>
@@ -623,7 +624,7 @@ ${article.link}`,
       );
     } else {
       return (
-        <View style={styles.htmlContainer}>
+        <View style={[styles.htmlContainer, { backgroundColor: theme.colors.background }]}>
           <WebView
             ref={webViewRef}
             originWhitelist={['*']}
@@ -632,7 +633,7 @@ ${article.link}`,
               styles.webview, 
               { 
                 height: webViewHeight,
-                backgroundColor: theme.colors.background // Match app background
+                backgroundColor: theme.colors.background
               }
             ]}
             scrollEnabled={false}
@@ -675,7 +676,6 @@ ${article.link}`,
               console.warn('WebView render process gone');
               setWebViewError(true);
             }}
-            // Simplified Android props
             androidLayerType="hardware"
             mixedContentMode="compatibility"
             allowsFullscreenVideo={false}

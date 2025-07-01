@@ -30,7 +30,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
   } else {
     // If we can't determine the platform, show a fallback
     return (
-      <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
+      <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity 
           style={styles.fallbackButton}
           onPress={() => Linking.openURL(url)}
@@ -47,7 +47,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
   // For web platform, we'll use an iframe directly
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <iframe
           src={embedUrl}
           style={{
@@ -64,95 +64,68 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
     );
   }
   
-  // For mobile platforms, use WebView with improved iframe support
-  try {
-    return (
-      <View style={styles.container}>
-        <WebView
-          source={{ 
-            html: `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                  body { margin: 0; padding: 0; background: #000; }
-                  iframe { 
-                    width: 100%; 
-                    height: 100%; 
-                    border: none; 
-                    border-radius: 12px;
-                  }
-                </style>
-              </head>
-              <body>
-                <iframe 
-                  src="${embedUrl}" 
-                  frameborder="0" 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                  allowfullscreen>
-                </iframe>
-              </body>
-              </html>
-            `
-          }}
-          style={styles.webview}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          allowsFullscreenVideo={true}
-          mediaPlaybackRequiresUserAction={false}
-          onError={(syntheticEvent) => {
-            const { nativeEvent } = syntheticEvent;
-            console.warn('VideoPlayer WebView error: ', nativeEvent);
-          }}
-          onHttpError={(syntheticEvent) => {
-            const { nativeEvent } = syntheticEvent;
-            console.warn('VideoPlayer WebView HTTP error: ', nativeEvent);
-          }}
-          renderError={() => (
-            <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
-              <TouchableOpacity 
-                style={styles.fallbackButton}
-                onPress={() => Linking.openURL(url)}
-              >
-                <Play size={32} color={theme.colors.primary} />
-                <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-                  Otwórz video w przeglądarce
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          startInLoadingState={true}
-          renderLoading={() => (
-            <View style={[styles.loadingContainer, { backgroundColor: theme.colors.subtle }]}>
-              <Text style={[styles.loadingText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
-                Ładowanie video...
-              </Text>
-            </View>
-          )}
-          androidLayerType="hardware"
-          mixedContentMode="compatibility"
-          cacheEnabled={true}
-        />
-      </View>
-    );
-  } catch (error) {
-    // Fallback if WebView is not available
-    console.warn('WebView not available, showing fallback:', error);
-    return (
-      <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.subtle }]}>
-        <TouchableOpacity 
-          style={styles.fallbackButton}
-          onPress={() => Linking.openURL(url)}
-        >
-          <Play size={32} color={theme.colors.primary} />
-          <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Otwórz video w przeglądarce
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // For mobile platforms, always show iframe for YouTube/Vimeo
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <WebView
+        source={{ 
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body { 
+                  margin: 0; 
+                  padding: 0; 
+                  background: ${theme.colors.background}; 
+                }
+                iframe { 
+                  width: 100%; 
+                  height: 100%; 
+                  border: none; 
+                  border-radius: 12px;
+                }
+              </style>
+            </head>
+            <body>
+              <iframe 
+                src="${embedUrl}" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+              </iframe>
+            </body>
+            </html>
+          `
+        }}
+        style={[styles.webview, { backgroundColor: theme.colors.background }]}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        allowsFullscreenVideo={true}
+        mediaPlaybackRequiresUserAction={false}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('VideoPlayer WebView error: ', nativeEvent);
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('VideoPlayer WebView HTTP error: ', nativeEvent);
+        }}
+        startInLoadingState={true}
+        renderLoading={() => (
+          <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+            <Text style={[styles.loadingText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+              Ładowanie video...
+            </Text>
+          </View>
+        )}
+        androidLayerType="hardware"
+        mixedContentMode="compatibility"
+        cacheEnabled={true}
+      />
+    </View>
+  );
 };
 
 const { width } = Dimensions.get('window');
@@ -164,7 +137,6 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#000',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -191,11 +163,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     fontWeight: '500',
-    textAlign: 'center',
-  },
-  fallbackSubtext: {
-    marginTop: 4,
-    fontSize: 14,
     textAlign: 'center',
   },
   loadingContainer: {

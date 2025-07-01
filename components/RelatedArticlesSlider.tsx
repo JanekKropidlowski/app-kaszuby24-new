@@ -13,7 +13,7 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.85; // Larger items for better center mode
+const ITEM_WIDTH = width * 0.8; // Adjusted for better centering
 const ITEM_SPACING = 16;
 
 // Memoized article item component for better performance
@@ -174,11 +174,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 20,
-    marginHorizontal: 28, // Only title has margin
+    marginHorizontal: 28,
     letterSpacing: -0.3,
   },
   listContainer: {
-    paddingHorizontal: (width - ITEM_WIDTH) / 2, // Center the active item
+    paddingHorizontal: (width - ITEM_WIDTH) / 2, // Perfect centering
   },
   articleContainer: {
     borderRadius: 24,
