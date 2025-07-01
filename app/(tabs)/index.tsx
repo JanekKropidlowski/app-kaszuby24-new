@@ -513,22 +513,19 @@ export default function HomeScreen() {
   
   // Replace handleLoadMore with the implementation from search tab
   const handleLoadMore = async () => {
-    if (page >= totalPages || loadingMore || !query.trim()) return;
+    if (page >= totalPages || loadingMore || !hasMore) return;
     
     try {
       setLoadingMore(true);
+      setIsLoadingMore(true);
       
       const nextPage = page + 1;
-      const { articles: moreResults } = await searchArticles(query, nextPage);
-      
-      const filteredResults = filterSponsoredArticles(moreResults);
-      
-      setArticles((prev) => [...prev, ...filteredResults]);
-      setPage(nextPage);
+      await loadArticles(nextPage, false);
     } catch (err) {
-      console.error('Error loading more search results:', err);
+      console.error('Error loading more articles:', err);
     } finally {
       setLoadingMore(false);
+      setIsLoadingMore(false);
     }
   };
 
