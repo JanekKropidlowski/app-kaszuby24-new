@@ -28,8 +28,9 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-// Adjusted for full width with proper spacing
-const CAROUSEL_ITEM_WIDTH = width * 0.85;
+// Improved carousel sizing for full width with proper margins
+const CAROUSEL_HORIZONTAL_MARGIN = 20;
+const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_HORIZONTAL_MARGIN * 2);
 const CAROUSEL_ITEM_SPACING = 16;
 
 // Memoized carousel item component for better performance
@@ -496,12 +497,14 @@ export default function HomeScreen() {
   
   // Memoized carousel render function
   const renderCarouselItem = useCallback(({ item, index }: { item: Article; index: number }) => (
-    <CarouselItem
-      item={item}
-      index={index}
-      totalItems={featuredArticles.length}
-      onPress={handleArticlePress}
-    />
+    <View style={styles.carouselItemWrapper}>
+      <CarouselItem
+        item={item}
+        index={index}
+        totalItems={featuredArticles.length}
+        onPress={handleArticlePress}
+      />
+    </View>
   ), [featuredArticles.length, handleArticlePress]);
   
   // Memoized carousel indicator
@@ -573,45 +576,36 @@ export default function HomeScreen() {
               />
             )}
             
-            {/* Featured Articles Carousel */}
+            {/* Improved Featured Articles Carousel */}
             {featuredArticles.length > 0 && (
               <View style={styles.carouselContainer}>
                 <FlatList
                   ref={flatListRef}
-                  data={[...featuredArticles, ...featuredArticles, ...featuredArticles]}
+                  data={featuredArticles}
                   keyExtractor={(item, index) => `carousel-${item.id}-${index}`}
-                  renderItem={({ item, index }) => (
-                    <CarouselItem
-                      item={item}
-                      index={index % featuredArticles.length}
-                      totalItems={featuredArticles.length}
-                      onPress={handleArticlePress}
-                    />
-                  )}
+                  renderItem={renderCarouselItem}
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
-                  snapToAlignment="center"
+                  snapToAlignment="start"
                   decelerationRate="fast"
                   contentContainerStyle={styles.carouselListContent}
-                  initialScrollIndex={featuredArticles.length}
-                  getItemLayout={(data, index) => ({
-                    length: CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING,
-                    offset: (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING) * index,
-                    index,
-                  })}
+                  pagingEnabled={false}
+                  scrollEventThrottle={16}
                   onMomentumScrollEnd={(event) => {
                     const newIndex = Math.round(
                       event.nativeEvent.contentOffset.x / 
                       (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
                     );
-                    setActiveCarouselIndex(newIndex % featuredArticles.length);
+                    setActiveCarouselIndex(Math.max(0, Math.min(newIndex, featuredArticles.length - 1)));
                   }}
                   onScrollToIndexFailed={handleScrollToIndexFailed}
                   removeClippedSubviews={Platform.OS === 'android'}
-                  initialNumToRender={5}
-                  maxToRenderPerBatch={5}
-                  windowSize={7}
+                  initialNumToRender={3}
+                  maxToRenderPerBatch={3}
+                  windowSize={5}
+                  bounces={true}
+                  bouncesZoom={false}
                 />
                 {renderCarouselIndicator}
               </View>
@@ -722,8 +716,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   carouselListContent: {
-    paddingHorizontal: (width - CAROUSEL_ITEM_WIDTH) / 2, // Perfect centering
+    paddingHorizontal: CAROUSEL_HORIZONTAL_MARGIN,
     paddingVertical: 6,
+  },
+  carouselItemWrapper: {
+    width: CAROUSEL_ITEM_WIDTH,
+    marginRight: CAROUSEL_ITEM_SPACING,
   },
   carouselItemContainer: {
     shadowColor: '#000',
@@ -736,6 +734,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     height: 240,
+    width: '100%',
   },
   carouselImageContainer: {
     position: 'relative',
