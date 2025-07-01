@@ -64,12 +64,38 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
     );
   }
   
-  // For mobile platforms, try WebView with improved error handling
+  // For mobile platforms, use WebView with improved iframe support
   try {
     return (
       <View style={styles.container}>
         <WebView
-          source={{ uri: embedUrl }}
+          source={{ 
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                  body { margin: 0; padding: 0; background: #000; }
+                  iframe { 
+                    width: 100%; 
+                    height: 100%; 
+                    border: none; 
+                    border-radius: 12px;
+                  }
+                </style>
+              </head>
+              <body>
+                <iframe 
+                  src="${embedUrl}" 
+                  frameborder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowfullscreen>
+                </iframe>
+              </body>
+              </html>
+            `
+          }}
           style={styles.webview}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -104,7 +130,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title = 'Video' }) => {
               </Text>
             </View>
           )}
-          // Improved Android support - removed invalid props
           androidLayerType="hardware"
           mixedContentMode="compatibility"
           cacheEnabled={true}

@@ -37,7 +37,7 @@ export const lightTheme = {
   colors: {
     primary: '#224A96',
     secondary: '#FECC00',
-    background: '#FFFFFF',
+    background: '#F8FAFC',
     card: '#F8FAFC',
     text: '#1E293B',
     textSecondary: '#64748B',
@@ -102,7 +102,7 @@ export const darkTheme = {
   colors: {
     primary: '#4A7BC8',
     secondary: '#FECC00',
-    background: '#0F172A',
+    background: '#1E293B',
     card: '#1E293B',
     text: '#F1F5F9',
     textSecondary: '#94A3B8',

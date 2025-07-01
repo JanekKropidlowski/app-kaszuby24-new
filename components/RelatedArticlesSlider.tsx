@@ -150,7 +150,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         maxToRenderPerBatch={5}
         windowSize={7}
         pagingEnabled={false}
-        initialScrollIndex={articles.length > 1 ? articles.length * 2 : 0} // Start at middle set
+        initialScrollIndex={articles.length > 1 ? articles.length * 2 : 0}
         getItemLayout={(data, index) => ({
           length: ITEM_WIDTH + ITEM_SPACING,
           offset: (ITEM_WIDTH + ITEM_SPACING) * index,
@@ -168,47 +168,47 @@ RelatedArticlesSlider.displayName = 'RelatedArticlesSlider';
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 36,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
-    marginBottom: 24,
-    marginHorizontal: 28,
-    letterSpacing: -0.4,
+    marginBottom: 20,
+    marginHorizontal: 0,
+    letterSpacing: -0.3,
   },
   listContainer: {
-    paddingLeft: (width - ITEM_WIDTH) / 2, // Center the items
+    paddingLeft: (width - ITEM_WIDTH) / 2,
     paddingRight: (width - ITEM_WIDTH) / 2,
   },
   articleContainer: {
-    borderRadius: 28,
+    borderRadius: 24,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
   },
   articleImage: {
     width: '100%',
-    height: 200,
+    height: 180,
   },
   imagePlaceholder: {
     width: '100%',
-    height: 200,
+    height: 180,
   },
   articleContent: {
-    padding: 28,
+    padding: 20,
   },
   articleTitle: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: '700',
-    lineHeight: 28,
-    marginBottom: 16,
+    lineHeight: 24,
+    marginBottom: 12,
     letterSpacing: -0.2,
   },
   articleDate: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     opacity: 0.7,
     letterSpacing: 0.2,

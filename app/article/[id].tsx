@@ -379,10 +379,10 @@ ${article.link}`,
           
           body {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-            font-size: 17px;
-            line-height: 1.7;
+            font-size: 15px;
+            line-height: 1.6;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            background-color: ${isDarkMode ? '#1E293B' : '#FFFFFF'} !important;
+            background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
             margin: 0;
             padding: 20px;
             word-wrap: break-word;
@@ -394,11 +394,11 @@ ${article.link}`,
           }
           
           p {
-            margin-bottom: 18px !important;
+            margin-bottom: 16px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 17px !important;
-            line-height: 1.7 !important;
+            font-size: 15px !important;
+            line-height: 1.6 !important;
             font-weight: 400 !important;
           }
           
@@ -425,41 +425,41 @@ ${article.link}`,
           
           h1, h2, h3, h4, h5, h6 {
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            margin: 32px 0 20px 0 !important;
+            margin: 28px 0 18px 0 !important;
             line-height: 1.3 !important;
             font-family: 'Poppins', sans-serif !important;
             font-weight: 700 !important;
             letter-spacing: -0.02em !important;
           }
           
-          h1 { font-size: 28px !important; }
-          h2 { font-size: 24px !important; }
-          h3 { font-size: 20px !important; }
-          h4 { font-size: 18px !important; }
-          h5 { font-size: 16px !important; }
+          h1 { font-size: 26px !important; }
+          h2 { font-size: 22px !important; }
+          h3 { font-size: 18px !important; }
+          h4 { font-size: 16px !important; }
+          h5 { font-size: 15px !important; }
           h6 { font-size: 14px !important; }
           
           blockquote {
             position: relative !important;
-            margin: 28px 0 !important;
-            padding: 24px 28px 24px 70px !important;
-            background: ${isDarkMode ? 'linear-gradient(135deg, rgba(74, 123, 200, 0.12) 0%, rgba(254, 204, 0, 0.06) 100%)' : 'linear-gradient(135deg, rgba(34, 74, 150, 0.06) 0%, rgba(254, 204, 0, 0.06) 100%)'} !important;
-            border-radius: 20px !important;
-            border-left: 5px solid ${theme.colors.primary} !important;
+            margin: 24px 0 !important;
+            padding: 20px 24px 20px 60px !important;
+            background: ${isDarkMode ? 'rgba(74, 123, 200, 0.12)' : 'rgba(34, 74, 150, 0.06)'} !important;
+            border-radius: 16px !important;
+            border-left: 4px solid ${theme.colors.primary} !important;
             font-style: italic !important;
-            font-size: 18px !important;
-            line-height: 1.6 !important;
+            font-size: 16px !important;
+            line-height: 1.5 !important;
             color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
-            box-shadow: ${isDarkMode ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(34, 74, 150, 0.08)'} !important;
+            box-shadow: ${isDarkMode ? '0 6px 24px rgba(0, 0, 0, 0.2)' : '0 6px 24px rgba(34, 74, 150, 0.06)'} !important;
             font-family: 'Poppins', sans-serif !important;
           }
           
           blockquote::before {
             content: '"' !important;
             position: absolute !important;
-            left: 24px !important;
-            top: 16px !important;
-            font-size: 56px !important;
+            left: 20px !important;
+            top: 12px !important;
+            font-size: 48px !important;
             font-weight: bold !important;
             color: ${theme.colors.primary} !important;
             opacity: 0.25 !important;
@@ -473,26 +473,26 @@ ${article.link}`,
             z-index: 1 !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
-            font-size: 18px !important;
+            font-size: 16px !important;
           }
           
           ul, ol {
-            padding-left: 28px !important;
-            margin: 20px 0 !important;
+            padding-left: 24px !important;
+            margin: 18px 0 !important;
           }
           
           li {
-            margin-bottom: 12px !important;
+            margin-bottom: 10px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 17px !important;
-            line-height: 1.6 !important;
+            font-size: 15px !important;
+            line-height: 1.5 !important;
           }
           
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            margin: 24px 0 !important;
+            margin: 20px 0 !important;
             border-radius: 12px !important;
             overflow: hidden !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
@@ -500,10 +500,11 @@ ${article.link}`,
           
           th, td {
             border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} !important;
-            padding: 16px 12px !important;
+            padding: 14px 10px !important;
             text-align: left !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+            font-size: 14px !important;
           }
           
           th {
@@ -528,7 +529,7 @@ ${article.link}`,
               -webkit-text-size-adjust: 100% !important;
               -webkit-font-smoothing: antialiased !important;
               color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-              background-color: ${isDarkMode ? '#1E293B' : '#FFFFFF'} !important;
+              background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
             }
             
             p, span, div, li, td, th, h1, h2, h3, h4, h5, h6, a {
