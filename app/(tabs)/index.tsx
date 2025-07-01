@@ -499,6 +499,7 @@ export default function HomeScreen() {
   const handleArticlePress = useCallback((article: Article) => {
     // Add to recent articles (filtering is handled in the store)
     addRecentArticle(article);
+    // Navigate to article detail
     router.push(`/article/${article.id}`);
   }, [addRecentArticle, router]);
   
@@ -642,7 +643,7 @@ export default function HomeScreen() {
     );
   }, [featuredArticles.length, realActiveIndex, theme.colors.primary, theme.colors.textSecondary, handleDotPress]);
   
-  // Memoized article render function
+  // Memoized article render function with proper onPress handling
   const renderArticle = useCallback(({ item }: { item: Article }) => (
     <View style={styles.articleContainer}>
       <ArticleCard 
@@ -651,7 +652,7 @@ export default function HomeScreen() {
       />
     </View>
   ), [handleArticlePress]);
-  
+
   // Memoized key extractor
   const keyExtractor = useCallback((item: Article) => item.id.toString(), []);
   

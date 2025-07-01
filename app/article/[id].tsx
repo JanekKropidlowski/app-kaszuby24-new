@@ -68,6 +68,16 @@ const GalleryImage = React.memo(({
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  
+  // Add validation for articleId
+  useEffect(() => {
+    if (!id || isNaN(parseInt(id as string, 10))) {
+      console.error('Invalid article ID:', id);
+      router.back();
+      return;
+    }
+  }, [id, router]);
+  
   const { isArticleSaved, saveArticle, removeArticle, addRecentArticle } = useArticlesStore();
   const { getUnreadCount } = useNotificationsStore();
   const { theme, isDarkMode } = useThemeStore();
@@ -305,7 +315,11 @@ ${article.link}`,
   }, [loadArticle]);
   
   const handleGoBack = useCallback(() => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
   }, [router]);
   
   const handleGoHome = useCallback(() => {
@@ -378,7 +392,7 @@ ${article.link}`,
           }
           
           body {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
             font-size: 13px !important;
             line-height: 1.6;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -32,15 +32,28 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     return null;
   }
   
-  const handlePress = () => {
+  // Add ref to prevent double taps
+  const lastTapTime = useRef(0);
+  
+  const handlePress = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapTime.current < 500) {
+      // Prevent double tap within 500ms
+      return;
+    }
+    lastTapTime.current = now;
+    
     if (onPress) {
       onPress();
+    } else {
+      // Only navigate if no custom onPress is provided
+      router.push(`/article/${article.id}`);
     }
-    router.push(`/article/${article.id}`);
-  };
+  }, [onPress, router, article.id]);
   
-  const toggleSave = (e: any) => {
+  const toggleSave = useCallback((e: any) => {
     e.stopPropagation();
+    e.preventDefault();
     
     // Don't allow saving sponsored content
     if (isSponsored) {
@@ -52,8 +65,8 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     } else {
       saveArticle(article);
     }
-  };
-  
+  }, [isSponsored, isSaved, removeArticle, saveArticle, article]);
+
   // Create a clean excerpt by removing HTML tags
   const cleanExcerpt = article.excerpt.rendered
     .replace(/<\/?[^>]+(>|$)/g, '')
@@ -81,7 +94,8 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
           }
         ]} 
         onPress={handlePress}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
+        disabled={false}
       >
         {article.featured_media_url ? (
           <Image
@@ -152,7 +166,8 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
         }
       ]} 
       onPress={handlePress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
+      disabled={false}
     >
       <View style={styles.cardContent}>
         <View style={styles.textContent}>
@@ -203,6 +218,7 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
                   isSaved && { backgroundColor: theme.colors.primary + '20' }
                 ]}
                 hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                activeOpacity={0.7}
               >
                 <Bookmark 
                   size={18} 
@@ -229,12 +245,13 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison function for better performance
+  // Improved comparison function for better performance
   return (
     prevProps.article.id === nextProps.article.id &&
     prevProps.compact === nextProps.compact &&
     prevProps.article.title.rendered === nextProps.article.title.rendered &&
-    prevProps.article.featured_media_url === nextProps.article.featured_media_url
+    prevProps.article.featured_media_url === nextProps.article.featured_media_url &&
+    prevProps.article.date === nextProps.article.date
   );
 });
 
