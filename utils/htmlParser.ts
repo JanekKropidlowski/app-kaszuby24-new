@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
 // Extract YouTube video ID from various YouTube URL formats
-export const extractYouTubeId = (url: string): string | null => {
+export const getYouTubeVideoId = (url: string): string | null => {
   if (!url) return null;
   
   // Regular expression to match YouTube URLs and extract video ID
@@ -100,6 +100,12 @@ export const cleanHtml = (html: string): string => {
     'src="https://kaszuby24.pl/$1"'
   );
   
+  // Remove any YouTube iframes to prevent conflicts with our custom player
+  cleanedHtml = cleanedHtml.replace(
+    /<iframe[^>]*(?:youtube|youtu\.be)[^>]*>.*?<\/iframe>/gi,
+    ''
+  );
+  
   // Enhanced styles for better rendering across platforms
   const webStyles = `
     <style>
@@ -121,103 +127,6 @@ export const cleanHtml = (html: string): string => {
         text-size-adjust: 100%;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-      }
-      
-      p {
-        margin-bottom: 14px;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.6;
-        font-weight: 400;
-      }
-      
-      img {
-        max-width: 100% !important;
-        height: auto !important;
-        border-radius: 8px;
-        margin: 16px 0;
-        display: block;
-      }
-      
-      a {
-        text-decoration: none;
-        word-break: break-word;
-        font-weight: 500;
-      }
-      
-      a:hover {
-        text-decoration: underline;
-      }
-      
-      h1, h2, h3, h4, h5, h6 {
-        margin-top: 24px;
-        margin-bottom: 14px;
-        line-height: 1.3;
-        font-weight: 600;
-        font-family: 'Poppins', sans-serif;
-        letter-spacing: -0.02em;
-      }
-      
-      blockquote {
-        position: relative;
-        margin: 20px 0;
-        padding: 18px 22px 18px 55px;
-        border-radius: 16px;
-        border-left: 4px solid;
-        font-style: italic;
-        font-size: ${Platform.OS === 'android' ? '16px' : '15px'};
-        line-height: 1.5;
-        font-family: 'Poppins', sans-serif;
-        font-weight: 400;
-      }
-      
-      blockquote::before {
-        content: '"';
-        position: absolute;
-        left: 18px;
-        top: 10px;
-        font-size: 42px;
-        font-weight: bold;
-        opacity: 0.3;
-        line-height: 1;
-        font-family: 'Poppins', sans-serif;
-      }
-      
-      blockquote p {
-        margin: 0;
-        position: relative;
-        z-index: 1;
-        font-family: 'Poppins', sans-serif;
-      }
-      
-      ul, ol {
-        padding-left: 22px;
-        margin: 14px 0;
-      }
-      
-      li {
-        margin-bottom: 6px;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.5;
-        font-weight: 400;
-      }
-      
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 14px 0;
-        font-size: ${Platform.OS === 'android' ? '14px' : '13px'};
-      }
-      
-      th, td {
-        border: 1px solid;
-        padding: 10px 8px;
-        text-align: left;
-        font-family: 'Poppins', sans-serif;
-      }
-      
-      th {
-        font-weight: 600;
-        font-family: 'Poppins', sans-serif;
       }
       
       /* Remove any video/iframe elements to prevent conflicts */

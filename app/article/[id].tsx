@@ -29,7 +29,7 @@ import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { formatDateTime } from '@/utils/dateFormatter';
-import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlParser';
+import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl, getYouTubeVideoId } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
 
@@ -671,20 +671,30 @@ ${article.link}`,
         </View>
       );
     } else if (webViewError) {
-      // Fallback for Android when WebView fails
+      // Fallback for Android when WebView fails - now using embedded iframe instead of external link
+      const youtubeVideoId = getYouTubeVideoId(article?.link || '');
+      if (youtubeVideoId) {
+        return (
+          <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.background }]}>
+            <VideoPlayer url={`https://www.youtube.com/watch?v=${youtubeVideoId}`} />
+          </View>
+        );
+      }
+      
       return (
         <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.background }]}>
-          <Text style={[styles.fallbackText, { color: theme.colors.text, fontFamily: theme.fontFamily.regular }]}>
-            Treść artykułu nie może być wyświetlona w aplikacji.
-          </Text>
-          <TouchableOpacity 
-            style={[styles.fallbackButton, { backgroundColor: theme.colors.primary }]}
-            onPress={() => Linking.openURL(article?.link || '')}
-          >
-            <Text style={[styles.fallbackButtonText, { fontFamily: theme.fontFamily.semibold }]}>
-              Otwórz w przeglądarce
-            </Text>
-          </TouchableOpacity>
+          <WebView
+            source={{ uri: article?.link || '' }}
+            style={styles.webView}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+                <LoadingIndicator size="small" />
+              </View>
+            )}
+          />
         </View>
       );
     } else {

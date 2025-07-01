@@ -152,7 +152,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
         </View>
       );
     } else {
-      // For non-YouTube videos on web, show a link
+      // For non-YouTube videos on web, show embedded iframe if possible
       return (
         <View style={styles.container}>
           {title && (
@@ -160,15 +160,33 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
               {title}
             </Text>
           )}
-          <TouchableOpacity
-            style={[styles.linkButton, { backgroundColor: theme.colors.primary }]}
-            onPress={handleOpenExternal}
+          <div 
+            style={{
+              position: 'relative',
+              width: '100%',
+              paddingBottom: '56.25%', // 16:9 aspect ratio
+              borderRadius: '16px',
+              overflow: 'hidden',
+              marginBottom: '16px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+            }}
           >
-            <ExternalLink size={20} color="#FFFFFF" />
-            <Text style={[styles.linkButtonText, { fontFamily: theme.fontFamily.semibold }]}>
-              Otwórz wideo w przeglądarce
-            </Text>
-          </TouchableOpacity>
+            <iframe
+              src={url}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: '16px',
+              }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={title || "Video"}
+            />
+          </div>
         </View>
       );
     }
@@ -235,7 +253,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
       );
     }
   } else {
-    // For non-YouTube videos, show a link button
+    // For non-YouTube videos, embed as iframe instead of showing a link button
     return (
       <View style={styles.container}>
         {title && (
@@ -243,15 +261,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
             {title}
           </Text>
         )}
-        <TouchableOpacity
-          style={[styles.linkButton, { backgroundColor: theme.colors.primary }]}
-          onPress={handleOpenExternal}
-        >
-          <ExternalLink size={20} color="#FFFFFF" />
-          <Text style={[styles.linkButtonText, { fontFamily: theme.fontFamily.semibold }]}>
-            Otwórz wideo w przeglądarce
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.webViewContainer}>
+          <WebView
+            ref={webViewRef}
+            source={{ uri: url }}
+            style={styles.webView}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            allowsFullscreenVideo={true}
+            mediaPlaybackRequiresUserAction={true}
+            onError={() => setError(true)}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={[styles.loadingContainer, { backgroundColor: theme.colors.subtle }]} />
+            )}
+          />
+        </View>
       </View>
     );
   }
