@@ -46,7 +46,7 @@ const AnimatedLogo = () => {
     >
       <Image
         source={{ uri: theme.logo.header }}
-        style={{ width: 140, height: 40 }}
+        style={{ width: 180, height: 50 }}
         contentFit="contain"
         placeholder="Kaszuby24"
         cachePolicy="memory-disk"
