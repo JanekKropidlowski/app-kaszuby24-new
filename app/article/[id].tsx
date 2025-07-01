@@ -165,8 +165,8 @@ export default function ArticleDetailScreen() {
       console.error('Error loading article:', err);
       
       // Retry logic
-      if (retry < MAX_RETRIES) {
-        console.log(`Retrying article load (${retry + 1}/${MAX_RETRIES})...`);
+      if (retry < 2) {
+        console.log(`Retrying article load (${retry + 1}/2)...`);
         setTimeout(() => {
           loadArticle(retry + 1);
         }, 1000 * (retry + 1));

@@ -198,10 +198,6 @@ export default function HomeScreen() {
         setLoadingMore(true);
       }
       
-      // Cancel any existing requests for the same page to prevent conflicts
-      const requestKey = `articles_${pageNum}_12_${selectedCategory ? [selectedCategory].join(',') : 'all'}`;
-      cancelRequest(requestKey);
-      
       // Don't include sponsored category (554) in filter
       const categoryFilter = selectedCategory && selectedCategory !== 554 ? [selectedCategory] : undefined;
       
@@ -260,8 +256,8 @@ export default function HomeScreen() {
       }
       
       // Retry logic - but don't retry if request was aborted due to component unmount
-      if (retry < MAX_RETRIES && !errorMessage.includes('zostało przerwane')) {
-        console.log(`Retrying (${retry + 1}/${MAX_RETRIES})...`);
+      if (retry < 2 && !errorMessage.includes('zostało przerwane')) {
+        console.log(`Retrying (${retry + 1}/2)...`);
         const delay = 1000 * (retry + 1);
         setTimeout(() => {
           if (isMountedRef.current) {
@@ -304,7 +300,7 @@ export default function HomeScreen() {
       console.error('Error loading categories:', err);
       
       // Retry logic for categories
-      if (retry < MAX_RETRIES) {
+      if (retry < 2) {
         const delay = 1000 * (retry + 1);
         setTimeout(() => {
           if (isMountedRef.current) {

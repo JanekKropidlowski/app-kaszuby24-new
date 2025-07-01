@@ -1,13 +1,9 @@
-import { OneSignal } from 'react-native-onesignal';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { registerExpoPushToken } from './api';
-
-// OneSignal App ID
-const ONESIGNAL_APP_ID = '03c10d51-376c-4651-a25e-bbc3aa7cfb63';
 
 class NotificationService {
   private isInitialized = false;
