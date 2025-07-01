@@ -27,6 +27,7 @@ import { useNotificationsStore } from '@/store/notificationsStore';
 import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 import { useScrollStore } from '@/store/scrollStore';
+import SkeletonLoader from '@/components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 // Improved carousel sizing for center mode with peek - better balanced spacing
@@ -141,6 +142,7 @@ export default function HomeScreen() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [infiniteArticles, setInfiniteArticles] = useState<Article[]>([]);
   const [realActiveIndex, setRealActiveIndex] = useState(0);
+  const [initialLoading, setInitialLoading] = useState(true);
   
   const flatListRef = useRef<FlatList>(null);
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -265,6 +267,7 @@ export default function HomeScreen() {
         setLoading(false);
         setRefreshing(false);
         setLoadingMore(false);
+        setInitialLoading(false);
       }
     }
   }, [selectedCategory]);
@@ -322,8 +325,25 @@ export default function HomeScreen() {
   useEffect(() => {
     if (isMountedRef.current) {
       console.log('HomeScreen: Starting initial load...');
-      loadArticles();
-      loadCategories();
+      
+      // Set a timeout to show skeleton loader for at least 800ms for better UX
+      const minLoadingTime = 800;
+      const startTime = Date.now();
+      
+      Promise.all([
+        loadArticles(),
+        loadCategories()
+      ]).finally(() => {
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+        
+        // Ensure skeleton loader shows for at least minLoadingTime
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            setInitialLoading(false);
+          }
+        }, remainingTime);
+      });
     }
   }, [loadArticles, loadCategories]);
   
@@ -690,8 +710,12 @@ export default function HomeScreen() {
     setScrollDirection(scrollY);
   }, [setScrollDirection]);
   
+  if (initialLoading) {
+    return <SkeletonLoader type="home" count={5} />;
+  }
+  
   if (loading && !refreshing) {
-    return <LoadingIndicator fullScreen />;
+    return <SkeletonLoader type="home" count={5} />;
   }
   
   if (error) {

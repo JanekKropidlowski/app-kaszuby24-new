@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useRef } from 'react';
+import React, { memo, useCallback, useRef, useMemo } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -34,13 +34,16 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
   
   // Add ref to prevent double taps
   const lastTapTime = useRef(0);
+  const isPressingRef = useRef(false);
   
   const handlePress = useCallback(() => {
     const now = Date.now();
-    if (now - lastTapTime.current < 500) {
+    if (now - lastTapTime.current < 500 || isPressingRef.current) {
       // Prevent double tap within 500ms
       return;
     }
+    
+    isPressingRef.current = true;
     lastTapTime.current = now;
     
     if (onPress) {
@@ -49,6 +52,11 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
       // Only navigate if no custom onPress is provided
       router.push(`/article/${article.id}`);
     }
+    
+    // Reset pressing state after a short delay
+    setTimeout(() => {
+      isPressingRef.current = false;
+    }, 300);
   }, [onPress, router, article.id]);
   
   const toggleSave = useCallback((e: any) => {
@@ -82,6 +90,32 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     }
   }
   
+  // Memoize the image component for better performance
+  const renderImage = useMemo(() => {
+    if (article.featured_media_url) {
+      return (
+        <Image
+          source={{ uri: article.featured_media_url }}
+          style={compact ? styles.compactImage : styles.image}
+          contentFit="cover"
+          transition={200}
+          placeholder="Loading..."
+          cachePolicy="memory-disk"
+          priority={compact ? "low" : "normal"}
+        />
+      );
+    } else {
+      return (
+        <View 
+          style={[
+            compact ? styles.compactImagePlaceholder : styles.imagePlaceholder, 
+            { backgroundColor: theme.colors.subtle }
+          ]} 
+        />
+      );
+    }
+  }, [article.featured_media_url, compact, theme.colors.subtle]);
+  
   if (compact) {
     return (
       <TouchableOpacity 
@@ -96,19 +130,7 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
         disabled={false}
       >
         {/* Image on the left */}
-        {article.featured_media_url ? (
-          <Image
-            source={{ uri: article.featured_media_url }}
-            style={styles.compactImage}
-            contentFit="cover"
-            transition={200}
-            placeholder="Loading..."
-            cachePolicy="memory-disk"
-            priority="normal"
-          />
-        ) : (
-          <View style={[styles.compactImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
-        )}
+        {renderImage}
         
         {/* Text content on the right */}
         <View style={styles.compactContent}>
@@ -168,19 +190,7 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
       disabled={false}
     >
       {/* Image on the left */}
-      {article.featured_media_url ? (
-        <Image
-          source={{ uri: article.featured_media_url }}
-          style={styles.image}
-          contentFit="cover"
-          transition={200}
-          placeholder="Loading..."
-          cachePolicy="memory-disk"
-          priority="normal"
-        />
-      ) : (
-        <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
-      )}
+      {renderImage}
       
       {/* Text content on the right */}
       <View style={styles.textContent}>

@@ -84,6 +84,7 @@ export default function ArticleDetailScreen() {
   
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
@@ -113,13 +114,124 @@ export default function ArticleDetailScreen() {
   const isSaved = isArticleSaved(articleId);
   const unreadCount = getUnreadCount();
   
+  // Load article data
+  useEffect(() => {
+    let isMounted = true;
+    const loadArticleData = async () => {
+      if (!articleId || isNaN(articleId)) return;
+      
+      try {
+        setLoading(true);
+        setInitialLoading(true);
+        setError(null);
+        
+        // Start loading time measurement
+        const startTime = Date.now();
+        const minLoadingTime = 800; // Minimum time to show skeleton for better UX
+        
+        // Load article
+        const articleData = await fetchArticleById(articleId);
+        
+        if (!isMounted) return;
+        
+        setArticle(articleData);
+        
+        // Add to recent articles
+        addRecentArticle(articleData);
+        
+        // Extract videos from content
+        const extractedVideoUrls = extractVideoUrls(articleData.content.rendered);
+        setVideoUrls(extractedVideoUrls);
+        
+        // Extract YouTube URL from meta field
+        if (articleData.meta?.youtube) {
+          const ytUrl = extractYouTubeUrl(articleData.meta.youtube);
+          setYoutubeUrl(ytUrl);
+        }
+        
+        // Load gallery images if available
+        if (articleData.meta?.galeria) {
+          setGalleryLoading(true);
+          const galleryIds = processGalleryIds(articleData.meta.galeria);
+          
+          if (galleryIds.length > 0) {
+            try {
+              const mediaItems = await fetchMediaByIds(galleryIds);
+              if (isMounted) {
+                setGalleryImages(mediaItems);
+              }
+            } catch (err) {
+              console.warn('Failed to load gallery images:', err);
+            } finally {
+              if (isMounted) {
+                setGalleryLoading(false);
+              }
+            }
+          } else {
+            setGalleryLoading(false);
+          }
+        }
+        
+        // Load related articles
+        setRelatedLoading(true);
+        try {
+          const { sliderArticles, listArticles } = await fetchRelatedArticles(
+            articleId,
+            articleData.categories || []
+          );
+          
+          if (isMounted) {
+            setRelatedSliderArticles(sliderArticles);
+            setRelatedListArticles(listArticles);
+          }
+        } catch (err) {
+          console.warn('Failed to load related articles:', err);
+        } finally {
+          if (isMounted) {
+            setRelatedLoading(false);
+          }
+        }
+        
+        // Calculate remaining time to show skeleton loader
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+        
+        // Ensure skeleton loader shows for at least minLoadingTime
+        setTimeout(() => {
+          if (isMounted) {
+            setContentLoaded(true);
+            setInitialLoading(false);
+          }
+        }, remainingTime);
+        
+      } catch (err: any) {
+        if (isMounted) {
+          console.error('Error loading article:', err);
+          setError(err.message || 'Nie udało się załadować artykułu. Spróbuj ponownie.');
+          setInitialLoading(false);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadArticleData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [articleId, addRecentArticle]);
+  
   // Function to handle retry when article loading fails
   const handleRetry = useCallback(() => {
     setLoading(true);
     setError(null);
-    // Implement retry logic here
-    // For example, refetch the article data
-  }, []);
+    
+    // Force reload the current page
+    router.replace(`/article/${articleId}`);
+  }, [router, articleId]);
 
   // Function to handle going back
   const handleGoBack = useCallback(() => {
@@ -185,7 +297,7 @@ export default function ArticleDetailScreen() {
   const handleGoSettings = useCallback(() => {
     router.push('/(tabs)/preferences');
   }, [router]);
-
+  
   // Handle Android back button
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -695,7 +807,11 @@ export default function ArticleDetailScreen() {
     );
   }, [article, theme.colors, theme.fontFamily]);
   
-  if (loading) {
+  if (initialLoading) {
+    return <SkeletonLoader type="article" />;
+  }
+  
+  if (loading && !initialLoading) {
     return <LoadingIndicator fullScreen />;
   }
   

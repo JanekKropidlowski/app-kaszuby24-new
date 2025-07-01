@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Article } from '@/types/article';
@@ -145,7 +145,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         snapToInterval={ITEM_WIDTH + ITEM_SPACING}
         snapToAlignment="center"
         decelerationRate="fast"
-        removeClippedSubviews={false}
+        removeClippedSubviews={Platform.OS === 'android'}
         initialNumToRender={3}
         maxToRenderPerBatch={3}
         windowSize={5}
@@ -158,6 +158,13 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         })}
         onScrollToIndexFailed={() => {
           // Handle scroll failure gracefully
+        }}
+        // Performance optimizations
+        updateCellsBatchingPeriod={50}
+        disableVirtualization={false}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 10,
         }}
       />
     </View>

@@ -16,6 +16,7 @@ import ArticleCard from '@/components/ArticleCard';
 import SearchBar from '@/components/SearchBar';
 import EmptyState from '@/components/EmptyState';
 import LoadingIndicator from '@/components/LoadingIndicator';
+import SkeletonLoader from '@/components/SkeletonLoader';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
@@ -30,6 +31,7 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -45,20 +47,35 @@ export default function SearchScreen() {
     
     try {
       setLoading(true);
+      setInitialLoading(true);
       setError(null);
+      
+      // Start loading time measurement
+      const startTime = Date.now();
+      const minLoadingTime = 800; // Minimum time to show skeleton for better UX
       
       const { articles: searchResults, totalPages } = await searchArticles(searchQuery, 1);
       
       // Additional client-side filtering to ensure no sponsored content
       const filteredResults = filterSponsoredArticles(searchResults);
       
-      setArticles(filteredResults);
-      setTotalPages(totalPages);
-      setPage(1);
+      // Calculate remaining time to show skeleton loader
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      
+      // Ensure skeleton loader shows for at least minLoadingTime
+      setTimeout(() => {
+        setArticles(filteredResults);
+        setTotalPages(totalPages);
+        setPage(1);
+        setInitialLoading(false);
+        setLoading(false);
+      }, remainingTime);
+      
     } catch (err) {
       setError('Nie udało się wyszukać artykułów. Spróbuj ponownie.');
       console.error('Error searching articles:', err);
-    } finally {
+      setInitialLoading(false);
       setLoading(false);
     }
   };
@@ -136,7 +153,9 @@ export default function SearchScreen() {
         />
       </View>
       
-      {loading ? (
+      {initialLoading ? (
+        <SkeletonLoader type="search" count={5} />
+      ) : loading && !initialLoading ? (
         <LoadingIndicator fullScreen />
       ) : (
         <FlatList
@@ -185,6 +204,12 @@ export default function SearchScreen() {
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           showsVerticalScrollIndicator={false}
+          // Performance optimizations
+          removeClippedSubviews={Platform.OS === 'android'}
+          initialNumToRender={10}
+          maxToRenderPerBatch={5}
+          updateCellsBatchingPeriod={50}
+          windowSize={10}
         />
       )}
     </View>

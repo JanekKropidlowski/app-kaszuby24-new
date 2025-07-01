@@ -175,6 +175,16 @@ export const fetchArticles = async (
     try {
       console.log(`Loading articles: page=${page}, perPage=${perPage}, categories=${categories?.join(',') || 'all'}`);
       
+      // Try to get from cache first for faster initial load
+      if (page === 1) {
+        const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
+        const cachedData = await getCachedData(cacheKey);
+        if (cachedData) {
+          console.log('Using cached articles data');
+          return cachedData;
+        }
+      }
+      
       let url = `${API_BASE_URL}/posts?_embed&page=${page}&per_page=${perPage}`;
       
       // Filter out sponsored category (554) from categories filter
@@ -251,7 +261,8 @@ export const fetchArticles = async (
       
       // Cache the articles (only first page to avoid memory issues)
       if (page === 1) {
-        await cacheData(CACHE_KEY_ARTICLES, { articles: filteredArticles, totalPages });
+        const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
+        await cacheData(cacheKey, { articles: filteredArticles, totalPages });
       }
       
       return { 
@@ -263,9 +274,10 @@ export const fetchArticles = async (
       
       // Attempt to load from cache if fetch fails and it's first page
       if (page === 1) {
-        const cachedData = await getCachedData(CACHE_KEY_ARTICLES);
+        const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
+        const cachedData = await getCachedData(cacheKey);
         if (cachedData) {
-          console.log('Using cached articles data');
+          console.log('Using cached articles data after error');
           return cachedData;
         }
       }

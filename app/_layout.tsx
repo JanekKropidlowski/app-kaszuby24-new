@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { notificationService } from '@/services/notificationService';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
+import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -26,6 +28,28 @@ export default function RootLayout() {
     'Poppins-Black': require('../assets/fonts/Poppins/Poppins-Black.ttf'),
   });
 
+  // Add performance monitoring
+  const performance = usePerformanceMonitor('RootLayout', __DEV__);
+  
+  useEffect(() => {
+    performance.markRenderStart();
+    
+    // Initialize app performance optimizations
+    if (Platform.OS !== 'web') {
+      // Clear image cache on app start to prevent memory issues
+      MemoryOptimizer.clearImageCache();
+    }
+    
+    performance.markRenderEnd('initialization');
+    
+    return () => {
+      // Clean up resources when app is closed
+      if (Platform.OS !== 'web') {
+        MemoryOptimizer.clearImageCache();
+      }
+    };
+  }, []);
+  
   useEffect(() => {
     async function prepare() {
       try {
