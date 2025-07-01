@@ -1253,7 +1253,7 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    height: height * 0.65,
+    height: height * 0.45, // Changed from 0.65 to 0.45 (45% of screen height)
   },
   featuredImage: {
     width: '100%',

@@ -1252,7 +1252,7 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    height: height * 0.65,
+    height: height * 0.45, // Changed from 0.65 to 0.45 (45% of screen height)
   },
   featuredImage: {
     width: '100%',
@@ -1487,10 +1487,24 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
   },
-  fallbackButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
+  fallbackContainer: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+    marginTop: 8,
+  },
+  fallbackText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  fallbackButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
   },
   loadingContainer: {
     position: 'absolute',
