@@ -139,6 +139,40 @@ const getCachedDataWithSWR = async (key: string) => {
   return null;
 };
 
+// Simple cache functions for backward compatibility
+const cacheData = async (key: string, data: any) => {
+  try {
+    const timestampedData = {
+      data,
+      timestamp: Date.now(),
+    };
+    await AsyncStorage.setItem(key, JSON.stringify(timestampedData));
+  } catch (error) {
+    console.warn('Cache write failed:', error);
+  }
+};
+
+const getCachedData = async (key: string) => {
+  try {
+    const cached = await AsyncStorage.getItem(key);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      const age = Date.now() - timestamp;
+      
+      if (age < CACHE_DURATION) {
+        return data;
+      } else {
+        AsyncStorage.removeItem(key).catch(() => {});
+        return null;
+      }
+    }
+  } catch (error) {
+    console.warn('Cache read failed:', error);
+    AsyncStorage.removeItem(key).catch(() => {});
+  }
+  return null;
+};
+
 // Simplified request deduplication
 const deduplicateRequest = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
   // Check if there's already a pending request
@@ -579,7 +613,7 @@ export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
         throw error;
       }
       
-      throw new Error('Wystąpił problem podczas ładowania artykułu. Spróbuj ponownie później.');
+      throw new Error('Wystąpił problem podczas wyszukiwania artykułów. Spróbuj ponownie później.');
     }
   });
 };

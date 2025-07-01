@@ -163,7 +163,10 @@ export default function HomeScreen() {
   const [endReached, setEndReached] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
-  
+  const isMountedRef = useRef(true);
+  const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isScreenFocused = useRef(true);
+
   // Initialize and check for first time user
   useEffect(() => {
     console.log('HomeScreen: Initializing...');
