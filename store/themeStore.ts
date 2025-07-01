@@ -18,6 +18,7 @@ export interface Theme {
     warning: string;
     subtle: string;
     shadow: string;
+    tabBarBackground: string;
   };
   fontFamily: {
     regular: string;
@@ -29,6 +30,9 @@ export interface Theme {
     thin: string;
     extrabold: string;
     black: string;
+  };
+  logo: {
+    header: string;
   };
 }
 
@@ -47,6 +51,7 @@ const lightTheme: Theme = {
     warning: '#F59E0B',
     subtle: '#F1F5F9',
     shadow: '#000000',
+    tabBarBackground: '#FFFFFF',
   },
   fontFamily: {
     regular: Platform.select({
@@ -85,6 +90,9 @@ const lightTheme: Theme = {
       default: 'Poppins-Black',
       android: 'Poppins-Black',
     }) || 'Poppins-Black',
+  },
+  logo: {
+    header: 'https://kaszuby24.pl/wp-content/uploads/2020/03/logo-e1584093147599.png',
   },
 };
 
@@ -103,6 +111,7 @@ const darkTheme: Theme = {
     warning: '#FBBF24',
     subtle: '#334155',
     shadow: '#000000',
+    tabBarBackground: '#1E293B',
   },
   fontFamily: {
     regular: Platform.select({
@@ -141,6 +150,9 @@ const darkTheme: Theme = {
       default: 'Poppins-Black',
       android: 'Poppins-Black',
     }) || 'Poppins-Black',
+  },
+  logo: {
+    header: 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png',
   },
 };
 

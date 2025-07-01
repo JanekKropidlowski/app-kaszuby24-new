@@ -26,6 +26,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
+import { useScrollStore } from '@/store/scrollStore';
 
 const { width } = Dimensions.get('window');
 // Improved carousel sizing for center mode with peek - better balanced spacing
@@ -706,6 +707,8 @@ export default function HomeScreen() {
         keyExtractor={keyExtractor}
         renderItem={renderArticle}
         contentContainerStyle={styles.listContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListHeaderComponent={
           <View>
             {/* Notifications Banner */}

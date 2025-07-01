@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -33,6 +33,7 @@ import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { Image } from 'expo-image';
+import { useScrollStore } from '@/store/scrollStore';
 
 export default function PreferencesScreen() {
   const { 
@@ -49,6 +50,21 @@ export default function PreferencesScreen() {
   
   const { isDarkMode, toggleTheme, theme } = useThemeStore();
   const { clearRecentArticles } = useArticlesStore();
+  const { setScrollDirection, resetScroll } = useScrollStore();
+  
+  // Add scroll handler for logo visibility
+  const handleScroll = useCallback((event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setScrollDirection(scrollY);
+  }, [setScrollDirection]);
+  
+  // Reset scroll state when component mounts
+  useEffect(() => {
+    resetScroll();
+    return () => {
+      resetScroll();
+    };
+  }, [resetScroll]);
   
   useEffect(() => {
     initializePreferences();
@@ -190,6 +206,8 @@ export default function PreferencesScreen() {
     <ScrollView 
       style={[styles.container, { backgroundColor: theme.colors.background }]} 
       contentContainerStyle={styles.content}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
     >
       {/* Profile Section */}
       <View style={[styles.profileSection, { backgroundColor: theme.colors.card }]}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -15,6 +15,7 @@ import { useArticlesStore } from '@/store/articlesStore';
 import { useRouter } from 'expo-router';
 import { useThemeStore } from '@/store/themeStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
+import { useScrollStore } from '@/store/scrollStore';
 
 const { width } = Dimensions.get('window');
 const ANIMATION_DURATION = 300;
@@ -23,6 +24,7 @@ export default function SavedScreen() {
   const router = useRouter();
   const { savedArticles, recentArticles, clearRecentArticles } = useArticlesStore();
   const { theme } = useThemeStore();
+  const { setScrollDirection, resetScroll } = useScrollStore();
   
   const [showRecent, setShowRecent] = useState(true);
   const recentHeight = useState(new Animated.Value(recentArticles.length > 0 ? 1 : 0))[0];
@@ -56,6 +58,18 @@ export default function SavedScreen() {
     });
   };
   
+  const handleScroll = useCallback((event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setScrollDirection(scrollY);
+  }, [setScrollDirection]);
+  
+  useEffect(() => {
+    resetScroll();
+    return () => {
+      resetScroll();
+    };
+  }, [resetScroll]);
+  
   const maxRecentHeight = filteredRecentArticles.length * 92 + 80; // Approximate height based on items
   const recentSectionHeight = recentHeight.interpolate({
     inputRange: [0, 1],
@@ -76,6 +90,8 @@ export default function SavedScreen() {
           <ArticleCard article={item} />
         )}
         contentContainerStyle={styles.listContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListHeaderComponent={
           <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>

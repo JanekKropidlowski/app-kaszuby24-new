@@ -1,11 +1,53 @@
 import React, { useEffect } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, Animated } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Bell, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
+import { useScrollStore } from '@/store/scrollStore';
+
+// Animated logo component
+const AnimatedLogo = () => {
+  const { theme } = useThemeStore();
+  const { showLogo } = useScrollStore();
+  const logoOpacity = React.useRef(new Animated.Value(1)).current;
+  const logoScale = React.useRef(new Animated.Value(1)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: showLogo ? 1 : 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoScale, {
+        toValue: showLogo ? 1 : 0.8,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [showLogo, logoOpacity, logoScale]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: logoOpacity,
+        transform: [{ scale: logoScale }],
+      }}
+    >
+      <Image
+        source={{ uri: theme.logo.header }}
+        style={{ width: 110, height: 32 }}
+        contentFit="contain"
+        placeholder="Kaszuby24"
+        cachePolicy="memory-disk"
+        transition={200}
+      />
+    </Animated.View>
+  );
+};
 
 export default function TabLayout() {
   const { getUnreadCount, initializePreferences } = useNotificationsStore();
@@ -59,7 +101,7 @@ export default function TabLayout() {
             shadowOpacity: 0.15,
             shadowRadius: 12,
             position: 'absolute',
-            bottom: 20, // Moved up by 20px from bottom edge
+            bottom: 20,
             left: 0,
             right: 0,
           },
@@ -93,15 +135,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Home size={size} color={color} strokeWidth={2} />
             ),
-            headerTitle: () => (
-              <Image
-                source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png' }}
-                style={{ width: 120, height: 30 }}
-                contentFit="contain"
-                placeholder="Kaszuby24"
-                cachePolicy="memory-disk"
-              />
-            ),
+            headerTitle: () => <AnimatedLogo />,
           }}
         />
         
@@ -112,6 +146,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Search size={size} color={color} strokeWidth={2} />
             ),
+            headerTitle: () => <AnimatedLogo />,
           }}
         />
         
@@ -131,6 +166,7 @@ export default function TabLayout() {
               minWidth: 18,
               height: 18,
             },
+            headerTitle: () => <AnimatedLogo />,
           }}
         />
         
@@ -141,6 +177,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Bookmark size={size} color={color} strokeWidth={2} />
             ),
+            headerTitle: () => <AnimatedLogo />,
           }}
         />
         
@@ -151,6 +188,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Settings size={size} color={color} strokeWidth={2} />
             ),
+            headerTitle: () => <AnimatedLogo />,
           }}
         />
       </Tabs>
@@ -163,7 +201,7 @@ export default function TabLayout() {
           left: 0,
           right: 0,
           height: 20,
-          backgroundColor: theme.colors.tabBarBackground || theme.colors.card,
+          backgroundColor: theme.colors.tabBarBackground,
         }}
       />
     </>

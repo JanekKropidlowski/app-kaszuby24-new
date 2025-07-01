@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -13,6 +13,7 @@ import { useNotificationsStore, NotificationItem } from '@/store/notificationsSt
 import EmptyState from '@/components/EmptyState';
 import { formatDateTime, getRelativeTime } from '@/utils/dateFormatter';
 import { useThemeStore } from '@/store/themeStore';
+import { useScrollStore } from '@/store/scrollStore';
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -24,8 +25,23 @@ export default function NotificationsScreen() {
     getUnreadCount 
   } = useNotificationsStore();
   const { theme } = useThemeStore();
+  const { setScrollDirection, resetScroll } = useScrollStore();
   
   const unreadCount = getUnreadCount();
+  
+  // Add scroll handler for logo visibility
+  const handleScroll = useCallback((event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setScrollDirection(scrollY);
+  }, [setScrollDirection]);
+  
+  // Reset scroll state when component mounts
+  useEffect(() => {
+    resetScroll();
+    return () => {
+      resetScroll();
+    };
+  }, [resetScroll]);
   
   // Filter out any notifications for sponsored content (category 554)
   const filteredNotifications = notifications.filter(notif => notif.categoryId !== 554);
@@ -189,6 +205,8 @@ export default function NotificationsScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderNotification}
         contentContainerStyle={styles.listContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListEmptyComponent={
           <EmptyState
             title="Brak powiadomień"

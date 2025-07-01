@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -19,11 +19,13 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
+import { useScrollStore } from '@/store/scrollStore';
 
 export default function SearchScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const { addRecentArticle } = useArticlesStore();
+  const { setScrollDirection, resetScroll } = useScrollStore();
   
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
@@ -110,6 +112,20 @@ export default function SearchScreen() {
     </View>
   );
   
+  // Add scroll handler for logo visibility
+  const handleScroll = useCallback((event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setScrollDirection(scrollY);
+  }, [setScrollDirection]);
+  
+  // Reset scroll state when component mounts
+  useEffect(() => {
+    resetScroll();
+    return () => {
+      resetScroll();
+    };
+  }, [resetScroll]);
+  
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.searchContainer, { backgroundColor: theme.colors.card }]}>
@@ -133,6 +149,8 @@ export default function SearchScreen() {
             />
           )}
           contentContainerStyle={styles.listContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           ListHeaderComponent={
             query.trim() ? (
               <View style={styles.resultsHeader}>
