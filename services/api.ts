@@ -4,15 +4,15 @@ import { Platform } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
-const API_TIMEOUT = 20000; // Increased timeout to 20 seconds
+const API_TIMEOUT = 30000; // Increased timeout to 30 seconds
 export const MAX_RETRIES = 2; // Export for use in other files
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_KEY_MEDIA = 'cached_media';
-const CACHE_DURATION = 30 * 60 * 1000; // Reduced cache duration to 30 minutes
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
-// Request deduplication map with AbortController tracking
-const pendingRequests = new Map<string, { promise: Promise<any>, controller: AbortController }>();
+// Request deduplication map - simplified approach
+const pendingRequests = new Map<string, Promise<any>>();
 
 // OneSignal player registration interface
 export interface OneSignalPlayerRegistration {
@@ -69,14 +69,21 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     
     console.error(`Fetch error for ${url}:`, error);
     
-    // Handle AbortError specifically
+    // Handle AbortError specifically - don't retry if manually aborted
     if (error.name === 'AbortError') {
       console.log(`Request aborted for: ${url}`);
+      // Check if this was a timeout abort or manual abort
+      if (retries < MAX_RETRIES) {
+        console.log(`Retrying aborted request (${retries + 1}/${MAX_RETRIES})...`);
+        const delay = Math.min(1000 * Math.pow(2, retries), 3000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return fetchWithTimeout(url, options, retries + 1);
+      }
       throw new Error('Zapytanie zostało przerwane. Spróbuj ponownie.');
     }
     
-    // Retry logic with exponential backoff (but not for AbortError)
-    if (retries < MAX_RETRIES && !error.name?.includes('AbortError')) {
+    // Retry logic for other errors
+    if (retries < MAX_RETRIES) {
       const delay = Math.min(1000 * Math.pow(2, retries), 5000);
       console.log(`Retrying request (${retries + 1}/${MAX_RETRIES}) after ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -134,45 +141,33 @@ const getCachedData = async (key: string) => {
   return null;
 };
 
-// Request deduplication helper with proper cleanup
+// Simplified request deduplication
 const deduplicateRequest = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
   // Check if there's already a pending request
   if (pendingRequests.has(key)) {
-    const existing = pendingRequests.get(key);
-    if (existing) {
-      console.log(`Reusing existing request for: ${key}`);
-      return existing.promise;
-    }
+    console.log(`Reusing existing request for: ${key}`);
+    return pendingRequests.get(key)!;
   }
-  
-  // Create new AbortController for this request
-  const controller = new AbortController();
   
   const promise = requestFn().finally(() => {
     console.log(`Cleaning up request: ${key}`);
     pendingRequests.delete(key);
   });
   
-  pendingRequests.set(key, { promise, controller });
+  pendingRequests.set(key, promise);
   return promise;
 };
 
-// Function to cancel all pending requests (useful for cleanup)
+// Function to cancel all pending requests
 export const cancelAllRequests = () => {
-  console.log(`Cancelling ${pendingRequests.size} pending requests`);
-  pendingRequests.forEach(({ controller }, key) => {
-    console.log(`Cancelling request: ${key}`);
-    controller.abort();
-  });
+  console.log(`Clearing ${pendingRequests.size} pending requests`);
   pendingRequests.clear();
 };
 
 // Function to cancel specific request
 export const cancelRequest = (key: string) => {
-  const existing = pendingRequests.get(key);
-  if (existing) {
+  if (pendingRequests.has(key)) {
     console.log(`Cancelling specific request: ${key}`);
-    existing.controller.abort();
     pendingRequests.delete(key);
   }
 };

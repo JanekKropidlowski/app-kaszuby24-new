@@ -13,7 +13,7 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.8; // Adjusted for better centering
+const ITEM_WIDTH = width * 0.75; // Adjusted for better centering
 const ITEM_SPACING = 16;
 
 // Memoized article item component for better performance
@@ -116,9 +116,9 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
     return null;
   }
 
-  // Create infinite data by repeating the array 5 times for better infinite scroll
+  // Create infinite data by repeating the array for better infinite scroll
   const infiniteData = articles.length > 1 ? 
-    [...articles, ...articles, ...articles, ...articles, ...articles] : 
+    [...articles, ...articles, ...articles] : 
     articles;
 
   return (
@@ -146,11 +146,11 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         snapToAlignment="center"
         decelerationRate="fast"
         removeClippedSubviews={false}
-        initialNumToRender={5}
-        maxToRenderPerBatch={5}
-        windowSize={7}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
         pagingEnabled={false}
-        initialScrollIndex={articles.length > 1 ? articles.length * 2 : 0}
+        initialScrollIndex={articles.length > 1 ? articles.length : 0}
         getItemLayout={(data, index) => ({
           length: ITEM_WIDTH + ITEM_SPACING,
           offset: (ITEM_WIDTH + ITEM_SPACING) * index,
