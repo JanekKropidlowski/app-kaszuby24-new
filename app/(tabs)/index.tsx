@@ -1005,15 +1005,15 @@ const handleRetry = useCallback(() => {
   setError(null);
   setRetryCount(0);
   loadArticles(1, true);
-}, []);
+}, [loadArticles]);
 
 const handleBannerPress = useCallback(() => {
   router.push('/(tabs)/notifications');
-}, []);
+}, [router]);
 
 const handleBannerDismiss = useCallback(() => {
   dismissBanner();
-}, []);
+}, [dismissBanner]);
 
 const handleScrollToIndexFailed = useCallback((info: any) => {
   console.warn('Scroll to index failed:', info);
@@ -1032,7 +1032,7 @@ const handleScrollToIndexFailed = useCallback((info: any) => {
       }
     }
   }, 100);
-}, []);
+}, [infiniteArticles]);
 
 const renderCarouselIndicator = useMemo(() => {
   if (featuredArticles.length <= 1) return null;
@@ -1058,7 +1058,7 @@ const renderCarouselIndicator = useMemo(() => {
 
 const navigateToSearch = useCallback(() => {
   router.push('/(tabs)/search');
-}, []);
+}, [router]);
 
 const getItemLayout = useCallback((data: any, index: number) => ({
   length: 200, // Estimated item height
