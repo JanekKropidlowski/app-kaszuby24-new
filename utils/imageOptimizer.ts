@@ -119,7 +119,7 @@ export const getOptimizedImageProps = (
   context: 'featured' | 'list' | 'thumbnail' | 'gallery' = 'list'
 ) => {
   const priority = getImagePriority(context);
-  const cachePolicy = context === 'featured' ? 'memory-disk' : 'memory';
+  const cachePolicy: 'memory-disk' | 'memory' = context === 'featured' ? 'memory-disk' : 'memory';
   
   // Optimize URL based on context
   let optimizedUrl = url;

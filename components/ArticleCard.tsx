@@ -101,9 +101,13 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
       
       return (
         <Image
-          {...imageProps}
+          source={imageProps.source}
           style={compact ? styles.compactImage : styles.image}
           contentFit="cover"
+          priority={imageProps.priority}
+          cachePolicy={imageProps.cachePolicy}
+          transition={imageProps.transition}
+          placeholder={imageProps.placeholder}
         />
       );
     } else {
