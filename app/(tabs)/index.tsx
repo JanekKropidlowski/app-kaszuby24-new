@@ -996,3 +996,76 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
+
+const handleCategoryChange = useCallback((categoryId: number | null) => {
+  setSelectedCategory(categoryId);
+}, []);
+
+const handleRetry = useCallback(() => {
+  setError(null);
+  setRetryCount(0);
+  loadArticles(1, true);
+}, [loadArticles]);
+
+const handleBannerPress = useCallback(() => {
+  router.push('/(tabs)/notifications');
+}, [router]);
+
+const handleBannerDismiss = useCallback(() => {
+  dismissBanner();
+}, [dismissBanner]);
+
+const handleScrollToIndexFailed = useCallback((info: any) => {
+  console.warn('Scroll to index failed:', info);
+  // Fallback: scroll to a safe index
+  setTimeout(() => {
+    if (flatListRef.current && infiniteArticles.length > 0) {
+      try {
+        const safeIndex = Math.min(info.index, infiniteArticles.length - 1);
+        flatListRef.current.scrollToIndex({
+          index: safeIndex,
+          animated: false,
+          viewPosition: 0.5,
+        });
+      } catch (error) {
+        console.warn('Fallback scroll failed:', error);
+      }
+    }
+  }, 100);
+}, [infiniteArticles.length]);
+
+const renderCarouselIndicator = useMemo(() => {
+  if (featuredArticles.length <= 1) return null;
+  
+  return (
+    <View style={styles.indicatorContainer}>
+      {featuredArticles.map((_, index) => (
+        <View
+          key={index}
+          style={[
+            styles.indicator,
+            {
+              backgroundColor: index === realActiveIndex 
+                ? theme.colors.primary 
+                : 'rgba(0, 0, 0, 0.2)'
+            }
+          ]}
+        />
+      ))}
+    </View>
+  );
+}, [featuredArticles.length, realActiveIndex, theme.colors.primary]);
+
+const navigateToSearch = useCallback(() => {
+  router.push('/(tabs)/search');
+}, [router]);
+
+const getItemLayout = useCallback((data: any, index: number) => ({
+  length: 200, // Estimated item height
+  offset: 200 * index,
+  index,
+}), []);
+
+const handleWelcomeClose = useCallback(() => {
+  setShowWelcomeModal(false);
+}, []);

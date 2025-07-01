@@ -94,15 +94,13 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
 };
 
 // Helper function to cache data with compression
-const cacheDataWithSWR = async (key: string, data: any, isStale = false) => {
+const cacheData = async (key: string, data: any) => {
   try {
     const timestampedData = {
       data,
       timestamp: Date.now(),
-      isStale,
     };
     
-    // For large datasets, consider compression or selective caching
     const serializedData = JSON.stringify(timestampedData);
     
     // Only cache if data is reasonable size (< 1MB)
@@ -110,27 +108,21 @@ const cacheDataWithSWR = async (key: string, data: any, isStale = false) => {
       await AsyncStorage.setItem(key, serializedData);
     }
   } catch (error) {
-    // Silent fail for caching
     console.warn('Cache write failed:', error);
   }
 };
 
 // Helper function to retrieve cached data
-const getCachedDataWithSWR = async (key: string) => {
+const getCachedData = async (key: string) => {
   try {
     const cached = await AsyncStorage.getItem(key);
     if (cached) {
-      const { data, timestamp, isStale } = JSON.parse(cached);
+      const { data, timestamp } = JSON.parse(cached);
       const age = Date.now() - timestamp;
       
-      if (age < STALE_WHILE_REVALIDATE_DURATION) {
-        // Fresh data
-        return { data, isStale: false, shouldRevalidate: false };
-      } else if (age < CACHE_DURATION) {
-        // Stale but usable data
-        return { data, isStale: true, shouldRevalidate: true };
+      if (age < CACHE_DURATION) {
+        return data;
       } else {
-        // Expired data
         AsyncStorage.removeItem(key).catch(() => {});
         return null;
       }
@@ -188,9 +180,9 @@ export const fetchArticles = async (
       if (page === 1) {
         const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
         const cachedData = await getCachedDataWithSWR(cacheKey);
-        if (cachedData) {
+        if (cachedData && !cachedData.shouldRevalidate) {
           console.log('Using cached articles data');
-          return cachedData;
+          return cachedData.data;
         }
       }
       
@@ -290,7 +282,7 @@ export const fetchArticles = async (
         const cachedData = await getCachedDataWithSWR(cacheKey);
         if (cachedData) {
           console.log('Using cached articles data after error');
-          return cachedData;
+          return cachedData.data;
         }
       }
       
