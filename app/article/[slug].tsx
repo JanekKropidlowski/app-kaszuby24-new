@@ -13,8 +13,7 @@ import {
   BackHandler,
   Modal,
   Animated,
-  Alert,
-  Speech
+  Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -1217,141 +1216,6 @@ export default function ArticleSlugScreen() {
   );
 }
 
-// TTS Controls Component
-const renderTTSControls = useMemo(() => {
-  if (!ttsAvailable || !ttsText) {
-    return (
-      <View style={styles.ttsContainer}>
-        <Text style={[
-          styles.ttsUnavailableText, 
-          { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.regular
-          }
-        ]}>
-          📢 Odczytywanie głosowe niedostępne na tym urządzeniu
-        </Text>
-      </View>
-    );
-  }
-  
-  return (
-    <View style={styles.ttsContainer}>
-      <View style={styles.ttsControls}>
-        <TouchableOpacity
-          style={[
-            styles.ttsButton,
-            { 
-              backgroundColor: isSpeaking ? theme.colors.notification : theme.colors.primary,
-              opacity: isSpeaking ? 0.8 : 1
-            }
-          ]}
-          onPress={isSpeaking ? handleStopTTS : handlePlayTTS}
-          activeOpacity={0.8}
-          disabled={!ttsText}
-        >
-          {isSpeaking ? (
-            <Square size={18} color="#FFFFFF" fill="#FFFFFF" />
-          ) : (
-            <Headphones size={18} color="#FFFFFF" />
-          )}
-          <Text style={[
-            styles.ttsButtonText,
-            { fontFamily: theme.fontFamily.semibold }
-          ]}>
-            {isSpeaking ? 'Zatrzymaj' : 'Odczytaj'}
-          </Text>
-        </TouchableOpacity>
-        
-        {availableVoices.length > 1 && (
-          <TouchableOpacity
-            style={[
-              styles.voiceSelector,
-              { 
-                backgroundColor: theme.colors.card,
-                borderColor: theme.colors.border
-              }
-            ]}
-            onPress={() => setShowVoiceSelector(!showVoiceSelector)}
-            activeOpacity={0.8}
-          >
-            <Text style={[
-              styles.voiceSelectorText,
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              Głos
-            </Text>
-            <ChevronDown 
-              size={16} 
-              color={theme.colors.text}
-              style={{
-                transform: [{ rotate: showVoiceSelector ? '180deg' : '0deg' }]
-              }}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-      
-      {showVoiceSelector && availableVoices.length > 1 && (
-        <View style={[
-          styles.voiceDropdown,
-          { 
-            backgroundColor: theme.colors.card,
-            borderColor: theme.colors.border
-          }
-        ]}>
-          {availableVoices.map((voice) => (
-            <TouchableOpacity
-              key={voice.identifier}
-              style={[
-                styles.voiceOption,
-                selectedVoice === voice.identifier && {
-                  backgroundColor: theme.colors.primary + '15'
-                }
-              ]}
-              onPress={() => handleVoiceSelect(voice.identifier)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.voiceOptionText,
-                { 
-                  color: selectedVoice === voice.identifier ? theme.colors.primary : theme.colors.text,
-                  fontFamily: theme.fontFamily.medium
-                }
-              ]}>
-                {voice.name || voice.identifier}
-              </Text>
-              <Text style={[
-                styles.voiceLanguage,
-                { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular
-                }
-              ]}>
-                {voice.language}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}, [
-  ttsAvailable, 
-  ttsText, 
-  isSpeaking, 
-  availableVoices, 
-  selectedVoice, 
-  showVoiceSelector, 
-  theme,
-  handlePlayTTS,
-  handleStopTTS,
-  handleVoiceSelect
-]);
-
 // Initialize TTS when article loads
 useEffect(() => {
   const initializeTTS = async () => {
@@ -1360,7 +1224,7 @@ useEffect(() => {
       const voices = await Speech.getAvailableVoicesAsync();
       
       // Filter for Polish voices or fallback to any available voice
-      const polishVoices = voices.filter(voice => 
+      const polishVoices = voices.filter((voice: Speech.Voice) => 
         voice.language.toLowerCase().includes('pl') || 
         voice.language.toLowerCase().includes('polish')
       );

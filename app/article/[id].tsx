@@ -13,8 +13,7 @@ import {
   BackHandler,
   Modal,
   Animated,
-  Alert,
-  Speech
+  Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -1305,7 +1304,7 @@ const renderTTSControls = useMemo(() => {
             borderColor: theme.colors.border
           }
         ]}>
-          {availableVoices.map((voice) => (
+          {availableVoices.map((voice: Speech.Voice) => (
             <TouchableOpacity
               key={voice.identifier}
               style={[
@@ -1362,7 +1361,7 @@ useEffect(() => {
       const voices = await Speech.getAvailableVoicesAsync();
       
       // Filter for Polish voices or fallback to any available voice
-      const polishVoices = voices.filter(voice => 
+      const polishVoices = voices.filter((voice: Speech.Voice) => 
         voice.language.toLowerCase().includes('pl') || 
         voice.language.toLowerCase().includes('polish')
       );
