@@ -1248,12 +1248,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 120, // Reduced padding since we removed the sticky footer
+    paddingBottom: 120,
   },
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    height: height * 0.65, // Increased to 65% for more prominent hero image
+    height: height * 0.65,
   },
   featuredImage: {
     width: '100%',
@@ -1264,13 +1264,11 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
   imageDarkOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)', // Slightly more prominent overlay
-  },
-  featuredImagePlaceholder: {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   articleContent: {
     padding: 24,
@@ -1376,11 +1374,11 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0, 0, 0, 0.06)',
-    marginHorizontal: -24, // Extend to full width for slider
+    marginHorizontal: -24,
   },
   relatedListContainer: {
     marginTop: 24,
-    paddingHorizontal: 24, // Add padding back for list
+    paddingHorizontal: 24,
   },
   relatedTitle: {
     fontSize: 20,
@@ -1391,7 +1389,6 @@ const styles = StyleSheet.create({
   relatedList: {
     gap: 16,
   },
-  // Source and photo credits
   sourceCreditsContainer: {
     marginTop: 24,
     marginBottom: 8,
@@ -1405,7 +1402,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontStyle: 'italic',
   },
-  // Bottom menu bar
   bottomMenuBar: {
     position: 'absolute',
     bottom: 0,
@@ -1507,7 +1503,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
   },
-  // Reading progress bar
   progressBar: {
     position: 'absolute',
     top: 0,
@@ -1515,7 +1510,6 @@ const styles = StyleSheet.create({
     height: 3,
     zIndex: 2000,
   },
-  // Modal styles
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.96)',
