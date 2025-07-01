@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Platform
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Search as SearchIcon, Mic } from 'lucide-react-native';
 import { searchArticles } from '@/services/api';
 import { Article } from '@/types/article';
@@ -24,6 +24,7 @@ import { useScrollStore } from '@/store/scrollStore';
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { regionId } = useLocalSearchParams();
   const { theme } = useThemeStore();
   const { addRecentArticle } = useArticlesStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
@@ -36,6 +37,7 @@ export default function SearchScreen() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [regionName, setRegionName] = useState<string>('');
   
   const handleSearch = async (searchQuery: string) => {
     setQuery(searchQuery);
@@ -137,6 +139,65 @@ export default function SearchScreen() {
     const scrollY = event.nativeEvent.contentOffset.y;
     setScrollDirection(scrollY);
   }, [setScrollDirection]);
+  
+  // Handle region-based search when regionId is provided
+  useEffect(() => {
+    const loadRegionArticles = async () => {
+      if (regionId && typeof regionId === 'string') {
+        try {
+          setLoading(true);
+          setInitialLoading(true);
+          setError(null);
+          
+          // Load region name
+          const regionResponse = await fetch(`https://kaszuby24.pl/wp-json/wp/v2/region/${regionId}`);
+          if (regionResponse.ok) {
+            const regionData = await regionResponse.json();
+            setRegionName(regionData.name);
+            setQuery(`Region: ${regionData.name}`);
+          }
+          
+          // Load articles from this region
+          const articlesResponse = await fetch(
+            `https://kaszuby24.pl/wp-json/wp/v2/posts?_embed&region=${regionId}&per_page=20&categories_exclude=554`
+          );
+          
+          if (articlesResponse.ok) {
+            const regionArticles = await articlesResponse.json();
+            
+            // Process articles to extract featured image URL
+            const processedArticles = regionArticles.map((article: Article) => {
+              let featured_media_url = undefined;
+              
+              if (article._embedded && 
+                  article._embedded['wp:featuredmedia'] && 
+                  article._embedded['wp:featuredmedia'][0]) {
+                featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+              }
+              
+              return {
+                ...article,
+                featured_media_url
+              };
+            });
+            
+            const filteredResults = filterSponsoredArticles(processedArticles);
+            setArticles(filteredResults);
+            setTotalPages(1);
+            setPage(1);
+          }
+        } catch (err) {
+          setError('Nie udało się załadować artykułów z tego regionu.');
+          console.error('Error loading region articles:', err);
+        } finally {
+          setInitialLoading(false);
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadRegionArticles();
+  }, [regionId]);
   
   // Reset scroll state when component mounts
   useEffect(() => {
