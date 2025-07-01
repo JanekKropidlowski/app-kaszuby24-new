@@ -368,7 +368,7 @@ export default function ArticleSlugScreen() {
       }).start();
     }
   }, [progressOpacity, progressBarWidth]);
-  
+
   // Cleanup timeout when component unmounts
   useEffect(() => {
     return () => {
