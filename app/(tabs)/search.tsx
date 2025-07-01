@@ -6,10 +6,11 @@ import {
   FlatList, 
   ActivityIndicator,
   TouchableOpacity,
-  Platform
+  Platform,
+  ScrollView
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Search as SearchIcon, Mic } from 'lucide-react-native';
+import { Search as SearchIcon, MapPin, Calendar, Heart, TrendingUp, Clock, Filter } from 'lucide-react-native';
 import { searchArticles } from '@/services/api';
 import { Article } from '@/types/article';
 import ArticleCard from '@/components/ArticleCard';
@@ -38,6 +39,30 @@ export default function SearchScreen() {
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [regionName, setRegionName] = useState<string>('');
+  
+  // Filter states
+  const [selectedRegion, setSelectedRegion] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Filter options
+  const regions = [
+    { id: 'wejherowo', name: 'Wejherowo', icon: MapPin },
+    { id: 'trojmiasto', name: 'Trójmiasto', icon: MapPin },
+    { id: 'puck', name: 'Puck', icon: MapPin },
+    { id: 'koscierzyna', name: 'Kościerzyna', icon: MapPin },
+    { id: 'kartuzy', name: 'Kartuzy', icon: MapPin },
+    { id: 'chojnice', name: 'Chojnice', icon: MapPin },
+    { id: 'reda', name: 'Reda', icon: MapPin },
+    { id: 'lebork', name: 'Lębork', icon: MapPin },
+  ];
+  
+  const categories = [
+    { id: 'sport', name: 'Sport', icon: Heart, color: '#FF6B6B' },
+    { id: 'kultura', name: 'Kultura', icon: Calendar, color: '#4ECDC4' },
+    { id: 'biznes', name: 'Biznes', icon: TrendingUp, color: '#FFE66D' },
+    { id: 'wydarzenia', name: 'Wydarzenia', icon: Clock, color: '#A8E6CF' },
+  ];
   
   const handleSearch = async (searchQuery: string) => {
     setQuery(searchQuery);
@@ -111,6 +136,140 @@ export default function SearchScreen() {
     router.push(`/article/${article.id}`);
   };
 
+  // Filter handlers
+  const handleRegionFilter = (regionId: string) => {
+    setSelectedRegion(selectedRegion === regionId ? '' : regionId);
+    // Perform search with region filter
+    const regionName = regions.find(r => r.id === regionId)?.name || '';
+    if (regionName && selectedRegion !== regionId) {
+      handleSearch(`region:${regionName}`);
+    } else if (selectedRegion === regionId) {
+      handleSearch('');
+    }
+  };
+
+  const handleCategoryFilter = (categoryId: string) => {
+    setSelectedCategory(selectedCategory === categoryId ? '' : categoryId);
+    // Perform search with category filter
+    const categoryName = categories.find(c => c.id === categoryId)?.name || '';
+    if (categoryName && selectedCategory !== categoryId) {
+      handleSearch(`category:${categoryName}`);
+    } else if (selectedCategory === categoryId) {
+      handleSearch('');
+    }
+  };
+
+  const clearAllFilters = () => {
+    setSelectedRegion('');
+    setSelectedCategory('');
+    handleSearch('');
+  };
+
+  // Render filter sections
+  const renderRegionFilters = () => (
+    <View style={styles.filterSection}>
+      <View style={styles.filterHeader}>
+        <MapPin size={18} color={theme.colors.primary} />
+        <Text style={[styles.filterTitle, { 
+          color: theme.colors.text,
+          fontFamily: theme.fontFamily.semibold 
+        }]}>
+          Regiony
+        </Text>
+      </View>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterScrollContent}
+      >
+        {regions.map((region) => (
+          <TouchableOpacity
+            key={region.id}
+            style={[
+              styles.filterChip,
+              { 
+                backgroundColor: selectedRegion === region.id 
+                  ? theme.colors.primary 
+                  : theme.colors.card,
+                borderColor: selectedRegion === region.id 
+                  ? theme.colors.primary 
+                  : theme.colors.border
+              }
+            ]}
+            onPress={() => handleRegionFilter(region.id)}
+            activeOpacity={0.8}
+          >
+            <region.icon 
+              size={16} 
+              color={selectedRegion === region.id ? '#FFFFFF' : theme.colors.textSecondary} 
+            />
+            <Text style={[
+              styles.filterChipText,
+              { 
+                color: selectedRegion === region.id ? '#FFFFFF' : theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              {region.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderCategoryFilters = () => (
+    <View style={styles.filterSection}>
+      <View style={styles.filterHeader}>
+        <Filter size={18} color={theme.colors.primary} />
+        <Text style={[styles.filterTitle, { 
+          color: theme.colors.text,
+          fontFamily: theme.fontFamily.semibold 
+        }]}>
+          Działy
+        </Text>
+      </View>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterScrollContent}
+      >
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={[
+              styles.filterChip,
+              { 
+                backgroundColor: selectedCategory === category.id 
+                  ? category.color 
+                  : theme.colors.card,
+                borderColor: selectedCategory === category.id 
+                  ? category.color 
+                  : theme.colors.border
+              }
+            ]}
+            onPress={() => handleCategoryFilter(category.id)}
+            activeOpacity={0.8}
+          >
+            <category.icon 
+              size={16} 
+              color={selectedCategory === category.id ? '#FFFFFF' : category.color} 
+            />
+            <Text style={[
+              styles.filterChipText,
+              { 
+                color: selectedCategory === category.id ? '#FFFFFF' : theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              {category.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   const renderEmptySearch = () => (
     <View style={styles.emptySearchContainer}>
       <View style={[styles.iconContainer, { backgroundColor: theme.colors.subtle }]}>
@@ -120,17 +279,28 @@ export default function SearchScreen() {
         Wyszukaj artykuły
       </Text>
       <Text style={[styles.emptySearchSubtitle, { color: theme.colors.textSecondary }]}>
-        Użyj wyszukiwania głosowego lub wpisz słowa kluczowe
+        Wpisz słowa kluczowe lub użyj filtrów poniżej
       </Text>
       
-      {Platform.OS === 'web' && 'webkitSpeechRecognition' in window && (
-        <View style={styles.voiceSearchHint}>
-          <Mic size={16} color={theme.colors.primary} />
-          <Text style={[styles.voiceSearchText, { color: theme.colors.primary }]}>
-            Kliknij mikrofon i powiedz czego szukasz
-          </Text>
-        </View>
-      )}
+      {/* Filter sections for empty state */}
+      <View style={styles.emptyFiltersContainer}>
+        {renderRegionFilters()}
+        {renderCategoryFilters()}
+        
+        {(selectedRegion || selectedCategory) && (
+          <TouchableOpacity 
+            style={[styles.clearFiltersButton, { backgroundColor: theme.colors.subtle }]}
+            onPress={clearAllFilters}
+          >
+            <Text style={[styles.clearFiltersText, { 
+              color: theme.colors.primary,
+              fontFamily: theme.fontFamily.medium 
+            }]}>
+              Wyczyść filtry
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
   
@@ -212,7 +382,7 @@ export default function SearchScreen() {
       <View style={[styles.searchContainer, { backgroundColor: theme.colors.card }]}>
         <SearchBar 
           onSearch={handleSearch} 
-          placeholder="Szukaj głosowo lub wpisz..." 
+          placeholder="Wpisz słowa kluczowe..." 
           autoFocus={false}
         />
       </View>
@@ -291,7 +461,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   listContent: {
-    paddingBottom: 120, // Extra padding for tab bar
+    paddingBottom: 140, // Extra padding for tab bar
     flexGrow: 1,
   },
   resultsHeader: {
@@ -339,24 +509,53 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     opacity: 0.8,
   },
-  voiceSearchHint: {
+  filterSection: {
+    padding: 16,
+  },
+  filterHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 28,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 24,
-    backgroundColor: 'rgba(34, 74, 150, 0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 12,
   },
-  voiceSearchText: {
-    fontSize: 14,
-    marginLeft: 10,
+  filterTitle: {
+    fontSize: 18,
     fontWeight: '600',
-    letterSpacing: 0.1,
+    marginLeft: 8,
   },
+  filterScrollContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+     filterChip: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     paddingHorizontal: 12,
+     paddingVertical: 8,
+     borderWidth: 1,
+     borderRadius: 20,
+     marginRight: 8,
+     marginBottom: 8,
+   },
+   filterChipText: {
+     fontSize: 14,
+     fontWeight: '500',
+     marginLeft: 6,
+   },
+   emptyFiltersContainer: {
+     width: '100%',
+     marginTop: 24,
+   },
+   clearFiltersButton: {
+     alignSelf: 'center',
+     paddingHorizontal: 16,
+     paddingVertical: 10,
+     borderWidth: 1,
+     borderColor: 'rgba(0,0,0,0.1)',
+     borderRadius: 20,
+     marginTop: 16,
+   },
+   clearFiltersText: {
+     fontSize: 14,
+     fontWeight: '600',
+   },
 });

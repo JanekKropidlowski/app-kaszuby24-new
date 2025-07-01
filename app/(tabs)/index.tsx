@@ -1139,106 +1139,6 @@ export default function HomeScreen() {
               </View>
             )}
             
-            {/* Thematic Sections - Modern Grid */}
-            <View style={styles.thematicSectionsContainer}>
-              <Text style={[styles.thematicTitle, { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.bold 
-              }]}>
-                Przeglądaj według tematów
-              </Text>
-              
-              <View style={styles.thematicGrid}>
-                <TouchableOpacity 
-                  style={[styles.thematicCard, { backgroundColor: theme.colors.cardBackground }]}
-                  onPress={() => router.push('/(tabs)/search?category=sport')}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.thematicIconWrapper, { backgroundColor: '#FF6B6B20' }]}>
-                    <Heart size={24} color="#FF6B6B" />
-                  </View>
-                  <Text style={[styles.thematicCardTitle, { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.semibold 
-                  }]}>Sport</Text>
-                  <Text style={[styles.thematicCardSubtitle, { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular 
-                  }]}>Aktualności sportowe</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={[styles.thematicCard, { backgroundColor: theme.colors.cardBackground }]}
-                  onPress={() => router.push('/(tabs)/search?category=kultura')}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.thematicIconWrapper, { backgroundColor: '#4ECDC420' }]}>
-                    <Calendar size={24} color="#4ECDC4" />
-                  </View>
-                  <Text style={[styles.thematicCardTitle, { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.semibold 
-                  }]}>Kultura</Text>
-                  <Text style={[styles.thematicCardSubtitle, { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular 
-                  }]}>Wydarzenia kulturalne</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={[styles.thematicCard, { backgroundColor: theme.colors.cardBackground }]}
-                  onPress={() => router.push('/(tabs)/search?category=biznes')}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.thematicIconWrapper, { backgroundColor: '#FFE66D20' }]}>
-                    <TrendingUp size={24} color="#FFE66D" />
-                  </View>
-                  <Text style={[styles.thematicCardTitle, { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.semibold 
-                  }]}>Biznes</Text>
-                  <Text style={[styles.thematicCardSubtitle, { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular 
-                  }]}>Gospodarka lokalna</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={[styles.thematicCard, { backgroundColor: theme.colors.cardBackground }]}
-                  onPress={() => router.push('/(tabs)/search?category=wydarzenia')}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.thematicIconWrapper, { backgroundColor: '#A8E6CF20' }]}>
-                    <Clock size={24} color="#A8E6CF" />
-                  </View>
-                  <Text style={[styles.thematicCardTitle, { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.semibold 
-                  }]}>Wydarzenia</Text>
-                  <Text style={[styles.thematicCardSubtitle, { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular 
-                  }]}>Co się dzieje</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            {/* Region Filters Section Header - New! */}
-            <View style={styles.regionFilterHeader}>
-              <View style={styles.regionFilterTitleRow}>
-                <MapPin size={20} color={theme.colors.primary} />
-                <Text style={[styles.regionFilterTitle, { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.bold 
-                }]}>
-                  Wiadomości z regionu
-                </Text>
-              </View>
-            </View>
-            
-            {/* Category Filters - Updated with better UI */}
-            {renderCategoryPills()}
-            
             <View style={styles.sectionHeader}>
               <Text style={[
                 styles.sectionTitle, 
@@ -1265,6 +1165,22 @@ export default function HomeScreen() {
                 <ChevronRight size={16} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
+            
+            {/* Region Filters Section Header - Moved after "Najnowsze artykuły" */}
+            <View style={styles.regionFilterHeader}>
+              <View style={styles.regionFilterTitleRow}>
+                <MapPin size={20} color={theme.colors.primary} />
+                <Text style={[styles.regionFilterTitle, { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold 
+                }]}>
+                  Wiadomości z regionu
+                </Text>
+              </View>
+            </View>
+            
+            {/* Category Filters - Updated with better UI */}
+            {renderCategoryPills()}
           </View>
         }
         ListEmptyComponent={
@@ -1737,51 +1653,6 @@ const styles = StyleSheet.create({
   greetingSection: {
     flexDirection: 'column',
     flex: 1,
-  },
-  // Thematic Sections Styles
-  thematicSectionsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    marginTop: 8,
-  },
-  thematicTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    marginBottom: 16,
-  },
-  thematicGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  thematicCard: {
-    width: '48%',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  thematicIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  thematicCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  thematicCardSubtitle: {
-    fontSize: 13,
-    opacity: 0.7,
   },
   // Region Filter Header Styles
   regionFilterHeader: {

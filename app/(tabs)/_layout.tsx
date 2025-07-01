@@ -116,9 +116,9 @@ export default function TabLayout() {
             backgroundColor: theme.colors.tabBarBackground,
             borderTopColor: theme.colors.border,
             borderTopWidth: 1,
-            paddingTop: 8,
-            paddingBottom: Platform.OS === 'ios' ? 24 : 10,
-            height: Platform.OS === 'ios' ? 80 : 65,
+            paddingTop: 12,
+            paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+            height: Platform.OS === 'ios' ? 100 : 88,
             position: 'absolute',
             bottom: 0,
             left: 0,
@@ -128,10 +128,16 @@ export default function TabLayout() {
             shadowOffset: { width: 0, height: -2 },
             shadowOpacity: 0.1,
             shadowRadius: 8,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
           },
           tabBarLabelStyle: {
-            fontSize: 11,
+            fontSize: 12,
             fontFamily: theme.fontFamily.medium,
+            marginTop: 4,
+          },
+          tabBarIconStyle: {
+            marginBottom: 2,
           },
           headerStyle: {
             backgroundColor: theme.colors.background,
@@ -148,17 +154,45 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Start',
-            tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-            headerShown: false, // Completely hide the header
-            tabBarStyle: { display: 'none' }, // Hide default tab bar on home screen
+            title: 'Główna',
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{
+                backgroundColor: focused ? theme.colors.primary : 'transparent',
+                borderRadius: focused ? 16 : 0,
+                padding: focused ? 8 : 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Home 
+                  size={focused ? 26 : 24} 
+                  color={focused ? '#FFFFFF' : color} 
+                  strokeWidth={focused ? 2.5 : 2}
+                />
+              </View>
+            ),
+            headerShown: false,
+            tabBarStyle: { display: 'none' }, // Keep hidden on home screen as it has custom menu
           }}
         />
         <Tabs.Screen
           name="search"
           options={{
             title: 'Szukaj',
-            tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{
+                backgroundColor: focused ? theme.colors.primary : 'transparent',
+                borderRadius: focused ? 16 : 0,
+                padding: focused ? 8 : 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Search 
+                  size={focused ? 26 : 24} 
+                  color={focused ? '#FFFFFF' : color} 
+                  strokeWidth={focused ? 2.5 : 2}
+                />
+              </View>
+            ),
             headerShown: false,
           }}
         />
@@ -166,7 +200,21 @@ export default function TabLayout() {
           name="saved"
           options={{
             title: 'Zapisane',
-            tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{
+                backgroundColor: focused ? theme.colors.primary : 'transparent',
+                borderRadius: focused ? 16 : 0,
+                padding: focused ? 8 : 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Bookmark 
+                  size={focused ? 26 : 24} 
+                  color={focused ? '#FFFFFF' : color} 
+                  strokeWidth={focused ? 2.5 : 2}
+                />
+              </View>
+            ),
             headerTitle: 'Zapisane artykuły',
           }}
         />
@@ -174,14 +222,24 @@ export default function TabLayout() {
           name="notifications"
           options={{
             title: 'Powiadomienia',
-            tabBarIcon: ({ color, size }) => (
-              <View>
-                <Bell size={size} color={color} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{
+                backgroundColor: focused ? theme.colors.primary : 'transparent',
+                borderRadius: focused ? 16 : 0,
+                padding: focused ? 8 : 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Bell 
+                  size={focused ? 26 : 24} 
+                  color={focused ? '#FFFFFF' : color} 
+                  strokeWidth={focused ? 2.5 : 2}
+                />
                 {hasUnreadNotifications && (
                   <View style={{
                     position: 'absolute',
-                    top: -4,
-                    right: -4,
+                    top: focused ? 2 : 0,
+                    right: focused ? 2 : -4,
                     width: 8,
                     height: 8,
                     borderRadius: 4,
@@ -197,7 +255,21 @@ export default function TabLayout() {
           name="preferences"
           options={{
             title: 'Ustawienia',
-            tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{
+                backgroundColor: focused ? theme.colors.primary : 'transparent',
+                borderRadius: focused ? 16 : 0,
+                padding: focused ? 8 : 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Settings 
+                  size={focused ? 26 : 24} 
+                  color={focused ? '#FFFFFF' : color} 
+                  strokeWidth={focused ? 2.5 : 2}
+                />
+              </View>
+            ),
             headerTitle: 'Ustawienia',
           }}
         />
