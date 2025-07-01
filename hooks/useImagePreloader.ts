@@ -70,24 +70,26 @@ export const useImagePreloader = (
       }
     };
     
-    // Preload images in parallel with a limit of 3 concurrent requests
+    // Preload images in parallel with a limit of 2 concurrent requests for better performance
     const preloadBatch = async (batch: string[]) => {
       await Promise.all(batch.map(url => preloadImage(url)));
     };
     
-    // Split URLs into batches of 3
-    const batchSize = 3;
+    // Split URLs into smaller batches of 2 for better memory management
+    const batchSize = 2;
     const batches: string[][] = [];
     
     for (let i = 0; i < validUrls.length; i += batchSize) {
       batches.push(validUrls.slice(i, i + batchSize));
     }
     
-    // Process batches sequentially
+    // Process batches sequentially with small delays
     const processBatches = async () => {
       for (const batch of batches) {
         if (!mounted) break;
         await preloadBatch(batch);
+        // Small delay between batches to prevent overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
     };
     

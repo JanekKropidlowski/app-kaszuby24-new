@@ -28,6 +28,7 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 import { useScrollStore } from '@/store/scrollStore';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import MemoryOptimizer from '@/utils/MemoryOptimizer';
 
 const { width } = Dimensions.get('window');
 // Improved carousel sizing for center mode with peek - better balanced spacing
@@ -705,10 +706,15 @@ export default function HomeScreen() {
     );
   }, [categories, selectedCategory, handleCategoryChange]);
   
-  const handleScroll = useCallback((event: any) => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    setScrollDirection(scrollY);
-  }, [setScrollDirection]);
+  const handleScroll = useCallback(
+    MemoryOptimizer.throttle((event: any) => {
+      const scrollY = event.nativeEvent.contentOffset.y;
+      setScrollDirection(scrollY);
+    }, 16), // 60fps throttling
+    [setScrollDirection]
+  );
+  
+  const listConfig = useMemo(() => MemoryOptimizer.getOptimalListConfig(), []);
   
   if (initialLoading) {
     return <SkeletonLoader type="home" count={5} />;
@@ -808,12 +814,17 @@ export default function HomeScreen() {
                     }
                   }}
                   onScrollToIndexFailed={handleScrollToIndexFailed}
-                  removeClippedSubviews={Platform.OS === 'android'}
-                  initialNumToRender={5}
-                  maxToRenderPerBatch={5}
-                  windowSize={7}
-                  bounces={false}
-                  bouncesZoom={false}
+                  removeClippedSubviews={listConfig.removeClippedSubviews}
+                  initialNumToRender={listConfig.initialNumToRender}
+                  maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
+                  windowSize={listConfig.windowSize}
+                  updateCellsBatchingPeriod={listConfig.updateCellsBatchingPeriod}
+                  legacyImplementation={false}
+                  disableIntervalMomentum={true}
+                  maintainVisibleContentPosition={{
+                    minIndexForVisible: 0,
+                    autoscrollToTopThreshold: 10,
+                  }}
                 />
                 {renderCarouselIndicator}
               </View>
@@ -873,12 +884,12 @@ export default function HomeScreen() {
         }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        removeClippedSubviews={Platform.OS === 'android'}
-        initialNumToRender={Platform.OS === 'android' ? 5 : 10}
-        maxToRenderPerBatch={Platform.OS === 'android' ? 5 : 10}
-        windowSize={Platform.OS === 'android' ? 5 : 10}
-        getItemLayout={undefined}
-        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={listConfig.removeClippedSubviews}
+        initialNumToRender={listConfig.initialNumToRender}
+        maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
+        windowSize={listConfig.windowSize}
+        getItemLayout={getItemLayout}
+        updateCellsBatchingPeriod={listConfig.updateCellsBatchingPeriod}
         legacyImplementation={false}
       />
       

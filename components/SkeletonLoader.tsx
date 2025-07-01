@@ -19,6 +19,9 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   const { theme } = useThemeStore();
   const animatedValue = React.useRef(new Animated.Value(0)).current;
 
+  // Darker gray color for skeleton - more prominent than theme.colors.subtle
+  const skeletonColor = theme.isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)';
+
   React.useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
@@ -41,7 +44,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
 
   const opacity = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
+    outputRange: [0.4, 0.8], // Increased opacity range for more visible effect
   });
 
   if (fullScreen) {
@@ -49,8 +52,6 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
       <View style={[styles.fullScreenContainer, { backgroundColor: theme.colors.background }]}>
         <LoadingIndicator 
           fullScreen 
-          message="Łączenie z serwerem..." 
-          showConnecting={true}
         />
       </View>
     );
@@ -64,7 +65,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
         <Animated.View 
           style={[
             styles.articleFeaturedImage, 
-            { backgroundColor: theme.colors.subtle, opacity }
+            { backgroundColor: skeletonColor, opacity }
           ]} 
         />
         
@@ -73,13 +74,13 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
           <Animated.View 
             style={[
               styles.articleTitle, 
-              { backgroundColor: theme.colors.subtle, opacity }
+              { backgroundColor: skeletonColor, opacity }
             ]} 
           />
           <Animated.View 
             style={[
               styles.articleSubtitle, 
-              { backgroundColor: theme.colors.subtle, opacity, width: '60%' }
+              { backgroundColor: skeletonColor, opacity, width: '60%' }
             ]} 
           />
           
@@ -90,7 +91,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
                 key={item}
                 style={[
                   styles.articleParagraph,
-                  { backgroundColor: theme.colors.subtle, opacity }
+                  { backgroundColor: skeletonColor, opacity }
                 ]}
               />
             ))}
@@ -111,20 +112,20 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
               <Animated.View 
                 style={[
                   styles.articleImage, 
-                  { backgroundColor: theme.colors.subtle, opacity }
+                  { backgroundColor: skeletonColor, opacity }
                 ]} 
               />
               <View style={styles.articleContent}>
                 <Animated.View 
                   style={[
                     styles.articleTitle, 
-                    { backgroundColor: theme.colors.subtle, opacity }
+                    { backgroundColor: skeletonColor, opacity }
                   ]} 
                 />
                 <Animated.View 
                   style={[
                     styles.articleSubtitle, 
-                    { backgroundColor: theme.colors.subtle, opacity }
+                    { backgroundColor: skeletonColor, opacity }
                   ]} 
                 />
               </View>
@@ -143,7 +144,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
         <Animated.View 
           style={[
             styles.featuredImage, 
-            { backgroundColor: theme.colors.subtle, opacity }
+            { backgroundColor: skeletonColor, opacity }
           ]} 
         />
       </View>
@@ -156,7 +157,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
               key={item}
               style={[
                 styles.categoryPill,
-                { backgroundColor: theme.colors.subtle, opacity }
+                { backgroundColor: skeletonColor, opacity }
               ]}
             />
           ))}
@@ -170,20 +171,20 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
             <Animated.View 
               style={[
                 styles.articleImage, 
-                { backgroundColor: theme.colors.subtle, opacity }
+                { backgroundColor: skeletonColor, opacity }
               ]} 
             />
             <View style={styles.articleContent}>
               <Animated.View 
                 style={[
                   styles.articleTitle, 
-                  { backgroundColor: theme.colors.subtle, opacity }
+                  { backgroundColor: skeletonColor, opacity }
                 ]} 
               />
               <Animated.View 
                 style={[
                   styles.articleSubtitle, 
-                  { backgroundColor: theme.colors.subtle, opacity }
+                  { backgroundColor: skeletonColor, opacity }
                 ]} 
               />
             </View>

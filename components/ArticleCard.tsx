@@ -90,18 +90,19 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     }
   }
   
-  // Memoize the image component for better performance
+  // Memoize the image component with optimized props
   const renderImage = useMemo(() => {
     if (article.featured_media_url) {
+      const imageProps = getOptimizedImageProps(
+        article.featured_media_url, 
+        compact ? 'thumbnail' : 'list'
+      );
+      
       return (
         <Image
-          source={{ uri: article.featured_media_url }}
+          {...imageProps}
           style={compact ? styles.compactImage : styles.image}
           contentFit="cover"
-          transition={200}
-          placeholder="Loading..."
-          cachePolicy="memory-disk"
-          priority={compact ? "low" : "normal"}
         />
       );
     } else {
@@ -255,13 +256,14 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-  // Improved comparison function for better performance
+  // Enhanced comparison function for better performance
   return (
     prevProps.article.id === nextProps.article.id &&
     prevProps.compact === nextProps.compact &&
     prevProps.article.title.rendered === nextProps.article.title.rendered &&
     prevProps.article.featured_media_url === nextProps.article.featured_media_url &&
-    prevProps.article.date === nextProps.article.date
+    prevProps.article.date === nextProps.article.date &&
+    prevProps.article.modified === nextProps.article.modified
   );
 });
 

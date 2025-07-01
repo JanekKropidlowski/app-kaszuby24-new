@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
  * @param quality Image quality (1-100)
  * @returns Optimized image URL
  */
-export const optimizeImageUrl = (url: string | undefined, width: number = 600, quality: number = 80): string | undefined => {
+export const optimizeImageUrl = (url: string | undefined, width: number = 400, quality: number = 70): string | undefined => {
   if (!url) return undefined;
   
   // Don't optimize already optimized URLs
@@ -17,14 +17,14 @@ export const optimizeImageUrl = (url: string | undefined, width: number = 600, q
   }
   
   try {
-    // WordPress image optimization
+    // WordPress image optimization with more aggressive defaults
     if (url.includes('wp-content/uploads')) {
       // Check if URL already has query parameters
       const hasParams = url.includes('?');
       const separator = hasParams ? '&' : '?';
       
-      // Add width and quality parameters
-      return `${url}${separator}w=${width}&quality=${quality}`;
+      // Add width and quality parameters with more aggressive optimization
+      return `${url}${separator}w=${width}&quality=${quality}&format=webp`;
     }
     
     // For other image types, return the original URL
@@ -56,43 +56,96 @@ export const getImagePriority = (context: 'featured' | 'list' | 'thumbnail' | 'g
 };
 
 /**
- * Calculates optimal image dimensions based on device
+ * Calculates optimal image dimensions based on device with performance considerations
  * 
  * @param originalWidth Original width
  * @param originalHeight Original height
  * @param maxWidth Maximum width constraint
+ * @param context The context where the image is used
  * @returns Calculated dimensions { width, height }
  */
 export const calculateImageDimensions = (
   originalWidth: number,
   originalHeight: number,
-  maxWidth: number
+  maxWidth: number,
+  context: 'featured' | 'list' | 'thumbnail' = 'list'
 ): { width: number; height: number } => {
-  if (originalWidth <= maxWidth) {
+  // Apply different max widths based on context for better performance
+  let contextMaxWidth = maxWidth;
+  
+  switch (context) {
+    case 'thumbnail':
+      contextMaxWidth = Math.min(maxWidth, 200);
+      break;
+    case 'list':
+      contextMaxWidth = Math.min(maxWidth, 400);
+      break;
+    case 'featured':
+      contextMaxWidth = Math.min(maxWidth, 800);
+      break;
+  }
+  
+  if (originalWidth <= contextMaxWidth) {
     return { width: originalWidth, height: originalHeight };
   }
   
   const aspectRatio = originalWidth / originalHeight;
-  const calculatedHeight = maxWidth / aspectRatio;
+  const calculatedHeight = contextMaxWidth / aspectRatio;
   
   return {
-    width: maxWidth,
+    width: contextMaxWidth,
     height: calculatedHeight,
   };
 };
 
 /**
- * Determines if an image should be preloaded based on its importance
- * 
- * @param importance Image importance level
- * @returns Boolean indicating if image should be preloaded
+ * Determines if an image should be preloaded based on its importance and device capabilities
  */
 export const shouldPreloadImage = (importance: 'high' | 'medium' | 'low'): boolean => {
-  // On web, preload high and medium importance images
+  // More conservative preloading strategy
   if (Platform.OS === 'web') {
-    return importance === 'high' || importance === 'medium';
+    return importance === 'high'; // Only preload high importance on web
   }
   
-  // On mobile, only preload high importance images to save bandwidth
+  // On mobile, only preload high importance images to save bandwidth and memory
   return importance === 'high';
+};
+
+/**
+ * Get optimized image props for expo-image
+ */
+export const getOptimizedImageProps = (
+  url: string | undefined,
+  context: 'featured' | 'list' | 'thumbnail' | 'gallery' = 'list'
+) => {
+  const priority = getImagePriority(context);
+  const cachePolicy = context === 'featured' ? 'memory-disk' : 'memory';
+  
+  // Optimize URL based on context
+  let optimizedUrl = url;
+  if (url) {
+    const widthMap = {
+      featured: 800,
+      list: 400,
+      thumbnail: 200,
+      gallery: 600,
+    };
+    
+    const qualityMap = {
+      featured: 80,
+      list: 70,
+      thumbnail: 60,
+      gallery: 75,
+    };
+    
+    optimizedUrl = optimizeImageUrl(url, widthMap[context], qualityMap[context]);
+  }
+  
+  return {
+    source: optimizedUrl ? { uri: optimizedUrl } : undefined,
+    priority,
+    cachePolicy,
+    transition: context === 'featured' ? 300 : 200,
+    placeholder: 'Loading...',
+  };
 };
