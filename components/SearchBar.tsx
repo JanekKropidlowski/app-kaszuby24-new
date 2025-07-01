@@ -169,7 +169,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       setTimeout(() => {
         Alert.alert(
           'Wyszukiwanie głosowe',
-          'Powiedz, czego szukasz. Na przykład: "Kaszuby", "Wydarzenia", "Sport".',
+          'Powiedz, czego szukasz. Na przykład: "Wydarzenia w Gdańsku", "Kultura Kaszubska", "Sport".',
           [
             {
               text: 'Anuluj',
@@ -180,7 +180,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               }
             },
             {
-              text: 'OK',
+              text: 'Słucham',
               onPress: () => {
                 // Simulate successful voice recognition after a delay
                 setTimeout(() => {
@@ -188,7 +188,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   
                   // For demo purposes, set a sample query
                   // In a real implementation, this would come from the native speech recognition
-                  const demoQueries = ['Kaszuby', 'Wydarzenia', 'Sport', 'Kultura', 'Turystyka'];
+                  const demoQueries = ['Wydarzenia w Gdańsku', 'Kultura Kaszubska', 'Sport', 'Turystyka', 'Tradycje Pomorskie'];
                   const randomQuery = demoQueries[Math.floor(Math.random() * demoQueries.length)];
                   
                   setQuery(randomQuery);

@@ -118,14 +118,14 @@ export default function SearchScreen() {
         Wyszukaj artykuły
       </Text>
       <Text style={[styles.emptySearchSubtitle, { color: theme.colors.textSecondary }]}>
-        Wpisz słowa kluczowe lub użyj wyszukiwania głosowego
+        Użyj wyszukiwania głosowego lub wpisz słowa kluczowe
       </Text>
       
       {Platform.OS === 'web' && 'webkitSpeechRecognition' in window && (
         <View style={styles.voiceSearchHint}>
           <Mic size={16} color={theme.colors.primary} />
           <Text style={[styles.voiceSearchText, { color: theme.colors.primary }]}>
-            Kliknij mikrofon aby wyszukać głosowo
+            Kliknij mikrofon i powiedz czego szukasz
           </Text>
         </View>
       )}
@@ -151,7 +151,7 @@ export default function SearchScreen() {
       <View style={[styles.searchContainer, { backgroundColor: theme.colors.card }]}>
         <SearchBar 
           onSearch={handleSearch} 
-          placeholder="Szukaj wiadomości..." 
+          placeholder="Szukaj głosowo lub wpisz..." 
           autoFocus={false}
         />
       </View>

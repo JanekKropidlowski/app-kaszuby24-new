@@ -103,7 +103,7 @@ const CarouselItemEnhanced = React.memo(({
                 styles.carouselLabel,
                 { fontFamily: theme.fontFamily.semibold }
               ]}>
-                Polecane
+                Najchętniej czytane
               </Text>
             </View>
             <Text style={[
@@ -238,15 +238,29 @@ export default function HomeScreen() {
             new Date(b.date).getTime() - new Date(a.date).getTime()
           );
           
-          // Take first 5 for featured carousel
-          setFeaturedArticles(sortedArticles.slice(0, 5));
-          // Rest go to main list
-          setArticles(sortedArticles.slice(5));
+          // Take most popular articles for featured carousel based on views
+          const articlesWithViews = sortedArticles
+            .filter(article => article.meta?.views && parseInt(article.meta.views) > 0)
+            .sort((a, b) => {
+              const viewsA = parseInt(a.meta?.views || '0');
+              const viewsB = parseInt(b.meta?.views || '0');
+              return viewsB - viewsA; // Sort by highest views first
+            });
+          
+          // If we have articles with views, use them; otherwise fall back to latest
+          const featuredSelection = articlesWithViews.length >= 5 
+            ? articlesWithViews.slice(0, 5)
+            : [...articlesWithViews, ...sortedArticles.filter(a => !a.meta?.views || parseInt(a.meta.views) === 0)].slice(0, 5);
+          
+          setFeaturedArticles(featuredSelection);
+          // Rest go to main list (excluding featured ones)
+          const featuredIds = new Set(featuredSelection.map(a => a.id));
+          setArticles(sortedArticles.filter(a => !featuredIds.has(a.id)));
           
           // Start prefetching first few articles immediately
           if (Platform.OS !== 'web') {
             setTimeout(() => {
-              sortedArticles.slice(0, 3).forEach(article => {
+              featuredSelection.slice(0, 3).forEach(article => {
                 import('@/services/api').then(({ prefetchArticleById }) => {
                   prefetchArticleById(article.id).catch(() => {});
                 });
@@ -311,12 +325,32 @@ export default function HomeScreen() {
       
       if (!isMountedRef.current) return;
       
+      // Filter to show only cities, regions and departments/sections
+      // Assuming categories with certain names/patterns are cities, regions, and departments
+      const allowedCategoryNames = [
+        // Miasta (przykłady typowych nazw miast kaszubskich)
+        'gdańsk', 'gdynia', 'sopot', 'słupsk', 'bytów', 'lębork', 'wejherowo', 'kartuzy', 'kościerzyna', 'chojnice', 'człuchów', 'żukowo', 'reda', 'rumia', 'puck', 'władysławowo', 'jastarnia', 'hel', 'ustka', 'miastko', 'debrzno',
+        // Regiony
+        'kaszuby', 'pomorze', 'powiaty', 'gminy', 'region', 'obszar', 'ziemia',
+        // Działy
+        'sport', 'kultura', 'turystyka', 'wydarzenia', 'gospodarka', 'społeczeństwo', 'historia', 'tradycje', 'język', 'muzyka', 'sztuka', 'festiwale', 'kulinaria', 'rzemiosło', 'edukacja', 'nauka', 'technologia', 'środowisko', 'przyroda'
+      ];
+      
       const filteredCategories = data
-        .filter(cat => cat.count > 0 && cat.id !== 3 && cat.id !== 554)
+        .filter(cat => {
+          // Include categories with count > 0, exclude specific IDs (3, 554)
+          if (cat.count <= 0 || cat.id === 3 || cat.id === 554) return false;
+          
+          // Check if category name matches allowed patterns
+          const categoryName = cat.name.toLowerCase();
+          return allowedCategoryNames.some(allowed => 
+            categoryName.includes(allowed) || allowed.includes(categoryName)
+          );
+        })
         .sort((a, b) => b.count - a.count);
       
       setCategories(filteredCategories);
-      console.log(`Loaded ${filteredCategories.length} categories`);
+      console.log(`Loaded ${filteredCategories.length} filtered categories (cities, regions, departments)`);
     } catch (err) {
       if (!isMountedRef.current) return;
       console.error('Error loading categories:', err);
