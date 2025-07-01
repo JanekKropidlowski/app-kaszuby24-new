@@ -144,9 +144,11 @@ export default function HomeScreen() {
   const [infiniteArticles, setInfiniteArticles] = useState<Article[]>([]);
   const [realActiveIndex, setRealActiveIndex] = useState(0);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [hasMoreArticles, setHasMoreArticles] = useState(true);
+  
+  // Replace these state variables with the ones from search tab
+  const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [reachedEnd, setReachedEnd] = useState(false);
+  const [endReached, setEndReached] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -189,11 +191,11 @@ export default function HomeScreen() {
       
       if (pageNum === 1) {
         setLoading(true);
-        setHasMoreArticles(true);
-        setReachedEnd(false);
+        setHasMore(true);
+        setEndReached(false);
       } else {
         setIsLoadingMore(true);
-        setLoadingMore(true); // Add this to match search tab behavior
+        setLoadingMore(true);
       }
       
       // Don't include sponsored category (554) in filter
@@ -241,11 +243,11 @@ export default function HomeScreen() {
       setTotalPages(total);
       
       // Check if we have more articles to load
-      const hasMore = pageNum < total && newArticles.length > 0;
-      setHasMoreArticles(hasMore);
-      setReachedEnd(!hasMore);
+      const hasMoreArticles = pageNum < total && newArticles.length > 0;
+      setHasMore(hasMoreArticles);
+      setEndReached(!hasMoreArticles);
       
-      console.log(`Articles loaded successfully. Has more: ${hasMore}, Current page: ${pageNum}, Total pages: ${total}`);
+      console.log(`Articles loaded successfully. Has more: ${hasMoreArticles}, Current page: ${pageNum}, Total pages: ${total}`);
     } catch (err: any) {
       // Don't update state if component is unmounted
       if (!isMountedRef.current) {
@@ -366,32 +368,12 @@ export default function HomeScreen() {
     }
   }, [loadArticles, loadCategories]);
   
-  // Instant category filter handler for responsive filtering
-  const handleCategoryChange = useCallback((categoryId: number | null) => {
-    // Don't allow selection of sponsored category or "Wiadomości" category
-    if (categoryId === 554 || categoryId === 3) {
-      return;
-    }
-    
-    // Instant UI update for responsiveness
-    setSelectedCategory(categoryId);
-    setLoading(true);
-    setError(null);
-    
-    // Reset pagination
-    setPage(1);
-    setArticles([]);
-    setFeaturedArticles([]);
-    
-    // Load articles with new filter - this will trigger the useEffect
-  }, []);
-  
   // Updated useEffect for category changes with infinite scroll reset
   useEffect(() => {
     if (!isMountedRef.current) return;
     
     // Reset infinite scroll state when category changes
-    setHasMoreArticles(true);
+    setHasMore(true);
     setIsLoadingMore(false);
     
     // Debounce the actual API call slightly for better performance
@@ -529,22 +511,23 @@ export default function HomeScreen() {
   
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    setHasMoreArticles(true);
+    setHasMore(true);
     setIsLoadingMore(false);
     setPage(1);
     loadArticles(1, true);
   }, [loadArticles]);
   
+  // Replace handleLoadMore with the implementation from search tab
   const handleLoadMore = useCallback(() => {
     if (!isMountedRef.current) return;
     
     // Only load more if we have more articles and we're not already loading
-    if (page < totalPages && !loadingMore && !loading && !error) {
+    if (hasMore && !isLoadingMore && !loading && !error) {
       const nextPage = page + 1;
       console.log(`Infinite scroll: Loading page ${nextPage}`);
       loadArticles(nextPage);
     }
-  }, [page, totalPages, loadingMore, loading, error, loadArticles]);
+  }, [page, hasMore, isLoadingMore, loading, error, loadArticles]);
   
   const handleArticlePress = useCallback((article: Article) => {
     // Add to recent articles (filtering is handled in the store)
@@ -899,11 +882,11 @@ export default function HomeScreen() {
           ) : null
         }
         ListFooterComponent={
-          loadingMore ? (
-            <View style={styles.infiniteLoadingContainer}>
+          isLoadingMore ? (
+            <View style={styles.loadingMoreContainer}>
               <LoadingIndicator size="small" />
               <Text style={[
-                styles.infiniteLoadingText,
+                styles.loadingMoreText,
                 { 
                   color: theme.colors.textSecondary,
                   fontFamily: theme.fontFamily.medium
@@ -912,7 +895,7 @@ export default function HomeScreen() {
                 Ładowanie kolejnych artykułów...
               </Text>
             </View>
-          ) : reachedEnd && articles.length > 0 ? (
+          ) : endReached && articles.length > 0 ? (
             <View style={styles.endOfListContainer}>
               <View style={[styles.endOfListDivider, { backgroundColor: theme.colors.border }]} />
               <Text style={[
@@ -945,7 +928,7 @@ export default function HomeScreen() {
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.2}
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
@@ -1104,7 +1087,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 4,
   },
-  infiniteLoadingContainer: {
+  loadingMoreContainer: {
     paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
@@ -1119,7 +1102,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  infiniteLoadingText: {
+  loadingMoreText: {
     fontSize: 14,
     marginTop: 12,
     textAlign: 'center',
