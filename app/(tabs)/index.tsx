@@ -256,8 +256,8 @@ export default function HomeScreen() {
       }
       
       // Retry logic - but don't retry if request was aborted due to component unmount
-      if (retry < 2 && !errorMessage.includes('zostało przerwane')) {
-        console.log(`Retrying (${retry + 1}/2)...`);
+      if (retry < MAX_RETRIES && !errorMessage.includes('zostało przerwane')) {
+        console.log(`Retrying (${retry + 1}/${MAX_RETRIES})...`);
         const delay = 1000 * (retry + 1);
         setTimeout(() => {
           if (isMountedRef.current) {
@@ -300,7 +300,7 @@ export default function HomeScreen() {
       console.error('Error loading categories:', err);
       
       // Retry logic for categories
-      if (retry < 2) {
+      if (retry < MAX_RETRIES) {
         const delay = 1000 * (retry + 1);
         setTimeout(() => {
           if (isMountedRef.current) {
@@ -868,6 +868,18 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
+    padding: 16,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+  },
+  articleContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  logoContainer: {
+    alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
@@ -876,17 +888,5 @@ const styles = StyleSheet.create({
   logo: {
     width: 120,
     height: 40,
-  },
-  articleContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    padding: 16,
-  },
-  logo: {
-    width: 100,
-    height: 100,
   },
 });

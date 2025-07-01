@@ -379,10 +379,10 @@ ${article.link}`,
           
           body {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-            font-size: 14px !important;
+            font-size: 13px !important;
             line-height: 1.6;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            background-color: transparent !important;
+            background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
             margin: 0;
             padding: 20px;
             word-wrap: break-word;
@@ -397,7 +397,7 @@ ${article.link}`,
             margin-bottom: 16px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 14px !important;
+            font-size: 13px !important;
             line-height: 1.6 !important;
             font-weight: 400 !important;
           }
@@ -432,12 +432,12 @@ ${article.link}`,
             letter-spacing: -0.02em !important;
           }
           
-          h1 { font-size: 24px !important; }
-          h2 { font-size: 20px !important; }
-          h3 { font-size: 17px !important; }
-          h4 { font-size: 15px !important; }
-          h5 { font-size: 14px !important; }
-          h6 { font-size: 13px !important; }
+          h1 { font-size: 22px !important; }
+          h2 { font-size: 18px !important; }
+          h3 { font-size: 16px !important; }
+          h4 { font-size: 14px !important; }
+          h5 { font-size: 13px !important; }
+          h6 { font-size: 12px !important; }
           
           blockquote {
             position: relative !important;
@@ -447,7 +447,7 @@ ${article.link}`,
             border-radius: 16px !important;
             border-left: 4px solid ${theme.colors.primary} !important;
             font-style: italic !important;
-            font-size: 15px !important;
+            font-size: 14px !important;
             line-height: 1.5 !important;
             color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
             box-shadow: ${isDarkMode ? '0 6px 24px rgba(0, 0, 0, 0.2)' : '0 6px 24px rgba(34, 74, 150, 0.06)'} !important;
@@ -473,7 +473,7 @@ ${article.link}`,
             z-index: 1 !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
-            font-size: 15px !important;
+            font-size: 14px !important;
           }
           
           ul, ol {
@@ -485,7 +485,7 @@ ${article.link}`,
             margin-bottom: 10px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 14px !important;
+            font-size: 13px !important;
             line-height: 1.5 !important;
           }
           
@@ -598,7 +598,7 @@ ${article.link}`,
             style={{
               color: isDarkMode ? '#F1F5F9' : '#1E293B',
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              fontSize: '14px',
+              fontSize: '13px',
               lineHeight: '1.6',
               backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC',
             }}
@@ -633,7 +633,7 @@ ${article.link}`,
               styles.webview, 
               { 
                 height: webViewHeight,
-                backgroundColor: theme.colors.background
+                backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC'
               }
             ]}
             scrollEnabled={false}
