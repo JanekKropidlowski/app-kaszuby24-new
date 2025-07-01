@@ -912,6 +912,7 @@ export default function HomeScreen() {
             </View>
           ) : !hasMoreArticles && articles.length > 0 ? (
             <View style={styles.endOfListContainer}>
+              <View style={[styles.endOfListDivider, { backgroundColor: theme.colors.border }]} />
               <Text style={[
                 styles.endOfListText,
                 { 
@@ -920,6 +921,15 @@ export default function HomeScreen() {
                 }
               ]}>
                 To wszystkie dostępne artykuły
+              </Text>
+              <Text style={[
+                styles.endOfListSubtext,
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.regular
+                }
+              ]}>
+                Odśwież stronę, aby sprawdzić nowe treści
               </Text>
             </View>
           ) : null
@@ -933,7 +943,7 @@ export default function HomeScreen() {
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.3}
+        onEndReachedThreshold={0.1}
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
@@ -1093,24 +1103,42 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   infiniteLoadingContainer: {
-    paddingVertical: 20,
+    paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    marginTop: 8,
   },
   infiniteLoadingText: {
     fontSize: 14,
-    marginTop: 8,
+    marginTop: 12,
     textAlign: 'center',
+    fontWeight: '500',
   },
   endOfListContainer: {
-    paddingVertical: 24,
+    paddingVertical: 40,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 16,
+  },
+  endOfListDivider: {
+    width: 60,
+    height: 2,
+    borderRadius: 1,
+    marginBottom: 16,
+    opacity: 0.3,
   },
   endOfListText: {
-    fontSize: 14,
+    fontSize: 16,
     textAlign: 'center',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  endOfListSubtext: {
+    fontSize: 13,
+    textAlign: 'center',
+    opacity: 0.7,
   },
 });

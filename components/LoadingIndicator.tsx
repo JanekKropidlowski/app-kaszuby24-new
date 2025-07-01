@@ -49,7 +49,7 @@ const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -62,6 +62,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     textAlign: 'center',
+    fontWeight: '500',
   },
   connectingText: {
     marginTop: 8,

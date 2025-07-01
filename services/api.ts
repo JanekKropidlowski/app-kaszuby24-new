@@ -166,7 +166,7 @@ export const cancelRequest = (key: string) => {
 
 export const fetchArticles = async (
   page = 1, 
-  perPage = 20, // Increased default for better infinite scroll
+  perPage = 15, // Reduced for better infinite scroll performance
   categories?: number[]
 ): Promise<{ articles: Article[], totalPages: number }> => {
   const requestKey = `articles_${page}_${perPage}_${categories?.join(',') || 'all'}`;
