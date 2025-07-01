@@ -19,12 +19,12 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ fullScreen = false }) =
         Animated.timing(animatedValue, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: true, // Using native driver for opacity
         }),
         Animated.timing(animatedValue, {
           toValue: 0,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: true, // Using native driver for opacity
         }),
       ])
     );

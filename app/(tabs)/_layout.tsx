@@ -42,12 +42,12 @@ const AnimatedLogo = () => {
         transform: [{ scale: logoScale }],
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12, // Added more vertical padding
+        paddingVertical: 16, // Increased vertical padding
       }}
     >
       <Image
         source={{ uri: theme.logo.header }}
-        style={{ width: 160, height: 45 }} // Reduced size from 180x50 to 160x45
+        style={{ width: 150, height: 42 }} // Reduced size from 160x45 to 150x42
         contentFit="contain"
         placeholder="Kaszuby24"
         cachePolicy="memory-disk"
@@ -86,7 +86,7 @@ const AnimatedHeader = () => {
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 8, // Added padding to the header container
+        paddingVertical: 12, // Increased padding to the header container
       }}
     >
       <AnimatedLogo />

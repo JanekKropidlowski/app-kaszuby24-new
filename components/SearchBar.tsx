@@ -39,7 +39,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
     Animated.timing(animatedWidth, {
       toValue: isFocused ? 1 : 0,
       duration: 200,
-      useNativeDriver: false,
+      useNativeDriver: false, // Cannot use native driver for layout properties
     }).start();
     
     if (autoFocus) {
@@ -47,7 +47,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         inputRef.current?.focus();
       }, 100);
     }
-  }, [isFocused, autoFocus]);
+  }, [isFocused, autoFocus, animatedWidth]);
 
   useEffect(() => {
     // Initialize speech recognition for web

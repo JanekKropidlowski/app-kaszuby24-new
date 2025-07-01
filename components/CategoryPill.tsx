@@ -14,7 +14,7 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
   onPress 
 }) => {
   const { theme } = useThemeStore();
-  const animatedScale = new Animated.Value(1);
+  const animatedScale = React.useRef(new Animated.Value(1)).current;
   
   const handlePress = () => {
     // Instant visual feedback for responsiveness
