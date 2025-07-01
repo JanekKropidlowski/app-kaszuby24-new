@@ -92,7 +92,7 @@ const lightTheme: Theme = {
     }) || 'Poppins-Black',
   },
   logo: {
-    header: 'https://kaszuby24.pl/wp-content/uploads/2020/03/logo-e1584093147599.png',
+    header: 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png',
   },
 };
 
@@ -152,7 +152,7 @@ const darkTheme: Theme = {
     }) || 'Poppins-Black',
   },
   logo: {
-    header: 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png',
+    header: 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png',
   },
 };
 
