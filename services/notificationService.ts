@@ -266,10 +266,12 @@ class NotificationService {
   async scheduleLocalNotification(title: string, body: string, data?: any) {
     try {
       if (Platform.OS === 'web') {
+        console.log('Local notifications not supported on web');
         return;
       }
       
-      await Notifications.scheduleNotificationAsync({
+      // Get notification ID for tracking
+      const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body,
@@ -278,6 +280,8 @@ class NotificationService {
         },
         trigger: null, // Show immediately
       });
+      
+      console.log('Scheduled local notification with ID:', notificationId);
       
       // Also add to store
       const { addNotification } = useNotificationsStore.getState();
@@ -288,8 +292,10 @@ class NotificationService {
         read: false,
       });
       
+      return notificationId;
     } catch (error) {
       console.warn('Failed to schedule local notification:', error);
+      throw error; // Re-throw to allow handling in UI
     }
   }
   

@@ -26,7 +26,8 @@ import {
   User,
   Zap,
   CheckCircle,
-  Navigation
+  Navigation,
+  BellRing
 } from 'lucide-react-native';
 import { useNotificationsStore, availableLocations } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
@@ -195,6 +196,38 @@ export default function PreferencesScreen() {
       }
     } catch (error) {
       console.error('Error sharing:', error);
+    }
+  };
+  
+  const handleTestNotification = async () => {
+    try {
+      if (!notificationsEnabled) {
+        Alert.alert(
+          'Powiadomienia wyłączone',
+          'Aby przetestować powiadomienia, musisz najpierw włączyć je w ustawieniach.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      await notificationService.scheduleLocalNotification(
+        'Test powiadomienia',
+        'To jest testowe powiadomienie z aplikacji Kaszuby24. Jeśli widzisz to powiadomienie, oznacza to, że system powiadomień działa prawidłowo.',
+        { test: true }
+      );
+      
+      Alert.alert(
+        'Powiadomienie wysłane',
+        'Testowe powiadomienie zostało wysłane. Sprawdź centrum powiadomień na swoim urządzeniu.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      Alert.alert(
+        'Błąd',
+        'Nie udało się wysłać testowego powiadomienia. Sprawdź uprawnienia aplikacji.',
+        [{ text: 'OK' }]
+      );
     }
   };
   
@@ -639,6 +672,49 @@ export default function PreferencesScreen() {
             ]}>
               Udostępnij aplikację
             </Text>
+          </View>
+          <ChevronRight size={20} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+      
+      {/* Test Notifications Section */}
+      <Text style={[
+        styles.sectionTitle, 
+        { 
+          color: theme.colors.text,
+          fontFamily: theme.fontFamily.semibold
+        }
+      ]}>
+        Narzędzia testowe
+      </Text>
+      
+      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity 
+          style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+          onPress={handleTestNotification}
+        >
+          <View style={styles.settingLabelContainer}>
+            <BellRing size={20} color={theme.colors.primary} />
+            <View style={styles.settingTextContainer}>
+              <Text style={[
+                styles.settingLabel, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Testowe powiadomienie
+              </Text>
+              <Text style={[
+                styles.settingSubtitle,
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.regular
+                }
+              ]}>
+                Wyślij testowe powiadomienie push
+              </Text>
+            </View>
           </View>
           <ChevronRight size={20} color={theme.colors.textSecondary} />
         </TouchableOpacity>
