@@ -280,6 +280,7 @@ export const fetchArticles = async (
   });
 };
 
+// Function to fetch article by ID with enhanced error handling
 export const fetchArticleById = async (id: number): Promise<Article> => {
   const requestKey = `article_${id}`;
   
@@ -288,9 +289,11 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
       const timestamp = new Date().getTime();
       const url = `${API_BASE_URL}/posts/${id}?_embed&_=${timestamp}`;
       
+      console.log(`Fetching article with ID: ${id}`);
       const response = await fetchWithTimeout(url);
       
       if (!response.ok) {
+        console.error(`Error fetching article ${id}: ${response.status} ${response.statusText}`);
         if (response.status === 404) {
           throw new Error('Artykuł nie został znaleziony.');
         } else if (response.status === 429) {
@@ -303,6 +306,7 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
       }
       
       const article = await response.json();
+      console.log(`Successfully fetched article ${id}`);
       
       // Process article to extract featured image URL
       let featured_media_url = undefined;
@@ -325,6 +329,8 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
       
       return processedArticle;
     } catch (error: any) {
+      console.error('Error in fetchArticleById:', error);
+      
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
       } else if (error instanceof DOMException && error.name === 'AbortError') {
