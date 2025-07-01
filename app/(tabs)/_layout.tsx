@@ -3,36 +3,25 @@ import { Platform, View, Animated, StyleSheet, Text } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Bell, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 import { useScrollStore } from '@/store/scrollStore';
 import { WelcomeGreeting } from '@/components/WelcomeGreeting';
 import { WeatherWidget } from '@/components/WeatherWidget';
-import { HeaderLogo } from '@/components/HeaderLogo';
 
-// Enhanced iOS-style header - Wariant 1: Logo Inline
+// Enhanced iOS-style header - cleaned up without sticky text
 const IOSStyleHeader = () => {
   const { theme } = useThemeStore();
-  const { showLogo } = useScrollStore();
-  const headerOpacity = React.useRef(new Animated.Value(1)).current;
-
-  React.useEffect(() => {
-    Animated.timing(headerOpacity, {
-      toValue: showLogo ? 1 : 0.98,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [showLogo, headerOpacity]);
 
   return (
     <View style={[styles.headerWrapper, { backgroundColor: theme.colors.background }]}>
-      <Animated.View 
+      <View 
         style={[
           styles.headerContainer, 
           { 
             backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-            opacity: headerOpacity,
           }
         ]}
       >
@@ -40,30 +29,20 @@ const IOSStyleHeader = () => {
           {/* Left: Greeting */}
           <WelcomeGreeting />
           
-          {/* Center: Subtle Logo */}
-          <View style={styles.logoContainer}>
-            <Text style={[styles.logoText, { 
-              color: theme.colors.primary,
-              fontFamily: theme.fontFamily.bold
-            }]}>
-              Kaszuby24
-            </Text>
-          </View>
-          
           {/* Right: Weather */}
           <WeatherWidget />
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 };
 
-// Animated logo component
-const AnimatedLogo = () => {
+// Scroll-responsive floating logo with gradient
+const FloatingLogo = () => {
   const { theme } = useThemeStore();
   const { showLogo } = useScrollStore();
-  const logoOpacity = React.useRef(new Animated.Value(1)).current;
-  const logoScale = React.useRef(new Animated.Value(1)).current;
+  const logoOpacity = React.useRef(new Animated.Value(0)).current;
+  const logoTranslateY = React.useRef(new Animated.Value(-20)).current;
 
   React.useEffect(() => {
     Animated.parallel([
@@ -72,37 +51,47 @@ const AnimatedLogo = () => {
         duration: 300,
         useNativeDriver: true,
       }),
-      Animated.timing(logoScale, {
-        toValue: showLogo ? 1 : 0.8,
+      Animated.timing(logoTranslateY, {
+        toValue: showLogo ? 0 : -20,
         duration: 300,
         useNativeDriver: true,
       }),
     ]).start();
-  }, [showLogo, logoOpacity, logoScale]);
+  }, [showLogo, logoOpacity, logoTranslateY]);
 
-  // Add safety check for theme and logo
-  if (!theme || !theme.logo || !theme.logo.header) {
-    return null;
-  }
+  if (!showLogo) return null;
 
   return (
     <Animated.View
-      style={{
-        opacity: logoOpacity,
-        transform: [{ scale: logoScale }],
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-      }}
+      style={[
+        styles.floatingLogoContainer,
+        {
+          opacity: logoOpacity,
+          transform: [{ translateY: logoTranslateY }],
+        }
+      ]}
+      pointerEvents="none"
     >
-      <Image
-        source={{ uri: theme.logo.header }}
-        style={{ width: 150, height: 42 }}
-        contentFit="contain"
-        placeholder="Kaszuby24"
-        cachePolicy="memory-disk"
-        transition={200}
-      />
+      <LinearGradient
+        colors={theme.isDarkMode 
+          ? ['rgba(30, 41, 59, 0.95)', 'rgba(30, 41, 59, 0.85)']
+          : ['rgba(248, 250, 252, 0.95)', 'rgba(248, 250, 252, 0.85)']
+        }
+        style={styles.logoGradientContainer}
+      >
+        <Image
+          source={{ 
+            uri: theme.isDarkMode 
+              ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png' // white logo
+              : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png' // color logo
+          }}
+          style={styles.floatingLogo}
+          contentFit="contain"
+          placeholder="Kaszuby24"
+          cachePolicy="memory-disk"
+          transition={200}
+        />
+      </LinearGradient>
     </Animated.View>
   );
 };
@@ -146,99 +135,105 @@ export default function TabLayout() {
   }, [incrementNotificationCount]);
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: theme.colors.tabBarBackground,
-          borderTopColor: theme.colors.border,
-          borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
-          height: Platform.OS === 'ios' ? 80 : 65,
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontFamily: theme.fontFamily.medium,
-        },
-        headerStyle: {
-          backgroundColor: theme.colors.background,
-          elevation: 0,
-          shadowOpacity: 0,
-          borderBottomWidth: 0,
-        },
-        headerTintColor: theme.colors.text,
-        headerTitleStyle: {
-          fontFamily: theme.fontFamily.semibold,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Start',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-          header: () => <IOSStyleHeader />,
+    <>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.textSecondary,
+          tabBarStyle: {
+            backgroundColor: theme.colors.tabBarBackground,
+            borderTopColor: theme.colors.border,
+            borderTopWidth: 1,
+            paddingTop: 8,
+            paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+            height: Platform.OS === 'ios' ? 80 : 65,
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+          },
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontFamily: theme.fontFamily.medium,
+          },
+          headerStyle: {
+            backgroundColor: theme.colors.background,
+            elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 0,
+          },
+          headerTintColor: theme.colors.text,
+          headerTitleStyle: {
+            fontFamily: theme.fontFamily.semibold,
+          },
         }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Szukaj',
-          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          title: 'Zapisane',
-          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
-          headerTitle: 'Zapisane artykuły',
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: 'Powiadomienia',
-          tabBarIcon: ({ color, size }) => (
-            <View>
-              <Bell size={size} color={color} />
-              {hasUnreadNotifications && (
-                <View style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: theme.colors.notification,
-                }} />
-              )}
-            </View>
-          ),
-          headerTitle: 'Powiadomienia',
-        }}
-      />
-      <Tabs.Screen
-        name="preferences"
-        options={{
-          title: 'Ustawienia',
-          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
-          headerTitle: 'Ustawienia',
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Start',
+            tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+            header: () => <IOSStyleHeader />,
+            tabBarStyle: { display: 'none' },
+          }}
+        />
+        <Tabs.Screen
+          name="search"
+          options={{
+            title: 'Szukaj',
+            tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+            headerShown: false,
+          }}
+        />
+        <Tabs.Screen
+          name="saved"
+          options={{
+            title: 'Zapisane',
+            tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
+            headerTitle: 'Zapisane artykuły',
+          }}
+        />
+        <Tabs.Screen
+          name="notifications"
+          options={{
+            title: 'Powiadomienia',
+            tabBarIcon: ({ color, size }) => (
+              <View>
+                <Bell size={size} color={color} />
+                {hasUnreadNotifications && (
+                  <View style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -4,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: theme.colors.notification,
+                  }} />
+                )}
+              </View>
+            ),
+            headerTitle: 'Powiadomienia',
+          }}
+        />
+        <Tabs.Screen
+          name="preferences"
+          options={{
+            title: 'Ustawienia',
+            tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
+            headerTitle: 'Ustawienia',
+          }}
+        />
+      </Tabs>
+      
+      {/* Floating Logo */}
+      <FloatingLogo />
+    </>
   );
 }
 
@@ -259,17 +254,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  logoContainer: {
+  floatingLogoContainer: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    pointerEvents: 'none',
+    top: Platform.OS === 'ios' ? 54 : 34,
+    left: '50%',
+    marginLeft: -75, // Half of logo width
+    zIndex: 1000,
   },
-  logoText: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    opacity: 0.3,
+  logoGradientContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingLogo: {
+    width: 110,
+    height: 30,
   },
 });

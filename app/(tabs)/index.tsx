@@ -12,7 +12,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronRight, RefreshCw, WifiOff, ArrowRight, Heart } from 'lucide-react-native';
+import { ChevronRight, RefreshCw, WifiOff, ArrowRight, Heart, Home, Bell, Search, Bookmark, Settings } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fetchArticles, fetchCategories, MAX_RETRIES, cancelAllRequests, cancelRequest, fetchNekrologi } from '@/services/api';
@@ -137,7 +137,8 @@ export default function HomeScreen() {
     shouldShowWelcome, 
     shouldShowBanner, 
     dismissBanner,
-    initializePreferences 
+    initializePreferences,
+    getUnreadCount
   } = useNotificationsStore();
   
   // Simplified state management for reliable infinite scroll
@@ -762,7 +763,7 @@ export default function HomeScreen() {
   }, []);
 
   // Category pills render function
-  const renderCategoryPills = useMemo(() => {
+  const renderCategoryPills = useCallback(() => {
     if (categories.length === 0) return null;
     
     return (
@@ -838,6 +839,32 @@ export default function HomeScreen() {
     
     return null;
   }, [loadingMore, hasMoreArticles, mixedContent.length, theme]);
+
+  // Bottom navigation functions
+  const handleGoHome = useCallback(() => {
+    // Already on home, scroll to top
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+  }, []);
+
+  const handleGoSearch = useCallback(() => {
+    router.push('/(tabs)/search');
+  }, [router]);
+
+  const handleGoSaved = useCallback(() => {
+    router.push('/(tabs)/saved');
+  }, [router]);
+
+  const handleGoNotifications = useCallback(() => {
+    router.push('/(tabs)/notifications');
+  }, [router]);
+
+  const handleGoSettings = useCallback(() => {
+    router.push('/(tabs)/preferences');
+  }, [router]);
+
+  const unreadCount = getUnreadCount();
 
   if (initialLoading) {
     return <SkeletonLoader type="home" count={5} />;
@@ -1014,6 +1041,71 @@ export default function HomeScreen() {
         visible={showWelcomeModal}
         onClose={handleWelcomeClose}
       />
+
+      {/* Bottom Navigation Menu */}
+      <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.tabBarBackground }]}>
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoSearch}
+          activeOpacity={0.7}
+        >
+          <Search size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Szukaj
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoSaved}
+          activeOpacity={0.7}
+        >
+          <Bookmark size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Zapisane
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoHome}
+          activeOpacity={0.7}
+        >
+          <Home size={22} color={theme.colors.primary} strokeWidth={2.5} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.primary, fontFamily: theme.fontFamily.medium }]}>
+            Główna
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoNotifications}
+          activeOpacity={0.7}
+        >
+          <Bell size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Powiadomienia
+          </Text>
+          {unreadCount > 0 && (
+            <View style={[styles.badge, { backgroundColor: theme.colors.notification }]}>
+              <Text style={[styles.badgeText, { fontFamily: theme.fontFamily.semibold }]}>
+                {unreadCount > 9 ? '9+' : unreadCount.toString()}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoSettings}
+          activeOpacity={0.7}
+        >
+          <Settings size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Ustawienia
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -1023,7 +1115,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 80,
+    paddingBottom: 120, // Increased from 80 to accommodate bottom menu
   },
   carouselContainer: {
     marginTop: 12,
@@ -1247,5 +1339,62 @@ const styles = StyleSheet.create({
   nekrologDate: {
     fontSize: 12,
     fontWeight: '400',
+  },
+  bottomMenuBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingBottom: Platform.select({
+      ios: 20,
+      android: 15,
+      default: 15,
+    }),
+    paddingTop: 10,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: Platform.select({
+      ios: 85,
+      android: 75,
+      default: 75
+    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  bottomMenuItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    position: 'relative',
+  },
+  bottomMenuText: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 4,
+    letterSpacing: 0.2,
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: '25%',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
