@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -16,7 +16,7 @@ const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width * 0.8; // Adjusted for better centering
 const ITEM_SPACING = 16;
 
-// Memoized article item component for better performance
+// Enhanced memoized article item component
 const RelatedArticleItem = memo(({ 
   item, 
   index, 
@@ -30,6 +30,38 @@ const RelatedArticleItem = memo(({
 }) => {
   const { theme } = useThemeStore();
   
+  // Prefetch on press start for better performance
+  const handlePressIn = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      import('@/services/api').then(({ prefetchArticleById }) => {
+        prefetchArticleById(item.id).catch(() => {
+          // Silent fail for prefetch
+        });
+      });
+    }
+  }, [item.id]);
+  
+  // Memoized image rendering with progressive loading
+  const renderImage = useMemo(() => {
+    if (item.featured_media_url) {
+      return (
+        <Image
+          source={{ uri: item.featured_media_url }}
+          style={styles.articleImage}
+          contentFit="cover"
+          transition={200}
+          placeholder="Loading..."
+          cachePolicy="memory-disk"
+          priority="normal"
+        />
+      );
+    } else {
+      return (
+        <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+      );
+    }
+  }, [item.featured_media_url, theme.colors.subtle]);
+  
   return (
     <TouchableOpacity
       style={[
@@ -42,21 +74,10 @@ const RelatedArticleItem = memo(({
         },
       ]}
       onPress={() => onPress(item)}
+      onPressIn={handlePressIn}
       activeOpacity={0.8}
     >
-      {item.featured_media_url ? (
-        <Image
-          source={{ uri: item.featured_media_url }}
-          style={styles.articleImage}
-          contentFit="cover"
-          transition={200}
-          placeholder="Loading..."
-          cachePolicy="memory-disk"
-          priority="normal"
-        />
-      ) : (
-        <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
-      )}
+      {renderImage}
       
       <View style={styles.articleContent}>
         <Text
@@ -86,7 +107,17 @@ const RelatedArticleItem = memo(({
       </View>
     </TouchableOpacity>
   );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.index === nextProps.index &&
+    prevProps.totalItems === nextProps.totalItems &&
+    prevProps.item.title.rendered === nextProps.item.title.rendered &&
+    prevProps.item.featured_media_url === nextProps.item.featured_media_url
+  );
 });
+
+RelatedArticleItem.displayName = 'RelatedArticleItem';
 
 export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(({
   articles,
@@ -112,11 +143,19 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
 
   const keyExtractor = useCallback((item: Article, index: number) => `related-${item.id}-${index}`, []);
 
+  // Memoized list configuration for better performance
+  const listConfig = useMemo(() => ({
+    initialNumToRender: 3,
+    maxToRenderPerBatch: 2,
+    windowSize: 5,
+    removeClippedSubviews: Platform.OS === 'android',
+    updateCellsBatchingPeriod: 50,
+  }), []);
+
   if (articles.length === 0) {
     return null;
   }
 
-  // Create infinite data by repeating the array for better infinite scroll
   const infiniteData = articles.length > 1 ? 
     [...articles, ...articles, ...articles] : 
     articles;
@@ -145,10 +184,10 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         snapToInterval={ITEM_WIDTH + ITEM_SPACING}
         snapToAlignment="center"
         decelerationRate="fast"
-        removeClippedSubviews={Platform.OS === 'android'}
-        initialNumToRender={3}
-        maxToRenderPerBatch={3}
-        windowSize={5}
+        removeClippedSubviews={listConfig.removeClippedSubviews}
+        initialNumToRender={listConfig.initialNumToRender}
+        maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
+        windowSize={listConfig.windowSize}
         pagingEnabled={false}
         initialScrollIndex={articles.length > 1 ? articles.length : 0}
         getItemLayout={(data, index) => ({
@@ -159,8 +198,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         onScrollToIndexFailed={() => {
           // Handle scroll failure gracefully
         }}
-        // Performance optimizations
-        updateCellsBatchingPeriod={50}
+        updateCellsBatchingPeriod={listConfig.updateCellsBatchingPeriod}
         disableVirtualization={false}
         maintainVisibleContentPosition={{
           minIndexForVisible: 0,
@@ -168,6 +206,15 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         }}
       />
     </View>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.title === nextProps.title &&
+    prevProps.articles.length === nextProps.articles.length &&
+    prevProps.articles.every((article, index) => 
+      article.id === nextProps.articles[index]?.id &&
+      article.title.rendered === nextProps.articles[index]?.title.rendered
+    )
   );
 });
 

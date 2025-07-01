@@ -83,6 +83,82 @@ export const MemoryOptimizer = {
   },
   
   /**
+   * Optimized debounce for article prefetching
+   */
+  debouncePrefetch: <T extends (...args: any[]) => any>(
+    func: T,
+    wait: number = 300
+  ): ((...args: Parameters<T>) => void) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  },
+  
+  /**
+   * Batch prefetch articles to avoid overwhelming the network
+   */
+  batchPrefetch: (articleIds: number[], batchSize: number = 3) => {
+    const batches: number[][] = [];
+    for (let i = 0; i < articleIds.length; i += batchSize) {
+      batches.push(articleIds.slice(i, i + batchSize));
+    }
+    
+    return batches.reduce((promise, batch) => {
+      return promise.then(() => {
+        return Promise.all(
+          batch.map(async (id) => {
+            try {
+              const { prefetchArticleById } = await import('@/services/api');
+              return prefetchArticleById(id);
+            } catch (error) {
+              console.warn(`Failed to prefetch article ${id}:`, error);
+            }
+          })
+        );
+      }).then(() => {
+        // Small delay between batches to avoid overwhelming the network
+        return new Promise(resolve => setTimeout(resolve, 100));
+      });
+    }, Promise.resolve());
+  },
+  
+  /**
+   * Enhanced performance monitoring for article screens
+   */
+  measureArticleLoadTime: (articleId: number) => {
+    const startTime = performance.now();
+    
+    return {
+      end: () => {
+        const endTime = performance.now();
+        const loadTime = endTime - startTime;
+        console.log(`Article ${articleId} loaded in ${loadTime.toFixed(2)}ms`);
+        
+        // Log slow loads for debugging
+        if (loadTime > 2000) {
+          console.warn(`Slow article load detected: ${articleId} took ${loadTime.toFixed(2)}ms`);
+        }
+        
+        return loadTime;
+      }
+    };
+  },
+  
+  /**
+   * Optimized image preloading strategy
+   */
+  shouldPreloadImages: (context: 'article' | 'list' | 'carousel'): boolean => {
+    if (Platform.OS === 'web') {
+      return context === 'article'; // Only preload for article detail on web
+    }
+    
+    // On mobile, be more selective
+    return context === 'article' || context === 'carousel';
+  },
+  
+  /**
    * Debounce function for performance optimization
    */
   debounce: <T extends (...args: any[]) => any>(

@@ -8,7 +8,7 @@ import { getRelativeTime } from '@/utils/dateFormatter';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
-import { getOptimizedImageProps } from '@/utils/imageOptimizer';
+import { getProgressiveImageProps } from '@/utils/imageOptimizer';
 import { Vibration } from 'react-native';
 
 interface ArticleCardProps {
@@ -29,19 +29,26 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
   const isSaved = isArticleSaved(article.id);
   const isSponsored = isSponsoredContent(article);
   
-  // Don't render sponsored content
   if (isSponsored) {
     return null;
   }
   
-  // Add ref to prevent double taps
   const lastTapTime = useRef(0);
   const isPressingRef = useRef(false);
+  
+  const handlePressIn = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      import('@/services/api').then(({ prefetchArticleById }) => {
+        prefetchArticleById(article.id).catch(() => {
+          // Silent fail for prefetch
+        });
+      });
+    }
+  }, [article.id]);
   
   const handlePress = useCallback(() => {
     const now = Date.now();
     if (now - lastTapTime.current < 500 || isPressingRef.current) {
-      // Prevent double tap within 500ms
       return;
     }
     
@@ -51,20 +58,17 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     if (onPress) {
       onPress();
     } else {
-      // Only navigate if no custom onPress is provided
       router.push(`/article/${article.id}`);
     }
     
-    // Provide haptic feedback on press
     if (Platform.OS !== 'web') {
       try {
-        Vibration.vibrate(20); // Very subtle vibration
+        Vibration.vibrate(20);
       } catch (e) {
         // Ignore vibration errors
       }
     }
     
-    // Reset pressing state after a short delay
     setTimeout(() => {
       isPressingRef.current = false;
     }, 300);
@@ -74,7 +78,6 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     e.stopPropagation();
     e.preventDefault();
     
-    // Don't allow saving sponsored content
     if (isSponsored) {
       return;
     }
@@ -86,13 +89,11 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     }
   }, [isSponsored, isSaved, removeArticle, saveArticle, article]);
 
-  // Create a clean excerpt by removing HTML tags
   const cleanExcerpt = article.excerpt.rendered
     .replace(/<\/?[^>]+(>|$)/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&#8230;/g, '...');
   
-  // Get category name if available
   let categoryName = "";
   if (article._embedded && article._embedded["wp:term"]) {
     const categories = article._embedded["wp:term"][0];
@@ -101,10 +102,9 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     }
   }
   
-  // Memoize the image component with optimized props
   const renderImage = useMemo(() => {
     if (article.featured_media_url) {
-      const imageProps = getOptimizedImageProps(
+      const imageProps = getProgressiveImageProps(
         article.featured_media_url, 
         compact ? 'thumbnail' : 'list'
       );
@@ -112,12 +112,14 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
       return (
         <Image
           source={imageProps.source}
+          placeholder={imageProps.placeholder}
           style={compact ? styles.compactImage : styles.image}
-          contentFit="cover"
+          contentFit={imageProps.contentFit}
           priority={imageProps.priority}
           cachePolicy={imageProps.cachePolicy as "memory-disk" | "memory"}
           transition={imageProps.transition}
-          placeholder={imageProps.placeholder}
+          allowDownscaling={imageProps.allowDownscaling}
+          recyclingKey={imageProps.recyclingKey}
         />
       );
     } else {
@@ -142,13 +144,12 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
           }
         ]} 
         onPress={handlePress}
+        onPressIn={handlePressIn}
         activeOpacity={0.7}
         disabled={false}
       >
-        {/* Image on the left */}
         {renderImage}
         
-        {/* Text content on the right */}
         <View style={styles.compactContent}>
           <Text style={[
             styles.compactTitle, 
@@ -202,13 +203,12 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
         }
       ]} 
       onPress={handlePress}
+      onPressIn={handlePressIn}
       activeOpacity={0.7}
       disabled={false}
     >
-      {/* Image on the left */}
       {renderImage}
       
-      {/* Text content on the right */}
       <View style={styles.textContent}>
         {categoryName && (
           <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '15' }]}>
@@ -248,7 +248,6 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
             </Text>
           </View>
           
-          {/* Only show bookmark button for non-sponsored content */}
           {!isSponsored && (
             <TouchableOpacity 
               onPress={toggleSave} 
@@ -271,7 +270,6 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-  // Enhanced comparison function for better performance
   return (
     prevProps.article.id === nextProps.article.id &&
     prevProps.compact === nextProps.compact &&

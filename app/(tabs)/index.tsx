@@ -37,7 +37,7 @@ const CAROUSEL_ITEM_SPACING = 12; // Reduced spacing
 const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 40; // Wider cards, 40px total side margin
 
 // Memoized carousel item component for better performance
-const CarouselItem = React.memo(({ 
+const CarouselItemEnhanced = React.memo(({ 
   item, 
   index, 
   totalItems, 
@@ -49,6 +49,17 @@ const CarouselItem = React.memo(({
   onPress: (article: Article) => void;
 }) => {
   const { theme } = useThemeStore();
+  
+  // Prefetch on press start
+  const handlePressIn = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      import('@/services/api').then(({ prefetchArticleById }) => {
+        prefetchArticleById(item.id).catch(() => {
+          // Silent fail for prefetch
+        });
+      });
+    }
+  }, [item.id]);
   
   return (
     <View
@@ -63,6 +74,7 @@ const CarouselItem = React.memo(({
       <TouchableOpacity 
         style={styles.carouselItem}
         onPress={() => onPress(item)}
+        onPressIn={handlePressIn}
         activeOpacity={0.9}
       >
         <View style={styles.carouselImageContainer}>
@@ -529,125 +541,27 @@ export default function HomeScreen() {
     }
   };
 
+  // Enhanced article press handler with prefetching
   const handleArticlePress = useCallback((article: Article) => {
-    // Add to recent articles (filtering is handled in the store)
+    // Start performance measurement
+    const perfMeasure = MemoryOptimizer.measureArticleLoadTime(article.id);
+    
+    // Add to recent articles
     addRecentArticle(article);
+    
     // Navigate to article detail
     router.push(`/article/${article.id}`);
+    
+    // End performance measurement after navigation
+    setTimeout(() => {
+      perfMeasure.end();
+    }, 100);
   }, [addRecentArticle, router]);
-  
-  const navigateToSearch = useCallback(() => {
-    router.push('/search');
-  }, [router]);
-  
-  const handleRetry = useCallback(() => {
-    setError(null);
-    setIsOffline(false);
-    loadArticles(1, true);
-  }, [loadArticles]);
-  
-  const handleWelcomeClose = useCallback(() => {
-    setShowWelcomeModal(false);
-  }, []);
-  
-  const handleBannerPress = useCallback(() => {
-    setShowWelcomeModal(true);
-  }, []);
-  
-  const handleBannerDismiss = useCallback(() => {
-    dismissBanner();
-  }, [dismissBanner]);
-  
-  // Add missing handleCategoryChange function
-  const handleCategoryChange = useCallback((categoryId: number | null) => {
-    setSelectedCategory(categoryId);
-  }, []);
-  
-  // Updated handleDotPress to work with infinite scroll
-  const handleDotPress = useCallback((dotIndex: number) => {
-    if (flatListRef.current && dotIndex < featuredArticles.length) {
-      const duplicateCount = Math.min(2, featuredArticles.length);
-      const actualIndex = duplicateCount + dotIndex;
-      
-      try {
-        flatListRef.current.scrollToIndex({
-          index: actualIndex,
-          animated: true,
-          viewPosition: 0.5,
-        });
-        setActiveCarouselIndex(actualIndex);
-        setRealActiveIndex(dotIndex);
-        
-        // Restart auto-scroll timer after manual interaction
-        if (carouselIntervalRef.current) {
-          clearInterval(carouselIntervalRef.current);
-        }
-        
-        // Restart auto-scroll after a delay
-        setTimeout(() => {
-          if (infiniteArticles.length > 1 && isScreenFocused.current) {
-            carouselIntervalRef.current = setInterval(() => {
-              if (!isScreenFocused.current) return;
-              
-              setActiveCarouselIndex(prevIndex => {
-                const nextIndex = prevIndex + 1;
-                
-                if (flatListRef.current && infiniteArticles.length > 0) {
-                  try {
-                    flatListRef.current.scrollToIndex({
-                      index: nextIndex,
-                      animated: true,
-                      viewPosition: 0.5,
-                    });
-                  } catch (error) {
-                    console.warn('Auto scroll failed:', error);
-                  }
-                }
-                
-                return nextIndex;
-              });
-            }, 4000);
-          }
-        }, 2000);
-      } catch (error) {
-        console.warn('Manual dot navigation failed:', error);
-      }
-    }
-  }, [featuredArticles.length, infiniteArticles.length]);
-  
-  // Optimized item layout for FlatList
-  const getItemLayout = useCallback((data: any, index: number) => {
-    const length = CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING;
-    const offset = index * length;
-    return { length, offset, index };
-  }, []);
-  
-  // Handle scroll to index failure with better error handling
-  const handleScrollToIndexFailed = useCallback((info: {
-    index: number;
-    highestMeasuredFrameIndex: number;
-    averageItemLength: number;
-  }) => {
-    const wait = new Promise(resolve => setTimeout(resolve, 500));
-    wait.then(() => {
-      if (flatListRef.current && info.index < featuredArticles.length) {
-        try {
-          flatListRef.current.scrollToIndex({
-            index: info.index,
-            animated: true,
-            viewPosition: 0.5,
-          });
-        } catch (error) {
-          console.warn('ScrollToIndex failed:', error);
-        }
-      }
-    });
-  }, [featuredArticles.length]);
-  
-  // Memoized carousel render function
+
+  // Enhanced carousel render function
   const renderCarouselItem = useCallback(({ item, index }: { item: Article; index: number }) => (
     <View style={styles.carouselItemWrapper}>
-      <CarouselItem
+      <CarouselItemEnhanced
         item={item}
         index={index}
         totalItems={infiniteArticles.length}
@@ -655,43 +569,18 @@ export default function HomeScreen() {
       />
     </View>
   ), [infiniteArticles.length, handleArticlePress]);
-  
-  // Memoized carousel indicator with clickable dots
-  const renderCarouselIndicator = useMemo(() => {
-    if (featuredArticles.length <= 1) return null;
-    
-    return (
-      <View style={styles.indicatorContainer}>
-        {featuredArticles.map((_, index) => (
-          <TouchableOpacity
-            key={`indicator-${index}`}
-            style={[
-              styles.indicator,
-              {
-                backgroundColor: index === realActiveIndex ? theme.colors.primary : theme.colors.textSecondary,
-                opacity: index === realActiveIndex ? 1 : 0.4,
-                transform: [{ scale: index === realActiveIndex ? 1.2 : 1 }],
-              },
-            ]}
-            onPress={() => handleDotPress(index)}
-            activeOpacity={0.7}
-          />
-        ))}
-      </View>
-    );
-  }, [featuredArticles.length, realActiveIndex, theme.colors.primary, theme.colors.textSecondary, handleDotPress]);
-  
-  // Memoized article render function with proper onPress handling
+
+  // Enhanced article render function with prefetching
   const renderArticle = useCallback(({ item }: { item: Article }) => (
     <ArticleCard 
       article={item} 
       onPress={() => handleArticlePress(item)}
     />
   ), [handleArticlePress]);
-  
+
   // Memoized key extractor
   const keyExtractor = useCallback((item: Article) => item.id.toString(), []);
-  
+
   // Memoized category pills render function
   const renderCategoryPills = useMemo(() => {
     if (categories.length === 0) return null;
@@ -720,7 +609,7 @@ export default function HomeScreen() {
       </View>
     );
   }, [categories, selectedCategory, handleCategoryChange]);
-  
+
   const handleScroll = useCallback(
     MemoryOptimizer.throttle((event: any) => {
       const scrollY = event.nativeEvent.contentOffset.y;
@@ -728,17 +617,17 @@ export default function HomeScreen() {
     }, 16), // 60fps throttling
     [setScrollDirection]
   );
-  
+
   const listConfig = useMemo(() => MemoryOptimizer.getOptimalListConfig(), []);
-  
+
   if (initialLoading) {
     return <SkeletonLoader type="home" count={5} />;
   }
-  
+
   if (loading && !refreshing) {
     return <SkeletonLoader type="home" count={5} />;
   }
-  
+
   if (error) {
     return (
       <EmptyState
@@ -750,7 +639,7 @@ export default function HomeScreen() {
       />
     );
   }
-  
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <FlatList

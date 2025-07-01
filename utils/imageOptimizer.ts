@@ -36,6 +36,28 @@ export const optimizeImageUrl = (url: string | undefined, width: number = 400, q
 };
 
 /**
+ * Generate a low-quality image placeholder (LQIP) URL
+ */
+export const generateLQIP = (url: string | undefined): string | undefined => {
+  if (!url) return undefined;
+  
+  try {
+    if (url.includes('wp-content/uploads')) {
+      const hasParams = url.includes('?');
+      const separator = hasParams ? '&' : '?';
+      
+      // Generate a very small, low quality version for LQIP
+      return `${url}${separator}w=20&quality=20&blur=5`;
+    }
+    
+    return url;
+  } catch (error) {
+    console.warn('Error generating LQIP:', error);
+    return url;
+  }
+};
+
+/**
  * Determines the appropriate image priority based on context
  * 
  * @param context The context where the image is used
@@ -147,5 +169,44 @@ export const getOptimizedImageProps = (
     cachePolicy,
     transition: context === 'featured' ? 300 : 200,
     placeholder: 'Loading...',
+  };
+};
+
+/**
+ * Get progressive image loading props with LQIP support
+ */
+export const getProgressiveImageProps = (
+  url: string | undefined,
+  context: 'featured' | 'list' | 'thumbnail' | 'gallery' = 'list'
+) => {
+  const priority = getImagePriority(context);
+  const cachePolicy: 'memory-disk' | 'memory' = context === 'featured' ? 'memory-disk' : 'memory';
+  
+  const widthMap = {
+    featured: 800,
+    list: 400,
+    thumbnail: 200,
+    gallery: 600,
+  };
+  
+  const qualityMap = {
+    featured: 80,
+    list: 70,
+    thumbnail: 60,
+    gallery: 75,
+  };
+  
+  const optimizedUrl = url ? optimizeImageUrl(url, widthMap[context], qualityMap[context]) : undefined;
+  const lqipUrl = url ? generateLQIP(url) : undefined;
+  
+  return {
+    source: optimizedUrl ? { uri: optimizedUrl } : undefined,
+    placeholder: lqipUrl ? { uri: lqipUrl } : 'Loading...',
+    priority,
+    cachePolicy,
+    transition: context === 'featured' ? 300 : 200,
+    contentFit: 'cover' as const,
+    allowDownscaling: true,
+    recyclingKey: url, // Help with memory management
   };
 };

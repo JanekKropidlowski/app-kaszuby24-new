@@ -9,7 +9,9 @@ export const MAX_RETRIES = 2; // Export for use in other files
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_KEY_MEDIA = 'cached_media';
+const CACHE_KEY_SINGLE_ARTICLE = 'cached_single_article';
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+const STALE_WHILE_REVALIDATE_DURATION = 5 * 60 * 1000; // 5 minutes for stale-while-revalidate
 
 // Request deduplication map - simplified approach
 const pendingRequests = new Map<string, Promise<any>>();
@@ -92,11 +94,12 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
 };
 
 // Helper function to cache data with compression
-const cacheData = async (key: string, data: any) => {
+const cacheDataWithSWR = async (key: string, data: any, isStale = false) => {
   try {
     const timestampedData = {
       data,
       timestamp: Date.now(),
+      isStale,
     };
     
     // For large datasets, consider compression or selective caching
@@ -113,15 +116,21 @@ const cacheData = async (key: string, data: any) => {
 };
 
 // Helper function to retrieve cached data
-const getCachedData = async (key: string) => {
+const getCachedDataWithSWR = async (key: string) => {
   try {
     const cached = await AsyncStorage.getItem(key);
     if (cached) {
-      const { data, timestamp } = JSON.parse(cached);
+      const { data, timestamp, isStale } = JSON.parse(cached);
       const age = Date.now() - timestamp;
-      if (age < CACHE_DURATION) {
-        return data;
+      
+      if (age < STALE_WHILE_REVALIDATE_DURATION) {
+        // Fresh data
+        return { data, isStale: false, shouldRevalidate: false };
+      } else if (age < CACHE_DURATION) {
+        // Stale but usable data
+        return { data, isStale: true, shouldRevalidate: true };
       } else {
+        // Expired data
         AsyncStorage.removeItem(key).catch(() => {});
         return null;
       }
@@ -178,7 +187,7 @@ export const fetchArticles = async (
       // Try to get from cache first for faster initial load (only for first page)
       if (page === 1) {
         const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
-        const cachedData = await getCachedData(cacheKey);
+        const cachedData = await getCachedDataWithSWR(cacheKey);
         if (cachedData) {
           console.log('Using cached articles data');
           return cachedData;
@@ -265,7 +274,7 @@ export const fetchArticles = async (
       // Cache the articles (only first page to avoid memory issues)
       if (page === 1) {
         const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
-        await cacheData(cacheKey, { articles: filteredArticles, totalPages });
+        await cacheDataWithSWR(cacheKey, { articles: filteredArticles, totalPages });
       }
       
       return { 
@@ -278,7 +287,7 @@ export const fetchArticles = async (
       // Attempt to load from cache if fetch fails and it's first page
       if (page === 1) {
         const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
-        const cachedData = await getCachedData(cacheKey);
+        const cachedData = await getCachedDataWithSWR(cacheKey);
         if (cachedData) {
           console.log('Using cached articles data after error');
           return cachedData;
@@ -295,16 +304,115 @@ export const fetchArticles = async (
   });
 };
 
+// Function to prefetch article by ID
+export const prefetchArticleById = async (id: number): Promise<void> => {
+  const requestKey = `prefetch_article_${id}`;
+  
+  // Check if already cached
+  const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_${id}`;
+  const cached = await getCachedDataWithSWR(cacheKey);
+  if (cached && !cached.shouldRevalidate) {
+    console.log(`Article ${id} already cached, skipping prefetch`);
+    return;
+  }
+  
+  // Don't prefetch if already in progress
+  if (pendingRequests.has(requestKey)) {
+    return;
+  }
+  
+  try {
+    console.log(`Prefetching article ${id}`);
+    const article = await fetchArticleById(id);
+    console.log(`Successfully prefetched article ${id}`);
+  } catch (error) {
+    console.warn(`Failed to prefetch article ${id}:`, error);
+  }
+};
+
+// Function to prefetch article by slug
+export const prefetchArticleBySlug = async (slug: string): Promise<void> => {
+  const requestKey = `prefetch_article_slug_${slug}`;
+  
+  // Check if already cached
+  const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_slug_${slug}`;
+  const cached = await getCachedDataWithSWR(cacheKey);
+  if (cached && !cached.shouldRevalidate) {
+    console.log(`Article ${slug} already cached, skipping prefetch`);
+    return;
+  }
+  
+  // Don't prefetch if already in progress
+  if (pendingRequests.has(requestKey)) {
+    return;
+  }
+  
+  try {
+    console.log(`Prefetching article ${slug}`);
+    const article = await fetchArticleBySlug(slug);
+    console.log(`Successfully prefetched article ${slug}`);
+  } catch (error) {
+    console.warn(`Failed to prefetch article ${slug}:`, error);
+  }
+};
+
 // Function to fetch article by ID with enhanced error handling
 export const fetchArticleById = async (id: number): Promise<Article> => {
   const requestKey = `article_${id}`;
+  const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_${id}`;
   
   return deduplicateRequest(requestKey, async () => {
     try {
+      // Try cache first (stale-while-revalidate)
+      const cached = await getCachedDataWithSWR(cacheKey);
+      
+      if (cached) {
+        if (!cached.shouldRevalidate) {
+          // Fresh data, return immediately
+          console.log(`Using fresh cached article ${id}`);
+          return cached.data;
+        } else {
+          // Stale data, return immediately but revalidate in background
+          console.log(`Using stale cached article ${id}, revalidating in background`);
+          
+          // Start background revalidation
+          setTimeout(async () => {
+            try {
+              const timestamp = new Date().getTime();
+              const url = `${API_BASE_URL}/posts/${id}?_embed&_=${timestamp}`;
+              
+              const response = await fetchWithTimeout(url);
+              if (response.ok) {
+                const article = await response.json();
+                
+                let featured_media_url = undefined;
+                if (article._embedded && 
+                    article._embedded['wp:featuredmedia'] && 
+                    article._embedded['wp:featuredmedia'][0]) {
+                  featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+                }
+                
+                const processedArticle = { ...article, featured_media_url };
+                
+                if (filterSponsoredArticles([processedArticle]).length > 0) {
+                  await cacheDataWithSWR(cacheKey, processedArticle);
+                  console.log(`Background revalidation completed for article ${id}`);
+                }
+              }
+            } catch (error) {
+              console.warn(`Background revalidation failed for article ${id}:`, error);
+            }
+          }, 100);
+          
+          return cached.data;
+        }
+      }
+      
+      // No cache, fetch fresh data
       const timestamp = new Date().getTime();
       const url = `${API_BASE_URL}/posts/${id}?_embed&_=${timestamp}`;
       
-      console.log(`Fetching article with ID: ${id}`);
+      console.log(`Fetching fresh article with ID: ${id}`);
       const response = await fetchWithTimeout(url);
       
       if (!response.ok) {
@@ -321,26 +429,23 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
       }
       
       const article = await response.json();
-      console.log(`Successfully fetched article ${id}`);
+      console.log(`Successfully fetched fresh article ${id}`);
       
-      // Process article to extract featured image URL
       let featured_media_url = undefined;
-      
       if (article._embedded && 
           article._embedded['wp:featuredmedia'] && 
           article._embedded['wp:featuredmedia'][0]) {
         featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
       }
       
-      const processedArticle = {
-        ...article,
-        featured_media_url
-      };
+      const processedArticle = { ...article, featured_media_url };
       
-      // Check if this is sponsored content and throw error if it is
       if (filterSponsoredArticles([processedArticle]).length === 0) {
         throw new Error('Artykuł nie został znaleziony.');
       }
+      
+      // Cache the fresh data
+      await cacheDataWithSWR(cacheKey, processedArticle);
       
       return processedArticle;
     } catch (error: any) {
@@ -365,13 +470,62 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
 
 export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
   const requestKey = `article_slug_${slug}`;
+  const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_slug_${slug}`;
   
   return deduplicateRequest(requestKey, async () => {
     try {
+      // Try cache first (stale-while-revalidate)
+      const cached = await getCachedDataWithSWR(cacheKey);
+      
+      if (cached) {
+        if (!cached.shouldRevalidate) {
+          console.log(`Using fresh cached article ${slug}`);
+          return cached.data;
+        } else {
+          console.log(`Using stale cached article ${slug}, revalidating in background`);
+          
+          // Start background revalidation
+          setTimeout(async () => {
+            try {
+              const timestamp = new Date().getTime();
+              const url = `${API_BASE_URL}/posts?slug=${encodeURIComponent(slug)}&_embed&_=${timestamp}`;
+              
+              const response = await fetchWithTimeout(url);
+              if (response.ok) {
+                const articles = await response.json();
+                
+                if (Array.isArray(articles) && articles.length > 0) {
+                  const article = articles[0];
+                  
+                  let featured_media_url = undefined;
+                  if (article._embedded && 
+                      article._embedded['wp:featuredmedia'] && 
+                      article._embedded['wp:featuredmedia'][0]) {
+                    featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+                  }
+                  
+                  const processedArticle = { ...article, featured_media_url };
+                  
+                  if (filterSponsoredArticles([processedArticle]).length > 0) {
+                    await cacheDataWithSWR(cacheKey, processedArticle);
+                    console.log(`Background revalidation completed for article ${slug}`);
+                  }
+                }
+              }
+            } catch (error) {
+              console.warn(`Background revalidation failed for article ${slug}:`, error);
+            }
+          }, 100);
+          
+          return cached.data;
+        }
+      }
+      
+      // No cache, fetch fresh data
       const timestamp = new Date().getTime();
       const url = `${API_BASE_URL}/posts?slug=${encodeURIComponent(slug)}&_embed&_=${timestamp}`;
       
-      console.log(`Fetching article with slug: ${slug}`);
+      console.log(`Fetching fresh article with slug: ${slug}`);
       const response = await fetchWithTimeout(url);
       
       if (!response.ok) {
@@ -394,26 +548,23 @@ export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
       }
       
       const article = articles[0];
-      console.log(`Successfully fetched article ${slug}`);
+      console.log(`Successfully fetched fresh article ${slug}`);
       
-      // Process article to extract featured image URL
       let featured_media_url = undefined;
-      
       if (article._embedded && 
           article._embedded['wp:featuredmedia'] && 
           article._embedded['wp:featuredmedia'][0]) {
         featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
       }
       
-      const processedArticle = {
-        ...article,
-        featured_media_url
-      };
+      const processedArticle = { ...article, featured_media_url };
       
-      // Check if this is sponsored content and throw error if it is
       if (filterSponsoredArticles([processedArticle]).length === 0) {
         throw new Error('Artykuł nie został znaleziony.');
       }
+      
+      // Cache the fresh data
+      await cacheDataWithSWR(cacheKey, processedArticle);
       
       return processedArticle;
     } catch (error: any) {

@@ -9,12 +9,14 @@ interface SkeletonLoaderProps {
   fullScreen?: boolean;
   type?: 'article' | 'home' | 'search';
   count?: number;
+  immediate?: boolean; // New prop for immediate display
 }
 
 const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ 
   fullScreen = false, 
   type = 'home',
-  count = 3
+  count = 3,
+  immediate = false
 }) => {
   const { theme } = useThemeStore();
   const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -23,24 +25,32 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   const skeletonColor = theme.isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
 
   React.useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(animatedValue, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animatedValue, {
-          toValue: 0,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    animation.start();
+    // Start animation immediately if requested
+    const startDelay = immediate ? 0 : 200;
+    
+    const timer = setTimeout(() => {
+      const animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(animatedValue, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animatedValue, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+    }, startDelay);
 
-    return () => animation.stop();
-  }, [animatedValue]);
+    return () => {
+      clearTimeout(timer);
+      animatedValue.stopAnimation();
+    };
+  }, [animatedValue, immediate]);
 
   const opacity = animatedValue.interpolate({
     inputRange: [0, 1],
@@ -57,41 +67,71 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     );
   }
 
-  // Article detail skeleton
+  // Enhanced article detail skeleton with immediate display
   if (type === 'article') {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Header skeleton - shows immediately */}
+        <View style={styles.articleHeader}>
+          <View style={[styles.headerButton, { backgroundColor: skeletonColor }]} />
+          <View style={styles.headerActions}>
+            <View style={[styles.headerButton, { backgroundColor: skeletonColor }]} />
+            <View style={[styles.headerButton, { backgroundColor: skeletonColor }]} />
+          </View>
+        </View>
+        
         {/* Featured image skeleton */}
         <Animated.View 
           style={[
             styles.articleFeaturedImage, 
-            { backgroundColor: skeletonColor, opacity }
+            { backgroundColor: skeletonColor, opacity: immediate ? 0.6 : opacity }
           ]} 
         />
         
-        {/* Title skeleton */}
+        {/* Content skeleton */}
         <View style={styles.articleContent}>
+          {/* Title skeleton */}
           <Animated.View 
             style={[
               styles.articleTitle, 
-              { backgroundColor: skeletonColor, opacity }
+              { backgroundColor: skeletonColor, opacity: immediate ? 0.6 : opacity }
             ]} 
           />
           <Animated.View 
             style={[
               styles.articleSubtitle, 
-              { backgroundColor: skeletonColor, opacity, width: '60%' }
+              { backgroundColor: skeletonColor, opacity: immediate ? 0.6 : opacity, width: '60%' }
             ]} 
           />
           
+          {/* Meta info skeleton */}
+          <View style={styles.metaContainer}>
+            <Animated.View 
+              style={[
+                styles.metaItem, 
+                { backgroundColor: skeletonColor, opacity: immediate ? 0.6 : opacity }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.metaItem, 
+                { backgroundColor: skeletonColor, opacity: immediate ? 0.6 : opacity, width: 80 }
+              ]} 
+            />
+          </View>
+          
           {/* Content skeleton */}
           <View style={styles.articleBody}>
-            {[1, 2, 3, 4].map((item) => (
+            {[1, 2, 3, 4, 5, 6].map((item) => (
               <Animated.View
                 key={item}
                 style={[
                   styles.articleParagraph,
-                  { backgroundColor: skeletonColor, opacity }
+                  { 
+                    backgroundColor: skeletonColor, 
+                    opacity: immediate ? 0.6 : opacity,
+                    width: item % 3 === 0 ? '80%' : '100%' // Vary widths for realism
+                  }
                 ]}
               />
             ))}
@@ -271,6 +311,43 @@ const styles = StyleSheet.create({
   // Search specific styles
   searchResultsContainer: {
     marginTop: 16,
+  },
+  // New styles for article skeleton
+  articleHeader: {
+    position: 'absolute',
+    top: Platform.select({
+      ios: 54,
+      android: 48,
+      default: 54
+    }),
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    zIndex: 1000,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  metaContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 24,
+    marginTop: 16,
+  },
+  metaItem: {
+    height: 16,
+    width: 120,
+    borderRadius: 8,
   },
 });
 

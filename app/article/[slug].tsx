@@ -69,7 +69,6 @@ export default function ArticleSlugScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   
-  // Add validation for slug
   useEffect(() => {
     if (!slug || typeof slug !== 'string') {
       console.error('Invalid article slug:', slug);
@@ -83,7 +82,7 @@ export default function ArticleSlugScreen() {
   const { theme, isDarkMode } = useThemeStore();
   
   const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
@@ -103,59 +102,69 @@ export default function ArticleSlugScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
   const webViewRef = useRef<WebView>(null);
-  
-  // Add refs to track animated values
   const progressOpacityValue = useRef(0);
   const progressBarWidthValue = useRef(0);
   
   const isSaved = article ? isArticleSaved(article.id) : false;
   const unreadCount = getUnreadCount();
   
-  // Load article data
+  // Optimized load article data with immediate skeleton display
   useEffect(() => {
     let isMounted = true;
+    
     const loadArticleData = async () => {
       if (!slug || typeof slug !== 'string') return;
       
       try {
-        setLoading(true);
-        setInitialLoading(true);
+        console.log(`Loading article ${slug} with optimized strategy`);
         setError(null);
         
-        // Start loading time measurement
-        const startTime = Date.now();
-        const minLoadingTime = 800; // Minimum time to show skeleton for better UX
+        // Show skeleton immediately, no delay
+        setInitialLoading(true);
         
-        // Load article by slug
+        // Load article with cache-first strategy
         const articleData = await fetchArticleBySlug(slug);
         
         if (!isMounted) return;
         
         setArticle(articleData);
-        
-        // Add to recent articles
         addRecentArticle(articleData);
         
-        // Extract videos from content
-        const extractedVideoUrls = extractVideoUrls(articleData.content.rendered);
+        // Process content in parallel
+        const [extractedVideoUrls, ytUrl] = await Promise.all([
+          new Promise<string[]>((resolve) => {
+            setTimeout(() => {
+              resolve(extractVideoUrls(articleData.content.rendered));
+            }, 0);
+          }),
+          new Promise<string | null>((resolve) => {
+            setTimeout(() => {
+              if (articleData.meta?.youtube) {
+                resolve(extractYouTubeUrl(articleData.meta.youtube));
+              } else {
+                resolve(null);
+              }
+            }, 0);
+          })
+        ]);
+        
+        if (!isMounted) return;
+        
         setVideoUrls(extractedVideoUrls);
+        setYoutubeUrl(ytUrl);
         
-        // Extract YouTube URL from meta field
-        if (articleData.meta?.youtube) {
-          const ytUrl = extractYouTubeUrl(articleData.meta.youtube);
-          setYoutubeUrl(ytUrl);
-        }
-        
-        // Load gallery images if available
+        // Load gallery images in background
         if (articleData.meta?.galeria) {
           setGalleryLoading(true);
-          const galleryIds = processGalleryIds(articleData.meta.galeria);
-          
-          if (galleryIds.length > 0) {
+          setTimeout(async () => {
             try {
-              const mediaItems = await fetchMediaByIds(galleryIds);
-              if (isMounted) {
-                setGalleryImages(mediaItems);
+              const galleryIds = processGalleryIds(articleData.meta.galeria);
+              
+              if (galleryIds.length > 0) {
+                const mediaItems = await fetchMediaByIds(galleryIds);
+                if (isMounted) {
+                  setGalleryImages(mediaItems);
+                }
               }
             } catch (err) {
               console.warn('Failed to load gallery images:', err);
@@ -164,42 +173,38 @@ export default function ArticleSlugScreen() {
                 setGalleryLoading(false);
               }
             }
-          } else {
-            setGalleryLoading(false);
-          }
+          }, 100);
         }
         
-        // Load related articles
+        // Load related articles in background
         setRelatedLoading(true);
-        try {
-          const { sliderArticles, listArticles } = await fetchRelatedArticles(
-            articleData.id,
-            articleData.categories || []
-          );
-          
-          if (isMounted) {
-            setRelatedSliderArticles(sliderArticles);
-            setRelatedListArticles(listArticles);
+        setTimeout(async () => {
+          try {
+            const { sliderArticles, listArticles } = await fetchRelatedArticles(
+              articleData.id,
+              articleData.categories || []
+            );
+            
+            if (isMounted) {
+              setRelatedSliderArticles(sliderArticles);
+              setRelatedListArticles(listArticles);
+            }
+          } catch (err) {
+            console.warn('Failed to load related articles:', err);
+          } finally {
+            if (isMounted) {
+              setRelatedLoading(false);
+            }
           }
-        } catch (err) {
-          console.warn('Failed to load related articles:', err);
-        } finally {
-          if (isMounted) {
-            setRelatedLoading(false);
-          }
-        }
+        }, 200);
         
-        // Calculate remaining time to show skeleton loader
-        const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
-        
-        // Ensure skeleton loader shows for at least minLoadingTime
+        // Mark content as loaded after minimal delay for smooth transition
         setTimeout(() => {
           if (isMounted) {
             setContentLoaded(true);
             setInitialLoading(false);
           }
-        }, remainingTime);
+        }, 300); // Reduced from 800ms to 300ms
         
       } catch (err: any) {
         if (isMounted) {
@@ -776,7 +781,7 @@ export default function ArticleSlugScreen() {
   }, [article, theme.colors, theme.fontFamily]);
   
   if (initialLoading) {
-    return <SkeletonLoader type="article" />;
+    return <SkeletonLoader type="article" immediate={true} />;
   }
   
   if (loading && !initialLoading) {

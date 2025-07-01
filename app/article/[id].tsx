@@ -83,8 +83,8 @@ export default function ArticleDetailScreen() {
   const { theme, isDarkMode } = useThemeStore();
   
   const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed: start with false
+  const [initialLoading, setInitialLoading] = useState(true); // Show skeleton immediately
   const [error, setError] = useState<string | null>(null);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
@@ -112,51 +112,65 @@ export default function ArticleDetailScreen() {
   const isSaved = isArticleSaved(articleId);
   const unreadCount = getUnreadCount();
   
-  // Load article data
+  // Optimized load article data with immediate skeleton display
   useEffect(() => {
     let isMounted = true;
+    
     const loadArticleData = async () => {
       if (!articleId || isNaN(articleId)) return;
       
       try {
-        setLoading(true);
-        setInitialLoading(true);
+        console.log(`Loading article ${articleId} with optimized strategy`);
         setError(null);
         
-        // Start loading time measurement
-        const startTime = Date.now();
-        const minLoadingTime = 800; // Minimum time to show skeleton for better UX
+        // Show skeleton immediately, no delay
+        setInitialLoading(true);
         
-        // Load article
+        // Load article with cache-first strategy
         const articleData = await fetchArticleById(articleId);
         
         if (!isMounted) return;
         
         setArticle(articleData);
-        
-        // Add to recent articles
         addRecentArticle(articleData);
         
-        // Extract videos from content
-        const extractedVideoUrls = extractVideoUrls(articleData.content.rendered);
+        // Process content in parallel
+        const [extractedVideoUrls, ytUrl] = await Promise.all([
+          // Extract videos asynchronously
+          new Promise<string[]>((resolve) => {
+            setTimeout(() => {
+              resolve(extractVideoUrls(articleData.content.rendered));
+            }, 0);
+          }),
+          // Extract YouTube URL asynchronously
+          new Promise<string | null>((resolve) => {
+            setTimeout(() => {
+              if (articleData.meta?.youtube) {
+                resolve(extractYouTubeUrl(articleData.meta.youtube));
+              } else {
+                resolve(null);
+              }
+            }, 0);
+          })
+        ]);
+        
+        if (!isMounted) return;
+        
         setVideoUrls(extractedVideoUrls);
+        setYoutubeUrl(ytUrl);
         
-        // Extract YouTube URL from meta field
-        if (articleData.meta?.youtube) {
-          const ytUrl = extractYouTubeUrl(articleData.meta.youtube);
-          setYoutubeUrl(ytUrl);
-        }
-        
-        // Load gallery images if available
+        // Load gallery images in background
         if (articleData.meta?.galeria) {
           setGalleryLoading(true);
-          const galleryIds = processGalleryIds(articleData.meta.galeria);
-          
-          if (galleryIds.length > 0) {
+          setTimeout(async () => {
             try {
-              const mediaItems = await fetchMediaByIds(galleryIds);
-              if (isMounted) {
-                setGalleryImages(mediaItems);
+              const galleryIds = processGalleryIds(articleData.meta.galeria);
+              
+              if (galleryIds.length > 0) {
+                const mediaItems = await fetchMediaByIds(galleryIds);
+                if (isMounted) {
+                  setGalleryImages(mediaItems);
+                }
               }
             } catch (err) {
               console.warn('Failed to load gallery images:', err);
@@ -165,42 +179,38 @@ export default function ArticleDetailScreen() {
                 setGalleryLoading(false);
               }
             }
-          } else {
-            setGalleryLoading(false);
-          }
+          }, 100);
         }
         
-        // Load related articles
+        // Load related articles in background
         setRelatedLoading(true);
-        try {
-          const { sliderArticles, listArticles } = await fetchRelatedArticles(
-            articleId,
-            articleData.categories || []
-          );
-          
-          if (isMounted) {
-            setRelatedSliderArticles(sliderArticles);
-            setRelatedListArticles(listArticles);
+        setTimeout(async () => {
+          try {
+            const { sliderArticles, listArticles } = await fetchRelatedArticles(
+              articleId,
+              articleData.categories || []
+            );
+            
+            if (isMounted) {
+              setRelatedSliderArticles(sliderArticles);
+              setRelatedListArticles(listArticles);
+            }
+          } catch (err) {
+            console.warn('Failed to load related articles:', err);
+          } finally {
+            if (isMounted) {
+              setRelatedLoading(false);
+            }
           }
-        } catch (err) {
-          console.warn('Failed to load related articles:', err);
-        } finally {
-          if (isMounted) {
-            setRelatedLoading(false);
-          }
-        }
+        }, 200);
         
-        // Calculate remaining time to show skeleton loader
-        const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
-        
-        // Ensure skeleton loader shows for at least minLoadingTime
+        // Mark content as loaded after minimal delay for smooth transition
         setTimeout(() => {
           if (isMounted) {
             setContentLoaded(true);
             setInitialLoading(false);
           }
-        }, remainingTime);
+        }, 300); // Reduced from 800ms to 300ms
         
       } catch (err: any) {
         if (isMounted) {
@@ -776,8 +786,9 @@ export default function ArticleDetailScreen() {
     );
   }, [article, theme.colors, theme.fontFamily]);
   
+  // Enhanced skeleton display with immediate rendering
   if (initialLoading) {
-    return <SkeletonLoader type="article" />;
+    return <SkeletonLoader type="article" immediate={true} />;
   }
   
   if (loading && !initialLoading) {
@@ -813,7 +824,6 @@ export default function ArticleDetailScreen() {
         barStyle="light-content" 
       />
       
-      {/* Simple progress bar without animations */}
       {showProgressBar && (
         <View style={[styles.progressBar, { backgroundColor: theme.colors.primary }]}>
           <View
@@ -827,7 +837,6 @@ export default function ArticleDetailScreen() {
         </View>
       )}
       
-      {/* Header bar with circular icons */}
       <View style={styles.headerBar}>
         <TouchableOpacity 
           style={styles.circularButton} 
@@ -871,7 +880,6 @@ export default function ArticleDetailScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Featured image with enhanced styling */}
         {article.featured_media_url ? (
           <View style={styles.featuredImageContainer}>
             <Image
@@ -891,9 +899,7 @@ export default function ArticleDetailScreen() {
           </View>
         )}
         
-        {/* Article content card */}
         <View style={[styles.articleContent, { backgroundColor: theme.colors.background }]}>
-          {/* Title and metadata */}
           <Text style={[
             styles.title, 
             { 
@@ -933,7 +939,6 @@ export default function ArticleDetailScreen() {
             )}
           </View>
           
-          {/* Display videos if any */}
           {videoUrls.length > 0 && (
             <View style={styles.videoContainer}>
               {videoUrls.map((url, index) => (
@@ -942,10 +947,8 @@ export default function ArticleDetailScreen() {
             </View>
           )}
           
-          {/* Article content */}
           {renderContent}
           
-          {/* YouTube video from meta field - positioned directly after content */}
           {youtubeUrl && (
             <View style={styles.youtubeContainer}>
               <Text style={[
@@ -961,7 +964,6 @@ export default function ArticleDetailScreen() {
             </View>
           )}
           
-          {/* Additional YouTube videos from content */}
           {videoUrls.length > 0 && (
             <View style={styles.additionalVideosContainer}>
               <Text style={[
@@ -983,16 +985,11 @@ export default function ArticleDetailScreen() {
             </View>
           )}
           
-          {/* Gallery (moved below content and videos) */}
           {renderGallery}
-          
-          {/* Source and photo credits */}
           {renderSourceAndCredit}
           
-          {/* Related articles */}
           {contentLoaded && (
             <View style={styles.relatedContainer}>
-              {/* Slider for related articles */}
               {relatedSliderArticles.length > 0 && (
                 <RelatedArticlesSlider 
                   articles={relatedSliderArticles} 
@@ -1000,7 +997,6 @@ export default function ArticleDetailScreen() {
                 />
               )}
               
-              {/* List of latest articles */}
               {relatedListArticles.length > 0 && (
                 <View style={styles.relatedListContainer}>
                   <Text style={[
@@ -1033,7 +1029,6 @@ export default function ArticleDetailScreen() {
         </View>
       </ScrollView>
       
-      {/* Bottom menu bar - updated styling to match main tabs */}
       <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
         <TouchableOpacity
           style={styles.bottomMenuItem}
@@ -1098,7 +1093,6 @@ export default function ArticleDetailScreen() {
         </TouchableOpacity>
       </View>
       
-      {/* Image modal */}
       {selectedImageIndex !== null && galleryImages[selectedImageIndex] && (
         <Modal
           visible={selectedImageIndex !== null}
@@ -1109,7 +1103,6 @@ export default function ArticleDetailScreen() {
           <View style={styles.modalContainer}>
             <StatusBar hidden />
             
-            {/* Close button */}
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={closeImageModal}
@@ -1118,7 +1111,6 @@ export default function ArticleDetailScreen() {
               <X size={24} color="#FFFFFF" />
             </TouchableOpacity>
             
-            {/* Navigation buttons */}
             {selectedImageIndex > 0 && (
               <TouchableOpacity
                 style={[styles.modalNavButton, styles.modalNavButtonLeft]}
@@ -1139,14 +1131,12 @@ export default function ArticleDetailScreen() {
               </TouchableOpacity>
             )}
             
-            {/* Image counter */}
             <View style={styles.modalCounter}>
               <Text style={[styles.modalCounterText, { fontFamily: theme.fontFamily.medium }]}>
                 {selectedImageIndex + 1} / {galleryImages.length}
               </Text>
             </View>
             
-            {/* Image */}
             <Image
               source={{ uri: galleryImages[selectedImageIndex].source_url }}
               style={styles.modalImage}
@@ -1154,7 +1144,6 @@ export default function ArticleDetailScreen() {
               transition={200}
             />
             
-            {/* Caption */}
             {galleryImages[selectedImageIndex].caption?.rendered && (
               <View style={styles.modalCaptionContainer}>
                 <Text style={[styles.modalCaption, { fontFamily: theme.fontFamily.regular }]}>

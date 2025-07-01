@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -21,32 +21,30 @@ interface VideoPlayerProps {
 
 const { width } = Dimensions.get('window');
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = memo(({ url, title, autoPlay = false }) => {
   const { theme, isDarkMode } = useThemeStore();
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [error, setError] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const webViewRef = useRef<WebView>(null);
 
-  // Extract YouTube video ID
-  const getYouTubeVideoId = (url: string): string | null => {
+  // Memoized YouTube video ID extraction
+  const youtubeVideoId = useMemo(() => {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[7].length === 11) ? match[7] : null;
-  };
-
-  // Get YouTube thumbnail URL
-  useEffect(() => {
-    const videoId = getYouTubeVideoId(url);
-    if (videoId) {
-      // Use high quality thumbnail
-      setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
-    }
   }, [url]);
 
-  // Create YouTube embed HTML with improved styling
-  const getYouTubeEmbedHtml = (videoId: string | null): string => {
-    if (!videoId) return '';
+  // Memoized thumbnail URL
+  useEffect(() => {
+    if (youtubeVideoId) {
+      setThumbnailUrl(`https://img.youtube.com/vi/${youtubeVideoId}/maxresdefault.jpg`);
+    }
+  }, [youtubeVideoId]);
+
+  // Memoized YouTube embed HTML
+  const youtubeEmbedHtml = useMemo(() => {
+    if (!youtubeVideoId) return '';
     
     return `
       <!DOCTYPE html>
@@ -86,7 +84,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
       <body>
         <div class="container">
           <iframe
-            src="https://www.youtube.com/embed/${videoId}?rel=0&autoplay=${autoPlay ? 1 : 0}&playsinline=1&modestbranding=1&color=white"
+            src="https://www.youtube.com/embed/${youtubeVideoId}?rel=0&autoplay=${autoPlay ? 1 : 0}&playsinline=1&modestbranding=1&color=white"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen
@@ -95,22 +93,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
       </body>
       </html>
     `;
-  };
+  }, [youtubeVideoId, autoPlay, isDarkMode]);
 
-  const handlePlay = () => {
+  const handlePlay = useCallback(() => {
     setIsPlaying(true);
-  };
+  }, []);
 
-  const handleOpenExternal = () => {
+  const handleOpenExternal = useCallback(() => {
     Linking.openURL(url).catch(err => {
       console.error('Failed to open URL:', err);
       setError(true);
     });
-  };
+  }, [url]);
 
   // Check if it's a YouTube URL
   const isYouTubeUrl = url.includes('youtube.com') || url.includes('youtu.be');
-  const youtubeVideoId = getYouTubeVideoId(url);
 
   // For web platform, we'll use a different approach
   if (Platform.OS === 'web') {
@@ -213,6 +210,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
                 style={styles.thumbnail}
                 contentFit="cover"
                 transition={200}
+                cachePolicy="memory-disk"
+                priority="normal"
               />
             ) : (
               <View style={[styles.placeholderThumbnail, { backgroundColor: theme.colors.subtle }]} />
@@ -236,7 +235,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
           <View style={styles.webViewContainer}>
             <WebView
               ref={webViewRef}
-              source={{ html: getYouTubeEmbedHtml(youtubeVideoId) }}
+              source={{ html: youtubeEmbedHtml }}
               style={styles.webView}
               javaScriptEnabled={true}
               domStorageEnabled={true}
@@ -280,7 +279,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
       </View>
     );
   }
-};
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.url === nextProps.url &&
+    prevProps.title === nextProps.title &&
+    prevProps.autoPlay === nextProps.autoPlay
+  );
+});
+
+VideoPlayer.displayName = 'VideoPlayer';
 
 const styles = StyleSheet.create({
   container: {
