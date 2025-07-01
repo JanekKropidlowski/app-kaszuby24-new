@@ -131,24 +131,32 @@ const CarouselItemEnhanced = React.memo(({
     }
   }, [item.id]);
 
-  // Get article region from categories
-  const getArticleRegion = () => {
-    if (!item.categories || item.categories.length === 0) return null;
-    // Find region category
+  // Get article region from categories using real category IDs
+  const getArticleRegion = (article: Article) => {
+    if (!article.categories || article.categories.length === 0) return null;
+    
+    // Real region category IDs and names
     const regionCategories = [
-      'Wejherowo', 'Trójmiasto', 'Puck', 'Kościerzyna', 
-      'Kartuzy', 'Chojnice', 'Reda', 'Lębork'
+      { id: 2583, name: 'Wejherowo' },
+      { id: 7, name: 'Trójmiasto' },
+      { id: 2128, name: 'Puck' },
+      { id: 76797, name: 'Reda' },
+      { id: 65546, name: 'Kościerzyna' },
+      { id: 65545, name: 'Kartuzy' },
+      { id: 65558, name: 'Lębork' },
     ];
-    const region = item.categories.find(cat => 
-      cat && cat.name && regionCategories.some(region => cat.name.includes(region))
+    
+    // Find region category by ID
+    const regionCategory = article.categories.find(cat => 
+      cat && regionCategories.some(region => region.id === cat.id)
     );
-    // Ensure we have a valid category with name before returning
-    if (region && region.name) {
-      return region.name;
+    
+    if (regionCategory) {
+      const region = regionCategories.find(r => r.id === regionCategory.id);
+      return region ? region.name : null;
     }
-    // Fallback to first category with valid name
-    const firstValidCategory = item.categories.find(cat => cat && cat.name);
-    return firstValidCategory ? firstValidCategory.name : null;
+    
+    return null;
   };
   
   return (
@@ -188,14 +196,14 @@ const CarouselItemEnhanced = React.memo(({
             style={styles.carouselGradient}
           />
           <View style={styles.carouselItemContent}>
-            {getArticleRegion() && (
+            {getArticleRegion(item) && (
               <View style={styles.carouselLabelContainer}>
                 <MapPin size={12} color="#FFFFFF" />
                 <Text style={[
                   styles.carouselLabel,
                   { fontFamily: theme.fontFamily.semibold }
                 ]}>
-                  {getArticleRegion()}
+                  {getArticleRegion(item)}
                 </Text>
               </View>
             )}
@@ -797,7 +805,22 @@ export default function HomeScreen() {
 
   // Handler functions that need to be defined within component scope
   const handleCategoryChange = useCallback((categoryId: number | null) => {
-    setSelectedCategory(categoryId);
+    // Handle "Wszystkie" category (ID: 3) as null for showing all articles
+    const actualCategoryId = categoryId === 3 ? null : categoryId;
+    
+    setSelectedCategory(actualCategoryId);
+    setCurrentPage(1);
+    setHasMoreArticles(true);
+    setLoadingMore(false);
+    
+    // Reset to show all content when changing category
+    setMixedContent([]);
+    setInitialLoading(true);
+    
+    // Force reload with new category
+    setTimeout(() => {
+      setInitialLoading(false);
+    }, 100);
   }, []);
 
   const handleRetry = useCallback(() => {
@@ -961,34 +984,58 @@ export default function HomeScreen() {
     setShowWelcomeModal(false);
   }, []);
 
-  // Category pills render function
-  const renderCategoryPills = useCallback(() => {
-    if (categories.length === 0) return null;
-    
+  // Render category pills with real categories
+  const renderCategoryPills = () => {
+    // Real category data from your system
+    const realCategories = [
+      { id: 3, name: 'Wszystkie', slug: 'wszystkie', icon: '🏠', color: '#E84142' },
+      { id: 17, name: 'Bezpieczeństwo', slug: 'bezpieczenstwo', icon: '🛡️', color: '#FF6B6B' },
+      { id: 11, name: 'Biznes', slug: 'biznes', icon: '💼', color: '#FFE66D' },
+      { id: 24, name: 'Sport', slug: 'sport', icon: '⚽', color: '#4ECDC4' },
+      { id: 22, name: 'Religia', slug: 'religia', icon: '⛪', color: '#A8E6CF' },
+      { id: 2246, name: 'Zdrowie', slug: 'zdrowie', icon: '🏥', color: '#FFB3BA' },
+      { id: 49, name: 'Nauka', slug: 'nauka', icon: '🔬', color: '#BFDBFE' },
+      { id: 16, name: 'Kultura', slug: 'kultura', icon: '🎭', color: '#DDD6FE' },
+    ];
+
     return (
       <View style={styles.categoriesContainer}>
-        <ScrollView
-          horizontal
+        <ScrollView 
+          horizontal 
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContent}
         >
-          <CategoryPill
-            name="Wszystkie"
-            isSelected={selectedCategory === null}
-            onPress={() => handleCategoryChange(null)}
-          />
-          {categories.map((category) => (
-            <CategoryPill
+          {realCategories.map((category) => (
+            <TouchableOpacity
               key={category.id}
-              name={category.name}
-              isSelected={selectedCategory === category.id}
+              style={[
+                styles.categoryPill,
+                { 
+                  backgroundColor: selectedCategory === category.id ? category.color : theme.colors.card,
+                  borderColor: selectedCategory === category.id ? category.color : theme.colors.border,
+                }
+              ]}
               onPress={() => handleCategoryChange(category.id)}
-            />
+              activeOpacity={0.7}
+            >
+              <Text style={styles.categoryEmoji}>{category.icon}</Text>
+              <Text 
+                style={[
+                  styles.categoryText, 
+                  { 
+                    color: selectedCategory === category.id ? '#FFFFFF' : theme.colors.text,
+                    fontFamily: selectedCategory === category.id ? theme.fontFamily.semibold : theme.fontFamily.medium
+                  }
+                ]}
+              >
+                {category.name}
+              </Text>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
     );
-  }, [categories, selectedCategory, handleCategoryChange]);
+  };
 
   const handleScroll = useCallback(
     MemoryOptimizer.throttle((event: any) => {
@@ -1305,6 +1352,28 @@ const styles = StyleSheet.create({
   categoriesContent: {
     paddingHorizontal: 16,
     paddingVertical: 6,
+  },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginRight: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryEmoji: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   sectionHeader: {
     flexDirection: 'row',

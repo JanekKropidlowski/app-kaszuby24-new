@@ -12,7 +12,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Search as SearchIcon, MapPin, Calendar, Heart, TrendingUp, Clock, Filter, Home, Bell, Settings, Bookmark } from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { searchArticles } from '@/services/api';
+import { searchArticles, fetchArticles } from '@/services/api';
 import { Article } from '@/types/article';
 import ArticleCard from '@/components/ArticleCard';
 import SearchBar from '@/components/SearchBar';
@@ -68,23 +68,25 @@ export default function SearchScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
   
-  // Filter options
+  // Filter options with real IDs from your system
   const regions = [
-    { id: 'wejherowo', name: 'Wejherowo', icon: MapPin },
-    { id: 'trojmiasto', name: 'Trójmiasto', icon: MapPin },
-    { id: 'puck', name: 'Puck', icon: MapPin },
-    { id: 'koscierzyna', name: 'Kościerzyna', icon: MapPin },
-    { id: 'kartuzy', name: 'Kartuzy', icon: MapPin },
-    { id: 'chojnice', name: 'Chojnice', icon: MapPin },
-    { id: 'reda', name: 'Reda', icon: MapPin },
-    { id: 'lebork', name: 'Lębork', icon: MapPin },
+    { id: '2583', name: 'Wejherowo', icon: MapPin },
+    { id: '7', name: 'Trójmiasto', icon: MapPin },
+    { id: '2128', name: 'Puck', icon: MapPin },
+    { id: '76797', name: 'Reda', icon: MapPin },
+    { id: '65546', name: 'Kościerzyna', icon: MapPin },
+    { id: '65545', name: 'Kartuzy', icon: MapPin },
+    { id: '65558', name: 'Lębork', icon: MapPin },
   ];
   
   const categories = [
-    { id: 'sport', name: 'Sport', icon: Heart, color: '#FF6B6B' },
-    { id: 'kultura', name: 'Kultura', icon: Calendar, color: '#4ECDC4' },
-    { id: 'biznes', name: 'Biznes', icon: TrendingUp, color: '#FFE66D' },
-    { id: 'wydarzenia', name: 'Wydarzenia', icon: Clock, color: '#A8E6CF' },
+    { id: '17', name: 'Bezpieczeństwo', icon: Heart, color: '#FF6B6B' },
+    { id: '11', name: 'Biznes', icon: TrendingUp, color: '#FFE66D' },
+    { id: '24', name: 'Sport i Rekreacja', icon: Calendar, color: '#4ECDC4' },
+    { id: '22', name: 'Religia', icon: Clock, color: '#A8E6CF' },
+    { id: '2246', name: 'Zdrowie', icon: Heart, color: '#FFB3BA' },
+    { id: '49', name: 'Nauka', icon: TrendingUp, color: '#BFDBFE' },
+    { id: '16', name: 'Kultura i Rozrywka', icon: Calendar, color: '#DDD6FE' },
   ];
 
   // Bottom navigation functions
@@ -127,7 +129,21 @@ export default function SearchScreen() {
       const startTime = Date.now();
       const minLoadingTime = 800; // Minimum time to show skeleton for better UX
       
-      const { articles: searchResults, totalPages } = await searchArticles(searchQuery, 1);
+      let searchResults, totalPages;
+      
+      // Check if this is a category filter search
+      if (searchQuery.startsWith('categories=')) {
+        const categoryId = searchQuery.replace('categories=', '');
+        // Use fetchArticles with category filter instead of searchArticles
+        const response = await fetchArticles(1, 20, [parseInt(categoryId)]);
+        searchResults = response.articles;
+        totalPages = response.totalPages;
+      } else {
+        // Regular text search
+        const response = await searchArticles(searchQuery, 1);
+        searchResults = response.articles;
+        totalPages = response.totalPages;
+      }
       
       // Additional client-side filtering to ensure no sponsored content
       const filteredResults = filterSponsoredArticles(searchResults);
@@ -185,22 +201,20 @@ export default function SearchScreen() {
   // Filter handlers
   const handleRegionFilter = (regionId: string) => {
     setSelectedRegion(selectedRegion === regionId ? '' : regionId);
-    // Perform search with region filter
-    const regionName = regions.find(r => r.id === regionId)?.name || '';
-    if (regionName && selectedRegion !== regionId) {
-      handleSearch(`region:${regionName}`);
-    } else if (selectedRegion === regionId) {
+    // Perform search with region filter using category ID
+    if (selectedRegion !== regionId) {
+      handleSearch(`categories=${regionId}`);
+    } else {
       handleSearch('');
     }
   };
 
   const handleCategoryFilter = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? '' : categoryId);
-    // Perform search with category filter
-    const categoryName = categories.find(c => c.id === categoryId)?.name || '';
-    if (categoryName && selectedCategory !== categoryId) {
-      handleSearch(`category:${categoryName}`);
-    } else if (selectedCategory === categoryId) {
+    // Perform search with category filter using category ID
+    if (selectedCategory !== categoryId) {
+      handleSearch(`categories=${categoryId}`);
+    } else {
       handleSearch('');
     }
   };
