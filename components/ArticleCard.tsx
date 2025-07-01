@@ -244,47 +244,47 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 32,
-    marginBottom: 24,
+    borderRadius: 20, // Reduced from 32
+    marginBottom: 16, // Reduced from 24
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 6 }, // Reduced from 12
+    shadowOpacity: 0.08, // Reduced from 0.15
+    shadowRadius: 12, // Reduced from 20
+    elevation: 6, // Reduced from 12
     borderWidth: 0,
   },
   cardContent: {
     flexDirection: 'row',
-    padding: 28,
+    padding: 20, // Reduced from 28
   },
   textContent: {
     flex: 1,
-    marginRight: 24,
+    marginRight: 16, // Reduced from 24
     justifyContent: 'space-between',
   },
   image: {
-    width: 130,
-    height: 130,
-    borderRadius: 28,
+    width: 90, // Reduced from 130
+    height: 90, // Reduced from 130
+    borderRadius: 18, // Reduced from 28
   },
   categoryBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 12, // Reduced from 16
+    paddingVertical: 6, // Reduced from 10
+    borderRadius: 16, // Reduced from 24
     alignSelf: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 12, // Reduced from 16
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 10, // Reduced from 12
     fontWeight: '700',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5, // Reduced from 0.6
   },
   title: {
-    fontSize: 19,
+    fontSize: 16, // Reduced from 19
     fontWeight: '700',
-    marginBottom: 20,
-    lineHeight: 28,
-    letterSpacing: -0.3,
+    marginBottom: 14, // Reduced from 20
+    lineHeight: 22, // Reduced from 28
+    letterSpacing: -0.2, // Reduced from -0.3
   },
   footer: {
     flexDirection: 'row',
@@ -296,47 +296,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   date: {
-    fontSize: 13,
-    marginLeft: 8,
+    fontSize: 12, // Reduced from 13
+    marginLeft: 6, // Reduced from 8
     opacity: 0.7,
     fontWeight: '600',
   },
   bookmarkButton: {
-    padding: 14,
-    borderRadius: 24,
+    padding: 10, // Reduced from 14
+    borderRadius: 16, // Reduced from 24
   },
   
   // Compact styles - improved
   compactContainer: {
     flexDirection: 'row',
-    borderRadius: 28,
-    marginBottom: 20,
+    borderRadius: 18, // Reduced from 28
+    marginBottom: 14, // Reduced from 20
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 }, // Reduced from 6
+    shadowOpacity: 0.08, // Reduced from 0.12
+    shadowRadius: 10, // Reduced from 16
+    elevation: 4, // Reduced from 8
     borderWidth: 0,
   },
   compactImage: {
-    width: 110,
-    height: 110,
+    width: 80, // Reduced from 110
+    height: 80, // Reduced from 110
   },
   compactImagePlaceholder: {
-    width: 110,
-    height: 110,
+    width: 80, // Reduced from 110
+    height: 80, // Reduced from 110
   },
   compactContent: {
     flex: 1,
-    padding: 24,
+    padding: 16, // Reduced from 24
     justifyContent: 'space-between',
   },
   compactTitle: {
-    fontSize: 17,
+    fontSize: 15, // Reduced from 17
     fontWeight: '700',
-    marginBottom: 16,
-    lineHeight: 24,
-    letterSpacing: -0.2,
+    marginBottom: 12, // Reduced from 16
+    lineHeight: 20, // Reduced from 24
+    letterSpacing: -0.1, // Reduced from -0.2
   },
   compactFooter: {
     flexDirection: 'row',
@@ -348,20 +348,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   compactDate: {
-    fontSize: 12,
-    marginLeft: 6,
+    fontSize: 11, // Reduced from 12
+    marginLeft: 5, // Reduced from 6
     opacity: 0.7,
     fontWeight: '600',
   },
   compactCategory: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10, // Reduced from 12
+    paddingVertical: 6, // Reduced from 8
+    borderRadius: 14, // Reduced from 20
   },
   compactCategoryText: {
-    fontSize: 11,
+    fontSize: 10, // Reduced from 11
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3, // Reduced from 0.4
   },
 });
 
