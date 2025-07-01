@@ -41,7 +41,7 @@ export default function SavedScreen() {
     Animated.timing(recentHeight, {
       toValue: showRecent ? 0 : 1,
       duration: ANIMATION_DURATION,
-      useNativeDriver: false,
+      useNativeDriver: false, // Changed to false as height is not supported by native driver
     }).start();
     
     setShowRecent(!showRecent);
@@ -51,7 +51,7 @@ export default function SavedScreen() {
     Animated.timing(recentHeight, {
       toValue: 0,
       duration: ANIMATION_DURATION,
-      useNativeDriver: false,
+      useNativeDriver: false, // Changed to false as height is not supported by native driver
     }).start(() => {
       clearRecentArticles();
       setShowRecent(false);
