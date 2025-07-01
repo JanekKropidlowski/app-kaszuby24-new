@@ -467,6 +467,22 @@ export default function HomeScreen() {
     dismissBanner();
   }, [dismissBanner]);
   
+  // Add missing handleDotPress function
+  const handleDotPress = useCallback((index: number) => {
+    if (flatListRef.current && index < featuredArticles.length) {
+      try {
+        flatListRef.current.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.5,
+        });
+        setActiveCarouselIndex(index);
+      } catch (error) {
+        console.warn('Manual dot navigation failed:', error);
+      }
+    }
+  }, [featuredArticles.length]);
+  
   // Optimized item layout for FlatList
   const getItemLayout = useCallback((data: any, index: number) => {
     const length = CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING;
