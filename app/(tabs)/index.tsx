@@ -28,11 +28,10 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-// Improved carousel sizing for center mode with peek - fixed spacing
-const CAROUSEL_HORIZONTAL_PADDING = 20;
-const CAROUSEL_PEEK_WIDTH = 30;
-const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_HORIZONTAL_PADDING * 2) - (CAROUSEL_PEEK_WIDTH * 2);
-const CAROUSEL_ITEM_SPACING = 16;
+// Improved carousel sizing for center mode with peek - better balanced spacing
+const CAROUSEL_PEEK_WIDTH = 25; // Reduced for better balance
+const CAROUSEL_ITEM_SPACING = 12; // Reduced spacing
+const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 40; // Wider cards, 40px total side margin
 
 // Memoized carousel item component for better performance
 const CarouselItem = React.memo(({ 
@@ -138,6 +137,8 @@ export default function HomeScreen() {
   const [isOffline, setIsOffline] = useState(false);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [infiniteArticles, setInfiniteArticles] = useState<Article[]>([]);
+  const [realActiveIndex, setRealActiveIndex] = useState(0);
   
   const flatListRef = useRef<FlatList>(null);
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -328,6 +329,32 @@ export default function HomeScreen() {
     loadArticles(1, true);
   }, [selectedCategory, loadArticles]);
   
+  // Create infinite scroll data by duplicating articles
+  useEffect(() => {
+    if (featuredArticles.length > 0) {
+      // Create infinite scroll by adding duplicates at start and end
+      const duplicateCount = Math.min(2, featuredArticles.length);
+      const startDuplicates = featuredArticles.slice(-duplicateCount);
+      const endDuplicates = featuredArticles.slice(0, duplicateCount);
+      
+      setInfiniteArticles([...startDuplicates, ...featuredArticles, ...endDuplicates]);
+      
+      // Set initial position to first real item (after start duplicates)
+      setTimeout(() => {
+        if (flatListRef.current && featuredArticles.length > 0) {
+          const initialIndex = duplicateCount;
+          flatListRef.current.scrollToIndex({
+            index: initialIndex,
+            animated: false,
+            viewPosition: 0.5,
+          });
+          setActiveCarouselIndex(initialIndex);
+          setRealActiveIndex(0);
+        }
+      }, 100);
+    }
+  }, [featuredArticles]);
+  
   // Optimized carousel auto-scroll with infinite loop
   useEffect(() => {
     const startCarouselAutoScroll = () => {
@@ -335,16 +362,15 @@ export default function HomeScreen() {
         clearInterval(carouselIntervalRef.current);
       }
       
-      if (featuredArticles.length > 1 && isScreenFocused.current) {
+      if (infiniteArticles.length > 1 && isScreenFocused.current) {
         carouselIntervalRef.current = setInterval(() => {
           if (!isScreenFocused.current) return;
           
           setActiveCarouselIndex(prevIndex => {
-            // Calculate next index with infinite loop
-            const nextIndex = prevIndex < featuredArticles.length - 1 ? prevIndex + 1 : 0;
+            const nextIndex = prevIndex + 1;
             
-            // Scroll to new index with error handling
-            if (flatListRef.current && featuredArticles.length > 0) {
+            // Scroll to next index
+            if (flatListRef.current && infiniteArticles.length > 0) {
               try {
                 flatListRef.current.scrollToIndex({
                   index: nextIndex,
@@ -358,7 +384,7 @@ export default function HomeScreen() {
             
             return nextIndex;
           });
-        }, 4000); // Slightly faster auto-scroll
+        }, 4000);
       }
     };
     
@@ -369,7 +395,7 @@ export default function HomeScreen() {
         clearInterval(carouselIntervalRef.current);
       }
     };
-  }, [featuredArticles.length]);
+  }, [infiniteArticles.length]);
   
   // Handle screen focus/blur for performance
   useEffect(() => {
@@ -378,7 +404,7 @@ export default function HomeScreen() {
       
       if (nextAppState === 'active') {
         // Restart carousel when app becomes active
-        if (featuredArticles.length > 1) {
+        if (infiniteArticles.length > 1) {
           const startCarouselAutoScroll = () => {
             if (carouselIntervalRef.current) {
               clearInterval(carouselIntervalRef.current);
@@ -388,9 +414,9 @@ export default function HomeScreen() {
               if (!isScreenFocused.current) return;
               
               setActiveCarouselIndex(prevIndex => {
-                const nextIndex = prevIndex < featuredArticles.length - 1 ? prevIndex + 1 : 0;
+                const nextIndex = prevIndex + 1;
                 
-                if (flatListRef.current && featuredArticles.length > 0) {
+                if (flatListRef.current && infiniteArticles.length > 0) {
                   try {
                     flatListRef.current.scrollToIndex({
                       index: nextIndex,
@@ -424,7 +450,7 @@ export default function HomeScreen() {
         clearInterval(carouselIntervalRef.current);
       }
     };
-  }, [featuredArticles.length]);
+  }, [infiniteArticles.length]);
   
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -468,16 +494,20 @@ export default function HomeScreen() {
     dismissBanner();
   }, [dismissBanner]);
   
-  // Fixed handleDotPress function with smooth scrolling
-  const handleDotPress = useCallback((index: number) => {
-    if (flatListRef.current && index < featuredArticles.length) {
+  // Updated handleDotPress to work with infinite scroll
+  const handleDotPress = useCallback((dotIndex: number) => {
+    if (flatListRef.current && dotIndex < featuredArticles.length) {
+      const duplicateCount = Math.min(2, featuredArticles.length);
+      const actualIndex = duplicateCount + dotIndex;
+      
       try {
         flatListRef.current.scrollToIndex({
-          index,
+          index: actualIndex,
           animated: true,
           viewPosition: 0.5,
         });
-        setActiveCarouselIndex(index);
+        setActiveCarouselIndex(actualIndex);
+        setRealActiveIndex(dotIndex);
         
         // Restart auto-scroll timer after manual interaction
         if (carouselIntervalRef.current) {
@@ -486,14 +516,14 @@ export default function HomeScreen() {
         
         // Restart auto-scroll after a delay
         setTimeout(() => {
-          if (featuredArticles.length > 1 && isScreenFocused.current) {
+          if (infiniteArticles.length > 1 && isScreenFocused.current) {
             carouselIntervalRef.current = setInterval(() => {
               if (!isScreenFocused.current) return;
               
               setActiveCarouselIndex(prevIndex => {
-                const nextIndex = prevIndex < featuredArticles.length - 1 ? prevIndex + 1 : 0;
+                const nextIndex = prevIndex + 1;
                 
-                if (flatListRef.current && featuredArticles.length > 0) {
+                if (flatListRef.current && infiniteArticles.length > 0) {
                   try {
                     flatListRef.current.scrollToIndex({
                       index: nextIndex,
@@ -514,7 +544,7 @@ export default function HomeScreen() {
         console.warn('Manual dot navigation failed:', error);
       }
     }
-  }, [featuredArticles.length]);
+  }, [featuredArticles.length, infiniteArticles.length]);
 
   // Optimized item layout for FlatList
   const getItemLayout = useCallback((data: any, index: number) => {
@@ -551,11 +581,11 @@ export default function HomeScreen() {
       <CarouselItem
         item={item}
         index={index}
-        totalItems={featuredArticles.length}
+        totalItems={infiniteArticles.length}
         onPress={handleArticlePress}
       />
     </View>
-  ), [featuredArticles.length, handleArticlePress]);
+  ), [infiniteArticles.length, handleArticlePress]);
   
   // Memoized carousel indicator with clickable dots
   const renderCarouselIndicator = useMemo(() => {
@@ -569,9 +599,9 @@ export default function HomeScreen() {
             style={[
               styles.indicator,
               {
-                backgroundColor: index === activeCarouselIndex ? theme.colors.primary : theme.colors.textSecondary,
-                opacity: index === activeCarouselIndex ? 1 : 0.4,
-                transform: [{ scale: index === activeCarouselIndex ? 1.2 : 1 }],
+                backgroundColor: index === realActiveIndex ? theme.colors.primary : theme.colors.textSecondary,
+                opacity: index === realActiveIndex ? 1 : 0.4,
+                transform: [{ scale: index === realActiveIndex ? 1.2 : 1 }],
               },
             ]}
             onPress={() => handleDotPress(index)}
@@ -580,7 +610,7 @@ export default function HomeScreen() {
         ))}
       </View>
     );
-  }, [featuredArticles.length, activeCarouselIndex, theme.colors.primary, theme.colors.textSecondary, handleDotPress]);
+  }, [featuredArticles.length, realActiveIndex, theme.colors.primary, theme.colors.textSecondary, handleDotPress]);
   
   // Memoized article render function
   const renderArticle = useCallback(({ item }: { item: Article }) => (
@@ -628,12 +658,12 @@ export default function HomeScreen() {
               />
             )}
             
-            {/* Improved Featured Articles Carousel with Perfect Center Mode */}
-            {featuredArticles.length > 0 && (
+            {/* Improved Featured Articles Carousel with Perfect Center Mode and Infinite Loop */}
+            {infiniteArticles.length > 0 && (
               <View style={styles.carouselContainer}>
                 <FlatList
                   ref={flatListRef}
-                  data={featuredArticles}
+                  data={infiniteArticles}
                   keyExtractor={(item, index) => `carousel-${item.id}-${index}`}
                   renderItem={renderCarouselItem}
                   horizontal
@@ -647,17 +677,55 @@ export default function HomeScreen() {
                   onMomentumScrollEnd={(event) => {
                     const contentOffsetX = event.nativeEvent.contentOffset.x;
                     const newIndex = Math.round(
-                      contentOffsetX / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
+                      (contentOffsetX + CAROUSEL_PEEK_WIDTH) / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
                     );
-                    const clampedIndex = Math.max(0, Math.min(newIndex, featuredArticles.length - 1));
-                    setActiveCarouselIndex(clampedIndex);
+                    
+                    const duplicateCount = Math.min(2, featuredArticles.length);
+                    
+                    // Handle infinite scroll logic
+                    if (newIndex <= 0) {
+                      // At start duplicates, jump to end of real items
+                      const jumpToIndex = infiniteArticles.length - duplicateCount - 1;
+                      setTimeout(() => {
+                        if (flatListRef.current) {
+                          flatListRef.current.scrollToIndex({
+                            index: jumpToIndex,
+                            animated: false,
+                            viewPosition: 0.5,
+                          });
+                          setActiveCarouselIndex(jumpToIndex);
+                          setRealActiveIndex(featuredArticles.length - 1);
+                        }
+                      }, 50);
+                    } else if (newIndex >= infiniteArticles.length - duplicateCount) {
+                      // At end duplicates, jump to start of real items
+                      setTimeout(() => {
+                        if (flatListRef.current) {
+                          flatListRef.current.scrollToIndex({
+                            index: duplicateCount,
+                            animated: false,
+                            viewPosition: 0.5,
+                          });
+                          setActiveCarouselIndex(duplicateCount);
+                          setRealActiveIndex(0);
+                        }
+                      }, 50);
+                    } else {
+                      // Normal scroll within real items
+                      const clampedIndex = Math.max(0, Math.min(newIndex, infiniteArticles.length - 1));
+                      setActiveCarouselIndex(clampedIndex);
+                      
+                      // Calculate real index for dots
+                      const realIndex = clampedIndex - duplicateCount;
+                      setRealActiveIndex(Math.max(0, Math.min(realIndex, featuredArticles.length - 1)));
+                    }
                   }}
                   onScrollToIndexFailed={handleScrollToIndexFailed}
                   removeClippedSubviews={Platform.OS === 'android'}
-                  initialNumToRender={3}
-                  maxToRenderPerBatch={3}
-                  windowSize={5}
-                  bounces={true}
+                  initialNumToRender={5}
+                  maxToRenderPerBatch={5}
+                  windowSize={7}
+                  bounces={false}
                   bouncesZoom={false}
                 />
                 {renderCarouselIndicator}
@@ -769,7 +837,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   carouselListContent: {
-    paddingHorizontal: CAROUSEL_HORIZONTAL_PADDING + CAROUSEL_PEEK_WIDTH,
+    paddingHorizontal: CAROUSEL_PEEK_WIDTH + 20, // Better balanced padding
     paddingVertical: 6,
   },
   carouselItemWrapper: {
