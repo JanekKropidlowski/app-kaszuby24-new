@@ -7,10 +7,12 @@ import {
   Platform,
   Share,
   TouchableOpacity,
-  BackHandler
+  BackHandler,
+  Linking,
+  Alert
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Share2, MapPin, Calendar, Clock, Church, Heart } from 'lucide-react-native';
+import { ArrowLeft, Share2, MapPin, Download, Heart } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useThemeStore } from '@/store/themeStore';
 import { fetchNekrologById } from '@/services/api';
@@ -27,6 +29,7 @@ export default function NekrologDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(null);
+  const [regionName, setRegionName] = useState<string>('');
   
   const isMounted = useRef(true);
 
@@ -65,6 +68,19 @@ export default function NekrologDetailScreen() {
               }
             } catch (err) {
               console.warn('Failed to load featured image:', err);
+            }
+          }
+          
+          // Load region information
+          if (nekrologData.region && nekrologData.region.length > 0) {
+            try {
+              const regionResponse = await fetch(`https://kaszuby24.pl/wp-json/wp/v2/region/${nekrologData.region[0]}`);
+              if (regionResponse.ok) {
+                const regionData = await regionResponse.json();
+                setRegionName(regionData.name);
+              }
+            } catch (err) {
+              console.warn('Failed to load region:', err);
             }
           }
         }
@@ -115,10 +131,20 @@ export default function NekrologDetailScreen() {
     }
   }, [nekrolog]);
 
-  // Parse content to extract key information
-  const parseNekrologContent = useCallback((content: string) => {
-    // Remove HTML tags and decode HTML entities for React Native compatibility
-    const cleanText = content
+  // Handle download image
+  const handleDownloadImage = useCallback(() => {
+    if (featuredImageUrl) {
+      Linking.openURL(featuredImageUrl).catch(() => {
+        Alert.alert('Błąd', 'Nie można otworzyć obrazu.');
+      });
+    } else {
+      Alert.alert('Brak obrazu', 'Ten nekrolog nie ma przypisanego obrazu.');
+    }
+  }, [featuredImageUrl]);
+
+  // Clean HTML content for display
+  const getCleanContent = useCallback((content: string) => {
+    return content
       .replace(/<[^>]*>/g, '') // Remove HTML tags
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
@@ -126,28 +152,8 @@ export default function NekrologDetailScreen() {
       .replace(/&quot;/g, '"')
       .replace(/&#039;/g, "'")
       .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
-    
-    // Extract key information using regex
-    const dateMatch = cleanText.match(/Dnia\s+(\d{4}-\d{2}-\d{2})/);
-    const massMatch = cleanText.match(/Msza Święta:\s+(\d{4}-\d{2}-\d{2})\s+o\s+(\d{1,2}:\d{2})\s+w\s+(.+?)(?=Ceremonia|Różaniec|$)/);
-    const cemeteryMatch = cleanText.match(/Ceremonia na cmentarzu:\s+(.+?)(?=Różaniec|$)/);
-    const rosaryMatch = cleanText.match(/Różaniec:\s+(\d{4}-\d{2}-\d{2})\s+o\s+(\d{1,2}:\d{2})\s+w\s+(.+?)$/);
-    
-    return {
-      deathDate: dateMatch ? dateMatch[1] : null,
-      mass: massMatch ? {
-        date: massMatch[1],
-        time: massMatch[2],
-        location: massMatch[3].trim()
-      } : null,
-      cemetery: cemeteryMatch ? cemeteryMatch[1].trim() : null,
-      rosary: rosaryMatch ? {
-        date: rosaryMatch[1],
-        time: rosaryMatch[2],
-        location: rosaryMatch[3].trim()
-      } : null
-    };
   }, []);
 
   if (loading) {
@@ -185,8 +191,6 @@ export default function NekrologDetailScreen() {
     );
   }
 
-  const parsedContent = parseNekrologContent(nekrolog.content.rendered);
-
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
@@ -203,170 +207,74 @@ export default function NekrologDetailScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Black ribbon and title */}
+        {/* Memorial Ribbon Header */}
+        <View style={styles.ribbonHeader}>
+          <Image
+            source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2023/05/514697-PIHZZ2-291-01.png' }}
+            style={styles.memorialRibbon}
+            contentFit="contain"
+            transition={200}
+          />
+        </View>
+
+        {/* Title Section */}
         <View style={styles.titleSection}>
-          <View style={styles.ribbonContainer}>
-            <View style={styles.blackRibbon} />
-            <Heart size={16} color="#000" style={styles.heartIcon} />
-          </View>
           <Text style={[styles.title, { 
             color: theme.colors.text,
             fontFamily: theme.fontFamily.bold 
           }]}>
             {nekrolog.title.rendered}
           </Text>
-          <Text style={[styles.publishDate, { 
-            color: theme.colors.textSecondary,
+          
+          {/* Date and Region Info */}
+          <View style={styles.metaInfo}>
+            <Text style={[styles.dateText, { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.medium 
+            }]}>
+              {new Date(nekrolog.date).toLocaleDateString('pl-PL')}
+            </Text>
+            {regionName && (
+              <View style={styles.regionContainer}>
+                <MapPin size={14} color={theme.colors.primary} />
+                <Text style={[styles.regionText, { 
+                  color: theme.colors.primary,
+                  fontFamily: theme.fontFamily.medium 
+                }]}>
+                  {regionName}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Content Section */}
+        <View style={[styles.contentCard, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.contentText, { 
+            color: theme.colors.text,
             fontFamily: theme.fontFamily.regular 
           }]}>
-            Opublikowano: {new Date(nekrolog.date).toLocaleDateString('pl-PL')}
+            {getCleanContent(nekrolog.content.rendered)}
           </Text>
         </View>
 
-        {/* Featured Image */}
+        {/* Download Image Button */}
         {featuredImageUrl && (
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: featuredImageUrl }}
-              style={styles.featuredImage}
-              contentFit="cover"
-              transition={200}
-            />
-          </View>
-        )}
-
-        {/* Death Date */}
-        {parsedContent.deathDate && (
-          <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
-            <View style={styles.infoHeader}>
-              <Calendar size={20} color={theme.colors.primary} />
-              <Text style={[styles.infoTitle, { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.semibold 
-              }]}>
-                Data śmierci
-              </Text>
-            </View>
-            <Text style={[styles.infoText, { 
-              color: theme.colors.textSecondary,
-              fontFamily: theme.fontFamily.regular 
-            }]}>
-              {new Date(parsedContent.deathDate).toLocaleDateString('pl-PL')}
+          <TouchableOpacity 
+            style={[styles.downloadButton, { backgroundColor: theme.colors.primary }]}
+            onPress={handleDownloadImage}
+            activeOpacity={0.8}
+          >
+            <Download size={20} color="#FFFFFF" />
+            <Text style={[styles.downloadText, { fontFamily: theme.fontFamily.semibold }]}>
+              Pobierz nekrolog
             </Text>
-          </View>
-        )}
-
-        {/* Mass Information */}
-        {parsedContent.mass && (
-          <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
-            <View style={styles.infoHeader}>
-              <Church size={20} color={theme.colors.primary} />
-              <Text style={[styles.infoTitle, { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.semibold 
-              }]}>
-                Msza Święta
-              </Text>
-            </View>
-            <View style={styles.infoDetails}>
-              <View style={styles.infoRow}>
-                <Calendar size={16} color={theme.colors.textSecondary} />
-                <Text style={[styles.infoText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular 
-                }]}>
-                  {new Date(parsedContent.mass.date).toLocaleDateString('pl-PL')}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Clock size={16} color={theme.colors.textSecondary} />
-                <Text style={[styles.infoText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular 
-                }]}>
-                  {parsedContent.mass.time}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <MapPin size={16} color={theme.colors.textSecondary} />
-                <Text style={[styles.infoText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular 
-                }]}>
-                  {parsedContent.mass.location}
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Cemetery Information */}
-        {parsedContent.cemetery && (
-          <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
-            <View style={styles.infoHeader}>
-              <MapPin size={20} color={theme.colors.primary} />
-              <Text style={[styles.infoTitle, { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.semibold 
-              }]}>
-                Ceremonia na cmentarzu
-              </Text>
-            </View>
-            <Text style={[styles.infoText, { 
-              color: theme.colors.textSecondary,
-              fontFamily: theme.fontFamily.regular 
-            }]}>
-              {parsedContent.cemetery}
-            </Text>
-          </View>
-        )}
-
-        {/* Rosary Information */}
-        {parsedContent.rosary && (
-          <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
-            <View style={styles.infoHeader}>
-              <Heart size={20} color={theme.colors.primary} />
-              <Text style={[styles.infoTitle, { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.semibold 
-              }]}>
-                Różaniec
-              </Text>
-            </View>
-            <View style={styles.infoDetails}>
-              <View style={styles.infoRow}>
-                <Calendar size={16} color={theme.colors.textSecondary} />
-                <Text style={[styles.infoText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular 
-                }]}>
-                  {new Date(parsedContent.rosary.date).toLocaleDateString('pl-PL')}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Clock size={16} color={theme.colors.textSecondary} />
-                <Text style={[styles.infoText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular 
-                }]}>
-                  {parsedContent.rosary.time}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <MapPin size={16} color={theme.colors.textSecondary} />
-                <Text style={[styles.infoText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular 
-                }]}>
-                  {parsedContent.rosary.location}
-                </Text>
-              </View>
-            </View>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Footer */}
         <View style={styles.footer}>
+          <Heart size={16} color={theme.colors.textSecondary} style={styles.footerIcon} />
           <Text style={[styles.footerText, { 
             color: theme.colors.textSecondary,
             fontFamily: theme.fontFamily.regular 
@@ -392,6 +300,11 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 44 : 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   backButton: {
     padding: 8,
@@ -405,91 +318,105 @@ const styles = StyleSheet.create({
     padding: 8,
     marginRight: -8,
   },
-  placeholder: {
-    width: 40,
-  },
   content: {
     flex: 1,
   },
+  ribbonHeader: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+  },
+  memorialRibbon: {
+    width: 80,
+    height: 80,
+    opacity: 0.8,
+  },
   titleSection: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     alignItems: 'center',
-  },
-  ribbonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  blackRibbon: {
-    width: 40,
-    height: 6,
-    backgroundColor: '#000',
-    borderRadius: 3,
-    marginRight: 8,
-  },
-  heartIcon: {
-    opacity: 0.7,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
-    lineHeight: 32,
+    marginBottom: 16,
+    lineHeight: 34,
   },
-  publishDate: {
-    fontSize: 14,
+  metaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  dateText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  regionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(34, 74, 150, 0.1)',
+  },
+  regionText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  contentCard: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    padding: 24,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  contentText: {
+    fontSize: 16,
+    lineHeight: 26,
     textAlign: 'center',
   },
-  imageContainer: {
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginBottom: 32,
+    paddingVertical: 16,
     paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  featuredImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-  },
-  infoCard: {
-    marginHorizontal: 24,
-    marginBottom: 16,
-    padding: 20,
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 8,
   },
-  infoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoTitle: {
+  downloadText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  infoDetails: {
-    gap: 8,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   footer: {
-    padding: 24,
     alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    paddingBottom: 100, // Extra space for tab bar
+  },
+  footerIcon: {
+    marginBottom: 8,
+    opacity: 0.6,
   },
   footerText: {
     fontSize: 14,
     textAlign: 'center',
     fontStyle: 'italic',
+    opacity: 0.8,
   },
 }); 

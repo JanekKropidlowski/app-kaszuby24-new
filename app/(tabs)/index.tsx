@@ -629,22 +629,27 @@ export default function HomeScreen() {
     />
   ), [handleArticlePress]);
 
-  // Nekrolog render function with navigation
+  // Nekrolog render function with navigation and memorial ribbon
   const renderNekrolog = useCallback(({ item }: { item: Nekrolog }) => (
     <TouchableOpacity 
       style={[styles.nekrologCard, { 
         backgroundColor: theme.colors.card,
-        borderColor: theme.colors.border 
+        borderColor: 'rgba(0, 0, 0, 0.15)'
       }]}
       onPress={() => router.push(`/nekrolog/${item.id}`)}
       activeOpacity={0.7}
     >
       <View style={styles.nekrologHeader}>
-        <View style={styles.blackRibbon} />
-        <Heart size={14} color="#000" style={styles.nekrologIcon} />
+        <Image
+          source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2023/05/514697-PIHZZ2-291-01.png' }}
+          style={styles.memorialRibbonSmall}
+          contentFit="contain"
+          transition={200}
+        />
         <Text style={[styles.nekrologBadge, { 
           backgroundColor: '#000',
-          color: '#FFFFFF'
+          color: '#FFFFFF',
+          fontFamily: theme.fontFamily.semibold
         }]}>
           Nekrolog
         </Text>
@@ -1189,37 +1194,32 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   nekrologCard: {
-    padding: 16,
+    padding: 20,
     margin: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 0, 0, 0.15)',
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   nekrologHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  blackRibbon: {
+  memorialRibbonSmall: {
     width: 24,
-    height: 4,
-    backgroundColor: '#000',
-    borderRadius: 2,
-    marginRight: 6,
-  },
-  nekrologIcon: {
-    marginRight: 6,
-    opacity: 0.8,
+    height: 24,
+    marginRight: 8,
+    opacity: 0.7,
   },
   nekrologBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
     fontWeight: '600',
     fontSize: 11,
     letterSpacing: 0.5,
