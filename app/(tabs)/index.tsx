@@ -193,6 +193,7 @@ export default function HomeScreen() {
         setReachedEnd(false);
       } else {
         setIsLoadingMore(true);
+        setLoadingMore(true); // Add this to match search tab behavior
       }
       
       // Don't include sponsored category (554) in filter
@@ -538,12 +539,12 @@ export default function HomeScreen() {
     if (!isMountedRef.current) return;
     
     // Only load more if we have more articles and we're not already loading
-    if (hasMoreArticles && !isLoadingMore && !loading && !error) {
+    if (page < totalPages && !loadingMore && !loading && !error) {
       const nextPage = page + 1;
       console.log(`Infinite scroll: Loading page ${nextPage}`);
       loadArticles(nextPage);
     }
-  }, [hasMoreArticles, isLoadingMore, loading, error, page, loadArticles]);
+  }, [page, totalPages, loadingMore, loading, error, loadArticles]);
   
   const handleArticlePress = useCallback((article: Article) => {
     // Add to recent articles (filtering is handled in the store)
@@ -898,7 +899,7 @@ export default function HomeScreen() {
           ) : null
         }
         ListFooterComponent={
-          isLoadingMore ? (
+          loadingMore ? (
             <View style={styles.infiniteLoadingContainer}>
               <LoadingIndicator size="small" />
               <Text style={[
@@ -944,7 +945,7 @@ export default function HomeScreen() {
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.3}
+        onEndReachedThreshold={0.5}
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
