@@ -179,7 +179,7 @@ export default function HomeScreen() {
     }
     
     // Prevent multiple simultaneous requests for the same page
-    if (pageNum > 1 && isLoadingMore) {
+    if (pageNum > 1 && loadingMore) {
       console.log('Already loading more articles, skipping request');
       return;
     }
@@ -191,21 +191,15 @@ export default function HomeScreen() {
       
       if (pageNum === 1) {
         setLoading(true);
-        setHasMore(true);
-        setEndReached(false);
       } else {
-        setIsLoadingMore(true);
         setLoadingMore(true);
       }
       
-      // Don't include sponsored category (554) in filter
       const categoryFilter = selectedCategory && selectedCategory !== 554 ? [selectedCategory] : undefined;
-      
-      console.log('Calling fetchArticles with:', { pageNum, categoryFilter });
       
       const { articles: newArticles, totalPages: total } = await fetchArticles(
         pageNum,
-        20, // Increased per page for better infinite scroll experience
+        20,
         categoryFilter
       );
       
@@ -291,7 +285,7 @@ export default function HomeScreen() {
         setInitialLoading(false);
       }
     }
-  }, [selectedCategory, isLoadingMore]);
+  }, [selectedCategory, loadingMore]);
   
   const loadCategories = useCallback(async (retry = 0) => {
     if (!isMountedRef.current) return;
@@ -518,17 +512,26 @@ export default function HomeScreen() {
   }, [loadArticles]);
   
   // Replace handleLoadMore with the implementation from search tab
-  const handleLoadMore = useCallback(() => {
-    if (!isMountedRef.current) return;
+  const handleLoadMore = async () => {
+    if (page >= totalPages || loadingMore || !query.trim()) return;
     
-    // Only load more if we have more articles and we're not already loading
-    if (hasMore && !isLoadingMore && !loading && !error) {
+    try {
+      setLoadingMore(true);
+      
       const nextPage = page + 1;
-      console.log(`Infinite scroll: Loading page ${nextPage}`);
-      loadArticles(nextPage);
+      const { articles: moreResults } = await searchArticles(query, nextPage);
+      
+      const filteredResults = filterSponsoredArticles(moreResults);
+      
+      setArticles((prev) => [...prev, ...filteredResults]);
+      setPage(nextPage);
+    } catch (err) {
+      console.error('Error loading more search results:', err);
+    } finally {
+      setLoadingMore(false);
     }
-  }, [page, hasMore, isLoadingMore, loading, error, loadArticles]);
-  
+  };
+
   const handleArticlePress = useCallback((article: Article) => {
     // Add to recent articles (filtering is handled in the store)
     addRecentArticle(article);
@@ -887,42 +890,7 @@ export default function HomeScreen() {
           ) : null
         }
         ListFooterComponent={
-          isLoadingMore ? (
-            <View style={styles.loadingMoreContainer}>
-              <LoadingIndicator size="small" />
-              <Text style={[
-                styles.loadingMoreText,
-                { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.medium
-                }
-              ]}>
-                Ładowanie kolejnych artykułów...
-              </Text>
-            </View>
-          ) : endReached && articles.length > 0 ? (
-            <View style={styles.endOfListContainer}>
-              <View style={[styles.endOfListDivider, { backgroundColor: theme.colors.border }]} />
-              <Text style={[
-                styles.endOfListText,
-                { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.medium
-                }
-              ]}>
-                To wszystkie dostępne artykuły
-              </Text>
-              <Text style={[
-                styles.endOfListSubtext,
-                { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular
-                }
-              ]}>
-                Przeciągnij w dół, aby odświeżyć i sprawdzić nowe treści
-              </Text>
-            </View>
-          ) : null
+          loadingMore ? <LoadingIndicator size="small" /> : null
         }
         refreshControl={
           <RefreshControl
@@ -933,7 +901,7 @@ export default function HomeScreen() {
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.2}
+        onEndReachedThreshold={0.5}
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
