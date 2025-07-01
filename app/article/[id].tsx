@@ -1604,15 +1604,4 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
   },
-  // Additional videos container
-  additionalVideosContainer: {
-    marginTop: 28,
-    marginBottom: 28,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: -0.3,
-  },
 });
