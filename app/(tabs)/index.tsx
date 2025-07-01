@@ -175,12 +175,12 @@ export default function HomeScreen() {
     console.log('HomeScreen: Initializing...');
     initializePreferences();
     
-    // Show welcome modal for first time users after a short delay
+    // Show welcome modal for first time users - reduced delay
     const timer = setTimeout(() => {
       if (shouldShowWelcome()) {
         setShowWelcomeModal(true);
       }
-    }, 1500);
+    }, 800); // Reduced from 1500ms to 800ms
     
     return () => clearTimeout(timer);
   }, [initializePreferences, shouldShowWelcome]);
@@ -242,6 +242,17 @@ export default function HomeScreen() {
           setFeaturedArticles(sortedArticles.slice(0, 5));
           // Rest go to main list
           setArticles(sortedArticles.slice(5));
+          
+          // Start prefetching first few articles immediately
+          if (Platform.OS !== 'web') {
+            setTimeout(() => {
+              sortedArticles.slice(0, 3).forEach(article => {
+                import('@/services/api').then(({ prefetchArticleById }) => {
+                  prefetchArticleById(article.id).catch(() => {});
+                });
+              });
+            }, 100);
+          }
         } else {
           setArticles([]);
           setFeaturedArticles([]);
@@ -290,7 +301,7 @@ export default function HomeScreen() {
     }
   }, [selectedCategory]);
   
-  // Load categories
+  // Load categories - optimized with faster loading
   const loadCategories = useCallback(async () => {
     if (!isMountedRef.current) return;
     
@@ -328,14 +339,24 @@ export default function HomeScreen() {
     };
   }, []);
   
-  // Initial load
+  // Initial load - optimized for faster startup
   useEffect(() => {
     if (isMountedRef.current) {
       console.log('HomeScreen: Starting initial load...');
-      Promise.all([
-        loadArticles(1, false),
-        loadCategories()
-      ]);
+      
+      // Start both loads simultaneously for faster initial render
+      const loadData = async () => {
+        try {
+          await Promise.allSettled([
+            loadArticles(1, false),
+            loadCategories()
+          ]);
+        } catch (error) {
+          console.warn('Error during initial load:', error);
+        }
+      };
+      
+      loadData();
     }
   }, [loadArticles, loadCategories]);
   
@@ -379,11 +400,11 @@ export default function HomeScreen() {
           setActiveCarouselIndex(initialIndex);
           setRealActiveIndex(0);
         }
-      }, 100);
+      }, 50); // Reduced from 100ms to 50ms
     }
   }, [featuredArticles]);
   
-  // Carousel auto-scroll
+  // Carousel auto-scroll - optimized for better performance
   useEffect(() => {
     const startCarouselAutoScroll = () => {
       if (carouselIntervalRef.current) {
@@ -411,7 +432,7 @@ export default function HomeScreen() {
             
             return nextIndex;
           });
-        }, 4000);
+        }, 3000); // Reduced from 4000ms to 3000ms for faster scrolling
       }
     };
     
@@ -424,41 +445,39 @@ export default function HomeScreen() {
     };
   }, [infiniteArticles.length]);
   
-  // Handle screen focus/blur
+  // Handle screen focus/blur - optimized
   useEffect(() => {
     const handleAppStateChange = (nextAppState: string) => {
       isScreenFocused.current = nextAppState === 'active';
       
       if (nextAppState === 'active') {
+        // Restart carousel when app becomes active - simplified
         if (infiniteArticles.length > 1) {
-          const startCarouselAutoScroll = () => {
-            if (carouselIntervalRef.current) {
-              clearInterval(carouselIntervalRef.current);
-            }
+          if (carouselIntervalRef.current) {
+            clearInterval(carouselIntervalRef.current);
+          }
+          
+          carouselIntervalRef.current = setInterval(() => {
+            if (!isScreenFocused.current) return;
             
-            carouselIntervalRef.current = setInterval(() => {
-              if (!isScreenFocused.current) return;
+            setActiveCarouselIndex(prevIndex => {
+              const nextIndex = prevIndex + 1;
               
-              setActiveCarouselIndex(prevIndex => {
-                const nextIndex = prevIndex + 1;
-                
-                if (flatListRef.current && infiniteArticles.length > 0) {
-                  try {
-                    flatListRef.current.scrollToIndex({
-                      index: nextIndex,
-                      animated: true,
-                      viewPosition: 0.5,
-                    });
-                  } catch (error) {
-                    console.warn('Auto scroll failed:', error);
-                  }
+              if (flatListRef.current && infiniteArticles.length > 0) {
+                try {
+                  flatListRef.current.scrollToIndex({
+                    index: nextIndex,
+                    animated: true,
+                    viewPosition: 0.5,
+                  });
+                } catch (error) {
+                  console.warn('Auto scroll failed:', error);
                 }
-                
-                return nextIndex;
-              });
-            }, 4000);
-          };
-          startCarouselAutoScroll();
+              }
+              
+              return nextIndex;
+            });
+          }, 3000); // Consistent timing with main carousel
         }
       } else {
         if (carouselIntervalRef.current) {

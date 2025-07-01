@@ -173,7 +173,7 @@ export default function ArticleSlugScreen() {
                 setGalleryLoading(false);
               }
             }
-          }, 100);
+          }, 50); // Reduced from 100ms to 50ms
         }
         
         // Load related articles in background
@@ -196,7 +196,7 @@ export default function ArticleSlugScreen() {
               setRelatedLoading(false);
             }
           }
-        }, 200);
+        }, 100); // Reduced from 200ms to 100ms
         
         // Mark content as loaded after minimal delay for smooth transition
         setTimeout(() => {
@@ -204,7 +204,7 @@ export default function ArticleSlugScreen() {
             setContentLoaded(true);
             setInitialLoading(false);
           }
-        }, 300); // Reduced from 800ms to 300ms
+        }, 150); // Reduced from 300ms to 150ms
         
       } catch (err: any) {
         if (isMounted) {
