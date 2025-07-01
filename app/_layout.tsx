@@ -115,14 +115,6 @@ export default function RootLayout() {
             }),
           }} 
         />
-        <Stack.Screen 
-          name="search" 
-          options={{ 
-            headerShown: false,
-            presentation: 'card',
-            gestureEnabled: true,
-          }} 
-        />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>

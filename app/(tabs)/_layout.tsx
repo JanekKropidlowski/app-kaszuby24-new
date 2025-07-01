@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Bell, Settings, Bookmark } from 'lucide-react-native';
+import { Home, Bell, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
@@ -101,6 +101,16 @@ export default function TabLayout() {
                 placeholder="Kaszuby24"
                 cachePolicy="memory-disk"
               />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="search"
+          options={{
+            title: 'Szukaj',
+            tabBarIcon: ({ color, size }) => (
+              <Search size={size} color={color} strokeWidth={2} />
             ),
           }}
         />
