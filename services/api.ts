@@ -1,6 +1,6 @@
 import { Article, Category, MediaItem } from '@/types/article';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
@@ -500,6 +500,15 @@ export const searchArticles = async (
   
   return deduplicateRequest(requestKey, async () => {
     try {
+      // Provide haptic feedback when search starts (on native platforms)
+      if (Platform.OS !== 'web') {
+        try {
+          Vibration.vibrate(30);
+        } catch (e) {
+          // Ignore vibration errors
+        }
+      }
+      
       const timestamp = new Date().getTime();
       let url = `${API_BASE_URL}/posts?_embed&search=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&_=${timestamp}`;
       

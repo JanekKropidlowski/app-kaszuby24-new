@@ -104,6 +104,9 @@ export default function SearchScreen() {
   const handleArticlePress = (article: Article) => {
     // Add to recent articles (filtering is handled in the store)
     addRecentArticle(article);
+    
+    // Navigate to article detail page
+    router.push(`/article/${article.id}`);
   };
 
   const renderEmptySearch = () => (

@@ -9,6 +9,7 @@ import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
 import { getOptimizedImageProps } from '@/utils/imageOptimizer';
+import { Vibration } from 'react-native';
 
 interface ArticleCardProps {
   article: Article;
@@ -52,6 +53,15 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     } else {
       // Only navigate if no custom onPress is provided
       router.push(`/article/${article.id}`);
+    }
+    
+    // Provide haptic feedback on press
+    if (Platform.OS !== 'web') {
+      try {
+        Vibration.vibrate(20); // Very subtle vibration
+      } catch (e) {
+        // Ignore vibration errors
+      }
     }
     
     // Reset pressing state after a short delay
