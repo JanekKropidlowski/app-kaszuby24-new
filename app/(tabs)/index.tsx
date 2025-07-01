@@ -558,6 +558,11 @@ export default function HomeScreen() {
     dismissBanner();
   }, [dismissBanner]);
   
+  // Add missing handleCategoryChange function
+  const handleCategoryChange = useCallback((categoryId: number | null) => {
+    setSelectedCategory(categoryId);
+  }, []);
+  
   // Updated handleDotPress to work with infinite scroll
   const handleDotPress = useCallback((dotIndex: number) => {
     if (flatListRef.current && dotIndex < featuredArticles.length) {
