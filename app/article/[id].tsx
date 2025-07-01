@@ -31,10 +31,9 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { formatDateTime } from '@/utils/dateFormatter';
-import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl, getYouTubeVideoId } from '@/utils/htmlParser';
+import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl, getYouTubeVideoId, stripHtmlForTTS } from '@/utils/htmlParser';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
-import { stripHtmlForTTS } from '@/utils/htmlParser';
 
 const MAX_RETRIES = 3;
 const { width, height } = Dimensions.get('window');
