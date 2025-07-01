@@ -110,6 +110,7 @@ export default function ArticleDetailScreen() {
   
   // Add refs to track animated values
   const progressOpacityValue = useRef(0);
+  const progressBarWidthValue = useRef(0);
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -325,10 +326,15 @@ export default function ArticleDetailScreen() {
       progressOpacityValue.current = value;
     });
     
+    const widthListener = progressBarWidth.addListener(({ value }) => {
+      progressBarWidthValue.current = value;
+    });
+    
     return () => {
       progressOpacity.removeListener(opacityListener);
+      progressBarWidth.removeListener(widthListener);
     };
-  }, [progressOpacity]);
+  }, [progressOpacity, progressBarWidth]);
   
   // Enhanced scroll handler with reading progress tracking
   const handleScroll = useCallback((event: any) => {
@@ -344,11 +350,11 @@ export default function ArticleDetailScreen() {
     
     setReadingProgress(progress);
     
-    // Animate progress bar width
+    // Animate progress bar width - ensure useNativeDriver is false
     Animated.timing(progressBarWidth, {
       toValue: progress,
       duration: 100,
-      useNativeDriver: false, // Explicitly set to false for width animation
+      useNativeDriver: false,
     }).start();
     
     // Show progress bar when scrolling starts

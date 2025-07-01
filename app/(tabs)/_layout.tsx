@@ -42,12 +42,12 @@ const AnimatedLogo = () => {
         transform: [{ scale: logoScale }],
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 16, // Increased vertical padding
+        paddingVertical: 16,
       }}
     >
       <Image
         source={{ uri: theme.logo.header }}
-        style={{ width: 150, height: 42 }} // Reduced size from 160x45 to 150x42
+        style={{ width: 150, height: 42 }}
         contentFit="contain"
         placeholder="Kaszuby24"
         cachePolicy="memory-disk"
@@ -86,7 +86,7 @@ const AnimatedHeader = () => {
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12, // Increased padding to the header container
+        paddingVertical: 12,
       }}
     >
       <AnimatedLogo />
@@ -145,7 +145,7 @@ export default function TabLayout() {
           shadowOpacity: 0.1,
           shadowRadius: 8,
           position: 'absolute',
-          bottom: 0, // Changed from 20 to 0 to eliminate gap
+          bottom: 0,
           left: 0,
           right: 0,
         },

@@ -28,12 +28,12 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
         Animated.timing(animatedValue, {
           toValue: 1,
           duration: 800,
-          useNativeDriver: Platform.OS !== 'web', // Native driver for mobile, not for web
+          useNativeDriver: true,
         }),
         Animated.timing(animatedValue, {
           toValue: 0,
           duration: 800,
-          useNativeDriver: Platform.OS !== 'web',
+          useNativeDriver: true,
         }),
       ])
     );
