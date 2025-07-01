@@ -1314,19 +1314,19 @@ const styles = StyleSheet.create({
   galleryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 8, // Reduced from 16 to 8
     justifyContent: 'space-between',
   },
   galleryImageContainer: {
-    width: (width - 88) / 2,
-    height: 140,
-    borderRadius: 16,
+    width: (width - 64) / 2, // Increased from (width - 88) / 2
+    height: 160, // Increased from 140
+    borderRadius: 12, // Reduced from 16 for tighter look
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 }, // Reduced shadow
+    shadowOpacity: 0.1, // Reduced from 0.15
+    shadowRadius: 4, // Reduced from 8
+    elevation: 3, // Reduced from 6
   },
   galleryImage: {
     width: '100%',
