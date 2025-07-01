@@ -28,7 +28,7 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 import { useScrollStore } from '@/store/scrollStore';
 import SkeletonLoader from '@/components/SkeletonLoader';
-import MemoryOptimizer from '@/utils/MemoryOptimizer';
+import MemoryOptimizer from '@/utils/memoryOptimizer';
 
 const { width } = Dimensions.get('window');
 // Improved carousel sizing for center mode with peek - better balanced spacing

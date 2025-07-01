@@ -8,6 +8,7 @@ import { getRelativeTime } from '@/utils/dateFormatter';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
+import { getOptimizedImageProps } from '@/utils/imageOptimizer';
 
 interface ArticleCardProps {
   article: Article;

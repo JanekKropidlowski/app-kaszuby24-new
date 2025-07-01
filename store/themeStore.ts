@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 export interface Theme {
+  isDarkMode?: boolean;
   colors: {
     primary: string;
     secondary: string;
@@ -37,6 +38,7 @@ export interface Theme {
 }
 
 const lightTheme: Theme = {
+  isDarkMode: false,
   colors: {
     primary: '#224A96',
     secondary: '#FECC00',
@@ -97,6 +99,7 @@ const lightTheme: Theme = {
 };
 
 const darkTheme: Theme = {
+  isDarkMode: true,
   colors: {
     primary: '#4A7BC8',
     secondary: '#FECC00',
