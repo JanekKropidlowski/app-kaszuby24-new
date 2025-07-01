@@ -3,6 +3,7 @@ import { create } from 'zustand';
 interface ScrollState {
   isScrollingUp: boolean;
   showLogo: boolean;
+  showTabBar: boolean;
   lastScrollY: number;
   readingProgress: number;
   setScrollDirection: (scrollY: number) => void;
@@ -12,13 +13,14 @@ interface ScrollState {
 
 export const useScrollStore = create<ScrollState>((set, get) => ({
   isScrollingUp: false,
-  showLogo: true, // Start with logo visible
+  showLogo: false, // Start with logo hidden
+  showTabBar: true, // Tab bar always visible
   lastScrollY: 0,
   readingProgress: 0, // Track reading progress (0-1)
   
   setScrollDirection: (scrollY: number) => {
     const { lastScrollY } = get();
-    const threshold = 5; // Minimum scroll distance to trigger change
+    const threshold = 8; // Minimum scroll distance to trigger change
     
     if (Math.abs(scrollY - lastScrollY) < threshold) {
       return; // Ignore small scroll movements
@@ -26,9 +28,9 @@ export const useScrollStore = create<ScrollState>((set, get) => ({
     
     const isScrollingUp = scrollY < lastScrollY;
     
-    // Show logo when near top (scrollY < 30) or when scrolling up
-    // This makes the header more responsive to scroll direction
-    const showLogo = scrollY < 30 || isScrollingUp;
+    // Show logo ONLY when scrolling up AND not at the very top
+    // Hide logo when scrolling down or when at the top (scrollY < 50)
+    const showLogo = isScrollingUp && scrollY > 50;
     
     set({
       isScrollingUp,
@@ -44,7 +46,8 @@ export const useScrollStore = create<ScrollState>((set, get) => ({
   resetScroll: () => {
     set({
       isScrollingUp: false,
-      showLogo: true,
+      showLogo: false, // Reset to hidden
+      showTabBar: true,
       lastScrollY: 0,
       readingProgress: 0,
     });
