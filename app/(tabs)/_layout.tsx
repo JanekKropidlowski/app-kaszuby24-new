@@ -58,7 +58,7 @@ export default function TabLayout() {
           shadowOpacity: 0.15,
           shadowRadius: 12,
           position: 'absolute',
-          bottom: 0,
+          bottom: 20, // Moved up by 20px from bottom edge
           left: 0,
           right: 0,
         },
