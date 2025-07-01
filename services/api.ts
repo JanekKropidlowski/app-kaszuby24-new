@@ -1089,3 +1089,88 @@ export const fetchNekrologi = async (
     }
   });
 };
+
+// Function to fetch single nekrolog by ID
+export const fetchNekrologById = async (id: number): Promise<Nekrolog> => {
+  const requestKey = `nekrolog_${id}`;
+  const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_nekrolog_${id}`;
+  
+  return deduplicateRequest(requestKey, async () => {
+    try {
+      // Try cache first
+      const cached = await getCachedDataWithSWR(cacheKey);
+      
+      if (cached) {
+        if (!cached.shouldRevalidate) {
+          console.log(`Using fresh cached nekrolog ${id}`);
+          return cached.data;
+        } else {
+          console.log(`Using stale cached nekrolog ${id}, revalidating in background`);
+          
+          // Start background revalidation
+          setTimeout(async () => {
+            try {
+              const timestamp = new Date().getTime();
+              const url = `${API_BASE_URL}/nekrolog/${id}?_=${timestamp}`;
+              
+              const response = await fetchWithTimeout(url);
+              if (response.ok) {
+                const nekrolog = await response.json();
+                await cacheDataWithSWR(cacheKey, nekrolog);
+                console.log(`Background revalidation completed for nekrolog ${id}`);
+              }
+            } catch (error) {
+              console.warn(`Background revalidation failed for nekrolog ${id}:`, error);
+            }
+          }, 100);
+          
+          return cached.data;
+        }
+      }
+      
+      // No cache, fetch fresh data
+      const timestamp = new Date().getTime();
+      const url = `${API_BASE_URL}/nekrolog/${id}?_=${timestamp}`;
+      
+      console.log(`Fetching fresh nekrolog with ID: ${id}`);
+      const response = await fetchWithTimeout(url);
+      
+      if (!response.ok) {
+        console.error(`Error fetching nekrolog ${id}: ${response.status} ${response.statusText}`);
+        if (response.status === 404) {
+          throw new Error('Nekrolog nie został znaleziony.');
+        } else if (response.status === 429) {
+          throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+        } else if (response.status >= 500) {
+          throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+        } else {
+          throw new Error(`Błąd API: ${response.status}`);
+        }
+      }
+      
+      const nekrolog = await response.json();
+      console.log(`Successfully fetched fresh nekrolog ${id}`);
+      
+      // Cache the fresh data
+      await cacheDataWithSWR(cacheKey, nekrolog);
+      
+      return nekrolog;
+    } catch (error: any) {
+      console.error('Error in fetchNekrologById:', error);
+      
+      if (error instanceof TypeError && error.message.includes('Network request failed')) {
+        throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
+      } else if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
+      } else if (error.message === 'Failed to fetch') {
+        throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
+      }
+      
+      if (error.message) {
+        throw error;
+      }
+      
+      throw new Error('Wystąpił problem podczas ładowania nekrologu. Spróbuj ponownie później.');
+    }
+  });
+};

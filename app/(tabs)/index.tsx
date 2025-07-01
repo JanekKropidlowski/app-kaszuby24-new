@@ -12,7 +12,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronRight, RefreshCw, WifiOff, ArrowRight } from 'lucide-react-native';
+import { ChevronRight, RefreshCw, WifiOff, ArrowRight, Heart } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fetchArticles, fetchCategories, MAX_RETRIES, cancelAllRequests, cancelRequest, fetchNekrologi } from '@/services/api';
@@ -629,16 +629,22 @@ export default function HomeScreen() {
     />
   ), [handleArticlePress]);
 
-  // Nekrolog render function
+  // Nekrolog render function with navigation
   const renderNekrolog = useCallback(({ item }: { item: Nekrolog }) => (
-    <View style={[styles.nekrologCard, { 
-      backgroundColor: theme.colors.card,
-      borderColor: theme.colors.border 
-    }]}>
+    <TouchableOpacity 
+      style={[styles.nekrologCard, { 
+        backgroundColor: theme.colors.card,
+        borderColor: theme.colors.border 
+      }]}
+      onPress={() => router.push(`/nekrolog/${item.id}`)}
+      activeOpacity={0.7}
+    >
       <View style={styles.nekrologHeader}>
+        <View style={styles.blackRibbon} />
+        <Heart size={14} color="#000" style={styles.nekrologIcon} />
         <Text style={[styles.nekrologBadge, { 
-          backgroundColor: theme.colors.subtle,
-          color: theme.colors.textSecondary 
+          backgroundColor: '#000',
+          color: '#FFFFFF'
         }]}>
           Nekrolog
         </Text>
@@ -655,8 +661,8 @@ export default function HomeScreen() {
       }]}>
         {new Date(item.date).toLocaleDateString('pl-PL')}
       </Text>
-    </View>
-  ), [theme]);
+    </TouchableOpacity>
+  ), [theme, router]);
 
   // Mixed content render function
   const renderMixedItem = useCallback(({ item }: { item: Article | Nekrolog }) => {
@@ -1199,10 +1205,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  blackRibbon: {
+    width: 24,
+    height: 4,
+    backgroundColor: '#000',
+    borderRadius: 2,
+    marginRight: 6,
+  },
+  nekrologIcon: {
+    marginRight: 6,
+    opacity: 0.8,
+  },
   nekrologBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
+    fontWeight: '600',
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   nekrologTitle: {
     fontSize: 16,
