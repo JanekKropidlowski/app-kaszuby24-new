@@ -30,6 +30,11 @@ const AnimatedLogo = () => {
     ]).start();
   }, [showLogo, logoOpacity, logoScale]);
 
+  // Add safety check for theme and logo
+  if (!theme || !theme.logo || !theme.logo.header) {
+    return null;
+  }
+
   return (
     <Animated.View
       style={{

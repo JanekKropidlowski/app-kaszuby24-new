@@ -166,7 +166,7 @@ export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
       isDarkMode: false,
-      theme: lightTheme,
+      theme: lightTheme, // Ensure default theme is always set
       toggleTheme: () =>
         set((state) => ({
           isDarkMode: !state.isDarkMode,
@@ -176,6 +176,12 @@ export const useThemeStore = create<ThemeState>()(
     {
       name: 'theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      // Add onRehydrateStorage to ensure theme is properly set after loading
+      onRehydrateStorage: () => (state) => {
+        if (state && !state.theme) {
+          state.theme = state.isDarkMode ? darkTheme : lightTheme;
+        }
+      },
     }
   )
 );
