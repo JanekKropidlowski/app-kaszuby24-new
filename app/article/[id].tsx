@@ -18,7 +18,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings } from 'lucide-react-native';
+import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings, Search } from 'lucide-react-native';
 import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -282,17 +282,21 @@ export default function ArticleDetailScreen() {
     }
   }, [selectedImageIndex, galleryImages]);
 
-  // Navigation functions for bottom menu
+  // Navigation functions for bottom menu - updated to match main tabs
   const handleGoHome = useCallback(() => {
     router.replace('/(tabs)');
   }, [router]);
 
-  const handleGoNotifications = useCallback(() => {
-    router.push('/(tabs)/notifications');
+  const handleGoSearch = useCallback(() => {
+    router.push('/(tabs)/search');
   }, [router]);
 
   const handleGoSaved = useCallback(() => {
     router.push('/(tabs)/saved');
+  }, [router]);
+
+  const handleGoNotifications = useCallback(() => {
+    router.push('/(tabs)/notifications');
   }, [router]);
 
   const handleGoSettings = useCallback(() => {
@@ -904,7 +908,7 @@ export default function ArticleDetailScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Featured image with increased height (60% of screen) */}
+        {/* Featured image with enhanced styling */}
         {article.featured_media_url ? (
           <View style={styles.featuredImageContainer}>
             <Image
@@ -918,7 +922,11 @@ export default function ArticleDetailScreen() {
             />
             <View style={styles.imageDarkOverlay} />
           </View>
-        ) : null}
+        ) : (
+          <View style={[styles.featuredImageContainer, styles.featuredImagePlaceholder, { backgroundColor: theme.colors.subtle }]}>
+            <View style={styles.imageDarkOverlay} />
+          </View>
+        )}
         
         {/* Article content card */}
         <View style={[styles.articleContent, { backgroundColor: theme.colors.background }]}>
@@ -1062,15 +1070,37 @@ export default function ArticleDetailScreen() {
         </View>
       </ScrollView>
       
-      {/* Bottom menu bar */}
+      {/* Bottom menu bar - updated styling to match main tabs */}
       <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoSearch}
+          activeOpacity={0.7}
+        >
+          <Search size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Szukaj
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
+          onPress={handleGoSaved}
+          activeOpacity={0.7}
+        >
+          <Bookmark size={20} color={theme.colors.text} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+            Zapisane
+          </Text>
+        </TouchableOpacity>
+        
         <TouchableOpacity
           style={styles.bottomMenuItem}
           onPress={handleGoHome}
           activeOpacity={0.7}
         >
-          <Home size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
+          <Home size={22} color={theme.colors.primary} strokeWidth={2.5} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.primary, fontFamily: theme.fontFamily.medium }]}>
             Główna
           </Text>
         </TouchableOpacity>
@@ -1091,17 +1121,6 @@ export default function ArticleDetailScreen() {
               </Text>
             </View>
           )}
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoSaved}
-          activeOpacity={0.7}
-        >
-          <Bookmark size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Zapisane
-          </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -1234,15 +1253,24 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    height: height * 0.6, // Increased to 60% of screen height
+    height: height * 0.65, // Increased to 65% for more prominent hero image
   },
   featuredImage: {
     width: '100%',
     height: '100%',
   },
+  featuredImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   imageDarkOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Slightly darker overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.35)', // Slightly more prominent overlay
+  },
+  featuredImagePlaceholder: {
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
   articleContent: {
     padding: 24,
@@ -1384,18 +1412,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     paddingBottom: Platform.select({
-      ios: 38,
-      android: 16,
-      default: 16,
+      ios: 20,
+      android: 15,
+      default: 15,
     }),
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    paddingTop: 10,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: Platform.select({
+      ios: 85,
+      android: 75,
+      default: 75
+    }),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
   },
@@ -1403,13 +1438,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 4,
     position: 'relative',
   },
   bottomMenuText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
-    marginTop: 6,
+    marginTop: 4,
     letterSpacing: 0.2,
   },
   badge: {
