@@ -8,34 +8,6 @@ import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 import { useScrollStore } from '@/store/scrollStore';
-import { WelcomeGreeting } from '@/components/WelcomeGreeting';
-import { WeatherWidget } from '@/components/WeatherWidget';
-
-// Enhanced iOS-style header - cleaned up without sticky text
-const IOSStyleHeader = () => {
-  const { theme } = useThemeStore();
-
-  return (
-    <View style={[styles.headerWrapper, { backgroundColor: theme.colors.background }]}>
-      <View 
-        style={[
-          styles.headerContainer, 
-          { 
-            backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-          }
-        ]}
-      >
-        <View style={styles.headerContent}>
-          {/* Left: Greeting */}
-          <WelcomeGreeting />
-          
-          {/* Right: Weather */}
-          <WeatherWidget />
-        </View>
-      </View>
-    </View>
-  );
-};
 
 // Scroll-responsive floating logo with gradient
 const FloatingLogo = () => {
@@ -178,8 +150,8 @@ export default function TabLayout() {
           options={{
             title: 'Start',
             tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-            header: () => <IOSStyleHeader />,
-            tabBarStyle: { display: 'none' },
+            headerShown: false, // Completely hide the header
+            tabBarStyle: { display: 'none' }, // Hide default tab bar on home screen
           }}
         />
         <Tabs.Screen
@@ -238,22 +210,6 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  headerWrapper: {
-    paddingTop: Platform.OS === 'ios' ? 54 : 34,
-    paddingBottom: 0,
-  },
-  headerContainer: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   floatingLogoContainer: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 54 : 34,

@@ -30,12 +30,40 @@ import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/cont
 import { useScrollStore } from '@/store/scrollStore';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
+import { WelcomeGreeting } from '@/components/WelcomeGreeting';
+import { WeatherWidget } from '@/components/WeatherWidget';
 
 const { width } = Dimensions.get('window');
 // Improved carousel sizing for center mode with peek - better balanced spacing
 const CAROUSEL_PEEK_WIDTH = 25; // Reduced for better balance
 const CAROUSEL_ITEM_SPACING = 12; // Reduced spacing
 const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 40; // Wider cards, 40px total side margin
+
+// Non-sticky header component for scrollable content
+const ScrollableHeader = () => {
+  const { theme } = useThemeStore();
+
+  return (
+    <View style={[styles.scrollableHeaderWrapper, { backgroundColor: theme.colors.background }]}>
+      <View 
+        style={[
+          styles.scrollableHeaderContainer, 
+          { 
+            backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+          }
+        ]}
+      >
+        <View style={styles.scrollableHeaderContent}>
+          {/* Left: Greeting */}
+          <WelcomeGreeting />
+          
+          {/* Right: Weather */}
+          <WeatherWidget />
+        </View>
+      </View>
+    </View>
+  );
+};
 
 // Memoized carousel item component for better performance
 const CarouselItemEnhanced = React.memo(({ 
@@ -893,6 +921,9 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
         ListHeaderComponent={
           <View>
+            {/* Non-sticky Header with Greeting and Weather */}
+            <ScrollableHeader />
+            
             {/* Notifications Banner */}
             {shouldShowBanner() && (
               <NotificationsBanner
@@ -1116,6 +1147,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 120, // Increased from 80 to accommodate bottom menu
+    paddingTop: Platform.OS === 'ios' ? 54 : 34, // Add padding for status bar
   },
   carouselContainer: {
     marginTop: 12,
@@ -1396,5 +1428,21 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+  },
+  // Scrollable header styles
+  scrollableHeaderWrapper: {
+    paddingBottom: 12,
+  },
+  scrollableHeaderContainer: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  scrollableHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });
