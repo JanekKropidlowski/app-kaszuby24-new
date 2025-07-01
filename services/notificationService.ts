@@ -321,6 +321,15 @@ class NotificationService {
     console.log('Expo Push handles notification checks automatically');
   }
   
+  // Public methods for adding listeners
+  addNotificationReceivedListener(callback: (notification: Notifications.Notification) => void): Notifications.Subscription {
+    return Notifications.addNotificationReceivedListener(callback);
+  }
+  
+  addNotificationResponseReceivedListener(callback: (response: Notifications.NotificationResponse) => void): Notifications.Subscription {
+    return Notifications.addNotificationResponseReceivedListener(callback);
+  }
+
   cleanup() {
     try {
       if (Platform.OS === 'web' || this.initializationFailed) {
