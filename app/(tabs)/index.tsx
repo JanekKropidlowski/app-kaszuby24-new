@@ -28,8 +28,8 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-const CAROUSEL_ITEM_WIDTH = width * 0.85; // Slightly smaller for center mode
-const CAROUSEL_ITEM_SPACING = 16;
+const CAROUSEL_ITEM_WIDTH = width * 0.75; // Smaller to show parts of adjacent items
+const CAROUSEL_ITEM_SPACING = 12; // Reduced spacing
 
 const MAX_RETRIES = 3;
 
@@ -536,6 +536,7 @@ export default function HomeScreen() {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
+                  snapToAlignment="center"
                   decelerationRate="fast"
                   contentContainerStyle={styles.carouselListContent}
                   initialScrollIndex={featuredArticles.length} // Start at middle set
@@ -666,7 +667,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   carouselListContent: {
-    paddingHorizontal: (width - CAROUSEL_ITEM_WIDTH) / 2, // Center the items
+    paddingHorizontal: (width - CAROUSEL_ITEM_WIDTH) / 2, // Center the active item
     paddingVertical: 8,
   },
   carouselItemContainer: {
