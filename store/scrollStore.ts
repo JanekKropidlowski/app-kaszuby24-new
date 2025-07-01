@@ -4,7 +4,9 @@ interface ScrollState {
   isScrollingUp: boolean;
   showLogo: boolean;
   lastScrollY: number;
+  readingProgress: number;
   setScrollDirection: (scrollY: number) => void;
+  setReadingProgress: (progress: number) => void;
   resetScroll: () => void;
 }
 
@@ -12,6 +14,7 @@ export const useScrollStore = create<ScrollState>((set, get) => ({
   isScrollingUp: false,
   showLogo: true, // Start with logo visible
   lastScrollY: 0,
+  readingProgress: 0, // Track reading progress (0-1)
   
   setScrollDirection: (scrollY: number) => {
     const { lastScrollY } = get();
@@ -34,11 +37,16 @@ export const useScrollStore = create<ScrollState>((set, get) => ({
     });
   },
   
+  setReadingProgress: (progress: number) => {
+    set({ readingProgress: Math.max(0, Math.min(1, progress)) });
+  },
+  
   resetScroll: () => {
     set({
       isScrollingUp: false,
       showLogo: true,
       lastScrollY: 0,
+      readingProgress: 0,
     });
   },
 }));

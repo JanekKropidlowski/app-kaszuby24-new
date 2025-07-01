@@ -22,7 +22,7 @@ export const extractVimeoId = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
-// Extract video URLs from HTML content
+// Extract video URLs from HTML content - enhanced to find more video links
 export const extractVideoUrls = (html: string): string[] => {
   if (!html) return [];
   
@@ -38,7 +38,7 @@ export const extractVideoUrls = (html: string): string[] => {
     }
   }
   
-  // Also look for direct links to YouTube or Vimeo
+  // Look for direct links to YouTube or Vimeo
   const linkRegex = /<a[^>]*href=["']([^"']*(?:youtube|vimeo)[^"']*)["'][^>]*>/gi;
   
   while ((match = linkRegex.exec(html)) !== null) {
@@ -47,10 +47,21 @@ export const extractVideoUrls = (html: string): string[] => {
     }
   }
   
+  // Also look for YouTube links in text content
+  const youtubeUrlRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11})/g;
+  const textContent = html.replace(/<[^>]+>/g, ' ');
+  let urlMatch;
+  
+  while ((urlMatch = youtubeUrlRegex.exec(textContent)) !== null) {
+    if (urlMatch[1] && !videoUrls.includes(urlMatch[1])) {
+      videoUrls.push(urlMatch[1]);
+    }
+  }
+  
   return videoUrls;
 };
 
-// Extract YouTube URL from meta field
+// Extract YouTube URL from meta field - improved to handle more formats
 export const extractYouTubeUrl = (youtubeField: string): string | null => {
   if (!youtubeField) return null;
   
@@ -62,6 +73,18 @@ export const extractYouTubeUrl = (youtubeField: string): string | null => {
   // If it's just a video ID, construct the URL
   if (youtubeField.length === 11 && /^[a-zA-Z0-9_-]+$/.test(youtubeField)) {
     return `https://www.youtube.com/watch?v=${youtubeField}`;
+  }
+  
+  // Try to extract a video ID if it's embedded in HTML
+  const iframeMatch = youtubeField.match(/<iframe[^>]*src=["']([^"']*(?:youtube)[^"']*)["'][^>]*>/i);
+  if (iframeMatch && iframeMatch[1]) {
+    return iframeMatch[1];
+  }
+  
+  // Try to extract a video ID if it's a partial URL
+  const partialUrlMatch = youtubeField.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (partialUrlMatch && partialUrlMatch[1]) {
+    return `https://www.youtube.com/watch?v=${partialUrlMatch[1]}`;
   }
   
   return null;

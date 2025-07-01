@@ -15,6 +15,7 @@ export const colors = {
     subtle: '#F3F4F6',
     shadow: '#000000',
     tabBarBackground: '#FFFFFF', // White background for tab bar gap
+    progressBar: '#224A96', // Progress bar color
   },
   dark: {
     primary: '#4A7BC8', // Lighter version of brand color for dark mode
@@ -31,6 +32,7 @@ export const colors = {
     subtle: '#374151',
     shadow: '#000000',
     tabBarBackground: '#111827', // Dark background for tab bar gap
+    progressBar: '#4A7BC8', // Progress bar color for dark mode
   },
 };
 

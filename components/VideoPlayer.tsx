@@ -39,11 +39,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
   useEffect(() => {
     const videoId = getYouTubeVideoId(url);
     if (videoId) {
-      setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
+      // Use high quality thumbnail
+      setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
     }
   }, [url]);
 
-  // Create YouTube embed HTML
+  // Create YouTube embed HTML with improved styling
   const getYouTubeEmbedHtml = (videoId: string | null): string => {
     if (!videoId) return '';
     
@@ -69,6 +70,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
             padding-bottom: 56.25%;
             overflow: hidden;
             border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
           }
           iframe {
             position: absolute;
@@ -84,7 +86,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
       <body>
         <div class="container">
           <iframe
-            src="https://www.youtube.com/embed/${videoId}?rel=0&autoplay=${autoPlay ? 1 : 0}&playsinline=1"
+            src="https://www.youtube.com/embed/${videoId}?rel=0&autoplay=${autoPlay ? 1 : 0}&playsinline=1&modestbranding=1&color=white"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen
@@ -128,10 +130,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, title, autoPlay = false 
               borderRadius: '16px',
               overflow: 'hidden',
               marginBottom: '16px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
             }}
           >
             <iframe
-              src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&playsinline=1`}
+              src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&playsinline=1&modestbranding=1&color=white`}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -270,6 +273,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   thumbnail: {
     width: '100%',
@@ -299,6 +307,11 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   webView: {
     width: '100%',

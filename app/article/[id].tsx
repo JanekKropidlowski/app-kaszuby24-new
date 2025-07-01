@@ -96,6 +96,7 @@ export default function ArticleDetailScreen() {
   const [relatedListArticles, setRelatedListArticles] = useState<Article[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
+  const [readingProgress, setReadingProgress] = useState(0);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const progressOpacity = useRef(new Animated.Value(0)).current;
@@ -103,6 +104,7 @@ export default function ArticleDetailScreen() {
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
   const hasShownFinishMessage = useRef(false);
   const webViewRef = useRef<WebView>(null);
+  const progressBarWidth = useRef(new Animated.Value(0)).current;
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -356,10 +358,45 @@ ${article.link}`,
     }
   }, [selectedImageIndex, galleryImages.length]);
   
-  // Simplified scroll handler - removed reading progress logic
+  // Enhanced scroll handler with reading progress tracking
   const handleScroll = useCallback((event: any) => {
-    // Keep only basic scroll handling if needed
-  }, []);
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+    const contentHeight = event.nativeEvent.contentSize.height;
+    
+    // Calculate reading progress (0 to 1)
+    const progress = Math.min(
+      Math.max(scrollY / (contentHeight - scrollViewHeight), 0),
+      1
+    );
+    
+    setReadingProgress(progress);
+    
+    // Animate progress bar width
+    Animated.timing(progressBarWidth, {
+      toValue: progress,
+      duration: 100,
+      useNativeDriver: false,
+    }).start();
+    
+    // Show progress bar when scrolling starts
+    if (scrollY > 50 && progressOpacity.__getValue() === 0) {
+      Animated.timing(progressOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+    
+    // Hide progress bar when at the top
+    if (scrollY < 50 && progressOpacity.__getValue() === 1) {
+      Animated.timing(progressOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [progressOpacity, progressBarWidth]);
   
   // Cleanup timeout when component unmounts
   useEffect(() => {
@@ -755,6 +792,44 @@ ${article.link}`,
     );
   }, [contentLoaded, galleryLoading, galleryImages, theme.colors, openImageModal]);
   
+  // Render source and photo credit at the bottom
+  const renderSourceAndCredit = useMemo(() => {
+    if (!article) return null;
+    
+    const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
+    const photoCredit = article.meta?.photo_credit || '';
+    
+    if (!metaSource && !photoCredit) return null;
+    
+    return (
+      <View style={styles.sourceCreditsContainer}>
+        {photoCredit && (
+          <Text style={[
+            styles.sourceCreditsText, 
+            { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }
+          ]}>
+            📷 Zdjęcie: {photoCredit}
+          </Text>
+        )}
+        
+        {metaSource && (
+          <Text style={[
+            styles.sourceCreditsText, 
+            { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }
+          ]}>
+            ℹ️ Źródło: {metaSource}
+          </Text>
+        )}
+      </View>
+    );
+  }, [article, theme.colors, theme.fontFamily]);
+  
   if (loading) {
     return <LoadingIndicator fullScreen />;
   }
@@ -780,15 +855,27 @@ ${article.link}`,
     }
   }
   
-  // Display meta fields if available (removed views)
-  const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
-  
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar 
         translucent 
         backgroundColor="transparent" 
         barStyle="light-content" 
+      />
+      
+      {/* Reading progress bar */}
+      <Animated.View 
+        style={[
+          styles.progressBar,
+          { 
+            opacity: progressOpacity,
+            backgroundColor: theme.colors.primary,
+            width: progressBarWidth.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0%', '100%']
+            })
+          }
+        ]} 
       />
       
       {/* Header bar with circular icons */}
@@ -835,7 +922,7 @@ ${article.link}`,
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Featured image with 40% screen height */}
+        {/* Featured image with increased height (60% of screen) */}
         {article.featured_media_url ? (
           <View style={styles.featuredImageContainer}>
             <Image
@@ -848,20 +935,6 @@ ${article.link}`,
               priority="high"
             />
             <View style={styles.imageDarkOverlay} />
-            
-            {/* Category badge */}
-            {categoryName && (
-              <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary }]}>
-                <Text style={[
-                  styles.categoryText,
-                  { 
-                    fontFamily: theme.fontFamily.semibold 
-                  }
-                ]}>
-                  {categoryName}
-                </Text>
-              </View>
-            )}
           </View>
         ) : null}
         
@@ -897,7 +970,8 @@ ${article.link}`,
                   styles.categoryMetaText, 
                   { 
                     color: theme.colors.primary,
-                    fontFamily: theme.fontFamily.semibold
+                    fontFamily: theme.fontFamily.semibold,
+                    backgroundColor: isDarkMode ? 'rgba(74, 123, 200, 0.15)' : 'rgba(34, 74, 150, 0.1)'
                   }
                 ]}>
                   {categoryName}
@@ -905,18 +979,6 @@ ${article.link}`,
               </View>
             )}
           </View>
-          
-          {metaSource ? (
-            <Text style={[
-              styles.source, 
-              { 
-                color: theme.colors.textSecondary,
-                fontFamily: theme.fontFamily.regular
-              }
-            ]}>
-              Źródło: {metaSource}
-            </Text>
-          ) : null}
           
           {/* Display videos if any */}
           {videoUrls.length > 0 && (
@@ -948,6 +1010,9 @@ ${article.link}`,
           
           {/* Gallery (moved below content) */}
           {renderGallery}
+          
+          {/* Source and photo credits */}
+          {renderSourceAndCredit}
           
           {/* Related articles */}
           {contentLoaded && (
@@ -992,6 +1057,50 @@ ${article.link}`,
           )}
         </View>
       </ScrollView>
+      
+      {/* Sticky footer with actions */}
+      <View style={[styles.stickyFooter, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity
+          style={[styles.footerButton, { backgroundColor: theme.colors.primary }]}
+          onPress={handleShare}
+          activeOpacity={0.8}
+        >
+          <Share2 size={18} color="#FFFFFF" />
+          <Text style={[styles.footerButtonText, { fontFamily: theme.fontFamily.semibold }]}>
+            Udostępnij
+          </Text>
+        </TouchableOpacity>
+        
+        {!isSponsoredContent(article) && (
+          <TouchableOpacity
+            style={[
+              styles.footerButton, 
+              { 
+                backgroundColor: isSaved ? 'rgba(34, 74, 150, 0.15)' : theme.colors.subtle,
+                borderWidth: isSaved ? 1 : 0,
+                borderColor: theme.colors.primary
+              }
+            ]}
+            onPress={toggleSave}
+            activeOpacity={0.8}
+          >
+            <Bookmark 
+              size={18} 
+              color={isSaved ? theme.colors.primary : theme.colors.text}
+              fill={isSaved ? theme.colors.primary : 'transparent'} 
+            />
+            <Text style={[
+              styles.footerButtonText, 
+              { 
+                fontFamily: theme.fontFamily.semibold,
+                color: isSaved ? theme.colors.primary : theme.colors.text
+              }
+            ]}>
+              {isSaved ? 'Zapisano' : 'Zapisz'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
       
       {/* Bottom menu bar */}
       <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
@@ -1143,7 +1252,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1160,12 +1269,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 120, // Space for bottom menu
+    paddingBottom: 180, // Extra space for bottom menu and sticky footer
   },
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    height: height * 0.4, // 40% of screen height
+    height: height * 0.6, // Increased to 60% of screen height
   },
   featuredImage: {
     width: '100%',
@@ -1173,26 +1282,7 @@ const styles = StyleSheet.create({
   },
   imageDarkOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-  },
-  categoryBadge: {
-    position: 'absolute',
-    bottom: 24,
-    left: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  categoryText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Slightly darker overlay
   },
   articleContent: {
     padding: 24,
@@ -1233,13 +1323,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: 'rgba(34, 74, 150, 0.1)',
-  },
-  source: {
-    fontSize: 13,
-    marginBottom: 24,
-    fontStyle: 'italic',
-    opacity: 0.8,
   },
   videoContainer: {
     marginBottom: 28,
@@ -1310,6 +1393,59 @@ const styles = StyleSheet.create({
   relatedList: {
     gap: 16,
   },
+  // Source and photo credits
+  sourceCreditsContainer: {
+    marginTop: 24,
+    marginBottom: 8,
+    padding: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    borderRadius: 12,
+  },
+  sourceCreditsText: {
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  // Sticky footer
+  stickyFooter: {
+    position: 'absolute',
+    bottom: Platform.select({
+      ios: 83, // Account for bottom tab bar on iOS
+      android: 56,
+      default: 56,
+    }),
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 8,
+    zIndex: 100,
+  },
+  footerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginHorizontal: 6,
+  },
+  footerButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  // Bottom menu bar
   bottomMenuBar: {
     position: 'absolute',
     bottom: 0,
@@ -1404,6 +1540,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
   },
+  // Reading progress bar
+  progressBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: 3,
+    zIndex: 2000,
+  },
   // Modal styles
   modalContainer: {
     flex: 1,
@@ -1483,56 +1627,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
-  },
-  // Reading progress indicator - only shows when at bottom
-  progressIndicator: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // Finish message
-  finishMessage: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    height: 100,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  finishMessageContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  finishMessageTitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  finishMessageSubtitle: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  finishMessageButton: {
-    marginTop: 16,
-    width: '100%',
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
   },
 });
