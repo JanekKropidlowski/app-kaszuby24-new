@@ -1414,7 +1414,7 @@ const handlePlayTTS = useCallback(async () => {
     setIsSpeaking(false);
   }
 }, [ttsText, ttsAvailable, selectedVoice]);
-  
+        
 const handleStopTTS = useCallback(async () => {
   try {
     await Speech.stop();
@@ -1424,7 +1424,7 @@ const handleStopTTS = useCallback(async () => {
     setIsSpeaking(false);
   }
 }, []);
-  
+        
 const handleVoiceSelect = useCallback((voiceId: string) => {
   setSelectedVoice(voiceId);
   setShowVoiceSelector(false);
