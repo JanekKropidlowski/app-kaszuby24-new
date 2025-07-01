@@ -88,10 +88,10 @@ export const cleanHtml = (html: string): string => {
       
       body {
         font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        line-height: 1.8;
+        line-height: 1.6;
         padding: 0;
         margin: 0;
-        font-size: ${Platform.OS === 'android' ? '17px' : '16px'};
+        font-size: ${Platform.OS === 'android' ? '15px' : '14px'};
         word-wrap: break-word;
         overflow-wrap: break-word;
         -webkit-text-size-adjust: 100%;
@@ -101,9 +101,9 @@ export const cleanHtml = (html: string): string => {
       }
       
       p {
-        margin-bottom: 16px;
+        margin-bottom: 14px;
         font-family: 'Poppins', sans-serif;
-        line-height: 1.8;
+        line-height: 1.6;
         font-weight: 400;
       }
       
@@ -126,8 +126,8 @@ export const cleanHtml = (html: string): string => {
       }
       
       h1, h2, h3, h4, h5, h6 {
-        margin-top: 28px;
-        margin-bottom: 16px;
+        margin-top: 24px;
+        margin-bottom: 14px;
         line-height: 1.3;
         font-weight: 600;
         font-family: 'Poppins', sans-serif;
@@ -136,13 +136,13 @@ export const cleanHtml = (html: string): string => {
       
       blockquote {
         position: relative;
-        margin: 24px 0;
-        padding: 20px 24px 20px 60px;
+        margin: 20px 0;
+        padding: 18px 22px 18px 55px;
         border-radius: 16px;
         border-left: 4px solid;
         font-style: italic;
-        font-size: ${Platform.OS === 'android' ? '18px' : '17px'};
-        line-height: 1.6;
+        font-size: ${Platform.OS === 'android' ? '16px' : '15px'};
+        line-height: 1.5;
         font-family: 'Poppins', sans-serif;
         font-weight: 400;
       }
@@ -150,9 +150,9 @@ export const cleanHtml = (html: string): string => {
       blockquote::before {
         content: '"';
         position: absolute;
-        left: 20px;
-        top: 12px;
-        font-size: 48px;
+        left: 18px;
+        top: 10px;
+        font-size: 42px;
         font-weight: bold;
         opacity: 0.3;
         line-height: 1;
@@ -167,27 +167,27 @@ export const cleanHtml = (html: string): string => {
       }
       
       ul, ol {
-        padding-left: 24px;
-        margin: 16px 0;
+        padding-left: 22px;
+        margin: 14px 0;
       }
       
       li {
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         font-family: 'Poppins', sans-serif;
-        line-height: 1.6;
+        line-height: 1.5;
         font-weight: 400;
       }
       
       table {
         width: 100%;
         border-collapse: collapse;
-        margin: 16px 0;
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'};
+        margin: 14px 0;
+        font-size: ${Platform.OS === 'android' ? '14px' : '13px'};
       }
       
       th, td {
         border: 1px solid;
-        padding: 12px 8px;
+        padding: 10px 8px;
         text-align: left;
         font-family: 'Poppins', sans-serif;
       }

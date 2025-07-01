@@ -598,8 +598,8 @@ ${article.link}`,
             style={{
               color: isDarkMode ? '#F1F5F9' : '#1E293B',
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              fontSize: '16px',
-              lineHeight: '1.8',
+              fontSize: '15px', // Reduced font size
+              lineHeight: '1.6',
             }}
           />
         </View>
@@ -630,7 +630,10 @@ ${article.link}`,
             source={{ html: enhancedHtml }}
             style={[
               styles.webview, 
-              { height: webViewHeight }
+              { 
+                height: webViewHeight,
+                backgroundColor: theme.colors.background // Match app background
+              }
             ]}
             scrollEnabled={false}
             onNavigationStateChange={(event) => {
@@ -682,7 +685,7 @@ ${article.link}`,
             javaScriptEnabled={true}
             startInLoadingState={true}
             renderLoading={() => (
-              <View style={[styles.loadingContainer, { backgroundColor: theme.colors.subtle }]}>
+              <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
                 <LoadingIndicator size="small" />
               </View>
             )}
@@ -818,7 +821,7 @@ ${article.link}`,
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Featured image with proper aspect ratio */}
+        {/* Featured image with 40% screen height */}
         {article.featured_media_url ? (
           <View style={styles.featuredImageContainer}>
             <Image
@@ -849,7 +852,7 @@ ${article.link}`,
         ) : null}
         
         {/* Article content card */}
-        <View style={[styles.articleContent, { backgroundColor: theme.colors.card }]}>
+        <View style={[styles.articleContent, { backgroundColor: theme.colors.background }]}>
           {/* Title and metadata */}
           <Text style={[
             styles.title, 
@@ -900,7 +903,7 @@ ${article.link}`,
           {/* Article content */}
           {renderContent}
           
-          {/* YouTube video from meta field */}
+          {/* YouTube video from meta field - moved after content */}
           {youtubeUrl && (
             <View style={styles.youtubeContainer}>
               <VideoPlayer url={youtubeUrl} title="YouTube Video" />
@@ -1126,9 +1129,7 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    aspectRatio: 16 / 10, // Better aspect ratio for featured images
-    minHeight: 280,
-    maxHeight: 400,
+    height: height * 0.4, // 40% of screen height
   },
   featuredImage: {
     width: '100%',
@@ -1244,9 +1245,11 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0, 0, 0, 0.08)',
+    marginHorizontal: -28, // Extend to full width for slider
   },
   relatedListContainer: {
     marginTop: 32,
+    paddingHorizontal: 28, // Add padding back for list
   },
   relatedTitle: {
     fontSize: 22,

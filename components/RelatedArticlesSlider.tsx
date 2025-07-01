@@ -13,8 +13,8 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.75; // Smaller to show parts of adjacent items
-const ITEM_SPACING = 12; // Reduced spacing
+const ITEM_WIDTH = width * 0.85; // Larger items for better center mode
+const ITEM_SPACING = 16;
 
 // Memoized article item component for better performance
 const RelatedArticleItem = memo(({ 
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 20,
-    marginHorizontal: 0,
+    marginHorizontal: 28, // Only title has margin
     letterSpacing: -0.3,
   },
   listContainer: {
