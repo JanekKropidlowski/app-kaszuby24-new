@@ -1321,19 +1321,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20, // Increased from 16
+    marginTop: 16, // Reduced back to 16
     paddingHorizontal: 20,
   },
   indicator: {
-    height: 12, // Increased from 8
-    width: 12, // Increased from 8  
-    borderRadius: 6, // Increased from 4
-    marginHorizontal: 6, // Increased from 4
+    height: 6, // Reduced from 12 to 6 - much smaller like in screenshot
+    width: 6, // Reduced from 12 to 6
+    borderRadius: 3, // Reduced from 6 to 3
+    marginHorizontal: 3, // Reduced from 6 to 3 - closer together
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 }, // Reduced shadow
+    shadowOpacity: 0.1, // More subtle shadow
+    shadowRadius: 2,
+    elevation: 1, // Reduced elevation
   },
   categoriesContainer: {
     marginBottom: 24,
