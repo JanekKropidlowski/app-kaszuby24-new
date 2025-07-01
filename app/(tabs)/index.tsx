@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { ChevronRight, RefreshCw, WifiOff, ArrowRight } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fetchArticles, fetchCategories, MAX_RETRIES } from '@/services/api';
+import { fetchArticles, fetchCategories, MAX_RETRIES, cancelAllRequests, cancelRequest } from '@/services/api';
 import { Article, Category } from '@/types/article';
 import { ArticleCard } from '@/components/ArticleCard';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -139,6 +139,7 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isScreenFocused = useRef(true);
+  const isMountedRef = useRef(true); // Track if component is mounted
   
   // Initialize and check for first time user
   useEffect(() => {
@@ -155,8 +156,14 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [initializePreferences, shouldShowWelcome]);
   
-  // Optimized load articles function with better error handling
+  // Optimized load articles function with better error handling and cleanup
   const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
+    // Don't proceed if component is unmounted
+    if (!isMountedRef.current) {
+      console.log('Component unmounted, cancelling request');
+      return;
+    }
+    
     try {
       console.log(`Loading articles: page=${pageNum}, refresh=${refresh}, retry=${retry}`);
       setError(null);
@@ -168,6 +175,10 @@ export default function HomeScreen() {
         setLoadingMore(true);
       }
       
+      // Cancel any existing requests for the same page to prevent conflicts
+      const requestKey = `articles_${pageNum}_12_${selectedCategory ? [selectedCategory].join(',') : 'all'}`;
+      cancelRequest(requestKey);
+      
       // Don't include sponsored category (554) in filter
       const categoryFilter = selectedCategory && selectedCategory !== 554 ? [selectedCategory] : undefined;
       
@@ -178,6 +189,12 @@ export default function HomeScreen() {
         12,
         categoryFilter
       );
+      
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) {
+        console.log('Component unmounted during request, ignoring response');
+        return;
+      }
       
       console.log(`Received ${newArticles.length} articles`);
       
@@ -200,6 +217,12 @@ export default function HomeScreen() {
       
       console.log('Articles loaded successfully');
     } catch (err: any) {
+      // Don't update state if component is unmounted
+      if (!isMountedRef.current) {
+        console.log('Component unmounted during error handling, ignoring error');
+        return;
+      }
+      
       console.error('Error loading articles:', err);
       
       // Use the error message from the API service if available
@@ -208,16 +231,19 @@ export default function HomeScreen() {
       // Check if it's a network error
       if (errorMessage.includes('Brak połączenia z internetem') || 
           errorMessage.includes('Nie można połączyć się z serwerem') ||
-          errorMessage.includes('Network request failed')) {
+          errorMessage.includes('Network request failed') ||
+          errorMessage.includes('zostało przerwane')) {
         setIsOffline(true);
       }
       
-      // Retry logic
-      if (retry < MAX_RETRIES) {
+      // Retry logic - but don't retry if request was aborted due to component unmount
+      if (retry < MAX_RETRIES && !errorMessage.includes('zostało przerwane')) {
         console.log(`Retrying (${retry + 1}/${MAX_RETRIES})...`);
         const delay = 1000 * (retry + 1);
         setTimeout(() => {
-          loadArticles(pageNum, refresh, retry + 1);
+          if (isMountedRef.current) {
+            loadArticles(pageNum, refresh, retry + 1);
+          }
         }, delay);
         return;
       }
@@ -225,45 +251,76 @@ export default function HomeScreen() {
       setRetryCount(retry);
       setError(errorMessage);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+      }
     }
   }, [selectedCategory]);
   
   const loadCategories = useCallback(async (retry = 0) => {
+    if (!isMountedRef.current) return;
+    
     try {
       console.log('Loading categories...');
       const data = await fetchCategories();
+      
+      if (!isMountedRef.current) return;
+      
       // Filter out sponsored categories, "Wiadomości" category (ID: 3), and categories with no posts, then sort by count
       const filteredCategories = data
-        .filter(cat => cat.count > 0 && cat.id !== 3 && cat.id !== 554) // Filter out "Wiadomości" and sponsored categories
+        .filter(cat => cat.count > 0 && cat.id !== 3 && cat.id !== 554)
         .sort((a, b) => b.count - a.count);
       
       setCategories(filteredCategories);
       console.log(`Loaded ${filteredCategories.length} categories`);
     } catch (err) {
+      if (!isMountedRef.current) return;
+      
       console.error('Error loading categories:', err);
       
       // Retry logic for categories
       if (retry < MAX_RETRIES) {
         const delay = 1000 * (retry + 1);
         setTimeout(() => {
-          loadCategories(retry + 1);
+          if (isMountedRef.current) {
+            loadCategories(retry + 1);
+          }
         }, delay);
       }
     }
   }, []);
   
+  // Component mount/unmount tracking
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      console.log('HomeScreen unmounting, cancelling all requests');
+      isMountedRef.current = false;
+      cancelAllRequests();
+      
+      // Clear carousel interval
+      if (carouselIntervalRef.current) {
+        clearInterval(carouselIntervalRef.current);
+      }
+    };
+  }, []);
+  
   // Initial load
   useEffect(() => {
-    console.log('HomeScreen: Starting initial load...');
-    loadArticles();
-    loadCategories();
+    if (isMountedRef.current) {
+      console.log('HomeScreen: Starting initial load...');
+      loadArticles();
+      loadCategories();
+    }
   }, [loadArticles, loadCategories]);
   
   // Refresh when category changes
   useEffect(() => {
+    if (!isMountedRef.current) return;
+    
     // Don't allow selection of sponsored category or "Wiadomości" category
     if (selectedCategory === 554 || selectedCategory === 3) {
       setSelectedCategory(null);
@@ -375,10 +432,13 @@ export default function HomeScreen() {
   }, [loadArticles]);
   
   const handleLoadMore = useCallback(() => {
-    if (page < totalPages && !loadingMore) {
+    if (!isMountedRef.current) return;
+    
+    if (page < totalPages && !loadingMore && !loading) {
+      console.log(`Loading more articles: page ${page + 1}`);
       loadArticles(page + 1);
     }
-  }, [page, totalPages, loadingMore, loadArticles]);
+  }, [page, totalPages, loadingMore, loading, loadArticles]);
   
   const handleArticlePress = useCallback((article: Article) => {
     // Add to recent articles (filtering is handled in the store)

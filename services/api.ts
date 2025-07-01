@@ -4,15 +4,15 @@ import { Platform } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
-const API_TIMEOUT = 15000; // Reduced timeout for faster feedback
+const API_TIMEOUT = 20000; // Increased timeout to 20 seconds
 export const MAX_RETRIES = 2; // Export for use in other files
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_KEY_MEDIA = 'cached_media';
 const CACHE_DURATION = 30 * 60 * 1000; // Reduced cache duration to 30 minutes
 
-// Request deduplication map
-const pendingRequests = new Map<string, Promise<any>>();
+// Request deduplication map with AbortController tracking
+const pendingRequests = new Map<string, { promise: Promise<any>, controller: AbortController }>();
 
 // OneSignal player registration interface
 export interface OneSignalPlayerRegistration {
@@ -36,11 +36,12 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
   const { signal } = controller;
   
   const timeout = setTimeout(() => {
+    console.log(`Request timeout for: ${url}`);
     controller.abort();
   }, API_TIMEOUT);
   
   try {
-    console.log(`Fetching: ${url}`); // Debug log
+    console.log(`Fetching: ${url} (attempt ${retries + 1})`);
     
     const fetchOptions = {
       ...options,
@@ -60,15 +61,21 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     const response = await fetch(url, fetchOptions);
     clearTimeout(timeout);
     
-    console.log(`Response status: ${response.status} for ${url}`); // Debug log
+    console.log(`Response status: ${response.status} for ${url}`);
     
     return response;
   } catch (error: any) {
     clearTimeout(timeout);
     
-    console.error(`Fetch error for ${url}:`, error); // Debug log
+    console.error(`Fetch error for ${url}:`, error);
     
-    // Retry logic with exponential backoff
+    // Handle AbortError specifically
+    if (error.name === 'AbortError') {
+      console.log(`Request aborted for: ${url}`);
+      throw new Error('Zapytanie zostało przerwane. Spróbuj ponownie.');
+    }
+    
+    // Retry logic with exponential backoff (but not for AbortError)
     if (retries < MAX_RETRIES && !error.name?.includes('AbortError')) {
       const delay = Math.min(1000 * Math.pow(2, retries), 5000);
       console.log(`Retrying request (${retries + 1}/${MAX_RETRIES}) after ${delay}ms...`);
@@ -77,9 +84,7 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     }
     
     // Enhanced error handling
-    if (error.name === 'AbortError') {
-      throw new Error('Zapytanie przekroczyło limit czasu. Sprawdź połączenie internetowe.');
-    } else if (error.message?.includes('Network request failed') || error.message?.includes('fetch')) {
+    if (error.message?.includes('Network request failed') || error.message?.includes('fetch')) {
       throw new Error('Brak połączenia z internetem. Sprawdź ustawienia sieci.');
     }
     
@@ -129,18 +134,47 @@ const getCachedData = async (key: string) => {
   return null;
 };
 
-// Request deduplication helper
+// Request deduplication helper with proper cleanup
 const deduplicateRequest = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
+  // Check if there's already a pending request
   if (pendingRequests.has(key)) {
-    return pendingRequests.get(key);
+    const existing = pendingRequests.get(key);
+    if (existing) {
+      console.log(`Reusing existing request for: ${key}`);
+      return existing.promise;
+    }
   }
   
+  // Create new AbortController for this request
+  const controller = new AbortController();
+  
   const promise = requestFn().finally(() => {
+    console.log(`Cleaning up request: ${key}`);
     pendingRequests.delete(key);
   });
   
-  pendingRequests.set(key, promise);
+  pendingRequests.set(key, { promise, controller });
   return promise;
+};
+
+// Function to cancel all pending requests (useful for cleanup)
+export const cancelAllRequests = () => {
+  console.log(`Cancelling ${pendingRequests.size} pending requests`);
+  pendingRequests.forEach(({ controller }, key) => {
+    console.log(`Cancelling request: ${key}`);
+    controller.abort();
+  });
+  pendingRequests.clear();
+};
+
+// Function to cancel specific request
+export const cancelRequest = (key: string) => {
+  const existing = pendingRequests.get(key);
+  if (existing) {
+    console.log(`Cancelling specific request: ${key}`);
+    existing.controller.abort();
+    pendingRequests.delete(key);
+  }
 };
 
 export const fetchArticles = async (
@@ -208,14 +242,12 @@ export const fetchArticles = async (
         };
       });
       
-      // Filter out sponsored content - but don't filter too aggressively
+      // Filter out sponsored content
       const filteredArticles = processedArticles.filter(article => {
-        // Check if article has sponsored category
         if (article.categories && article.categories.includes(554)) {
           return false;
         }
         
-        // Check embedded categories
         if (article._embedded && article._embedded["wp:term"]) {
           const categories = article._embedded["wp:term"][0];
           if (categories && Array.isArray(categories)) {
@@ -240,7 +272,7 @@ export const fetchArticles = async (
     } catch (error: any) {
       console.error('Error in fetchArticles:', error);
       
-      // Attempt to load from cache if fetch fails
+      // Attempt to load from cache if fetch fails and it's first page
       if (page === 1) {
         const cachedData = await getCachedData(CACHE_KEY_ARTICLES);
         if (cachedData) {
