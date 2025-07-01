@@ -117,6 +117,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { addRecentArticle } = useArticlesStore();
   const { theme } = useThemeStore();
+  const { setScrollDirection } = useScrollStore();
   const { 
     shouldShowWelcome, 
     shouldShowBanner, 
@@ -683,6 +684,11 @@ export default function HomeScreen() {
       </View>
     );
   }, [categories, selectedCategory, handleCategoryChange]);
+  
+  const handleScroll = useCallback((event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    setScrollDirection(scrollY);
+  }, [setScrollDirection]);
   
   if (loading && !refreshing) {
     return <LoadingIndicator fullScreen />;
