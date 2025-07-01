@@ -206,7 +206,8 @@ export default function TabLayout() {
           left: 0,
           right: 0,
           height: 20,
-          backgroundColor: theme.colors.tabBarBackground,
+          backgroundColor: theme.colors.background,
+          zIndex: -1,
         }}
       />
     </>
