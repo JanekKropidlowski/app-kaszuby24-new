@@ -28,31 +28,9 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-const CAROUSEL_ITEM_WIDTH = width * 0.8; // Better centering
+// Adjusted for full width with proper spacing
+const CAROUSEL_ITEM_WIDTH = width * 0.85;
 const CAROUSEL_ITEM_SPACING = 16;
-
-// Logo component with proper sizing and theme support
-const LogoHeader = React.memo(() => {
-  const { isDarkMode } = useThemeStore();
-  
-  return (
-    <View style={styles.logoContainer}>
-      <Image
-        source={{ 
-          uri: isDarkMode 
-            ? 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png'
-            : 'https://kaszuby24.pl/wp-content/uploads/2020/03/logo-e1584093147599.png'
-        }}
-        style={styles.logo}
-        contentFit="contain"
-        transition={200}
-        placeholder="Loading..."
-        cachePolicy="memory-disk"
-        priority="high"
-      />
-    </View>
-  );
-});
 
 // Memoized carousel item component for better performance
 const CarouselItem = React.memo(({ 
@@ -580,7 +558,6 @@ export default function HomeScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <LogoHeader />
       <FlatList
         data={articles}
         keyExtractor={keyExtractor}
@@ -869,16 +846,5 @@ const styles = StyleSheet.create({
   articleContainer: {
     paddingHorizontal: 20,
     marginBottom: 12,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  logo: {
-    width: 120,
-    height: 40,
   },
 });

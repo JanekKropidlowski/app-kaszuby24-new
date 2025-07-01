@@ -13,7 +13,7 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.75; // Adjusted for better centering
+const ITEM_WIDTH = width * 0.8; // Adjusted for better centering
 const ITEM_SPACING = 16;
 
 // Memoized article item component for better performance
