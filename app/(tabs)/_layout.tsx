@@ -118,138 +118,123 @@ export default function TabLayout() {
   }, [initializePreferences]);
   
   return (
-    <>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: theme.colors.primary,
-          tabBarInactiveTintColor: theme.colors.textSecondary,
-          tabBarStyle: {
-            backgroundColor: theme.colors.card,
-            borderTopWidth: 0,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            height: Platform.select({
-              ios: 88,
-              android: 80,
-              default: 80
-            }),
-            paddingBottom: Platform.select({
-              ios: 24,
-              android: 20,
-              default: 20
-            }),
-            paddingTop: 12,
-            paddingHorizontal: 16,
-            elevation: 12,
-            shadowColor: theme.colors.shadow,
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.15,
-            shadowRadius: 12,
-            position: 'absolute',
-            bottom: 20,
-            left: 0,
-            right: 0,
-          },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '600',
-            marginTop: 2,
-            fontFamily: theme.fontFamily.medium,
-          },
-          tabBarIconStyle: {
-            marginTop: 2,
-          },
-          headerStyle: {
-            backgroundColor: theme.colors.card,
-            shadowOpacity: 0,
-            elevation: 0,
-          },
-          headerTitleStyle: {
-            fontWeight: '600',
-            color: theme.colors.text,
-            fontSize: 18,
-            fontFamily: theme.fontFamily.semibold,
-          },
-          headerTintColor: theme.colors.primary,
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Główna',
-            tabBarIcon: ({ color, size }) => (
-              <Home size={size} color={color} strokeWidth={2} />
-            ),
-            headerTitle: () => <AnimatedHeader />,
-          }}
-        />
-        
-        <Tabs.Screen
-          name="search"
-          options={{
-            title: 'Szukaj',
-            tabBarIcon: ({ color, size }) => (
-              <Search size={size} color={color} strokeWidth={2} />
-            ),
-            headerTitle: () => <AnimatedHeader />,
-          }}
-        />
-        
-        <Tabs.Screen
-          name="notifications"
-          options={{
-            title: 'Powiadomienia',
-            tabBarIcon: ({ color, size }) => (
-              <Bell size={size} color={color} strokeWidth={2} />
-            ),
-            tabBarBadge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount.toString()) : undefined,
-            tabBarBadgeStyle: {
-              backgroundColor: theme.colors.notification,
-              color: '#FFFFFF',
-              fontSize: 10,
-              fontWeight: '600',
-              minWidth: 18,
-              height: 18,
-            },
-            headerTitle: () => <AnimatedHeader />,
-          }}
-        />
-        
-        <Tabs.Screen
-          name="saved"
-          options={{
-            title: 'Zapisane',
-            tabBarIcon: ({ color, size }) => (
-              <Bookmark size={size} color={color} strokeWidth={2} />
-            ),
-            headerTitle: () => <AnimatedHeader />,
-          }}
-        />
-        
-        <Tabs.Screen
-          name="preferences"
-          options={{
-            title: 'Ustawienia',
-            tabBarIcon: ({ color, size }) => (
-              <Settings size={size} color={color} strokeWidth={2} />
-            ),
-            headerTitle: () => <AnimatedHeader />,
-          }}
-        />
-      </Tabs>
-      
-      {/* White background fill for the gap below tab bar */}
-      <View 
-        style={{
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: theme.colors.card,
+          borderTopWidth: 0,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          height: Platform.select({
+            ios: 85,
+            android: 75,
+            default: 75
+          }),
+          paddingBottom: Platform.select({
+            ios: 20,
+            android: 15,
+            default: 15
+          }),
+          paddingTop: 10,
+          paddingHorizontal: 12,
+          elevation: 8,
+          shadowColor: theme.colors.shadow,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
           position: 'absolute',
-          bottom: 0,
+          bottom: 0, // Changed from 20 to 0 to eliminate gap
           left: 0,
           right: 0,
-          height: 30, // Increased height to ensure no gap
-          backgroundColor: theme.colors.tabBarBackground || theme.colors.background,
-          zIndex: -1,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+          marginTop: 4,
+          fontFamily: theme.fontFamily.medium,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
+        },
+        headerStyle: {
+          backgroundColor: theme.colors.card,
+          shadowOpacity: 0,
+          elevation: 0,
+        },
+        headerTitleStyle: {
+          fontWeight: '600',
+          color: theme.colors.text,
+          fontSize: 18,
+          fontFamily: theme.fontFamily.semibold,
+        },
+        headerTintColor: theme.colors.primary,
+      }}
+    >
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Szukaj',
+          tabBarIcon: ({ color, size }) => (
+            <Search size={size} color={color} strokeWidth={2} />
+          ),
+          headerTitle: () => <AnimatedHeader />,
         }}
       />
-    </>
+      
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: 'Zapisane',
+          tabBarIcon: ({ color, size }) => (
+            <Bookmark size={size} color={color} strokeWidth={2} />
+          ),
+          headerTitle: () => <AnimatedHeader />,
+        }}
+      />
+      
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Główna',
+          tabBarIcon: ({ color, size }) => (
+            <Home size={size + 2} color={color} strokeWidth={2.5} />
+          ),
+          headerTitle: () => <AnimatedHeader />,
+        }}
+      />
+      
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Powiadomienia',
+          tabBarIcon: ({ color, size }) => (
+            <Bell size={size} color={color} strokeWidth={2} />
+          ),
+          tabBarBadge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount.toString()) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: theme.colors.notification,
+            color: '#FFFFFF',
+            fontSize: 10,
+            fontWeight: '600',
+            minWidth: 18,
+            height: 18,
+          },
+          headerTitle: () => <AnimatedHeader />,
+        }}
+      />
+      
+      <Tabs.Screen
+        name="preferences"
+        options={{
+          title: 'Ustawienia',
+          tabBarIcon: ({ color, size }) => (
+            <Settings size={size} color={color} strokeWidth={2} />
+          ),
+          headerTitle: () => <AnimatedHeader />,
+        }}
+      />
+    </Tabs>
   );
 }
