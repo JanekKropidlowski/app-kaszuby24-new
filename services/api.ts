@@ -360,6 +360,79 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
   });
 };
 
+export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
+  const requestKey = `article_slug_${slug}`;
+  
+  return deduplicateRequest(requestKey, async () => {
+    try {
+      const timestamp = new Date().getTime();
+      const url = `${API_BASE_URL}/posts?slug=${encodeURIComponent(slug)}&_embed&_=${timestamp}`;
+      
+      console.log(`Fetching article with slug: ${slug}`);
+      const response = await fetchWithTimeout(url);
+      
+      if (!response.ok) {
+        console.error(`Error fetching article ${slug}: ${response.status} ${response.statusText}`);
+        if (response.status === 404) {
+          throw new Error('Artykuł nie został znaleziony.');
+        } else if (response.status === 429) {
+          throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+        } else if (response.status >= 500) {
+          throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+        } else {
+          throw new Error(`Błąd API: ${response.status}`);
+        }
+      }
+      
+      const articles = await response.json();
+      
+      if (!Array.isArray(articles) || articles.length === 0) {
+        throw new Error('Artykuł nie został znaleziony.');
+      }
+      
+      const article = articles[0];
+      console.log(`Successfully fetched article ${slug}`);
+      
+      // Process article to extract featured image URL
+      let featured_media_url = undefined;
+      
+      if (article._embedded && 
+          article._embedded['wp:featuredmedia'] && 
+          article._embedded['wp:featuredmedia'][0]) {
+        featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
+      }
+      
+      const processedArticle = {
+        ...article,
+        featured_media_url
+      };
+      
+      // Check if this is sponsored content and throw error if it is
+      if (filterSponsoredArticles([processedArticle]).length === 0) {
+        throw new Error('Artykuł nie został znaleziony.');
+      }
+      
+      return processedArticle;
+    } catch (error: any) {
+      console.error('Error in fetchArticleBySlug:', error);
+      
+      if (error instanceof TypeError && error.message.includes('Network request failed')) {
+        throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
+      } else if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
+      } else if (error.message === 'Failed to fetch') {
+        throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
+      }
+      
+      if (error.message) {
+        throw error;
+      }
+      
+      throw new Error('Wystąpił problem podczas ładowania artykułu. Spróbuj ponownie później.');
+    }
+  });
+};
+
 export const fetchCategories = async (): Promise<Category[]> => {
   const requestKey = 'categories';
   
