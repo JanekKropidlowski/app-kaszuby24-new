@@ -28,11 +28,11 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-// Improved carousel sizing for center mode with peek
-const CAROUSEL_HORIZONTAL_MARGIN = 16;
-const CAROUSEL_PEEK_WIDTH = 24;
-const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_HORIZONTAL_MARGIN * 2) - (CAROUSEL_PEEK_WIDTH * 2);
-const CAROUSEL_ITEM_SPACING = 12;
+// Improved carousel sizing for center mode with peek - fixed spacing
+const CAROUSEL_HORIZONTAL_PADDING = 20;
+const CAROUSEL_PEEK_WIDTH = 30;
+const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_HORIZONTAL_PADDING * 2) - (CAROUSEL_PEEK_WIDTH * 2);
+const CAROUSEL_ITEM_SPACING = 16;
 
 // Memoized carousel item component for better performance
 const CarouselItem = React.memo(({ 
@@ -328,7 +328,7 @@ export default function HomeScreen() {
     loadArticles(1, true);
   }, [selectedCategory, loadArticles]);
   
-  // Optimized carousel auto-scroll with proper cleanup
+  // Optimized carousel auto-scroll with infinite loop
   useEffect(() => {
     const startCarouselAutoScroll = () => {
       if (carouselIntervalRef.current) {
@@ -340,13 +340,14 @@ export default function HomeScreen() {
           if (!isScreenFocused.current) return;
           
           setActiveCarouselIndex(prevIndex => {
-            const newIndex = prevIndex < featuredArticles.length - 1 ? prevIndex + 1 : 0;
+            // Calculate next index with infinite loop
+            const nextIndex = prevIndex < featuredArticles.length - 1 ? prevIndex + 1 : 0;
             
             // Scroll to new index with error handling
-            if (flatListRef.current && newIndex < featuredArticles.length) {
+            if (flatListRef.current && featuredArticles.length > 0) {
               try {
                 flatListRef.current.scrollToIndex({
-                  index: newIndex,
+                  index: nextIndex,
                   animated: true,
                   viewPosition: 0.5,
                 });
@@ -355,9 +356,9 @@ export default function HomeScreen() {
               }
             }
             
-            return newIndex;
+            return nextIndex;
           });
-        }, 5000);
+        }, 4000); // Slightly faster auto-scroll
       }
     };
     
@@ -387,12 +388,12 @@ export default function HomeScreen() {
               if (!isScreenFocused.current) return;
               
               setActiveCarouselIndex(prevIndex => {
-                const newIndex = prevIndex < featuredArticles.length - 1 ? prevIndex + 1 : 0;
+                const nextIndex = prevIndex < featuredArticles.length - 1 ? prevIndex + 1 : 0;
                 
-                if (flatListRef.current && newIndex < featuredArticles.length) {
+                if (flatListRef.current && featuredArticles.length > 0) {
                   try {
                     flatListRef.current.scrollToIndex({
-                      index: newIndex,
+                      index: nextIndex,
                       animated: true,
                       viewPosition: 0.5,
                     });
@@ -401,9 +402,9 @@ export default function HomeScreen() {
                   }
                 }
                 
-                return newIndex;
+                return nextIndex;
               });
-            }, 5000);
+            }, 4000);
           };
           startCarouselAutoScroll();
         }
@@ -467,7 +468,7 @@ export default function HomeScreen() {
     dismissBanner();
   }, [dismissBanner]);
   
-  // Add missing handleDotPress function
+  // Fixed handleDotPress function with smooth scrolling
   const handleDotPress = useCallback((index: number) => {
     if (flatListRef.current && index < featuredArticles.length) {
       try {
@@ -477,12 +478,44 @@ export default function HomeScreen() {
           viewPosition: 0.5,
         });
         setActiveCarouselIndex(index);
+        
+        // Restart auto-scroll timer after manual interaction
+        if (carouselIntervalRef.current) {
+          clearInterval(carouselIntervalRef.current);
+        }
+        
+        // Restart auto-scroll after a delay
+        setTimeout(() => {
+          if (featuredArticles.length > 1 && isScreenFocused.current) {
+            carouselIntervalRef.current = setInterval(() => {
+              if (!isScreenFocused.current) return;
+              
+              setActiveCarouselIndex(prevIndex => {
+                const nextIndex = prevIndex < featuredArticles.length - 1 ? prevIndex + 1 : 0;
+                
+                if (flatListRef.current && featuredArticles.length > 0) {
+                  try {
+                    flatListRef.current.scrollToIndex({
+                      index: nextIndex,
+                      animated: true,
+                      viewPosition: 0.5,
+                    });
+                  } catch (error) {
+                    console.warn('Auto scroll failed:', error);
+                  }
+                }
+                
+                return nextIndex;
+              });
+            }, 4000);
+          }
+        }, 2000);
       } catch (error) {
         console.warn('Manual dot navigation failed:', error);
       }
     }
   }, [featuredArticles.length]);
-  
+
   // Optimized item layout for FlatList
   const getItemLayout = useCallback((data: any, index: number) => {
     const length = CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING;
@@ -595,7 +628,7 @@ export default function HomeScreen() {
               />
             )}
             
-            {/* Improved Featured Articles Carousel with Center Mode */}
+            {/* Improved Featured Articles Carousel with Perfect Center Mode */}
             {featuredArticles.length > 0 && (
               <View style={styles.carouselContainer}>
                 <FlatList
@@ -612,11 +645,12 @@ export default function HomeScreen() {
                   pagingEnabled={false}
                   scrollEventThrottle={16}
                   onMomentumScrollEnd={(event) => {
+                    const contentOffsetX = event.nativeEvent.contentOffset.x;
                     const newIndex = Math.round(
-                      (event.nativeEvent.contentOffset.x + CAROUSEL_PEEK_WIDTH) / 
-                      (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
+                      contentOffsetX / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
                     );
-                    setActiveCarouselIndex(Math.max(0, Math.min(newIndex, featuredArticles.length - 1)));
+                    const clampedIndex = Math.max(0, Math.min(newIndex, featuredArticles.length - 1));
+                    setActiveCarouselIndex(clampedIndex);
                   }}
                   onScrollToIndexFailed={handleScrollToIndexFailed}
                   removeClippedSubviews={Platform.OS === 'android'}
@@ -735,7 +769,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   carouselListContent: {
-    paddingHorizontal: CAROUSEL_HORIZONTAL_MARGIN + CAROUSEL_PEEK_WIDTH,
+    paddingHorizontal: CAROUSEL_HORIZONTAL_PADDING + CAROUSEL_PEEK_WIDTH,
     paddingVertical: 6,
   },
   carouselItemWrapper: {
@@ -750,7 +784,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   carouselItem: {
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
     height: 240,
     width: '100%',
