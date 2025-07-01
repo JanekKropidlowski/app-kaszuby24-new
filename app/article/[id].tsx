@@ -19,6 +19,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings, Search, Headphones, Square, ChevronDown } from 'lucide-react-native';
+import * as Speech from 'expo-speech';
 import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
