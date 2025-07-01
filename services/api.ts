@@ -93,8 +93,8 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
   }
 };
 
-// Helper function to cache data with compression
-const cacheData = async (key: string, data: any) => {
+// Helper function to cache data with stale-while-revalidate
+const cacheDataWithSWR = async (key: string, data: any) => {
   try {
     const timestampedData = {
       data,
@@ -112,8 +112,8 @@ const cacheData = async (key: string, data: any) => {
   }
 };
 
-// Helper function to retrieve cached data
-const getCachedData = async (key: string) => {
+// Helper function to retrieve cached data with stale-while-revalidate
+const getCachedDataWithSWR = async (key: string) => {
   try {
     const cached = await AsyncStorage.getItem(key);
     if (cached) {
@@ -121,8 +121,13 @@ const getCachedData = async (key: string) => {
       const age = Date.now() - timestamp;
       
       if (age < CACHE_DURATION) {
-        return data;
+        // Fresh data
+        return { data, isStale: false, shouldRevalidate: false };
+      } else if (age < CACHE_DURATION + STALE_WHILE_REVALIDATE_DURATION) {
+        // Stale but usable data
+        return { data, isStale: true, shouldRevalidate: true };
       } else {
+        // Too old, remove from cache
         AsyncStorage.removeItem(key).catch(() => {});
         return null;
       }
