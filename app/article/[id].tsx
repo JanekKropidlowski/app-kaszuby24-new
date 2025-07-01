@@ -26,6 +26,7 @@ import EmptyState from '@/components/EmptyState';
 import VideoPlayer from '@/components/VideoPlayer';
 import { ArticleCard } from '@/components/ArticleCard';
 import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
+import SkeletonLoader from '@/components/SkeletonLoader';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { formatDateTime } from '@/utils/dateFormatter';

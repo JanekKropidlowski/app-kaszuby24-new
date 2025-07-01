@@ -77,7 +77,7 @@ export const useImagePreloader = (
     
     // Split URLs into batches of 3
     const batchSize = 3;
-    const batches = [];
+    const batches: string[][] = [];
     
     for (let i = 0; i < validUrls.length; i += batchSize) {
       batches.push(validUrls.slice(i, i + batchSize));
