@@ -127,12 +127,10 @@ export default function SearchScreen() {
           data={articles}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <View style={styles.articleContainer}>
-              <ArticleCard 
-                article={item} 
-                onPress={() => handleArticlePress(item)}
-              />
-            </View>
+            <ArticleCard 
+              article={item} 
+              onPress={() => handleArticlePress(item)}
+            />
           )}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
