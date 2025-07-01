@@ -91,14 +91,24 @@ export const WelcomeGreeting = () => {
         activeOpacity={0.7}
       >
         <View style={styles.iconContainer}>
-          <WavingHandIcon size={24} color={theme.colors.secondary} />
+          <WavingHandIcon size={22} color={theme.colors.secondary} />
         </View>
-        <Text style={[styles.greetingText, { 
-          color: theme.isDarkMode ? '#FFFFFF' : '#1E293B',
-          fontFamily: theme.fontFamily.medium 
-        }]}>
-          {greeting}{userName ? `, ${userName}` : ''}
-        </Text>
+        <View style={styles.textContainer}>
+          <Text style={[styles.greetingText, { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.light 
+          }]}>
+            {greeting}
+          </Text>
+          {userName && (
+            <Text style={[styles.nameText, { 
+              color: theme.isDarkMode ? '#FFFFFF' : '#1E293B',
+              fontFamily: theme.fontFamily.bold 
+            }]}>
+              {userName}
+            </Text>
+          )}
+        </View>
       </TouchableOpacity>
 
       <UserNameModal
@@ -115,16 +125,27 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   iconContainer: {
-    width: 28,
-    height: 28,
+    width: 26,
+    height: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  textContainer: {
+    flexDirection: 'column',
+    gap: -2,
+  },
   greetingText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '300',
+    letterSpacing: 0.2,
+    opacity: 0.8,
+  },
+  nameText: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.4,
   },
 }); 

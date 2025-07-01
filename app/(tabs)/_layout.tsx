@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Platform, View, Animated, StyleSheet } from 'react-native';
+import { Platform, View, Animated, StyleSheet, Text } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Bell, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
@@ -11,51 +11,50 @@ import { WelcomeGreeting } from '@/components/WelcomeGreeting';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { HeaderLogo } from '@/components/HeaderLogo';
 
-// Enhanced iOS-style header
+// Enhanced iOS-style header - Wariant 1: Logo Inline
 const IOSStyleHeader = () => {
   const { theme } = useThemeStore();
   const { showLogo } = useScrollStore();
   const headerOpacity = React.useRef(new Animated.Value(1)).current;
-  const headerTranslate = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(headerOpacity, {
-        toValue: showLogo ? 1 : 0.95,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(headerTranslate, {
-        toValue: showLogo ? 0 : -10,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [showLogo, headerOpacity, headerTranslate]);
+    Animated.timing(headerOpacity, {
+      toValue: showLogo ? 1 : 0.98,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [showLogo, headerOpacity]);
 
   return (
-    <Animated.View
-      style={[
-        styles.headerContainer,
-        {
-          backgroundColor: theme.colors.background,
-          borderBottomColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-          opacity: headerOpacity,
-          transform: [{ translateY: headerTranslate }],
-        }
-      ]}
-    >
-      {/* Top section with greeting and weather */}
-      <View style={styles.topSection}>
-        <WelcomeGreeting />
-        <WeatherWidget />
-      </View>
-
-      {/* Logo section */}
-      <View style={styles.logoSection}>
-        <HeaderLogo variant="text" />
-      </View>
-    </Animated.View>
+    <View style={[styles.headerWrapper, { backgroundColor: theme.colors.background }]}>
+      <Animated.View 
+        style={[
+          styles.headerContainer, 
+          { 
+            backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+            opacity: headerOpacity,
+          }
+        ]}
+      >
+        <View style={styles.headerContent}>
+          {/* Left: Greeting */}
+          <WelcomeGreeting />
+          
+          {/* Center: Subtle Logo */}
+          <View style={styles.logoContainer}>
+            <Text style={[styles.logoText, { 
+              color: theme.colors.primary,
+              fontFamily: theme.fontFamily.bold
+            }]}>
+              Kaszuby24
+            </Text>
+          </View>
+          
+          {/* Right: Weather */}
+          <WeatherWidget />
+        </View>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -155,10 +154,18 @@ export default function TabLayout() {
           backgroundColor: theme.colors.tabBarBackground,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
-          paddingTop: 5,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
-          height: Platform.OS === 'ios' ? 75 : 60,
-          transform: [{ translateY: tabBarTranslateY }],
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+          height: Platform.OS === 'ios' ? 80 : 65,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -236,22 +243,33 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    elevation: 0,
-    shadowOpacity: 0,
+  headerWrapper: {
+    paddingTop: Platform.OS === 'ios' ? 54 : 34,
+    paddingBottom: 0,
   },
-  topSection: {
+  headerContainer: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
   },
-  logoSection: {
+  logoContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    paddingHorizontal: 20,
+    pointerEvents: 'none',
+  },
+  logoText: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    opacity: 0.3,
   },
 });

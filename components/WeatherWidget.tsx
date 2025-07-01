@@ -73,8 +73,7 @@ export const WeatherWidget = () => {
   if (loading) {
     return (
       <View style={[styles.container, { 
-        backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-        borderColor: theme.isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'
+        backgroundColor: theme.isDarkMode ? 'rgba(254, 204, 0, 0.15)' : 'rgba(254, 204, 0, 0.1)'
       }]}>
         <ActivityIndicator size="small" color={theme.colors.primary} />
       </View>
@@ -84,8 +83,7 @@ export const WeatherWidget = () => {
   return (
     <TouchableOpacity 
       style={[styles.container, { 
-        backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-        borderColor: theme.isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'
+        backgroundColor: theme.isDarkMode ? 'rgba(254, 204, 0, 0.15)' : 'rgba(254, 204, 0, 0.1)'
       }]}
       onPress={handlePress}
       activeOpacity={0.7}
@@ -94,7 +92,7 @@ export const WeatherWidget = () => {
         <>
           <Text style={[styles.temperature, { 
             color: theme.isDarkMode ? '#FFFFFF' : '#1E293B',
-            fontFamily: theme.fontFamily.semibold 
+            fontFamily: theme.fontFamily.bold 
           }]}>
             {weather.temperature}°
           </Text>
@@ -109,16 +107,15 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 24,
+    gap: 7,
     minWidth: 70,
     justifyContent: 'center',
   },
   temperature: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
 }); 
