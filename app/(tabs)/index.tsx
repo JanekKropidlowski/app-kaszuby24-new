@@ -32,6 +32,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { WelcomeGreeting } from '@/components/WelcomeGreeting';
 import { WeatherWidget } from '@/components/WeatherWidget';
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 // Improved carousel sizing for center mode with peek - better balanced spacing
@@ -65,7 +66,7 @@ const ScrollableHeader = () => {
   );
 };
 
-// Memoized carousel item component for better performance
+// Improved carousel item component with better gradient and dynamic label
 const CarouselItemEnhanced = React.memo(({ 
   item, 
   index, 
@@ -89,6 +90,14 @@ const CarouselItemEnhanced = React.memo(({
       });
     }
   }, [item.id]);
+
+  // Dynamic label based on article popularity
+  const getArticleLabel = () => {
+    const views = parseInt(item.meta?.views || '0');
+    if (views > 1000) return 'Najchętniej czytane';
+    if (views > 500) return 'Popularne';
+    return 'Polecane';
+  };
   
   return (
     <View
@@ -120,9 +129,10 @@ const CarouselItemEnhanced = React.memo(({
           ) : (
             <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
           )}
+          {/* Improved gradient - less aggressive */}
           <LinearGradient
-            colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.5)']}
-            locations={[0, 0.4, 1]}
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
+            locations={[0, 0.3, 0.6, 1]}
             style={styles.carouselGradient}
           />
           <View style={styles.carouselItemContent}>
@@ -131,7 +141,7 @@ const CarouselItemEnhanced = React.memo(({
                 styles.carouselLabel,
                 { fontFamily: theme.fontFamily.semibold }
               ]}>
-                Najchętniej czytane
+                {getArticleLabel()}
               </Text>
             </View>
             <Text style={[
@@ -200,6 +210,11 @@ export default function HomeScreen() {
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isScreenFocused = useRef(true);
   const loadingRef = useRef(false); // Prevent duplicate requests
+
+  // Enhanced carousel state with user interaction tracking
+  const [userInteracting, setUserInteracting] = useState(false);
+  const [lastInteractionTime, setLastInteractionTime] = useState(0);
+  const autoScrollPausedRef = useRef(false);
 
   // Initialize and check for first time user
   useEffect(() => {
@@ -516,22 +531,31 @@ export default function HomeScreen() {
     }
   }, [featuredArticles]);
   
-  // Carousel auto-scroll - optimized for better performance
+  // Improved carousel auto-scroll with user interaction awareness
   useEffect(() => {
     const startCarouselAutoScroll = () => {
       if (carouselIntervalRef.current) {
         clearInterval(carouselIntervalRef.current);
       }
       
-      if (infiniteArticles.length > 1 && isScreenFocused.current) {
+      if (infiniteArticles.length > 1 && isScreenFocused.current && !autoScrollPausedRef.current) {
         carouselIntervalRef.current = setInterval(() => {
-          if (!isScreenFocused.current) return;
+          if (!isScreenFocused.current || autoScrollPausedRef.current || userInteracting) return;
+          
+          // Check if user interacted recently (pause for 10 seconds after interaction)
+          const timeSinceInteraction = Date.now() - lastInteractionTime;
+          if (timeSinceInteraction < 10000) return; // 10 seconds pause
           
           setActiveCarouselIndex(prevIndex => {
             const nextIndex = prevIndex + 1;
             
             if (flatListRef.current && infiniteArticles.length > 0) {
               try {
+                // Add haptic feedback for auto-scroll
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+                
                 flatListRef.current.scrollToIndex({
                   index: nextIndex,
                   animated: true,
@@ -544,7 +568,7 @@ export default function HomeScreen() {
             
             return nextIndex;
           });
-        }, 3000); // Reduced from 4000ms to 3000ms for faster scrolling
+        }, 5000); // Increased from 3000ms to 5000ms for less aggressive scrolling
       }
     };
     
@@ -555,7 +579,7 @@ export default function HomeScreen() {
         clearInterval(carouselIntervalRef.current);
       }
     };
-  }, [infiniteArticles.length]);
+  }, [infiniteArticles.length, userInteracting, lastInteractionTime]);
   
   // Handle screen focus/blur - optimized
   useEffect(() => {
@@ -754,27 +778,121 @@ export default function HomeScreen() {
     }, 100);
   }, [infiniteArticles.length]);
 
+  // Enhanced carousel indicator with clickable dots
   const renderCarouselIndicator = useMemo(() => {
     if (featuredArticles.length <= 1) return null;
+    
+    const handleIndicatorPress = (targetIndex: number) => {
+      if (flatListRef.current && !userInteracting) {
+        setUserInteracting(true);
+        setLastInteractionTime(Date.now());
+        
+        // Add haptic feedback
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+        
+        const duplicateCount = Math.min(2, featuredArticles.length);
+        const scrollToIndex = duplicateCount + targetIndex;
+        
+        try {
+          flatListRef.current.scrollToIndex({
+            index: scrollToIndex,
+            animated: true,
+            viewPosition: 0.5,
+          });
+          setActiveCarouselIndex(scrollToIndex);
+          setRealActiveIndex(targetIndex);
+        } catch (error) {
+          console.warn('Indicator navigation failed:', error);
+        }
+        
+        // Reset interaction state after animation
+        setTimeout(() => setUserInteracting(false), 1000);
+      }
+    };
     
     return (
       <View style={styles.indicatorContainer}>
         {featuredArticles.map((_, index) => (
-          <View
+          <TouchableOpacity
             key={index}
             style={[
               styles.indicator,
               {
                 backgroundColor: index === realActiveIndex 
                   ? theme.colors.primary 
-                  : 'rgba(0, 0, 0, 0.2)'
+                  : theme.isDarkMode 
+                    ? 'rgba(255, 255, 255, 0.3)' 
+                    : 'rgba(0, 0, 0, 0.3)',
+                transform: [{ scale: index === realActiveIndex ? 1.2 : 1 }],
               }
             ]}
+            onPress={() => handleIndicatorPress(index)}
+            activeOpacity={0.8}
           />
         ))}
       </View>
     );
-  }, [featuredArticles.length, realActiveIndex, theme.colors.primary]);
+  }, [featuredArticles.length, realActiveIndex, theme.colors.primary, theme.isDarkMode, userInteracting]);
+
+  // Enhanced scroll handling with user interaction detection
+  const handleCarouselScrollBegin = useCallback(() => {
+    setUserInteracting(true);
+    setLastInteractionTime(Date.now());
+  }, []);
+
+  const handleCarouselScrollEnd = useCallback(() => {
+    setTimeout(() => setUserInteracting(false), 500);
+  }, []);
+
+  // Enhanced momentum scroll end with better index calculation
+  const handleCarouselMomentumScrollEnd = useCallback((event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const newIndex = Math.round(
+      (contentOffsetX + CAROUSEL_PEEK_WIDTH) / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
+    );
+    
+    const duplicateCount = Math.min(2, featuredArticles.length);
+    
+    // Add haptic feedback on manual scroll
+    if (Platform.OS !== 'web' && userInteracting) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    
+    if (newIndex <= 0) {
+      const jumpToIndex = infiniteArticles.length - duplicateCount - 1;
+      setTimeout(() => {
+        if (flatListRef.current) {
+          flatListRef.current.scrollToIndex({
+            index: jumpToIndex,
+            animated: false,
+            viewPosition: 0.5,
+          });
+          setActiveCarouselIndex(jumpToIndex);
+          setRealActiveIndex(featuredArticles.length - 1);
+        }
+      }, 50);
+    } else if (newIndex >= infiniteArticles.length - duplicateCount) {
+      setTimeout(() => {
+        if (flatListRef.current) {
+          flatListRef.current.scrollToIndex({
+            index: duplicateCount,
+            animated: false,
+            viewPosition: 0.5,
+          });
+          setActiveCarouselIndex(duplicateCount);
+          setRealActiveIndex(0);
+        }
+      }, 50);
+    } else {
+      const clampedIndex = Math.max(0, Math.min(newIndex, infiniteArticles.length - 1));
+      setActiveCarouselIndex(clampedIndex);
+      
+      const realIndex = clampedIndex - duplicateCount;
+      setRealActiveIndex(Math.max(0, Math.min(realIndex, featuredArticles.length - 1)));
+    }
+  }, [featuredArticles.length, infiniteArticles.length, userInteracting]);
 
   const navigateToSearch = useCallback(() => {
     router.push('/(tabs)/search');
@@ -932,7 +1050,7 @@ export default function HomeScreen() {
               />
             )}
             
-            {/* Latest Articles Carousel */}
+            {/* Enhanced Latest Articles Carousel */}
             {infiniteArticles.length > 0 && (
               <View style={styles.carouselContainer}>
                 <FlatList
@@ -948,47 +1066,9 @@ export default function HomeScreen() {
                   contentContainerStyle={styles.carouselListContent}
                   pagingEnabled={false}
                   scrollEventThrottle={16}
-                  onMomentumScrollEnd={(event) => {
-                    const contentOffsetX = event.nativeEvent.contentOffset.x;
-                    const newIndex = Math.round(
-                      (contentOffsetX + CAROUSEL_PEEK_WIDTH) / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
-                    );
-                    
-                    const duplicateCount = Math.min(2, featuredArticles.length);
-                    
-                    if (newIndex <= 0) {
-                      const jumpToIndex = infiniteArticles.length - duplicateCount - 1;
-                      setTimeout(() => {
-                        if (flatListRef.current) {
-                          flatListRef.current.scrollToIndex({
-                            index: jumpToIndex,
-                            animated: false,
-                            viewPosition: 0.5,
-                          });
-                          setActiveCarouselIndex(jumpToIndex);
-                          setRealActiveIndex(featuredArticles.length - 1);
-                        }
-                      }, 50);
-                    } else if (newIndex >= infiniteArticles.length - duplicateCount) {
-                      setTimeout(() => {
-                        if (flatListRef.current) {
-                          flatListRef.current.scrollToIndex({
-                            index: duplicateCount,
-                            animated: false,
-                            viewPosition: 0.5,
-                          });
-                          setActiveCarouselIndex(duplicateCount);
-                          setRealActiveIndex(0);
-                        }
-                      }, 50);
-                    } else {
-                      const clampedIndex = Math.max(0, Math.min(newIndex, infiniteArticles.length - 1));
-                      setActiveCarouselIndex(clampedIndex);
-                      
-                      const realIndex = clampedIndex - duplicateCount;
-                      setRealActiveIndex(Math.max(0, Math.min(realIndex, featuredArticles.length - 1)));
-                    }
-                  }}
+                  onScrollBeginDrag={handleCarouselScrollBegin}
+                  onScrollEndDrag={handleCarouselScrollEnd}
+                  onMomentumScrollEnd={handleCarouselMomentumScrollEnd}
                   onScrollToIndexFailed={handleScrollToIndexFailed}
                   removeClippedSubviews={listConfig.removeClippedSubviews}
                   initialNumToRender={listConfig.initialNumToRender}
@@ -1241,13 +1321,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20, // Increased from 16
+    paddingHorizontal: 20,
   },
   indicator: {
-    height: 8,
-    width: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
+    height: 12, // Increased from 8
+    width: 12, // Increased from 8  
+    borderRadius: 6, // Increased from 4
+    marginHorizontal: 6, // Increased from 4
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   categoriesContainer: {
     marginBottom: 24,
