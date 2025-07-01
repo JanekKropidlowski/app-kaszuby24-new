@@ -166,7 +166,7 @@ export const cancelRequest = (key: string) => {
 
 export const fetchArticles = async (
   page = 1, 
-  perPage = 10, 
+  perPage = 20, // Increased default for better infinite scroll
   categories?: number[]
 ): Promise<{ articles: Article[], totalPages: number }> => {
   const requestKey = `articles_${page}_${perPage}_${categories?.join(',') || 'all'}`;
@@ -175,7 +175,7 @@ export const fetchArticles = async (
     try {
       console.log(`Loading articles: page=${page}, perPage=${perPage}, categories=${categories?.join(',') || 'all'}`);
       
-      // Try to get from cache first for faster initial load
+      // Try to get from cache first for faster initial load (only for first page)
       if (page === 1) {
         const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
         const cachedData = await getCachedData(cacheKey);

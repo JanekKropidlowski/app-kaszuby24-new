@@ -144,6 +144,8 @@ export default function HomeScreen() {
   const [infiniteArticles, setInfiniteArticles] = useState<Article[]>([]);
   const [realActiveIndex, setRealActiveIndex] = useState(0);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [hasMoreArticles, setHasMoreArticles] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -165,11 +167,17 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, [initializePreferences, shouldShowWelcome]);
   
-  // Optimized load articles function with instant filtering
+  // Optimized load articles function with infinite scroll support
   const loadArticles = useCallback(async (pageNum = 1, refresh = false, retry = 0) => {
     // Don't proceed if component is unmounted
     if (!isMountedRef.current) {
       console.log('Component unmounted, cancelling request');
+      return;
+    }
+    
+    // Prevent multiple simultaneous requests for the same page
+    if (pageNum > 1 && isLoadingMore) {
+      console.log('Already loading more articles, skipping request');
       return;
     }
     
@@ -180,8 +188,9 @@ export default function HomeScreen() {
       
       if (pageNum === 1) {
         setLoading(true);
+        setHasMoreArticles(true);
       } else {
-        setLoadingMore(true);
+        setIsLoadingMore(true);
       }
       
       // Don't include sponsored category (554) in filter
@@ -191,7 +200,7 @@ export default function HomeScreen() {
       
       const { articles: newArticles, totalPages: total } = await fetchArticles(
         pageNum,
-        15, // Increased to get more articles for better slider selection
+        20, // Increased per page for better infinite scroll experience
         categoryFilter
       );
       
@@ -216,19 +225,25 @@ export default function HomeScreen() {
           setArticles([]);
           setFeaturedArticles([]);
         }
+        setPage(1);
       } else {
-        // For pagination, sort new articles and append
+        // For infinite scroll, sort new articles and append
         const sortedNewArticles = [...newArticles].sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
         );
         setArticles((prev) => [...prev, ...sortedNewArticles]);
+        setPage(pageNum);
       }
       
       setTotalPages(total);
-      setPage(pageNum);
+      
+      // Check if we have more articles to load
+      const hasMore = pageNum < total && newArticles.length > 0;
+      setHasMoreArticles(hasMore);
+      
       setRetryCount(0); // Reset retry count on success
       
-      console.log('Articles loaded successfully');
+      console.log(`Articles loaded successfully. Has more: ${hasMore}, Current page: ${pageNum}, Total pages: ${total}`);
     } catch (err: any) {
       // Don't update state if component is unmounted
       if (!isMountedRef.current) {
@@ -268,10 +283,11 @@ export default function HomeScreen() {
         setLoading(false);
         setRefreshing(false);
         setLoadingMore(false);
+        setIsLoadingMore(false);
         setInitialLoading(false);
       }
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, isLoadingMore]);
   
   const loadCategories = useCallback(async (retry = 0) => {
     if (!isMountedRef.current) return;
@@ -368,9 +384,13 @@ export default function HomeScreen() {
     // Load articles with new filter - this will trigger the useEffect
   }, []);
   
-  // Updated useEffect for category changes with instant response
+  // Updated useEffect for category changes with infinite scroll reset
   useEffect(() => {
     if (!isMountedRef.current) return;
+    
+    // Reset infinite scroll state when category changes
+    setHasMoreArticles(true);
+    setIsLoadingMore(false);
     
     // Debounce the actual API call slightly for better performance
     const timeoutId = setTimeout(() => {
@@ -507,17 +527,22 @@ export default function HomeScreen() {
   
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
+    setHasMoreArticles(true);
+    setIsLoadingMore(false);
+    setPage(1);
     loadArticles(1, true);
   }, [loadArticles]);
   
   const handleLoadMore = useCallback(() => {
     if (!isMountedRef.current) return;
     
-    if (page < totalPages && !loadingMore && !loading) {
-      console.log(`Loading more articles: page ${page + 1}`);
-      loadArticles(page + 1);
+    // Only load more if we have more articles and we're not already loading
+    if (hasMoreArticles && !isLoadingMore && !loading && !error) {
+      const nextPage = page + 1;
+      console.log(`Infinite scroll: Loading page ${nextPage}`);
+      loadArticles(nextPage);
     }
-  }, [page, totalPages, loadingMore, loading, loadArticles]);
+  }, [hasMoreArticles, isLoadingMore, loading, error, page, loadArticles]);
   
   const handleArticlePress = useCallback((article: Article) => {
     // Add to recent articles (filtering is handled in the store)
@@ -872,7 +897,32 @@ export default function HomeScreen() {
           ) : null
         }
         ListFooterComponent={
-          loadingMore ? <LoadingIndicator size="small" /> : null
+          isLoadingMore ? (
+            <View style={styles.infiniteLoadingContainer}>
+              <LoadingIndicator size="small" />
+              <Text style={[
+                styles.infiniteLoadingText,
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Ładowanie kolejnych artykułów...
+              </Text>
+            </View>
+          ) : !hasMoreArticles && articles.length > 0 ? (
+            <View style={styles.endOfListContainer}>
+              <Text style={[
+                styles.endOfListText,
+                { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                To wszystkie dostępne artykuły
+              </Text>
+            </View>
+          ) : null
         }
         refreshControl={
           <RefreshControl
@@ -883,7 +933,7 @@ export default function HomeScreen() {
           />
         }
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.3}
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
@@ -1041,5 +1091,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginRight: 4,
+  },
+  infiniteLoadingContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infiniteLoadingText: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  endOfListContainer: {
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  endOfListText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
