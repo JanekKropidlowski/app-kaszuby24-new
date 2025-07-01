@@ -140,9 +140,15 @@ const CarouselItemEnhanced = React.memo(({
       'Kartuzy', 'Chojnice', 'Reda', 'Lębork'
     ];
     const region = item.categories.find(cat => 
-      regionCategories.some(region => cat.name.includes(region))
+      cat && cat.name && regionCategories.some(region => cat.name.includes(region))
     );
-    return region ? region.name : item.categories[0].name;
+    // Ensure we have a valid category with name before returning
+    if (region && region.name) {
+      return region.name;
+    }
+    // Fallback to first category with valid name
+    const firstValidCategory = item.categories.find(cat => cat && cat.name);
+    return firstValidCategory ? firstValidCategory.name : null;
   };
   
   return (
