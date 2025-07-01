@@ -380,7 +380,7 @@ ${article.link}`,
     }).start();
     
     // Show progress bar when scrolling starts
-    if (scrollY > 50 && progressOpacity.__getValue() === 0) {
+    if (scrollY > 50 && progressOpacity._value === 0) {
       Animated.timing(progressOpacity, {
         toValue: 1,
         duration: 200,
@@ -389,7 +389,7 @@ ${article.link}`,
     }
     
     // Hide progress bar when at the top
-    if (scrollY < 50 && progressOpacity.__getValue() === 1) {
+    if (scrollY < 50 && progressOpacity._value === 1) {
       Animated.timing(progressOpacity, {
         toValue: 0,
         duration: 200,
@@ -797,7 +797,7 @@ ${article.link}`,
     if (!article) return null;
     
     const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
-    const photoCredit = article.meta?.photo_credit || '';
+    const photoCredit = article.meta?.foto || '';
     
     if (!metaSource && !photoCredit) return null;
     
