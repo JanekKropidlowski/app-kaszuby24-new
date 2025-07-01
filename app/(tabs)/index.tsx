@@ -28,10 +28,9 @@ import CategoryPill from '@/components/CategoryPill';
 import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
 
 const { width } = Dimensions.get('window');
-// Improved carousel sizing for center mode with peek effect
-const CAROUSEL_HORIZONTAL_MARGIN = 24;
-const CAROUSEL_PEEK_WIDTH = 40; // How much of adjacent slides to show
-const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_HORIZONTAL_MARGIN * 2) - (CAROUSEL_PEEK_WIDTH * 2);
+// Improved carousel sizing for full width with proper margins
+const CAROUSEL_HORIZONTAL_MARGIN = 20;
+const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_HORIZONTAL_MARGIN * 2);
 const CAROUSEL_ITEM_SPACING = 16;
 
 // Memoized carousel item component for better performance
@@ -467,21 +466,6 @@ export default function HomeScreen() {
     dismissBanner();
   }, [dismissBanner]);
   
-  const handleDotPress = useCallback((index: number) => {
-    if (flatListRef.current && index < featuredArticles.length) {
-      try {
-        setActiveCarouselIndex(index);
-        flatListRef.current.scrollToIndex({
-          index,
-          animated: true,
-          viewPosition: 0.5,
-        });
-      } catch (error) {
-        console.warn('Dot press scroll failed:', error);
-      }
-    }
-  }, [featuredArticles.length]);
-  
   // Optimized item layout for FlatList
   const getItemLayout = useCallback((data: any, index: number) => {
     const length = CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING;
@@ -530,27 +514,21 @@ export default function HomeScreen() {
     return (
       <View style={styles.indicatorContainer}>
         {featuredArticles.map((_, index) => (
-          <TouchableOpacity
+          <View
             key={`indicator-${index}`}
-            onPress={() => handleDotPress(index)}
-            style={styles.indicatorButton}
-            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-          >
-            <View
-              style={[
-                styles.indicator,
-                {
-                  backgroundColor: index === activeCarouselIndex ? theme.colors.primary : theme.colors.textSecondary,
-                  opacity: index === activeCarouselIndex ? 1 : 0.4,
-                  transform: [{ scale: index === activeCarouselIndex ? 1.2 : 1 }],
-                },
-              ]}
-            />
-          </TouchableOpacity>
+            style={[
+              styles.indicator,
+              {
+                backgroundColor: index === activeCarouselIndex ? theme.colors.primary : theme.colors.textSecondary,
+                opacity: index === activeCarouselIndex ? 1 : 0.5,
+                transform: [{ scale: index === activeCarouselIndex ? 1.2 : 1 }],
+              },
+            ]}
+          />
         ))}
       </View>
     );
-  }, [featuredArticles.length, activeCarouselIndex, theme.colors.primary, theme.colors.textSecondary, handleDotPress]);
+  }, [featuredArticles.length, activeCarouselIndex, theme.colors.primary, theme.colors.textSecondary]);
   
   // Memoized article render function
   const renderArticle = useCallback(({ item }: { item: Article }) => (
@@ -598,7 +576,7 @@ export default function HomeScreen() {
               />
             )}
             
-            {/* Improved Featured Articles Carousel with Center Mode */}
+            {/* Improved Featured Articles Carousel */}
             {featuredArticles.length > 0 && (
               <View style={styles.carouselContainer}>
                 <FlatList
@@ -609,14 +587,14 @@ export default function HomeScreen() {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
-                  snapToAlignment="center"
+                  snapToAlignment="start"
                   decelerationRate="fast"
                   contentContainerStyle={styles.carouselListContent}
                   pagingEnabled={false}
                   scrollEventThrottle={16}
                   onMomentumScrollEnd={(event) => {
                     const newIndex = Math.round(
-                      (event.nativeEvent.contentOffset.x + CAROUSEL_PEEK_WIDTH) / 
+                      event.nativeEvent.contentOffset.x / 
                       (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
                     );
                     setActiveCarouselIndex(Math.max(0, Math.min(newIndex, featuredArticles.length - 1)));
@@ -738,7 +716,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   carouselListContent: {
-    paddingHorizontal: CAROUSEL_HORIZONTAL_MARGIN + CAROUSEL_PEEK_WIDTH,
+    paddingHorizontal: CAROUSEL_HORIZONTAL_MARGIN,
     paddingVertical: 6,
   },
   carouselItemWrapper: {
@@ -826,14 +804,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
   },
-  indicatorButton: {
-    padding: 8,
-    marginHorizontal: 2,
-  },
   indicator: {
     height: 8,
     width: 8,
     borderRadius: 4,
+    marginHorizontal: 4,
   },
   categoriesContainer: {
     marginBottom: 24,
@@ -846,7 +821,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     marginBottom: 16,
     marginTop: 6,
   },
@@ -869,7 +844,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   articleContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    marginBottom: 12,
   },
 });
