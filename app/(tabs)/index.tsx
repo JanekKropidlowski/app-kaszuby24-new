@@ -655,6 +655,35 @@ export default function HomeScreen() {
   // Memoized key extractor
   const keyExtractor = useCallback((item: Article) => item.id.toString(), []);
   
+  // Memoized category pills render function
+  const renderCategoryPills = useMemo(() => {
+    if (categories.length === 0) return null;
+    
+    return (
+      <View style={styles.categoriesContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          <CategoryPill
+            name="Wszystkie"
+            isSelected={selectedCategory === null}
+            onPress={() => handleCategoryChange(null)}
+          />
+          {categories.map((category) => (
+            <CategoryPill
+              key={category.id}
+              name={category.name}
+              isSelected={selectedCategory === category.id}
+              onPress={() => handleCategoryChange(category.id)}
+            />
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }, [categories, selectedCategory, handleCategoryChange]);
+  
   if (loading && !refreshing) {
     return <LoadingIndicator fullScreen />;
   }
