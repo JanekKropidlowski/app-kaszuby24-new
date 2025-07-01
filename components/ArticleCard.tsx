@@ -105,7 +105,7 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
           style={compact ? styles.compactImage : styles.image}
           contentFit="cover"
           priority={imageProps.priority}
-          cachePolicy={imageProps.cachePolicy}
+          cachePolicy={imageProps.cachePolicy as "memory-disk" | "memory"}
           transition={imageProps.transition}
           placeholder={imageProps.placeholder}
         />

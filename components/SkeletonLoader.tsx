@@ -20,7 +20,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   const animatedValue = React.useRef(new Animated.Value(0)).current;
 
   // Darker gray color for skeleton - more prominent than theme.colors.subtle
-  const skeletonColor = theme.isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)';
+  const skeletonColor = theme.isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
 
   React.useEffect(() => {
     const animation = Animated.loop(
