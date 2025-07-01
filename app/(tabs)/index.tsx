@@ -719,6 +719,7 @@ const styles = StyleSheet.create({
   carouselContainer: {
     marginTop: 12,
     marginBottom: 28,
+    width: '100%',
   },
   carouselListContent: {
     paddingHorizontal: (width - CAROUSEL_ITEM_WIDTH) / 2, // Perfect centering
