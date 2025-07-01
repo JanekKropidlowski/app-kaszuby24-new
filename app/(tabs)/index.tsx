@@ -54,197 +54,10 @@ import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
-// New carousel dimensions for "Most Read This Week"
-const WEEKLY_PEEK_WIDTH = 35;
-const WEEKLY_ITEM_SPACING = 16;
-const WEEKLY_ITEM_WIDTH = width - (WEEKLY_PEEK_WIDTH * 2) - 32;
-
-// Original carousel dimensions
-const CAROUSEL_PEEK_WIDTH = 25;
-const CAROUSEL_ITEM_SPACING = 12;
-const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 40;
-
-// New component for Weekly Most Read Slider with center mode
-const WeeklyMostReadSlider = ({ articles }: { articles: Article[] }) => {
-  const { theme } = useThemeStore();
-  const router = useRouter();
-  const flatListRef = useRef<FlatList>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  
-  const handleArticlePress = useCallback((article: Article) => {
-    const { addRecentArticle } = useArticlesStore.getState();
-    addRecentArticle(article);
-    router.push(`/article/${article.id}`);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [router]);
-
-  const renderItem = ({ item, index }: { item: Article; index: number }) => {
-    const isActive = index === activeIndex;
-    const isAdjacent = Math.abs(index - activeIndex) === 1;
-    
-    return (
-      <TouchableOpacity
-        style={[
-          styles.weeklyCardContainer,
-          {
-            width: WEEKLY_ITEM_WIDTH,
-            transform: [
-              { scale: isActive ? 1 : isAdjacent ? 0.9 : 0.85 },
-            ],
-            opacity: isActive ? 1 : isAdjacent ? 0.7 : 0.5,
-          }
-        ]}
-        onPress={() => handleArticlePress(item)}
-        activeOpacity={0.9}
-      >
-        <View style={[styles.weeklyCard, { backgroundColor: theme.colors.cardBackground }]}>
-          {/* Image with overlay */}
-          <View style={styles.weeklyImageContainer}>
-            {item.featured_media_url ? (
-              <Image
-                source={{ uri: item.featured_media_url }}
-                style={styles.weeklyImage}
-                contentFit="cover"
-                transition={200}
-              />
-            ) : (
-              <View style={[styles.weeklyImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
-            )}
-            
-            {/* Gradient overlay */}
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
-              style={styles.weeklyGradient}
-            />
-            
-            {/* Stats overlay */}
-            <View style={styles.weeklyStatsOverlay}>
-              <View style={styles.weeklyStatBadge}>
-                <Eye size={12} color="#FFFFFF" />
-                <Text style={[styles.weeklyStatText, { fontFamily: theme.fontFamily.semibold }]}>
-                  {item.meta?.views || '0'}
-                </Text>
-              </View>
-            </View>
-          </View>
-          
-          {/* Content */}
-          <View style={styles.weeklyContent}>
-            {/* Category badge */}
-            {item.categories && item.categories.length > 0 && (
-              <View style={[styles.weeklyCategoryBadge, { backgroundColor: theme.colors.primary + '20' }]}>
-                <MapPin size={10} color={theme.colors.primary} />
-                <Text style={[styles.weeklyCategoryText, { 
-                  color: theme.colors.primary,
-                  fontFamily: theme.fontFamily.medium 
-                }]}>
-                  {item.categories[0].name}
-                </Text>
-              </View>
-            )}
-            
-            {/* Title */}
-            <Text style={[styles.weeklyTitle, { 
-              color: theme.colors.text,
-              fontFamily: theme.fontFamily.bold 
-            }]} numberOfLines={2}>
-              {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-            </Text>
-            
-            {/* Meta info */}
-            <View style={styles.weeklyMeta}>
-              <View style={styles.weeklyMetaItem}>
-                <Clock size={12} color={theme.colors.textSecondary} />
-                <Text style={[styles.weeklyMetaText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular 
-                }]}>
-                  {new Date(item.date).toLocaleDateString('pl-PL', { 
-                    day: 'numeric',
-                    month: 'short'
-                  })}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const onMomentumScrollEnd = (event: any) => {
-    const newIndex = Math.round(event.nativeEvent.contentOffset.x / (WEEKLY_ITEM_WIDTH + WEEKLY_ITEM_SPACING));
-    setActiveIndex(newIndex);
-  };
-
-  const handleDotPress = (index: number) => {
-    flatListRef.current?.scrollToIndex({ index, animated: true });
-    setActiveIndex(index);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  };
-
-  return (
-    <View style={styles.weeklySliderContainer}>
-      {/* Section Header */}
-      <View style={styles.weeklySectionHeader}>
-        <View style={styles.weeklySectionTitleRow}>
-          <TrendingUp size={24} color={theme.colors.primary} />
-          <Text style={[styles.weeklySectionTitle, { 
-            color: theme.colors.text,
-            fontFamily: theme.fontFamily.bold 
-          }]}>
-            Najchętniej czytane w tym tygodniu
-          </Text>
-        </View>
-        <TouchableOpacity 
-          style={styles.weeklyViewAllButton}
-          onPress={() => router.push('/(tabs)/search')}
-        >
-          <Text style={[styles.weeklyViewAllText, { 
-            color: theme.colors.primary,
-            fontFamily: theme.fontFamily.medium 
-          }]}>
-            Zobacz wszystkie
-          </Text>
-          <ChevronRight size={16} color={theme.colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Slider */}
-      <FlatList
-        ref={flatListRef}
-        data={articles}
-        renderItem={renderItem}
-        keyExtractor={(item) => `weekly-${item.id}`}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={WEEKLY_ITEM_WIDTH + WEEKLY_ITEM_SPACING}
-        decelerationRate="fast"
-        contentContainerStyle={styles.weeklySliderContent}
-        onMomentumScrollEnd={onMomentumScrollEnd}
-      />
-
-      {/* Dots indicator */}
-      <View style={styles.weeklyDotsContainer}>
-        {articles.map((_, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => handleDotPress(index)}
-            style={[
-              styles.weeklyDot,
-              {
-                backgroundColor: index === activeIndex 
-                  ? theme.colors.primary 
-                  : theme.colors.textSecondary + '30',
-                width: index === activeIndex ? 24 : 8,
-              }
-            ]}
-          />
-        ))}
-      </View>
-    </View>
-  );
-};
+// Original carousel dimensions - improved center mode
+const CAROUSEL_PEEK_WIDTH = 40; // Increased to show more of adjacent cards
+const CAROUSEL_ITEM_SPACING = 16; // Better spacing
+const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 32; // Optimized for center mode
 
 // Modern header component with enhanced UI
 const ModernHeader = () => {
@@ -318,12 +131,18 @@ const CarouselItemEnhanced = React.memo(({
     }
   }, [item.id]);
 
-  // Dynamic label based on article popularity
-  const getArticleLabel = () => {
-    const views = parseInt(item.meta?.views || '0');
-    if (views > 1000) return 'Najchętniej czytane';
-    if (views > 500) return 'Popularne';
-    return 'Polecane';
+  // Get article region from categories
+  const getArticleRegion = () => {
+    if (!item.categories || item.categories.length === 0) return null;
+    // Find region category
+    const regionCategories = [
+      'Wejherowo', 'Trójmiasto', 'Puck', 'Kościerzyna', 
+      'Kartuzy', 'Chojnice', 'Reda', 'Lębork'
+    ];
+    const region = item.categories.find(cat => 
+      regionCategories.some(region => cat.name.includes(region))
+    );
+    return region ? region.name : item.categories[0].name;
   };
   
   return (
@@ -363,14 +182,17 @@ const CarouselItemEnhanced = React.memo(({
             style={styles.carouselGradient}
           />
           <View style={styles.carouselItemContent}>
-            <View style={styles.carouselLabelContainer}>
-              <Text style={[
-                styles.carouselLabel,
-                { fontFamily: theme.fontFamily.semibold }
-              ]}>
-                {getArticleLabel()}
-              </Text>
-            </View>
+            {getArticleRegion() && (
+              <View style={styles.carouselLabelContainer}>
+                <MapPin size={12} color="#FFFFFF" />
+                <Text style={[
+                  styles.carouselLabel,
+                  { fontFamily: theme.fontFamily.semibold }
+                ]}>
+                  {getArticleRegion()}
+                </Text>
+              </View>
+            )}
             <Text style={[
               styles.carouselTitle,
               { fontFamily: theme.fontFamily.bold }
@@ -1049,10 +871,8 @@ export default function HomeScreen() {
               {
                 backgroundColor: index === realActiveIndex 
                   ? theme.colors.primary 
-                  : theme.isDarkMode 
-                    ? 'rgba(255, 255, 255, 0.3)' 
-                    : 'rgba(0, 0, 0, 0.3)',
-                transform: [{ scale: index === realActiveIndex ? 1.2 : 1 }],
+                  : theme.colors.textSecondary + '30',
+                width: index === realActiveIndex ? 24 : 8,
               }
             ]}
             onPress={() => handleIndicatorPress(index)}
@@ -1277,11 +1097,6 @@ export default function HomeScreen() {
               />
             )}
             
-            {/* Weekly Most Read Section - New! */}
-            {featuredArticles.length >= 5 && (
-              <WeeklyMostReadSlider articles={featuredArticles.slice(0, 10)} />
-            )}
-            
             {/* Enhanced Latest Articles Carousel */}
             {infiniteArticles.length > 0 && (
               <View style={styles.carouselContainer}>
@@ -1317,6 +1132,90 @@ export default function HomeScreen() {
                 {renderCarouselIndicator}
               </View>
             )}
+            
+            {/* Thematic Sections - Modern Grid */}
+            <View style={styles.thematicSectionsContainer}>
+              <Text style={[styles.thematicTitle, { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.bold 
+              }]}>
+                Przeglądaj według tematów
+              </Text>
+              
+              <View style={styles.thematicGrid}>
+                <TouchableOpacity 
+                  style={[styles.thematicCard, { backgroundColor: theme.colors.cardBackground }]}
+                  onPress={() => router.push('/(tabs)/search?category=sport')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.thematicIconWrapper, { backgroundColor: '#FF6B6B20' }]}>
+                    <Heart size={24} color="#FF6B6B" />
+                  </View>
+                  <Text style={[styles.thematicCardTitle, { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.semibold 
+                  }]}>Sport</Text>
+                  <Text style={[styles.thematicCardSubtitle, { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular 
+                  }]}>Aktualności sportowe</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.thematicCard, { backgroundColor: theme.colors.cardBackground }]}
+                  onPress={() => router.push('/(tabs)/search?category=kultura')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.thematicIconWrapper, { backgroundColor: '#4ECDC420' }]}>
+                    <Calendar size={24} color="#4ECDC4" />
+                  </View>
+                  <Text style={[styles.thematicCardTitle, { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.semibold 
+                  }]}>Kultura</Text>
+                  <Text style={[styles.thematicCardSubtitle, { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular 
+                  }]}>Wydarzenia kulturalne</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.thematicCard, { backgroundColor: theme.colors.cardBackground }]}
+                  onPress={() => router.push('/(tabs)/search?category=biznes')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.thematicIconWrapper, { backgroundColor: '#FFE66D20' }]}>
+                    <TrendingUp size={24} color="#FFE66D" />
+                  </View>
+                  <Text style={[styles.thematicCardTitle, { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.semibold 
+                  }]}>Biznes</Text>
+                  <Text style={[styles.thematicCardSubtitle, { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular 
+                  }]}>Gospodarka lokalna</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.thematicCard, { backgroundColor: theme.colors.cardBackground }]}
+                  onPress={() => router.push('/(tabs)/search?category=wydarzenia')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.thematicIconWrapper, { backgroundColor: '#A8E6CF20' }]}>
+                    <Clock size={24} color="#A8E6CF" />
+                  </View>
+                  <Text style={[styles.thematicCardTitle, { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.semibold 
+                  }]}>Wydarzenia</Text>
+                  <Text style={[styles.thematicCardSubtitle, { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular 
+                  }]}>Co się dzieje</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             
             {/* Region Filters Section Header - New! */}
             <View style={styles.regionFilterHeader}>
@@ -1548,12 +1447,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignSelf: 'flex-start',
     marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   carouselLabel: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.4,
+    marginLeft: 4,
   },
   carouselTitle: {
     color: '#FFFFFF',
@@ -1584,15 +1486,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   indicator: {
-    height: 6, // Reduced from 12 to 6 - much smaller like in screenshot
-    width: 6, // Reduced from 12 to 6
-    borderRadius: 3, // Reduced from 6 to 3
-    marginHorizontal: 3, // Reduced from 6 to 3 - closer together
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 }, // Reduced shadow
-    shadowOpacity: 0.1, // More subtle shadow
-    shadowRadius: 2,
-    elevation: 1, // Reduced elevation
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+    transition: 'all 0.3s ease',
   },
   categoriesContainer: {
     marginBottom: 24,
@@ -1835,6 +1732,51 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     flex: 1,
   },
+  // Thematic Sections Styles
+  thematicSectionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  thematicTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    marginBottom: 16,
+  },
+  thematicGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  thematicCard: {
+    width: '48%',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  thematicIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  thematicCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  thematicCardSubtitle: {
+    fontSize: 13,
+    opacity: 0.7,
+  },
   // Region Filter Header Styles
   regionFilterHeader: {
     paddingHorizontal: 24,
@@ -1851,159 +1793,5 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     marginLeft: 8,
   },
-  // New component for Weekly Most Read Slider with center mode
-  weeklySliderContainer: {
-    marginTop: 24,
-    marginBottom: 28,
-    width: '100%',
-  },
-  weeklySectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 8,
-    marginTop: 6,
-  },
-  weeklySectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  weeklySectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    marginLeft: 8,
-  },
-  weeklyViewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(34, 74, 150, 0.06)',
-    borderRadius: 16,
-  },
-  weeklyViewAllText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginRight: 4,
-  },
-  weeklySliderContent: {
-    paddingHorizontal: WEEKLY_PEEK_WIDTH + 20,
-    paddingVertical: 6,
-  },
-  weeklyCardContainer: {
-    width: WEEKLY_ITEM_WIDTH,
-    marginRight: WEEKLY_ITEM_SPACING,
-  },
-  weeklyCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    height: 280,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  weeklyImageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-  },
-  weeklyImage: {
-    width: '100%',
-    height: '100%',
-  },
-  weeklyImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-  },
-  weeklyGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '75%',
-  },
-  weeklyStatsOverlay: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-  },
-  weeklyStatBadge: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backdropFilter: 'blur(10px)',
-  },
-  weeklyStatText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  weeklyContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-  },
-  weeklyCategoryBadge: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginBottom: 12,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  weeklyCategoryText: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  weeklyTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 24,
-    marginBottom: 14,
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  weeklyMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  weeklyMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  weeklyMetaText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '400',
-  },
-  weeklyDotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    paddingHorizontal: 20,
-  },
-  weeklyDot: {
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
-    transition: 'all 0.3s ease',
-  },
+
 });
