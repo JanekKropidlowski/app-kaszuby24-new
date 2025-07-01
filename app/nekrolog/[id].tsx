@@ -12,9 +12,10 @@ import {
   Alert
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Share2, MapPin, Download, Heart } from 'lucide-react-native';
+import { ArrowLeft, Share2, MapPin, Download, Heart, Home, Bell, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useThemeStore } from '@/store/themeStore';
+import { useNotificationsStore } from '@/store/notificationsStore';
 import { fetchNekrologById } from '@/services/api';
 import { Nekrolog } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -24,6 +25,7 @@ export default function NekrologDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { theme, isDarkMode } = useThemeStore();
+  const { getUnreadCount } = useNotificationsStore();
   
   const [nekrolog, setNekrolog] = useState<Nekrolog | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +34,7 @@ export default function NekrologDetailScreen() {
   const [regionName, setRegionName] = useState<string>('');
   
   const isMounted = useRef(true);
+  const unreadCount = getUnreadCount();
 
   // Load nekrolog data
   useEffect(() => {
@@ -142,18 +145,48 @@ export default function NekrologDetailScreen() {
     }
   }, [featuredImageUrl]);
 
-  // Clean HTML content for display
-  const getCleanContent = useCallback((content: string) => {
-    return content
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
+  // Tab navigation handlers
+  const handleTabNavigation = useCallback((route: string) => {
+    router.push(route as any);
+  }, [router]);
+
+  // Parse HTML content with formatting
+  const parseHTMLContent = useCallback((content: string) => {
+    // Clean and decode HTML entities
+    let cleanContent = content
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&')
       .replace(/&quot;/g, '"')
       .replace(/&#039;/g, "'")
       .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
+
+    // Split content by HTML tags to preserve formatting
+    const parts = cleanContent.split(/(<\/?strong>|<\/?b>)/);
+    const elements = [];
+    let isBold = false;
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      
+      if (part === '<strong>' || part === '<b>') {
+        isBold = true;
+      } else if (part === '</strong>' || part === '</b>') {
+        isBold = false;
+      } else if (part && part.trim()) {
+        // Remove remaining HTML tags from this part
+        const cleanPart = part.replace(/<[^>]*>/g, '').trim();
+        if (cleanPart) {
+          elements.push({
+            text: cleanPart,
+            bold: isBold
+          });
+        }
+      }
+    }
+    
+    return elements;
   }, []);
 
   if (loading) {
@@ -210,7 +243,7 @@ export default function NekrologDetailScreen() {
         {/* Memorial Ribbon Header */}
         <View style={styles.ribbonHeader}>
           <Image
-            source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2023/05/514697-PIHZZ2-291-01.png' }}
+            source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2025/07/514697-PIHZZ2-291-01-300x300-–-ze-zmianami.png' }}
             style={styles.memorialRibbon}
             contentFit="contain"
             transition={200}
@@ -226,26 +259,29 @@ export default function NekrologDetailScreen() {
             {nekrolog.title.rendered}
           </Text>
           
-          {/* Date and Region Info */}
-          <View style={styles.metaInfo}>
-            <Text style={[styles.dateText, { 
-              color: theme.colors.textSecondary,
-              fontFamily: theme.fontFamily.medium 
-            }]}>
-              {new Date(nekrolog.date).toLocaleDateString('pl-PL')}
-            </Text>
-            {regionName && (
-              <View style={styles.regionContainer}>
-                <MapPin size={14} color={theme.colors.primary} />
-                <Text style={[styles.regionText, { 
-                  color: theme.colors.primary,
-                  fontFamily: theme.fontFamily.medium 
-                }]}>
-                  {regionName}
-                </Text>
-              </View>
-            )}
-          </View>
+          {/* Region Info */}
+          {regionName && (
+            <TouchableOpacity 
+              style={styles.regionContainer}
+              onPress={() => {
+                if (nekrolog.region && nekrolog.region.length > 0) {
+                  router.push({
+                    pathname: '/(tabs)/search',
+                    params: { regionId: nekrolog.region[0] }
+                  });
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <MapPin size={14} color={theme.colors.primary} />
+              <Text style={[styles.regionText, { 
+                color: theme.colors.primary,
+                fontFamily: theme.fontFamily.medium 
+              }]}>
+                {regionName}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Content Section */}
@@ -254,7 +290,20 @@ export default function NekrologDetailScreen() {
             color: theme.colors.text,
             fontFamily: theme.fontFamily.regular 
           }]}>
-            {getCleanContent(nekrolog.content.rendered)}
+            {parseHTMLContent(nekrolog.content.rendered).map((element, index) => (
+              <Text
+                key={index}
+                style={[
+                  { color: theme.colors.text },
+                  element.bold ? { 
+                    fontFamily: theme.fontFamily.bold,
+                    fontWeight: '700'
+                  } : { fontFamily: theme.fontFamily.regular }
+                ]}
+              >
+                {element.text}
+              </Text>
+            ))}
           </Text>
         </View>
 
@@ -283,6 +332,88 @@ export default function NekrologDetailScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Custom Tab Bar */}
+      <View style={[styles.tabBar, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity 
+          style={styles.tabItem}
+          onPress={() => handleTabNavigation('/(tabs)/search')}
+          activeOpacity={0.7}
+        >
+          <Search size={24} color={theme.colors.textSecondary} strokeWidth={2} />
+          <Text style={[styles.tabLabel, { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.medium 
+          }]}>
+            Szukaj
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.tabItem}
+          onPress={() => handleTabNavigation('/(tabs)/saved')}
+          activeOpacity={0.7}
+        >
+          <Bookmark size={24} color={theme.colors.textSecondary} strokeWidth={2} />
+          <Text style={[styles.tabLabel, { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.medium 
+          }]}>
+            Zapisane
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.tabItem}
+          onPress={() => handleTabNavigation('/(tabs)/')}
+          activeOpacity={0.7}
+        >
+          <Home size={26} color={theme.colors.primary} strokeWidth={2.5} />
+          <Text style={[styles.tabLabel, { 
+            color: theme.colors.primary,
+            fontFamily: theme.fontFamily.medium 
+          }]}>
+            Główna
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.tabItem}
+          onPress={() => handleTabNavigation('/(tabs)/notifications')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.tabItemWithBadge}>
+            <Bell size={24} color={theme.colors.textSecondary} strokeWidth={2} />
+            {unreadCount > 0 && (
+              <View style={[styles.tabBadge, { backgroundColor: theme.colors.notification }]}>
+                <Text style={styles.tabBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount.toString()}
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.tabLabel, { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.medium 
+          }]}>
+            Powiadomienia
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.tabItem}
+          onPress={() => handleTabNavigation('/(tabs)/preferences')}
+          activeOpacity={0.7}
+        >
+          <Settings size={24} color={theme.colors.textSecondary} strokeWidth={2} />
+          <Text style={[styles.tabLabel, { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.medium 
+          }]}>
+            Ustawienia
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -327,9 +458,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   memorialRibbon: {
-    width: 80,
-    height: 80,
-    opacity: 0.8,
+    width: 120,
+    height: 120,
+    opacity: 0.9,
   },
   titleSection: {
     paddingHorizontal: 24,
@@ -343,24 +474,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 34,
   },
-  metaInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  dateText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
   regionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: 'rgba(34, 74, 150, 0.1)',
+    alignSelf: 'center',
+    marginTop: 8,
   },
   regionText: {
     fontSize: 13,
@@ -418,5 +542,57 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     opacity: 0.8,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: Platform.OS === 'ios' ? 85 : 75,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 15,
+    paddingTop: 10,
+    paddingHorizontal: 12,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 4,
+  },
+  tabItemWithBadge: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  tabBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  tabBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 }); 

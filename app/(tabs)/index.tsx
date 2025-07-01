@@ -634,38 +634,44 @@ export default function HomeScreen() {
     <TouchableOpacity 
       style={[styles.nekrologCard, { 
         backgroundColor: theme.colors.card,
-        borderColor: 'rgba(0, 0, 0, 0.15)'
+        borderColor: theme.colors.border
       }]}
       onPress={() => router.push(`/nekrolog/${item.id}`)}
       activeOpacity={0.7}
     >
-      <View style={styles.nekrologHeader}>
-        <Image
-          source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2023/05/514697-PIHZZ2-291-01.png' }}
-          style={styles.memorialRibbonSmall}
-          contentFit="contain"
-          transition={200}
-        />
-        <Text style={[styles.nekrologBadge, { 
-          backgroundColor: '#000',
-          color: '#FFFFFF',
-          fontFamily: theme.fontFamily.semibold
-        }]}>
-          Nekrolog
-        </Text>
+      <View style={styles.nekrologContent}>
+        <View style={styles.nekrologImageContainer}>
+          <Image
+            source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2023/05/514697-PIHZZ2-291-01.png' }}
+            style={styles.memorialRibbonList}
+            contentFit="cover"
+            transition={200}
+          />
+        </View>
+        <View style={styles.nekrologTextContainer}>
+          <View style={styles.nekrologHeader}>
+            <Text style={[styles.nekrologBadge, { 
+              backgroundColor: '#000',
+              color: '#FFFFFF',
+              fontFamily: theme.fontFamily.semibold
+            }]}>
+              Nekrolog
+            </Text>
+          </View>
+          <Text style={[styles.nekrologTitle, { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold 
+          }]}>
+            {item.title.rendered}
+          </Text>
+          <Text style={[styles.nekrologDate, { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.regular 
+          }]}>
+            {new Date(item.date).toLocaleDateString('pl-PL')}
+          </Text>
+        </View>
       </View>
-      <Text style={[styles.nekrologTitle, { 
-        color: theme.colors.text,
-        fontFamily: theme.fontFamily.semibold 
-      }]}>
-        {item.title.rendered}
-      </Text>
-      <Text style={[styles.nekrologDate, { 
-        color: theme.colors.textSecondary,
-        fontFamily: theme.fontFamily.regular 
-      }]}>
-        {new Date(item.date).toLocaleDateString('pl-PL')}
-      </Text>
     </TouchableOpacity>
   ), [theme, router]);
 
@@ -1194,35 +1200,45 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   nekrologCard: {
-    padding: 20,
     margin: 16,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0, 0, 0, 0.15)',
-    borderRadius: 16,
+    borderRadius: 12,
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  nekrologContent: {
+    flexDirection: 'row',
+    padding: 16,
+  },
+  nekrologImageContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginRight: 16,
+  },
+  memorialRibbonList: {
+    width: '100%',
+    height: '100%',
+  },
+  nekrologTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
   },
   nekrologHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  memorialRibbonSmall: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
-    opacity: 0.7,
+    marginBottom: 8,
   },
   nekrologBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
     fontWeight: '600',
-    fontSize: 11,
+    fontSize: 10,
     letterSpacing: 0.5,
+    alignSelf: 'flex-start',
   },
   nekrologTitle: {
     fontSize: 16,
