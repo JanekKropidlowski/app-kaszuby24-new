@@ -347,7 +347,7 @@ export default function ArticleSlugScreen() {
     Animated.timing(progressBarWidth, {
       toValue: progress,
       duration: 100,
-      useNativeDriver: false,
+      useNativeDriver: false, // Explicitly set to false for width animation
     }).start();
     
     // Show progress bar when scrolling starts
