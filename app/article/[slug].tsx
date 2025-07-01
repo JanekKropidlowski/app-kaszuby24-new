@@ -11,9 +11,7 @@ import {
   Linking,
   StatusBar,
   BackHandler,
-  Modal,
-  Animated,
-  Alert
+  Modal
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -100,14 +98,11 @@ export default function ArticleSlugScreen() {
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
+  const [showProgressBar, setShowProgressBar] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
-  const progressOpacity = useRef(new Animated.Value(0)).current;
-  const finishMessageOpacity = useRef(new Animated.Value(0)).current;
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
-  const hasShownFinishMessage = useRef(false);
   const webViewRef = useRef<WebView>(null);
-  const progressBarWidth = useRef(new Animated.Value(0)).current;
   
   // Add refs to track animated values
   const progressOpacityValue = useRef(0);
@@ -320,23 +315,7 @@ export default function ArticleSlugScreen() {
     }
   }, [router, selectedImageIndex]);
   
-  // Set up listeners for animated values in useEffect
-  useEffect(() => {
-    const opacityListener = progressOpacity.addListener(({ value }) => {
-      progressOpacityValue.current = value;
-    });
-    
-    const widthListener = progressBarWidth.addListener(({ value }) => {
-      progressBarWidthValue.current = value;
-    });
-    
-    return () => {
-      progressOpacity.removeListener(opacityListener);
-      progressBarWidth.removeListener(widthListener);
-    };
-  }, [progressOpacity, progressBarWidth]);
-  
-  // Enhanced scroll handler with reading progress tracking - FIXED ANIMATION CONFLICTS
+  // Simple scroll handler without animations
   const handleScroll = useCallback((event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
     const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
@@ -350,31 +329,9 @@ export default function ArticleSlugScreen() {
     
     setReadingProgress(progress);
     
-    // Animate progress bar width - FIXED: ensure useNativeDriver is false for width
-    Animated.timing(progressBarWidth, {
-      toValue: progress,
-      duration: 100,
-      useNativeDriver: false, // Width is not supported by native driver
-    }).start();
-    
-    // Show progress bar when scrolling starts - FIXED: separate animation for opacity
-    if (scrollY > 50 && progressOpacityValue.current === 0) {
-      Animated.timing(progressOpacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true, // Opacity is supported by native driver
-      }).start();
-    }
-    
-    // Hide progress bar when at the top
-    if (scrollY < 50 && progressOpacityValue.current === 1) {
-      Animated.timing(progressOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true, // Opacity is supported by native driver
-      }).start();
-    }
-  }, [progressOpacity, progressBarWidth]);
+    // Show/hide progress bar based on scroll position
+    setShowProgressBar(scrollY > 50);
+  }, []);
 
   // Cleanup timeout when component unmounts
   useEffect(() => {
@@ -855,28 +812,19 @@ export default function ArticleSlugScreen() {
         barStyle="light-content" 
       />
       
-      {/* Reading progress bar - FIXED ANIMATION STRUCTURE */}
-      <Animated.View 
-        style={[
-          styles.progressBar,
-          { 
-            opacity: progressOpacity, // Native driver animation
-            backgroundColor: theme.colors.primary,
-          }
-        ]} 
-      >
-        <Animated.View
-          style={[
-            styles.progressBarFill,
-            {
-              width: progressBarWidth.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%']
-              })
-            }
-          ]}
-        />
-      </Animated.View>
+      {/* Simple progress bar without animations */}
+      {showProgressBar && (
+        <View style={[styles.progressBar, { backgroundColor: theme.colors.primary }]}>
+          <View
+            style={[
+              styles.progressBarFill,
+              {
+                width: `${readingProgress * 100}%`
+              }
+            ]}
+          />
+        </View>
+      )}
       
       {/* Header bar with circular icons */}
       <View style={styles.headerBar}>
@@ -1512,8 +1460,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
   },
-  progressBar: progressBarStyles.progressBar,
-  progressBarFill: progressBarStyles.progressBarFill,
+  progressBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    zIndex: 1001,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.96)',
