@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { ChevronRight, RefreshCw, WifiOff, ArrowRight } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fetchArticles, fetchCategories } from '@/services/api';
+import { fetchArticles, fetchCategories, MAX_RETRIES } from '@/services/api';
 import { Article, Category } from '@/types/article';
 import { ArticleCard } from '@/components/ArticleCard';
 import LoadingIndicator from '@/components/LoadingIndicator';

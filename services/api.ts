@@ -5,7 +5,7 @@ import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/cont
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
 const API_TIMEOUT = 15000; // Reduced timeout for faster feedback
-const MAX_RETRIES = 2; // Reduced retries
+export const MAX_RETRIES = 2; // Export for use in other files
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_KEY_MEDIA = 'cached_media';
