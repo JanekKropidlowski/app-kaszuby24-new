@@ -101,6 +101,14 @@ export default function ArticleSlugScreen() {
   const [contentLoaded, setContentLoaded] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   
+  // TTS state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<Speech.Voice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [showVoiceSelector, setShowVoiceSelector] = useState(false);
+  const [ttsAvailable, setTtsAvailable] = useState(true);
+  const [ttsText, setTtsText] = useState<string>('');
+  
   const scrollViewRef = useRef<ScrollView>(null);
   const progressOpacity = useRef(new Animated.Value(0)).current;
   const finishMessageOpacity = useRef(new Animated.Value(0)).current;
@@ -114,14 +122,6 @@ export default function ArticleSlugScreen() {
   
   const isSaved = article ? isArticleSaved(article.id) : false;
   const unreadCount = getUnreadCount();
-  
-  // TTS state
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [availableVoices, setAvailableVoices] = useState<Speech.Voice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
-  const [showVoiceSelector, setShowVoiceSelector] = useState(false);
-  const [ttsAvailable, setTtsAvailable] = useState(true);
-  const [ttsText, setTtsText] = useState<string>('');
   
   // Load article data
   useEffect(() => {
@@ -1428,3 +1428,465 @@ const renderTTSControls = useMemo(() => {
   handleStopTTS,
   handleVoiceSelect
 ]);
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  headerBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.select({
+      ios: 54,
+      android: 48,
+      default: 54
+    }),
+    paddingBottom: 16,
+    zIndex: 1000,
+  },
+  circularButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    paddingBottom: 120,
+  },
+  featuredImageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: height * 0.65,
+  },
+  featuredImage: {
+    width: '100%',
+    height: '100%',
+  },
+  featuredImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  imageDarkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  articleContent: {
+    padding: 24,
+    marginTop: -24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    minHeight: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 16,
+    lineHeight: 32,
+    letterSpacing: -0.3,
+  },
+  metaContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  metaText: {
+    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  categoryMetaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  videoContainer: {
+    marginBottom: 28,
+  },
+  youtubeContainer: {
+    marginTop: 28,
+    marginBottom: 28,
+  },
+  youtubeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  additionalVideosContainer: {
+    marginTop: 28,
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  galleryContainer: {
+    marginTop: 32,
+    marginBottom: 24,
+  },
+  galleryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  galleryLoadingContainer: {
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'space-between',
+  },
+  galleryImageContainer: {
+    width: (width - 88) / 2,
+    height: 140,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  relatedContainer: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    marginHorizontal: -24,
+  },
+  relatedListContainer: {
+    marginTop: 24,
+    paddingHorizontal: 24,
+  },
+  relatedTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 20,
+    letterSpacing: -0.3,
+  },
+  relatedList: {
+    gap: 16,
+  },
+  sourceCreditsContainer: {
+    marginTop: 24,
+    marginBottom: 8,
+    padding: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    borderRadius: 12,
+  },
+  sourceCreditsText: {
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  bottomMenuBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingBottom: Platform.select({
+      ios: 20,
+      android: 15,
+      default: 15,
+    }),
+    paddingTop: 10,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: Platform.select({
+      ios: 85,
+      android: 75,
+      default: 75
+    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  bottomMenuItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    position: 'relative',
+  },
+  bottomMenuText: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 4,
+    letterSpacing: 0.2,
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: '25%',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  htmlContainer: {
+    width: '100%',
+    minHeight: 200,
+    marginTop: 8,
+  },
+  webview: {
+    width: '100%',
+    minHeight: 300,
+    backgroundColor: 'transparent',
+  },
+  fallbackContainer: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+    marginTop: 8,
+  },
+  fallbackText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  fallbackButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  fallbackButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+  },
+  progressBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: 3,
+    zIndex: 2000,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.96)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: Platform.select({
+      ios: 54,
+      android: 44,
+      default: 54
+    }),
+    right: 24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  modalNavButton: {
+    position: 'absolute',
+    top: '50%',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    marginTop: -24,
+  },
+  modalNavButtonLeft: {
+    left: 24,
+  },
+  modalNavButtonRight: {
+    right: 24,
+  },
+  modalCounter: {
+    position: 'absolute',
+    top: Platform.select({
+      ios: 54,
+      android: 44,
+      default: 54
+    }),
+    left: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    zIndex: 1000,
+  },
+  modalCounterText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  modalImage: {
+    width: width,
+    height: '70%',
+  },
+  modalCaptionContainer: {
+    position: 'absolute',
+    bottom: 48,
+    left: 24,
+    right: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  modalCaption: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  ttsContainer: {
+    marginVertical: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  ttsControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ttsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ttsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  voiceSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  voiceSelectorText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  voiceDropdown: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  voiceOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  voiceOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  voiceLanguage: {
+    fontSize: 12,
+    fontWeight: '400',
+  },
+  ttsUnavailableText: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+});
