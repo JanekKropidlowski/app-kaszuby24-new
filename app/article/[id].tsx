@@ -382,7 +382,7 @@ ${article.link}`,
             font-size: 14px !important;
             line-height: 1.6;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
+            background-color: transparent !important;
             margin: 0;
             padding: 20px;
             word-wrap: break-word;
@@ -877,6 +877,19 @@ ${article.link}`,
                 {formatDateTime(article.date)}
               </Text>
             </View>
+            {categoryName && (
+              <View style={styles.metaItem}>
+                <Text style={[
+                  styles.categoryMetaText, 
+                  { 
+                    color: theme.colors.primary,
+                    fontFamily: theme.fontFamily.semibold
+                  }
+                ]}>
+                  {categoryName}
+                </Text>
+              </View>
+            )}
           </View>
           
           {metaSource ? (
@@ -906,6 +919,15 @@ ${article.link}`,
           {/* YouTube video from meta field - moved after content */}
           {youtubeUrl && (
             <View style={styles.youtubeContainer}>
+              <Text style={[
+                styles.youtubeTitle,
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold
+                }
+              ]}>
+                Wideo
+              </Text>
               <VideoPlayer url={youtubeUrl} title="YouTube Video" />
             </View>
           )}
@@ -1159,23 +1181,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   articleContent: {
-    padding: 28,
-    marginTop: -32,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    padding: 24,
+    marginTop: -24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     minHeight: 500,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '800',
-    marginBottom: 20,
-    lineHeight: 34,
-    letterSpacing: -0.5,
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 16,
+    lineHeight: 32,
+    letterSpacing: -0.3,
   },
   metaContainer: {
     flexDirection: 'row',
@@ -1191,6 +1213,14 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '500',
   },
+  categoryMetaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(34, 74, 150, 0.1)',
+  },
   source: {
     fontSize: 13,
     marginBottom: 24,
@@ -1204,14 +1234,20 @@ const styles = StyleSheet.create({
     marginTop: 28,
     marginBottom: 28,
   },
+  youtubeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
   galleryContainer: {
-    marginTop: 36,
-    marginBottom: 28,
+    marginTop: 32,
+    marginBottom: 24,
   },
   galleryTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 20,
+    marginBottom: 16,
     letterSpacing: -0.3,
   },
   galleryLoadingContainer: {
@@ -1241,21 +1277,21 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   relatedContainer: {
-    marginTop: 40,
-    paddingTop: 32,
+    marginTop: 32,
+    paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.08)',
-    marginHorizontal: -28, // Extend to full width for slider
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    marginHorizontal: -24, // Extend to full width for slider
   },
   relatedListContainer: {
-    marginTop: 32,
-    paddingHorizontal: 28, // Add padding back for list
+    marginTop: 24,
+    paddingHorizontal: 24, // Add padding back for list
   },
   relatedTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 24,
-    letterSpacing: -0.4,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 20,
+    letterSpacing: -0.3,
   },
   relatedList: {
     gap: 16,
@@ -1274,12 +1310,12 @@ const styles = StyleSheet.create({
       default: 16,
     }),
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.08)',
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 8,
   },
   bottomMenuItem: {
     flex: 1,

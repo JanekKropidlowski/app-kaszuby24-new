@@ -31,6 +31,29 @@ const { width } = Dimensions.get('window');
 const CAROUSEL_ITEM_WIDTH = width * 0.8; // Better centering
 const CAROUSEL_ITEM_SPACING = 16;
 
+// Logo component with proper sizing and theme support
+const LogoHeader = React.memo(() => {
+  const { isDarkMode } = useThemeStore();
+  
+  return (
+    <View style={styles.logoContainer}>
+      <Image
+        source={{ 
+          uri: isDarkMode 
+            ? 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png'
+            : 'https://kaszuby24.pl/wp-content/uploads/2020/03/logo-e1584093147599.png'
+        }}
+        style={styles.logo}
+        contentFit="contain"
+        transition={200}
+        placeholder="Loading..."
+        cachePolicy="memory-disk"
+        priority="high"
+      />
+    </View>
+  );
+});
+
 // Memoized carousel item component for better performance
 const CarouselItem = React.memo(({ 
   item, 
@@ -75,7 +98,7 @@ const CarouselItem = React.memo(({
             <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
           )}
           <LinearGradient
-            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']}
+            colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.5)']}
             locations={[0, 0.4, 1]}
             style={styles.carouselGradient}
           />
@@ -561,6 +584,7 @@ export default function HomeScreen() {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <LogoHeader />
       <FlatList
         data={articles}
         keyExtractor={keyExtractor}
@@ -717,27 +741,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 100,
+    paddingBottom: 80,
   },
   carouselContainer: {
-    marginTop: 16,
-    marginBottom: 32,
+    marginTop: 12,
+    marginBottom: 28,
   },
   carouselListContent: {
     paddingHorizontal: (width - CAROUSEL_ITEM_WIDTH) / 2, // Perfect centering
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   carouselItemContainer: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   carouselItem: {
-    borderRadius: 28,
+    borderRadius: 24,
     overflow: 'hidden',
-    height: 260,
+    height: 240,
   },
   carouselImageContainer: {
     position: 'relative',
@@ -764,31 +788,31 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 24,
+    padding: 20,
   },
   carouselLabelContainer: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
     alignSelf: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   carouselLabel: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.4,
   },
   carouselTitle: {
     color: '#FFFFFF',
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '700',
-    lineHeight: 26,
-    marginBottom: 16,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    lineHeight: 24,
+    marginBottom: 14,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   carouselFooter: {
     flexDirection: 'row',
@@ -796,10 +820,10 @@ const styles = StyleSheet.create({
   },
   carouselReadMore: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     marginRight: 6,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   indicatorContainer: {
     flexDirection: 'row',
@@ -814,40 +838,59 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   categoriesContainer: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    marginBottom: 20,
-    marginTop: 8,
+    marginBottom: 16,
+    marginTop: 6,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.4,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   sectionMoreButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: 'rgba(34, 74, 150, 0.08)',
-    borderRadius: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(34, 74, 150, 0.06)',
+    borderRadius: 16,
   },
   sectionMoreText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     marginRight: 4,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  logo: {
+    width: 120,
+    height: 40,
   },
   articleContainer: {
     paddingHorizontal: 20,
     marginBottom: 12,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  logo: {
+    width: 100,
+    height: 100,
   },
 });
