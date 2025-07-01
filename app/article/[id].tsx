@@ -685,7 +685,7 @@ ${article.link}`,
         <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.background }]}>
           <WebView
             source={{ uri: article?.link || '' }}
-            style={styles.webView}
+            style={styles.webview}
             javaScriptEnabled={true}
             domStorageEnabled={true}
             startInLoadingState={true}
