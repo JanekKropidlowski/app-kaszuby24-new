@@ -1,7 +1,7 @@
 import { Article, Category, MediaItem, Nekrolog } from '@/types/article';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, Vibration } from 'react-native';
-import { filterSponsoredArticles, filterSponsoredCategories } from '@/utils/contentFilter';
+import { filterSponsoredArticles, filterSponsoredCategories, isSponsoredContent } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
 const API_TIMEOUT = 30000; // Increased timeout to 30 seconds
@@ -282,22 +282,10 @@ export const fetchArticles = async (
         };
       });
       
-      // Filter out sponsored content and sort by date (newest first)
+      // Filter out sponsored content (as additional safety measure) and sort by date (newest first)
+      // Note: Backend already excludes category 554, but this is extra safety
       const filteredArticles = processedArticles
-        .filter(article => {
-          if (article.categories && article.categories.includes(554)) {
-            return false;
-          }
-          
-          if (article._embedded && article._embedded["wp:term"]) {
-            const categories = article._embedded["wp:term"][0];
-            if (categories && Array.isArray(categories)) {
-              return !categories.some((cat: any) => cat.id === 554);
-            }
-          }
-          
-          return true;
-        })
+        .filter(article => !isSponsoredContent(article))
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       console.log(`After filtering and sorting: ${filteredArticles.length} articles`);
@@ -425,7 +413,7 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
                 
                 const processedArticle = { ...article, featured_media_url };
                 
-                if (filterSponsoredArticles([processedArticle]).length > 0) {
+                if (!isSponsoredContent(processedArticle)) {
                   await cacheDataWithSWR(cacheKey, processedArticle);
                   console.log(`Background revalidation completed for article ${id}`);
                 }
@@ -471,7 +459,7 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
       
       const processedArticle = { ...article, featured_media_url };
       
-      if (filterSponsoredArticles([processedArticle]).length === 0) {
+      if (isSponsoredContent(processedArticle)) {
         throw new Error('Artykuł nie został znaleziony.');
       }
       
@@ -537,7 +525,7 @@ export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
                   
                   const processedArticle = { ...article, featured_media_url };
                   
-                  if (filterSponsoredArticles([processedArticle]).length > 0) {
+                  if (!isSponsoredContent(processedArticle)) {
                     await cacheDataWithSWR(cacheKey, processedArticle);
                     console.log(`Background revalidation completed for article ${slug}`);
                   }
@@ -590,7 +578,7 @@ export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
       
       const processedArticle = { ...article, featured_media_url };
       
-      if (filterSponsoredArticles([processedArticle]).length === 0) {
+      if (isSponsoredContent(processedArticle)) {
         throw new Error('Artykuł nie został znaleziony.');
       }
       
@@ -962,7 +950,7 @@ export const getAdjacentArticle = async (
       };
       
       // Check if this is sponsored content
-      if (filterSponsoredArticles([processedArticle]).length === 0) {
+      if (isSponsoredContent(processedArticle)) {
         return null;
       }
       

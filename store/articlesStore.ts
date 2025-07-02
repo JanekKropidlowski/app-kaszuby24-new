@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Article } from '@/types/article';
-import { filterSponsoredArticles } from '@/utils/contentFilter';
+import { filterSponsoredArticles, isSponsoredContent } from '@/utils/contentFilter';
 
 interface ArticlesState {
   savedArticles: Article[];
@@ -25,8 +25,8 @@ export const useArticlesStore = create<ArticlesState>()(
       
       saveArticle: (article: Article) => 
         set((state) => {
-          // Don't save sponsored content
-          if (filterSponsoredArticles([article]).length === 0) {
+          // Don't save sponsored content - OPTIMIZED: Direct check instead of array filtering
+          if (isSponsoredContent(article)) {
             return state;
           }
           
@@ -50,8 +50,8 @@ export const useArticlesStore = create<ArticlesState>()(
         
       addRecentArticle: (article: Article) => 
         set((state) => {
-          // Don't add sponsored content to recent articles
-          if (filterSponsoredArticles([article]).length === 0) {
+          // Don't add sponsored content to recent articles - OPTIMIZED: Direct check instead of array filtering
+          if (isSponsoredContent(article)) {
             return state;
           }
           

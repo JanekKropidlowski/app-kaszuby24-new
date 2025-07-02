@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -9,7 +9,9 @@ import {
   Platform,
   ScrollView,
   TextInput,
-  SafeAreaView
+  SafeAreaView,
+  TouchableWithoutFeedback,
+  Pressable
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { 
@@ -88,6 +90,26 @@ export default function SearchScreen() {
   const [selectedSort, setSelectedSort] = useState('date');
   const [showRegionSelect, setShowRegionSelect] = useState(false);
   const [showSortSelect, setShowSortSelect] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Close all dropdowns
+  const closeAllDropdowns = useCallback(() => {
+    setShowRegionSelect(false);
+    setShowSortSelect(false);
+  }, []);
+  
+  // Debounced search function
+  const debouncedSearch = useCallback((searchQuery: string) => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      handleSearch(searchQuery);
+    }, 500); // 500ms delay
+    
+    setSearchTimeout(timeout);
+  }, [searchTimeout]);
   
   const handleSearch = async (searchQuery: string = query) => {
     const trimmedQuery = searchQuery.trim();
@@ -99,6 +121,7 @@ export default function SearchScreen() {
     
     try {
       setLoading(true);
+      closeAllDropdowns(); // Close dropdowns when searching
       
       let results;
       
@@ -180,8 +203,9 @@ export default function SearchScreen() {
   
   const handleCategoryPress = (categoryId: string) => {
     setSelectedCategory(categoryId);
+    closeAllDropdowns();
     if (categoryId) {
-      handleSearch('');
+      handleSearch();
     } else {
       setArticles([]);
     }
@@ -210,7 +234,33 @@ export default function SearchScreen() {
     setSelectedSort('date');
     setQuery('');
     setArticles([]);
+    closeAllDropdowns();
+    
+    // Clear any pending search
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+      setSearchTimeout(null);
+    }
   };
+  
+  // Handle query changes with debounce
+  const handleQueryChange = useCallback((text: string) => {
+    setQuery(text);
+    if (text.trim()) {
+      debouncedSearch(text);
+    } else {
+      setArticles([]);
+    }
+  }, [debouncedSearch]);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
   
   // Handle initial region if provided
   useEffect(() => {
@@ -257,12 +307,22 @@ export default function SearchScreen() {
             placeholder="Wyszukaj artykuły..."
             placeholderTextColor={theme.colors.textSecondary}
             value={query}
-            onChangeText={setQuery}
+            onChangeText={handleQueryChange}
             onSubmitEditing={() => handleSearch()}
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={() => {
+                setQuery('');
+                setArticles([]);
+                if (searchTimeout) {
+                  clearTimeout(searchTimeout);
+                  setSearchTimeout(null);
+                }
+              }}
+            >
               <X size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
@@ -270,8 +330,9 @@ export default function SearchScreen() {
       </View>
       
       {/* Filters */}
-      <View style={[styles.filtersContainer, { backgroundColor: theme.colors.background }]}>
-        {/* Categories Row */}
+      <TouchableWithoutFeedback onPress={closeAllDropdowns}>
+        <View style={[styles.filtersContainer, { backgroundColor: theme.colors.background }]}>
+          {/* Categories Row */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContent}>
           {CATEGORIES.map((category) => {
             const isSelected = selectedCategory === category.id;
@@ -285,6 +346,7 @@ export default function SearchScreen() {
                     borderColor: isSelected ? theme.colors.primary : theme.colors.border,
                   }
                 ]}
+                activeOpacity={0.8}
                 onPress={() => handleCategoryPress(category.id)}
               >
                 <category.icon 
@@ -307,6 +369,7 @@ export default function SearchScreen() {
           {hasActiveFilters && (
             <TouchableOpacity
               style={[styles.clearButton, { backgroundColor: theme.colors.notification }]}
+              activeOpacity={0.8}
               onPress={clearFilters}
             >
               <X size={14} color="#FFFFFF" />
@@ -329,7 +392,13 @@ export default function SearchScreen() {
                   borderColor: selectedRegion ? theme.colors.primary : theme.colors.border,
                 }
               ]}
-              onPress={() => setShowRegionSelect(!showRegionSelect)}
+              activeOpacity={0.7}
+              onPress={() => {
+                // Close other dropdowns first
+                setShowSortSelect(false);
+                // Toggle this dropdown
+                setShowRegionSelect(prev => !prev);
+              }}
             >
               <MapPin size={16} color={selectedRegion ? theme.colors.primary : theme.colors.textSecondary} />
               <Text style={[
@@ -353,27 +422,35 @@ export default function SearchScreen() {
                   shadowColor: theme.colors.shadow
                 }
               ]}>
-                {REGIONS.map((region) => (
-                  <TouchableOpacity
-                    key={region.id}
-                    style={[
-                      styles.dropdownItem,
-                      { backgroundColor: selectedRegion === region.id ? theme.colors.subtle : 'transparent' }
-                    ]}
-                    onPress={() => handleRegionPress(region.id)}
-                  >
-                    <MapPin size={14} color={theme.colors.primary} />
-                    <Text style={[
-                      styles.dropdownItemText,
-                      { 
-                        color: theme.colors.text,
-                        fontFamily: selectedRegion === region.id ? theme.fontFamily.semibold : theme.fontFamily.regular
-                      }
-                    ]}>
-                      {region.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView 
+                  style={styles.dropdownScrollView}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled
+                  onTouchStart={(e) => e.stopPropagation()}
+                >
+                  {REGIONS.map((region) => (
+                    <TouchableOpacity
+                      key={region.id}
+                      style={[
+                        styles.dropdownItem,
+                        { backgroundColor: selectedRegion === region.id ? theme.colors.subtle : 'transparent' }
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => handleRegionPress(region.id)}
+                    >
+                      <MapPin size={14} color={theme.colors.primary} />
+                      <Text style={[
+                        styles.dropdownItemText,
+                        { 
+                          color: theme.colors.text,
+                          fontFamily: selectedRegion === region.id ? theme.fontFamily.semibold : theme.fontFamily.regular
+                        }
+                      ]}>
+                        {region.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -388,7 +465,13 @@ export default function SearchScreen() {
                   borderColor: selectedSort !== 'date' ? theme.colors.primary : theme.colors.border,
                 }
               ]}
-              onPress={() => setShowSortSelect(!showSortSelect)}
+              activeOpacity={0.7}
+              onPress={() => {
+                // Close other dropdowns first
+                setShowRegionSelect(false);
+                // Toggle this dropdown
+                setShowSortSelect(prev => !prev);
+              }}
             >
               <Clock size={16} color={selectedSort !== 'date' ? theme.colors.primary : theme.colors.textSecondary} />
               <Text style={[
@@ -412,32 +495,41 @@ export default function SearchScreen() {
                   shadowColor: theme.colors.shadow
                 }
               ]}>
-                {SORT_OPTIONS.map((sort) => (
-                  <TouchableOpacity
-                    key={sort.id}
-                    style={[
-                      styles.dropdownItem,
-                      { backgroundColor: selectedSort === sort.id ? theme.colors.subtle : 'transparent' }
-                    ]}
-                    onPress={() => handleSortPress(sort.id)}
-                  >
-                    <sort.icon size={14} color={theme.colors.primary} />
-                    <Text style={[
-                      styles.dropdownItemText,
-                      { 
-                        color: theme.colors.text,
-                        fontFamily: selectedSort === sort.id ? theme.fontFamily.semibold : theme.fontFamily.regular
-                      }
-                    ]}>
-                      {sort.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView 
+                  style={styles.dropdownScrollView}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled
+                  onTouchStart={(e) => e.stopPropagation()}
+                >
+                  {SORT_OPTIONS.map((sort) => (
+                    <TouchableOpacity
+                      key={sort.id}
+                      style={[
+                        styles.dropdownItem,
+                        { backgroundColor: selectedSort === sort.id ? theme.colors.subtle : 'transparent' }
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => handleSortPress(sort.id)}
+                    >
+                      <sort.icon size={14} color={theme.colors.primary} />
+                      <Text style={[
+                        styles.dropdownItemText,
+                        { 
+                          color: theme.colors.text,
+                          fontFamily: selectedSort === sort.id ? theme.fontFamily.semibold : theme.fontFamily.regular
+                        }
+                      ]}>
+                        {sort.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
           </View>
         </View>
-      </View>
+        </View>
+      </TouchableWithoutFeedback>
       
       {/* Results */}
       {loading ? (
@@ -499,10 +591,7 @@ export default function SearchScreen() {
           updateCellsBatchingPeriod={50}
           windowSize={10}
           // Close dropdowns when scrolling
-          onScrollBeginDrag={() => {
-            setShowRegionSelect(false);
-            setShowSortSelect(false);
-          }}
+          onScrollBeginDrag={closeAllDropdowns}
         />
       )}
     </SafeAreaView>
@@ -556,10 +645,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
     marginRight: 8,
+    minHeight: 36, // Better touch target
   },
   filterChipText: {
     fontSize: 13,
@@ -588,14 +678,16 @@ const styles = StyleSheet.create({
   selectColumn: {
     flex: 1,
     position: 'relative',
+    zIndex: 1,
   },
   selectButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
+    minHeight: 48, // Better touch target
   },
   selectButtonText: {
     flex: 1,
@@ -610,19 +702,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     maxHeight: 200,
-    zIndex: 1000,
+    zIndex: 9999,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 12,
+    overflow: 'hidden',
+  },
+  dropdownScrollView: {
+    maxHeight: 200,
   },
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
+    minHeight: 44, // Better touch target
   },
   dropdownItemText: {
     fontSize: 14,

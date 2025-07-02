@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 export class NotificationTester {
   static async testNotificationPermissions(): Promise<boolean> {
@@ -27,8 +28,15 @@ export class NotificationTester {
         return null;
       }
       
-      // Użyj project ID z app.json
-      const projectId = 'kaszuby24-notifications';
+      // Pobierz project ID z konfiguracji EAS
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+      
+      if (!projectId) {
+        console.error('❌ No project ID found in configuration');
+        return null;
+      }
+      
+      console.log('🔧 Using project ID:', projectId);
       
       const token = await Notifications.getExpoPushTokenAsync({
         projectId,

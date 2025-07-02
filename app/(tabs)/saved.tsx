@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -53,9 +53,10 @@ export default function SavedScreen() {
   const [showRecent, setShowRecent] = useState(true);
   const recentHeight = useState(new Animated.Value(recentArticles.length > 0 ? 1 : 0))[0];
   
-  // Filter out any sponsored content that might exist
-  const filteredSavedArticles = filterSponsoredArticles(savedArticles);
-  const filteredRecentArticles = filterSponsoredArticles(recentArticles);
+  // Filter out any sponsored content that might exist (optimized with useMemo)
+  // Note: Store already filters on add, but this is extra safety - only runs when data changes
+  const filteredSavedArticles = useMemo(() => filterSponsoredArticles(savedArticles), [savedArticles]);
+  const filteredRecentArticles = useMemo(() => filterSponsoredArticles(recentArticles), [recentArticles]);
   
   const navigateToHome = () => {
     router.push('/');
