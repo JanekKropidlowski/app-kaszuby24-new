@@ -48,6 +48,11 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
           ios: 'Kaszuby24-iOS/1.0',
           default: 'Kaszuby24-App/1.0'
         }),
+        // Add Android-specific headers for better compatibility
+        ...(Platform.OS === 'android' && {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        }),
         ...((options as any)?.headers || {}),
       },
     };
@@ -62,6 +67,29 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     clearTimeout(timeout);
     
     console.error(`Fetch error for ${url}:`, error);
+    
+    // Enhanced Android-specific error handling
+    const isAndroidNetworkError = Platform.OS === 'android' && (
+      error.message?.includes('java.io.IOException') ||
+      error.message?.includes('remote update request') ||
+      error.message?.includes('cleartext') ||
+      error.message?.includes('not permitted') ||
+      error.name === 'TypeError' && error.message?.includes('Network')
+    );
+
+    if (isAndroidNetworkError) {
+      console.warn('Android-specific network error detected:', error.message);
+      
+      if (retries < MAX_RETRIES) {
+        // Use longer delay for Android network issues
+        const delay = Math.min(2000 * Math.pow(2, retries), 6000);
+        console.log(`Retrying Android network request (${retries + 1}/${MAX_RETRIES}) after ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return fetchWithTimeout(url, options, retries + 1);
+      }
+      
+      throw new Error('Problem z połączeniem sieciowym na Androidzie. Sprawdź ustawienia aplikacji i spróbuj ponownie.');
+    }
     
     // Handle AbortError specifically - don't retry if manually aborted
     if (error.name === 'AbortError') {

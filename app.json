@@ -26,13 +26,22 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.kaszuby24",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "usesCleartextTraffic": true,
+      "networkSecurityConfig": "network_security_config",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
     "updates": {
-      "enabled": false
+      "enabled": false,
+      "checkAutomatically": "NEVER",
+      "fallbackToCacheTimeout": 0
     },
     "extra": {
       "eas": {

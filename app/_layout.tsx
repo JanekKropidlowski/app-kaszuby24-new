@@ -9,6 +9,7 @@ import { notificationService } from '@/services/notificationService';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { useRouter } from 'expo-router';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -167,7 +168,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar 
         style={isDarkMode ? "light" : "dark"} 
         backgroundColor={theme.colors.background}
@@ -219,6 +220,6 @@ export default function RootLayout() {
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
-    </>
+    </ErrorBoundary>
   );
 }
