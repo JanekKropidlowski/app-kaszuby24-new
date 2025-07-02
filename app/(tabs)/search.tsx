@@ -1138,7 +1138,7 @@ export default function SearchScreen() {
             ) : null
           }
           ListEmptyComponent={
-            query.trim() && !loading ? (
+            query.trim() ? (
               <EmptyState
                 title="Nie znaleziono wyników"
                 message={`Nie znaleźliśmy żadnych artykułów pasujących do "${query}". Spróbuj innego hasła lub zmień filtry.`}
@@ -1383,21 +1383,25 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   filterChipText: {
-    fontSize: 16,
+    fontSize: 14,
+    marginLeft: 6,
   },
   advancedFilterButton: {
-    backgroundColor: theme.colors.subtle,
-    borderColor: theme.colors.border,
+    position: 'relative',
   },
   filterBadge: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterBadgeText: {
-    fontSize: 14,
-    fontFamily: theme.fontFamily.medium,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 
   // Results Header Styles
@@ -1407,37 +1411,215 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   resultsHeaderContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: 8,
   },
   resultsText: {
     fontSize: 16,
-    fontFamily: theme.fontFamily.semibold,
+    marginBottom: 4,
   },
   resultsQuery: {
     fontSize: 14,
-    fontFamily: theme.fontFamily.regular,
   },
   clearFiltersButton: {
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: theme.colors.primary,
+    alignSelf: 'flex-start',
   },
   clearFiltersButtonText: {
-    fontSize: 16,
-    fontFamily: theme.fontFamily.medium,
-    color: '#FFFFFF',
+    fontSize: 14,
   },
 
   // Enhanced Empty Search Styles
   enhancedEmptyContainer: {
     flex: 1,
+    padding: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyIconContainer: {
-    backgroundColor: theme.colors.subtle,
-    borderRadius: 20,
-  enh
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  quickAccessContainer: {
+    width: '100%',
+    marginBottom: 32,
+  },
+  quickAccessTitle: {
+    fontSize: 18,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  quickAccessGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  quickAccessCard: {
+    width: '48%',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  quickAccessCardTitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  quickAccessCardCount: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  filterModalSection: {
+    marginVertical: 20,
+  },
+  filterModalSectionTitle: {
+    fontSize: 18,
+    marginBottom: 16,
+  },
+  filterModalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  filterModalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+    minWidth: '48%',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  filterModalCardText: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+  },
+
+  // List Styles
+  listContent: {
+    paddingBottom: 100,
+  },
+
+  // Modern Bottom Navigation
+  modernBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modernBottomItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  modernBottomIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    position: 'relative',
+  },
+  modernBottomIconWrapperActive: {
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modernBottomText: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  modernBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modernBadgeText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
 });
