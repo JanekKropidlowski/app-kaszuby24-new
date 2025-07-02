@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     height: 12,
   },
   savedHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 20, // Extra padding for iOS notch
+    paddingTop: Platform.OS === 'ios' ? 60 : 30, // Increased padding for Android to prevent cutoff
     paddingBottom: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -386,8 +386,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(248, 250, 252, 0.8)',
   },
   headerLogo: {
-    width: 140, // Increased
-    height: 38, // Increased
+    width: Platform.OS === 'ios' ? 140 : 150, // Slightly larger on Android
+    height: Platform.OS === 'ios' ? 38 : 42, // Slightly taller on Android
   },
   // Enhanced Modern Bottom Bar Styles
   modernBottomBar: {

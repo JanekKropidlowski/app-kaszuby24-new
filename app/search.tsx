@@ -92,17 +92,26 @@ export default function SearchScreen() {
       <View style={[styles.iconContainer, { backgroundColor: theme.colors.subtle }]}>
         <SearchIcon size={32} color={theme.colors.primary} />
       </View>
-      <Text style={[styles.emptySearchTitle, { color: theme.colors.text }]}>
+      <Text style={[styles.emptySearchTitle, { 
+        color: theme.colors.text, 
+        fontFamily: theme.fontFamily.bold 
+      }]}>
         Wyszukaj artykuły
       </Text>
-      <Text style={[styles.emptySearchSubtitle, { color: theme.colors.textSecondary }]}>
+      <Text style={[styles.emptySearchSubtitle, { 
+        color: theme.colors.textSecondary,
+        fontFamily: theme.fontFamily.regular 
+      }]}>
         Wpisz słowa kluczowe lub użyj wyszukiwania głosowego
       </Text>
       
       {Platform.OS === 'web' && 'webkitSpeechRecognition' in window && (
         <View style={styles.voiceSearchHint}>
           <Mic size={16} color={theme.colors.primary} />
-          <Text style={[styles.voiceSearchText, { color: theme.colors.primary }]}>
+          <Text style={[styles.voiceSearchText, { 
+            color: theme.colors.primary,
+            fontFamily: theme.fontFamily.semibold 
+          }]}>
             Kliknij mikrofon aby wyszukać głosowo
           </Text>
         </View>
@@ -202,7 +211,6 @@ const styles = StyleSheet.create({
   },
   resultsText: {
     fontSize: 15,
-    fontWeight: '600',
     letterSpacing: -0.2,
   },
   emptySearchContainer: {
@@ -227,7 +235,6 @@ const styles = StyleSheet.create({
   },
   emptySearchTitle: {
     fontSize: 22,
-    fontWeight: '700',
     marginBottom: 10,
     textAlign: 'center',
     letterSpacing: -0.3,
@@ -255,7 +262,6 @@ const styles = StyleSheet.create({
   voiceSearchText: {
     fontSize: 14,
     marginLeft: 10,
-    fontWeight: '600',
     letterSpacing: 0.1,
   },
 });

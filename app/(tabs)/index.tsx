@@ -828,6 +828,8 @@ export default function HomeScreen() {
 
   // Handler functions that need to be defined within component scope
   const handleCategoryChange = useCallback((categoryId: number | null) => {
+    console.log('Category change requested:', categoryId);
+    
     // Handle "Wszystkie" category (ID: 3) as null for showing all articles
     const actualCategoryId = categoryId === 3 ? null : categoryId;
     
@@ -840,11 +842,12 @@ export default function HomeScreen() {
     setMixedContent([]);
     setInitialLoading(true);
     
-    // Force reload with new category
+    // Force immediate reload with new category
     setTimeout(() => {
       setInitialLoading(false);
-    }, 100);
-  }, []);
+      loadArticles(1, false); // Force reload with new category
+    }, 50);
+  }, [loadArticles]);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -1271,7 +1274,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 150, // Increased to accommodate bigger modern bottom menu
-    paddingTop: Platform.OS === 'ios' ? 54 : 34, // Add padding for status bar
+    paddingTop: Platform.OS === 'ios' ? 54 : 48, // Increased padding for Android to show logo properly
   },
   carouselContainer: {
     marginTop: 12,

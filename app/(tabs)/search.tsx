@@ -201,11 +201,36 @@ export default function SearchScreen() {
     addRecentArticle(article);
   };
   
-  const handleCategoryPress = (categoryId: string) => {
-    setSelectedCategory(categoryId);
+  const handleCategoryPress = async (categoryId: string) => {
+    console.log('Category pressed:', categoryId);
+    
+    // Close dropdowns first
     closeAllDropdowns();
+    
+    // Update state
+    setSelectedCategory(categoryId);
+    
+    // Force immediate search for the category
     if (categoryId) {
-      handleSearch();
+      // Clear current results first
+      setArticles([]);
+      setLoading(true);
+      
+      try {
+        // Direct search with category
+        const results = await fetchArticles(1, 20, [parseInt(categoryId)]);
+        let filteredResults = filterSponsoredArticles(results.articles || []);
+        filteredResults = applySorting(filteredResults, selectedSort);
+        
+        setArticles(filteredResults);
+        setTotalPages(results.totalPages || 1);
+        setPage(1);
+      } catch (err) {
+        console.error('Error searching by category:', err);
+        setArticles([]);
+      } finally {
+        setLoading(false);
+      }
     } else {
       setArticles([]);
     }
@@ -605,15 +630,15 @@ const styles = StyleSheet.create({
   
   // Compact Header
   header: {
-    paddingTop: Platform.OS === 'ios' ? 10 : 15,
+    paddingTop: Platform.OS === 'ios' ? 10 : 20, // Increased padding for Android
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   logo: {
-    width: 100,
-    height: 28,
+    width: Platform.OS === 'ios' ? 100 : 110, // Slightly larger on Android
+    height: Platform.OS === 'ios' ? 28 : 32, // Slightly taller on Android
     alignSelf: 'center',
     marginBottom: 12,
   },
@@ -622,7 +647,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 12,
-    height: 44,
+    height: Platform.OS === 'ios' ? 44 : 48, // Slightly taller on Android for better touch target
     borderWidth: 1,
   },
   searchInput: {
@@ -644,12 +669,12 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 14, // Slightly more padding on Android
+    paddingVertical: Platform.OS === 'ios' ? 10 : 12, // Slightly more padding on Android
     borderRadius: 20,
     borderWidth: 1,
     marginRight: 8,
-    minHeight: 36, // Better touch target
+    minHeight: Platform.OS === 'ios' ? 36 : 40, // Better touch target on Android
   },
   filterChipText: {
     fontSize: 13,
@@ -683,11 +708,11 @@ const styles = StyleSheet.create({
   selectButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: Platform.OS === 'ios' ? 12 : 14, // More padding on Android
+    paddingVertical: Platform.OS === 'ios' ? 12 : 14, // More padding on Android
     borderRadius: 12,
     borderWidth: 1,
-    minHeight: 48, // Better touch target
+    minHeight: Platform.OS === 'ios' ? 48 : 52, // Better touch target on Android
   },
   selectButtonText: {
     flex: 1,

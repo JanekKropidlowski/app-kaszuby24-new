@@ -283,7 +283,7 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   floatingLogoContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 34,
+    top: Platform.OS === 'ios' ? 54 : 48, // Increased for Android
     left: '50%',
     marginLeft: -75, // Half of logo width
     zIndex: 1000,
