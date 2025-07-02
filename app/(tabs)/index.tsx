@@ -55,9 +55,9 @@ import * as Haptics from 'expo-haptics';
 const { width, height } = Dimensions.get('window');
 
 // Original carousel dimensions - improved center mode
-const CAROUSEL_PEEK_WIDTH = 40; // Increased to show more of adjacent cards
-const CAROUSEL_ITEM_SPACING = 16; // Better spacing
-const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 32; // Optimized for center mode
+const CAROUSEL_PEEK_WIDTH = 60; // Increased to show more of adjacent cards
+const CAROUSEL_ITEM_SPACING = 20; // Better spacing
+const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 40; // Optimized for center mode
 
 // Modern header component with enhanced UI
 const ModernHeader = () => {
@@ -85,8 +85,8 @@ const ModernHeader = () => {
             <Image
               source={{ 
                 uri: theme.isDarkMode 
-                  ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-białe-01-scaled.png'
-                  : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+                  ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+                  : 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png'
               }}
               style={styles.headerLogo}
               contentFit="contain"
@@ -95,7 +95,7 @@ const ModernHeader = () => {
           </TouchableOpacity>
           
           <View style={styles.greetingSection}>
-            <WelcomeGreeting compact />
+            <WelcomeGreeting compact={false} />
           </View>
         </View>
         
@@ -1011,8 +1011,12 @@ export default function HomeScreen() {
               style={[
                 styles.categoryPill,
                 { 
-                  backgroundColor: selectedCategory === category.id ? category.color : theme.colors.card,
-                  borderColor: selectedCategory === category.id ? category.color : theme.colors.border,
+                  backgroundColor: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null)) 
+                    ? category.color 
+                    : theme.colors.card,
+                  borderColor: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null)) 
+                    ? category.color 
+                    : theme.colors.border,
                 }
               ]}
               onPress={() => handleCategoryChange(category.id)}
@@ -1023,8 +1027,12 @@ export default function HomeScreen() {
                 style={[
                   styles.categoryText, 
                   { 
-                    color: selectedCategory === category.id ? '#FFFFFF' : theme.colors.text,
-                    fontFamily: selectedCategory === category.id ? theme.fontFamily.semibold : theme.fontFamily.medium
+                    color: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null)) 
+                      ? '#FFFFFF' 
+                      : theme.colors.text,
+                    fontFamily: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null)) 
+                      ? theme.fontFamily.semibold 
+                      : theme.fontFamily.medium
                   }
                 ]}
               >
@@ -1239,7 +1247,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 140, // Increased to accommodate bigger modern bottom menu
+    paddingBottom: 150, // Increased to accommodate bigger modern bottom menu
     paddingTop: Platform.OS === 'ios' ? 54 : 34, // Add padding for status bar
   },
   carouselContainer: {
@@ -1494,9 +1502,10 @@ const styles = StyleSheet.create({
 
   // Modern header styles
   modernHeaderWrapper: {
-    paddingVertical: 16,
+    paddingVertical: 20, // Increased from 16
     paddingHorizontal: 0, // Full width
     width: '100%',
+    minHeight: 100, // Added minimum height
   },
   modernHeaderGradient: {
     position: 'absolute',
@@ -1513,6 +1522,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
     paddingHorizontal: 20, // Move padding here
     width: '100%',
+    minHeight: 60, // Added minimum height for content
   },
   headerLeftSection: {
     flexDirection: 'row',
@@ -1520,18 +1530,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 60, // Increased from 50
+    height: 60, // Increased from 50
+    borderRadius: 30, // Adjusted for new size
     overflow: 'hidden',
-    marginRight: 16,
+    marginRight: 20, // Increased from 16
     backgroundColor: 'rgba(255,255,255,0.1)',
-    padding: 2,
+    padding: 3, // Increased from 2
   },
   headerLogo: {
     width: '100%',
     height: '100%',
-    borderRadius: 23,
+    borderRadius: 27, // Adjusted for new padding
   },
   greetingSection: {
     flexDirection: 'column',

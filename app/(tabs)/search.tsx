@@ -34,8 +34,8 @@ const SearchHeader = () => {
       <Image
         source={{ 
           uri: theme.isDarkMode 
-            ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-białe-01-scaled.png'
-            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+            ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
         }}
         style={styles.headerLogo}
         contentFit="contain"
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   listContent: {
-    paddingBottom: 140, // Extra padding for tab bar
+    paddingBottom: 150, // Extra padding for tab bar
     flexGrow: 1,
   },
   resultsHeader: {
@@ -700,18 +700,19 @@ const styles = StyleSheet.create({
      fontSize: 14,
      fontWeight: '600',
    },
-   // Header styles
-   searchHeader: {
-     paddingVertical: 16,
-     paddingHorizontal: 20,
-     alignItems: 'center',
-     borderBottomWidth: 1,
-     borderBottomColor: 'rgba(0,0,0,0.05)',
-   },
-   headerLogo: {
-     width: 120,
-     height: 32,
-   },
+     // Header styles
+  searchHeader: {
+    paddingVertical: 20, // Increased
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: 'rgba(248, 250, 252, 0.8)',
+  },
+  headerLogo: {
+    width: 140, // Increased
+    height: 38, // Increased
+  },
    // Enhanced Modern Bottom Bar Styles
    modernBottomBar: {
      position: 'absolute',

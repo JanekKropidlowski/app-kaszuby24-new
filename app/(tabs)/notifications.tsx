@@ -26,8 +26,8 @@ const NotificationsHeader = () => {
       <Image
         source={{ 
           uri: theme.isDarkMode 
-            ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-białe-01-scaled.png'
-            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+            ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
         }}
         style={styles.headerLogo}
         contentFit="contain"
@@ -442,15 +442,16 @@ const styles = StyleSheet.create({
     height: 8,
   },
   notificationsHeader: {
-    paddingVertical: 16,
+    paddingVertical: 20, // Increased
     paddingHorizontal: 20,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: 'rgba(248, 250, 252, 0.8)',
   },
   headerLogo: {
-    width: 120,
-    height: 32,
+    width: 140, // Increased
+    height: 38, // Increased
   },
   // Enhanced Modern Bottom Bar Styles
   modernBottomBar: {
