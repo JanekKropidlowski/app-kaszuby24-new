@@ -15,17 +15,19 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { 
   Search as SearchIcon, 
   MapPin, 
-  Calendar, 
   Heart, 
   TrendingUp, 
   Clock, 
-  Filter, 
-  Home, 
-  Users,
-  Briefcase,
   Star,
   X,
-  Zap
+  Zap,
+  Shield,
+  Briefcase,
+  Trophy,
+  Church,
+  HeartPulse,
+  GraduationCap,
+  Palette
 } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { searchArticles, fetchArticles } from '@/services/api';
@@ -37,30 +39,28 @@ import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
 
-// Simplified categories for quick access
-const QUICK_CATEGORIES = [
-  { id: '', name: 'Wszystkie', icon: Star, color: '#3B82F6' },
-  { id: 'sport', name: 'Sport', icon: Zap, color: '#EF4444' },
-  { id: 'kultura', name: 'Kultura', icon: Heart, color: '#8B5CF6' },
-  { id: 'biznes', name: 'Biznes', icon: Briefcase, color: '#059669' },
-  { id: 'wydarzenia', name: 'Wydarzenia', icon: Calendar, color: '#F59E0B' },
-  { id: 'spoleczne', name: 'Społeczne', icon: Users, color: '#EC4899' },
+// Real categories from your system
+const CATEGORIES = [
+  { id: '', name: 'Wszystkie', icon: Star },
+  { id: '17', name: 'Bezpieczeństwo', icon: Shield },
+  { id: '11', name: 'Biznes', icon: Briefcase },
+  { id: '24', name: 'Sport', icon: Trophy },
+  { id: '22', name: 'Religia', icon: Church },
+  { id: '2246', name: 'Zdrowie', icon: HeartPulse },
+  { id: '49', name: 'Nauka', icon: GraduationCap },
+  { id: '16', name: 'Kultura', icon: Palette },
 ];
 
-// Simplified regions
-const QUICK_REGIONS = [
-  { id: '', name: 'Wszystkie', icon: MapPin },
-  { id: 'gdansk', name: 'Gdańsk', icon: MapPin },
-  { id: 'sopot', name: 'Sopot', icon: MapPin },
-  { id: 'gdynia', name: 'Gdynia', icon: MapPin },
-  { id: 'kaszuby', name: 'Kaszuby', icon: MapPin },
-];
-
-// Sort options
-const SORT_OPTIONS = [
-  { id: 'date', name: 'Najnowsze', icon: Clock },
-  { id: 'relevance', name: 'Trafność', icon: Star },
-  { id: 'popularity', name: 'Popularne', icon: TrendingUp },
+// Real regions from your system
+const REGIONS = [
+  { id: '', name: 'Wszystkie' },
+  { id: '2583', name: 'Wejherowo' },
+  { id: '7', name: 'Trójmiasto' },
+  { id: '2128', name: 'Puck' },
+  { id: '76797', name: 'Reda' },
+  { id: '65546', name: 'Kościerzyna' },
+  { id: '65545', name: 'Kartuzy' },
+  { id: '65558', name: 'Lębork' },
 ];
 
 export default function SearchScreen() {
@@ -77,11 +77,11 @@ export default function SearchScreen() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('');
-  const [selectedSort, setSelectedSort] = useState('date');
-  const [showSuggestions, setShowSuggestions] = useState(false);
   
   const handleSearch = async (searchQuery: string = query) => {
-    if (!searchQuery.trim() && !selectedCategory && !selectedRegion) {
+    const trimmedQuery = searchQuery.trim();
+    
+    if (!trimmedQuery && !selectedCategory && !selectedRegion) {
       setArticles([]);
       return;
     }
@@ -89,22 +89,23 @@ export default function SearchScreen() {
     try {
       setLoading(true);
       
-      let searchParams = searchQuery.trim();
-      if (selectedCategory) {
-        searchParams += ` category:${selectedCategory}`;
+      let results;
+      
+      if (selectedCategory && selectedCategory !== '') {
+        // Use category-based search
+        results = await fetchArticles(1, 20, [parseInt(selectedCategory)]);
+      } else if (trimmedQuery) {
+        // Use text search
+        results = await searchArticles(trimmedQuery, 1);
+      } else {
+        // Fallback to general articles
+        results = await fetchArticles(1, 20);
       }
-      if (selectedRegion) {
-        searchParams += ` region:${selectedRegion}`;
-      }
       
-      const { articles: searchResults, totalPages } = await searchArticles(searchParams || ' ', 1);
-      const filteredResults = filterSponsoredArticles(searchResults);
+      const filteredResults = filterSponsoredArticles(results.articles || []);
       
-      // Apply sorting
-      const sortedResults = applySorting(filteredResults, selectedSort);
-      
-      setArticles(sortedResults);
-      setTotalPages(totalPages);
+      setArticles(filteredResults);
+      setTotalPages(results.totalPages || 1);
       setPage(1);
     } catch (err) {
       console.error('Error searching articles:', err);
@@ -114,39 +115,25 @@ export default function SearchScreen() {
     }
   };
   
-  const applySorting = (articles: Article[], sortType: string): Article[] => {
-    const sorted = [...articles];
-    switch (sortType) {
-      case 'date':
-        return sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      case 'popularity':
-        return sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
-      case 'relevance':
-      default:
-        return sorted;
-    }
-  };
-  
   const handleLoadMore = async () => {
-    if (page >= totalPages || loadingMore || (!query.trim() && !selectedCategory && !selectedRegion)) return;
+    if (page >= totalPages || loadingMore) return;
     
     try {
       setLoadingMore(true);
       
       const nextPage = page + 1;
-      let searchParams = query.trim();
-      if (selectedCategory) {
-        searchParams += ` category:${selectedCategory}`;
-      }
-      if (selectedRegion) {
-        searchParams += ` region:${selectedRegion}`;
+      let results;
+      
+      if (selectedCategory && selectedCategory !== '') {
+        results = await fetchArticles(nextPage, 20, [parseInt(selectedCategory)]);
+      } else if (query.trim()) {
+        results = await searchArticles(query.trim(), nextPage);
+      } else {
+        results = await fetchArticles(nextPage, 20);
       }
       
-      const { articles: moreResults } = await searchArticles(searchParams || ' ', nextPage);
-      const filteredResults = filterSponsoredArticles(moreResults);
-      const sortedResults = applySorting(filteredResults, selectedSort);
-      
-      setArticles((prev) => [...prev, ...sortedResults]);
+      const filteredResults = filterSponsoredArticles(results.articles || []);
+      setArticles((prev) => [...prev, ...filteredResults]);
       setPage(nextPage);
     } catch (err) {
       console.error('Error loading more search results:', err);
@@ -161,36 +148,19 @@ export default function SearchScreen() {
   
   const handleCategoryPress = (categoryId: string) => {
     setSelectedCategory(categoryId);
-    handleSearch();
-  };
-  
-  const handleRegionPress = (regionId: string) => {
-    setSelectedRegion(regionId);
-    handleSearch();
-  };
-  
-  const handleSortPress = (sortId: string) => {
-    setSelectedSort(sortId);
-    if (articles.length > 0) {
-      const sorted = applySorting(articles, sortId);
-      setArticles(sorted);
+    if (categoryId) {
+      handleSearch('');
+    } else {
+      setArticles([]);
     }
   };
   
-  const clearAllFilters = () => {
+  const clearFilters = () => {
     setSelectedCategory('');
     setSelectedRegion('');
-    setSelectedSort('date');
     setQuery('');
     setArticles([]);
   };
-  
-  // Load initial content when filters change
-  useEffect(() => {
-    if (selectedCategory || selectedRegion) {
-      handleSearch();
-    }
-  }, [selectedCategory, selectedRegion]);
   
   // Handle initial region if provided
   useEffect(() => {
@@ -199,158 +169,100 @@ export default function SearchScreen() {
     }
   }, [regionId]);
   
-  const renderFilterChips = (items: any[], selectedId: string, onPress: (id: string) => void, showIcon = true) => (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.filterScrollContent}
-    >
-      {items.map((item) => {
-        const isSelected = selectedId === item.id;
-        return (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: isSelected ? theme.colors.primary : theme.colors.card,
-                borderColor: isSelected ? theme.colors.primary : theme.colors.border,
-              }
-            ]}
-            onPress={() => onPress(item.id)}
-          >
-            {showIcon && (
-              <item.icon 
-                size={16} 
-                color={isSelected ? '#FFFFFF' : (item.color || theme.colors.primary)} 
-              />
-            )}
-            <Text style={[
-              styles.filterChipText,
-              {
-                color: isSelected ? '#FFFFFF' : theme.colors.text,
-                fontFamily: isSelected ? theme.fontFamily.semibold : theme.fontFamily.medium,
-                marginLeft: showIcon ? 6 : 0
-              }
-            ]}>
-              {item.name}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  );
-  
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIconContainer, { backgroundColor: theme.colors.subtle }]}>
-        <SearchIcon size={40} color={theme.colors.primary} />
-      </View>
-      <Text style={[styles.emptyTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
-        Wyszukaj interesujące artykuły
-      </Text>
-      <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
-        Wpisz słowa kluczowe lub wybierz kategorię i region poniżej
-      </Text>
-    </View>
-  );
-  
   const hasActiveFilters = selectedCategory || selectedRegion || query.trim();
-  const activeFiltersCount = [selectedCategory, selectedRegion, query.trim()].filter(Boolean).length;
   
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Header with Logo */}
+      {/* Compact Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={{ 
-              uri: theme.isDarkMode 
-                ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-                : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
-            }}
-            style={styles.headerLogo}
-            contentFit="contain"
-            transition={200}
-          />
-        </View>
+        <Image
+          source={{ 
+            uri: theme.isDarkMode 
+              ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+              : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+          }}
+          style={styles.logo}
+          contentFit="contain"
+        />
         
         {/* Search Bar */}
         <View style={[
           styles.searchContainer,
           { 
             backgroundColor: theme.colors.card,
-            borderColor: showSuggestions ? theme.colors.primary : theme.colors.border,
-            shadowColor: theme.colors.shadow
+            borderColor: theme.colors.border
           }
         ]}>
-          <SearchIcon size={20} color={theme.colors.primary} />
+          <SearchIcon size={18} color={theme.colors.textSecondary} />
           <TextInput
             style={[
               styles.searchInput,
               { 
                 color: theme.colors.text,
-                fontFamily: theme.fontFamily.medium
+                fontFamily: theme.fontFamily.regular
               }
             ]}
-            placeholder="Wyszukaj artykuły, tematy..."
+            placeholder="Wyszukaj artykuły..."
             placeholderTextColor={theme.colors.textSecondary}
             value={query}
             onChangeText={setQuery}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setShowSuggestions(false)}
             onSubmitEditing={() => handleSearch()}
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
+            <TouchableOpacity onPress={() => setQuery('')}>
               <X size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
       </View>
       
-      {/* Filters */}
+      {/* Compact Filters */}
       <View style={[styles.filtersContainer, { backgroundColor: theme.colors.background }]}>
-        {/* Categories */}
-        <View style={styles.filterSection}>
-          <Text style={[styles.filterTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
-            📂 Kategorie
-          </Text>
-          {renderFilterChips(QUICK_CATEGORIES, selectedCategory, handleCategoryPress)}
-        </View>
-        
-        {/* Regions */}
-        <View style={styles.filterSection}>
-          <Text style={[styles.filterTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
-            📍 Regiony
-          </Text>
-          {renderFilterChips(QUICK_REGIONS, selectedRegion, handleRegionPress)}
-        </View>
-        
-        {/* Sort + Clear */}
-        <View style={styles.filterSection}>
-          <View style={styles.sortAndClearContainer}>
-            <View style={styles.sortContainer}>
-              <Text style={[styles.filterTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
-                🔥 Sortuj
-              </Text>
-              {renderFilterChips(SORT_OPTIONS, selectedSort, handleSortPress, false)}
-            </View>
-            
-            {activeFiltersCount > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContent}>
+          {CATEGORIES.map((category) => {
+            const isSelected = selectedCategory === category.id;
+            return (
               <TouchableOpacity
-                style={[styles.clearFiltersButton, { backgroundColor: theme.colors.primary }]}
-                onPress={clearAllFilters}
+                key={category.id}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: isSelected ? theme.colors.primary : theme.colors.card,
+                    borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                  }
+                ]}
+                onPress={() => handleCategoryPress(category.id)}
               >
-                <X size={16} color="#FFFFFF" />
-                <Text style={[styles.clearFiltersText, { fontFamily: theme.fontFamily.medium }]}>
-                  Wyczyść ({activeFiltersCount})
+                <category.icon 
+                  size={14} 
+                  color={isSelected ? '#FFFFFF' : theme.colors.primary} 
+                />
+                <Text style={[
+                  styles.filterChipText,
+                  {
+                    color: isSelected ? '#FFFFFF' : theme.colors.text,
+                    fontFamily: theme.fontFamily.medium,
+                  }
+                ]}>
+                  {category.name}
                 </Text>
               </TouchableOpacity>
-            )}
-          </View>
-        </View>
+            );
+          })}
+          
+          {hasActiveFilters && (
+            <TouchableOpacity
+              style={[styles.clearButton, { backgroundColor: theme.colors.notification }]}
+              onPress={clearFilters}
+            >
+              <X size={14} color="#FFFFFF" />
+              <Text style={[styles.clearButtonText, { fontFamily: theme.fontFamily.medium }]}>
+                Wyczyść
+              </Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
       </View>
       
       {/* Results */}
@@ -368,16 +280,16 @@ export default function SearchScreen() {
           )}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            hasActiveFilters && articles.length > 0 ? (
+            articles.length > 0 ? (
               <View style={[styles.resultsHeader, { backgroundColor: theme.colors.subtle }]}>
                 <Text style={[
                   styles.resultsText, 
                   { 
                     color: theme.colors.text,
-                    fontFamily: theme.fontFamily.semibold
+                    fontFamily: theme.fontFamily.medium
                   }
                 ]}>
-                  Znaleziono {articles.length} wyników
+                  {articles.length} wyników
                 </Text>
               </View>
             ) : null
@@ -386,10 +298,20 @@ export default function SearchScreen() {
             hasActiveFilters ? (
               <EmptyState
                 title="Nie znaleziono wyników"
-                message="Spróbuj zmienić filtry lub wyszukiwaną frazę."
+                message="Spróbuj innej kategorii lub frazy"
                 icon={<SearchIcon size={48} color={theme.colors.primary} />}
               />
-            ) : renderEmptyState()
+            ) : (
+              <View style={styles.emptyContainer}>
+                <SearchIcon size={64} color={theme.colors.primary} />
+                <Text style={[styles.emptyTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
+                  Wyszukaj artykuły
+                </Text>
+                <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+                  Wybierz kategorię lub wpisz frazę
+                </Text>
+              </View>
+            )
           }
           ListFooterComponent={
             loadingMore ? <LoadingIndicator size="small" /> : null
@@ -397,7 +319,6 @@ export default function SearchScreen() {
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           showsVerticalScrollIndicator={false}
-          // Performance optimizations
           removeClippedSubviews={Platform.OS === 'android'}
           initialNumToRender={10}
           maxToRenderPerBatch={5}
@@ -414,143 +335,98 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Header Styles
+  // Compact Header
   header: {
-    paddingTop: Platform.OS === 'ios' ? 10 : 20,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 15,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerLogo: {
-    width: 120,
-    height: 32,
+  logo: {
+    width: 100,
+    height: 28,
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 50,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   searchInput: {
     flex: 1,
-    height: '100%',
-    marginLeft: 12,
-    fontSize: 16,
-  },
-  clearButton: {
-    padding: 8,
+    marginLeft: 8,
+    fontSize: 15,
   },
   
-  // Filters Styles
+  // Compact Filters
   filtersContainer: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  filterSection: {
-    marginBottom: 16,
-  },
-  filterTitle: {
-    fontSize: 16,
-    marginBottom: 12,
-    marginLeft: 20,
-  },
-  filterScrollContent: {
-    paddingHorizontal: 20,
+  filtersContent: {
+    paddingHorizontal: 16,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    marginRight: 12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginRight: 8,
   },
   filterChipText: {
-    fontSize: 14,
+    fontSize: 13,
+    marginLeft: 4,
   },
-  sortAndClearContainer: {
+  clearButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-  },
-  sortContainer: {
-    flex: 1,
-  },
-  clearFiltersButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
-    marginLeft: 16,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginLeft: 4,
   },
-  clearFiltersText: {
+  clearButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    marginLeft: 6,
+    fontSize: 13,
+    marginLeft: 4,
   },
   
-  // Results Styles
+  // Results
   resultsHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   resultsText: {
-    fontSize: 16,
+    fontSize: 14,
   },
   
-  // Empty State Styles
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 60,
-  },
-  emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
+    paddingTop: 80,
   },
   emptyTitle: {
-    fontSize: 22,
-    textAlign: 'center',
-    marginBottom: 12,
+    fontSize: 20,
+    marginTop: 16,
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 24,
-    opacity: 0.8,
+    opacity: 0.7,
   },
   
-  // List Styles
+  // List
   listContent: {
     paddingBottom: 20,
   },
