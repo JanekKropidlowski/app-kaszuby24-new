@@ -32,6 +32,9 @@
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
         "ACCESS_WIFI_STATE"
       ]
     },
@@ -39,14 +42,18 @@
       "favicon": "./assets/images/favicon.png"
     },
     "updates": {
-      "enabled": false,
-      "checkAutomatically": "NEVER",
-      "fallbackToCacheTimeout": 0
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 30000,
+      "url": "https://u.expo.dev/4aced4e9-da53-4734-83d7-fa5fe9870884"
     },
     "extra": {
       "eas": {
         "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

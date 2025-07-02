@@ -11,7 +11,8 @@
       },
       "ios": {
         "simulator": true
-      }
+      },
+      "channel": "development"
     },
     "production": {
       "android": {
@@ -19,7 +20,8 @@
       },
       "ios": {
         "simulator": true
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
