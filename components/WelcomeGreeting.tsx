@@ -28,7 +28,12 @@ const WavingHandIcon = ({ size = 24, color = '#FECC00' }) => (
   </Svg>
 );
 
-export const WelcomeGreeting = () => {
+interface WelcomeGreetingProps {
+  compact?: boolean;
+  enlarged?: boolean;
+}
+
+export const WelcomeGreeting = ({ compact = false, enlarged = false }: WelcomeGreetingProps) => {
   const { theme } = useThemeStore();
   const [userName, setUserName] = useState<string>('');
   const [greeting, setGreeting] = useState<string>('');
@@ -96,14 +101,16 @@ export const WelcomeGreeting = () => {
         <View style={styles.textContainer}>
           <Text style={[styles.greetingText, { 
             color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.light 
+            fontFamily: theme.fontFamily.light,
+            fontSize: enlarged ? 14 : 12
           }]}>
             {greeting}
           </Text>
           {userName && (
             <Text style={[styles.nameText, { 
               color: theme.isDarkMode ? '#FFFFFF' : '#1E293B',
-              fontFamily: theme.fontFamily.bold 
+              fontFamily: theme.fontFamily.bold,
+              fontSize: enlarged ? 22 : 18
             }]}>
               {userName}
             </Text>

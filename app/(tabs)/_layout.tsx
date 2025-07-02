@@ -152,29 +152,6 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Główna',
-            tabBarIcon: ({ color, size, focused }) => (
-              <View style={{
-                backgroundColor: focused ? theme.colors.primary : 'transparent',
-                borderRadius: focused ? 24 : 0,
-                width: focused ? 48 : 'auto',
-                height: focused ? 48 : 'auto',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Home 
-                  size={focused ? 26 : 24} 
-                  color={focused ? '#FFFFFF' : color} 
-                  strokeWidth={focused ? 2.5 : 2}
-                />
-              </View>
-            ),
-            headerShown: false,
-          }}
-        />
-        <Tabs.Screen
           name="search"
           options={{
             title: 'Szukaj',
@@ -211,6 +188,29 @@ export default function TabLayout() {
                 justifyContent: 'center',
               }}>
                 <Bookmark 
+                  size={focused ? 26 : 24} 
+                  color={focused ? '#FFFFFF' : color} 
+                  strokeWidth={focused ? 2.5 : 2}
+                />
+              </View>
+            ),
+            headerShown: false,
+          }}
+        />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Główna',
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{
+                backgroundColor: focused ? theme.colors.primary : 'transparent',
+                borderRadius: focused ? 24 : 0,
+                width: focused ? 48 : 'auto',
+                height: focused ? 48 : 'auto',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Home 
                   size={focused ? 26 : 24} 
                   color={focused ? '#FFFFFF' : color} 
                   strokeWidth={focused ? 2.5 : 2}

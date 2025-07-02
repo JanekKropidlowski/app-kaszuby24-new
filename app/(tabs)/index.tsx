@@ -54,10 +54,10 @@ import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
-// Original carousel dimensions - improved center mode
-const CAROUSEL_PEEK_WIDTH = 60; // Increased to show more of adjacent cards
-const CAROUSEL_ITEM_SPACING = 20; // Better spacing
-const CAROUSEL_ITEM_WIDTH = width - (CAROUSEL_PEEK_WIDTH * 2) - 40; // Optimized for center mode
+// New center mode carousel dimensions
+const CAROUSEL_ITEM_WIDTH = width * 0.8; // 80% of screen width for main card
+const CAROUSEL_ITEM_SPACING = 16; // Space between cards
+const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Calculate side peek automatically
 
 // Modern header component with enhanced UI
 const ModernHeader = () => {
@@ -69,33 +69,19 @@ const ModernHeader = () => {
       {/* Background gradient */}
       <LinearGradient
         colors={theme.isDarkMode 
-          ? ['rgba(232,65,66,0.08)', 'rgba(232,65,66,0)', 'transparent'] 
-          : ['rgba(232,65,66,0.06)', 'rgba(232,65,66,0)', 'transparent']}
+          ? ['rgba(34,73,150,0.08)', 'rgba(34,73,150,0)', 'transparent'] 
+          : ['rgba(34,73,150,0.06)', 'rgba(34,73,150,0)', 'transparent']}
         style={styles.modernHeaderGradient}
       />
       
       <View style={styles.modernHeaderContent}>
-        {/* Left side - Logo and Greeting */}
+        {/* Left side - Greeting with waving hand icon */}
         <View style={styles.headerLeftSection}>
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/')}
-            activeOpacity={0.8}
-            style={styles.logoContainer}
-          >
-            <Image
-              source={{ 
-                uri: theme.isDarkMode 
-                  ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-                  : 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png'
-              }}
-              style={styles.headerLogo}
-              contentFit="contain"
-              transition={200}
-            />
-          </TouchableOpacity>
-          
-          <View style={styles.greetingSection}>
-            <WelcomeGreeting compact={false} />
+          <View style={styles.greetingWithIcon}>
+            <Text style={[styles.wavingHandIcon, { fontSize: 28 }]}>👋</Text>
+            <View style={styles.greetingSection}>
+              <WelcomeGreeting compact={false} enlarged={true} />
+            </View>
           </View>
         </View>
         
@@ -106,17 +92,19 @@ const ModernHeader = () => {
   );
 };
 
-// Improved carousel item component with better gradient and dynamic label
-const CarouselItemEnhanced = React.memo(({ 
+// New center mode carousel component with weekly most popular filtering
+const WeeklyPopularCarousel = React.memo(({ 
   item, 
   index, 
   totalItems, 
-  onPress 
+  onPress,
+  isActive
 }: { 
   item: Article; 
   index: number; 
   totalItems: number;
   onPress: (article: Article) => void;
+  isActive: boolean;
 }) => {
   const { theme } = useThemeStore();
   
@@ -158,28 +146,40 @@ const CarouselItemEnhanced = React.memo(({
     
     return null;
   };
+
+  // Get view count for display
+  const getViewCount = (article: Article) => {
+    const views = parseInt(article.meta?.views || '0');
+    if (views > 1000) {
+      return `${(views / 1000).toFixed(1)}k`;
+    }
+    return views.toString();
+  };
   
   return (
     <View
       style={[
-        styles.carouselItemContainer,
+        styles.newCarouselItemContainer,
         { 
           width: CAROUSEL_ITEM_WIDTH,
-          marginRight: index === totalItems - 1 ? 0 : CAROUSEL_ITEM_SPACING,
+          transform: [
+            { scale: isActive ? 1.0 : 0.9 }
+          ],
+          opacity: isActive ? 1.0 : 0.7,
         }
       ]}
     >
       <TouchableOpacity 
-        style={styles.carouselItem}
+        style={styles.newCarouselItem}
         onPress={() => onPress(item)}
         onPressIn={handlePressIn}
         activeOpacity={0.9}
       >
-        <View style={styles.carouselImageContainer}>
+        <View style={styles.newCarouselImageContainer}>
           {item.featured_media_url ? (
             <Image
               source={{ uri: item.featured_media_url }}
-              style={styles.carouselImage}
+              style={styles.newCarouselImage}
               contentFit="cover"
               transition={200}
               placeholder="Loading..."
@@ -187,20 +187,38 @@ const CarouselItemEnhanced = React.memo(({
               priority="high"
             />
           ) : (
-            <View style={[styles.carouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
+            <View style={[styles.newCarouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
           )}
-          {/* Improved gradient - less aggressive */}
+          
+          {/* Weekly Popular Badge */}
+          <View style={styles.weeklyBadge}>
+            <TrendingUp size={12} color="#FFFFFF" />
+            <Text style={[styles.weeklyBadgeText, { fontFamily: theme.fontFamily.semibold }]}>
+              Najpopularniejsze w tym tygodniu
+            </Text>
+          </View>
+
+          {/* View Counter */}
+          <View style={styles.viewCounter}>
+            <Eye size={12} color="#FFFFFF" />
+            <Text style={[styles.viewCountText, { fontFamily: theme.fontFamily.medium }]}>
+              {getViewCount(item)}
+            </Text>
+          </View>
+          
+          {/* Improved gradient */}
           <LinearGradient
-            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
-            locations={[0, 0.3, 0.6, 1]}
-            style={styles.carouselGradient}
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
+            locations={[0, 0.4, 0.7, 1]}
+            style={styles.newCarouselGradient}
           />
-          <View style={styles.carouselItemContent}>
+          
+          <View style={styles.newCarouselItemContent}>
             {getArticleRegion(item) && (
-              <View style={styles.carouselLabelContainer}>
+              <View style={styles.newCarouselLabelContainer}>
                 <MapPin size={12} color="#FFFFFF" />
                 <Text style={[
-                  styles.carouselLabel,
+                  styles.newCarouselLabel,
                   { fontFamily: theme.fontFamily.semibold }
                 ]}>
                   {getArticleRegion(item)}
@@ -208,14 +226,14 @@ const CarouselItemEnhanced = React.memo(({
               </View>
             )}
             <Text style={[
-              styles.carouselTitle,
+              styles.newCarouselTitle,
               { fontFamily: theme.fontFamily.bold }
-            ]} numberOfLines={2}>
+            ]} numberOfLines={3}>
               {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
             </Text>
-            <View style={styles.carouselFooter}>
+            <View style={styles.newCarouselFooter}>
               <Text style={[
-                styles.carouselReadMore,
+                styles.newCarouselReadMore,
                 { fontFamily: theme.fontFamily.semibold }
               ]}>
                 Czytaj więcej
@@ -725,17 +743,22 @@ export default function HomeScreen() {
     }, 100);
   }, [addRecentArticle, router]);
 
-  // Carousel render function
-  const renderCarouselItem = useCallback(({ item, index }: { item: Article; index: number }) => (
-    <View style={styles.carouselItemWrapper}>
-      <CarouselItemEnhanced
+  // New carousel render function with center mode
+  const renderCarouselItem = useCallback(({ item, index }: { item: Article; index: number }) => {
+    // Calculate if this item is active (centered)
+    const duplicateCount = Math.min(2, featuredArticles.length);
+    const isActive = Math.abs(index - activeCarouselIndex) <= 0.5;
+    
+    return (
+      <WeeklyPopularCarousel
         item={item}
         index={index}
         totalItems={infiniteArticles.length}
         onPress={handleArticlePress}
+        isActive={isActive}
       />
-    </View>
-  ), [infiniteArticles.length, handleArticlePress]);
+    );
+  }, [infiniteArticles.length, handleArticlePress, activeCarouselIndex, featuredArticles.length]);
 
   // Article render function
   const renderArticle = useCallback(({ item }: { item: Article }) => (
@@ -926,7 +949,7 @@ export default function HomeScreen() {
   const handleCarouselMomentumScrollEnd = useCallback((event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const newIndex = Math.round(
-      (contentOffsetX + CAROUSEL_PEEK_WIDTH) / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
+      (contentOffsetX + CAROUSEL_SIDE_PEEK) / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
     );
     
     const duplicateCount = Math.min(2, featuredArticles.length);
@@ -988,7 +1011,7 @@ export default function HomeScreen() {
   const renderCategoryPills = () => {
     // Real category data from your system
     const realCategories = [
-      { id: 3, name: 'Wszystkie', slug: 'wszystkie', icon: '🏠', color: '#E84142' },
+      { id: 3, name: 'Wszystkie', slug: 'wszystkie', icon: '🏠', color: '#224996' },
       { id: 17, name: 'Bezpieczeństwo', slug: 'bezpieczenstwo', icon: '🛡️', color: '#FF6B6B' },
       { id: 11, name: 'Biznes', slug: 'biznes', icon: '💼', color: '#FFE66D' },
       { id: 24, name: 'Sport', slug: 'sport', icon: '⚽', color: '#4ECDC4' },
@@ -1256,7 +1279,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   carouselListContent: {
-    paddingHorizontal: CAROUSEL_PEEK_WIDTH + 20,
+    paddingHorizontal: CAROUSEL_SIDE_PEEK,
     paddingVertical: 6,
   },
   carouselItemWrapper: {
@@ -1338,6 +1361,127 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     marginRight: 6,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  
+  // New carousel styles for weekly popular
+  newCarouselItemContainer: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+    marginHorizontal: CAROUSEL_ITEM_SPACING / 2,
+  },
+  newCarouselItem: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    height: 300,
+    width: '100%',
+  },
+  newCarouselImageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  },
+  newCarouselImage: {
+    width: '100%',
+    height: '100%',
+  },
+  newCarouselImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+  },
+  weeklyBadge: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    backgroundColor: '#224996',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  weeklyBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 4,
+    letterSpacing: 0.3,
+  },
+  viewCounter: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewCountText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  newCarouselGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '70%',
+  },
+  newCarouselItemContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 24,
+  },
+  newCarouselLabelContainer: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  newCarouselLabel: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    marginLeft: 4,
+  },
+  newCarouselTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 26,
+    marginBottom: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  newCarouselFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  newCarouselReadMore: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginRight: 8,
     fontWeight: '600',
     letterSpacing: 0.2,
   },
@@ -1546,6 +1690,14 @@ const styles = StyleSheet.create({
   greetingSection: {
     flexDirection: 'column',
     flex: 1,
+  },
+  greetingWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  wavingHandIcon: {
+    marginRight: 12,
   },
   // Region Filter Header Styles
   regionFilterHeader: {

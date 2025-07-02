@@ -25,7 +25,7 @@ import { filterSponsoredArticles } from '@/utils/contentFilter';
 import { useScrollStore } from '@/store/scrollStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 
-// Header component with logo
+// Header component with logo - positioned lower for notch compatibility
 const SearchHeader = () => {
   const { theme } = useThemeStore();
 
@@ -35,7 +35,7 @@ const SearchHeader = () => {
         source={{ 
           uri: theme.isDarkMode 
             ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+            : 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png'
         }}
         style={styles.headerLogo}
         contentFit="contain"
@@ -700,9 +700,10 @@ const styles = StyleSheet.create({
      fontSize: 14,
      fontWeight: '600',
    },
-     // Header styles
+     // Header styles - positioned lower for notch compatibility
   searchHeader: {
-    paddingVertical: 20, // Increased
+    paddingTop: Platform.OS === 'ios' ? 60 : 20, // Extra padding for iOS notch
+    paddingBottom: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
     borderBottomWidth: 1,
@@ -710,8 +711,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(248, 250, 252, 0.8)',
   },
   headerLogo: {
-    width: 140, // Increased
-    height: 38, // Increased
+    width: 140,
+    height: 38,
   },
    // Enhanced Modern Bottom Bar Styles
    modernBottomBar: {
@@ -760,7 +761,7 @@ const styles = StyleSheet.create({
      position: 'relative',
    },
    modernBottomIconWrapperActive: {
-     shadowColor: '#E84142',
+     shadowColor: '#224996',
      shadowOffset: { width: 0, height: 4 },
      shadowOpacity: 0.3,
      shadowRadius: 8,
