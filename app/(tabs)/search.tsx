@@ -199,6 +199,7 @@ export default function SearchScreen() {
   
   const handleArticlePress = (article: Article) => {
     addRecentArticle(article);
+    router.push(`/article/${article.id}`);
   };
   
   const handleCategoryPress = async (categoryId: string) => {
@@ -653,12 +654,13 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: 15,
+    fontSize: Platform.OS === 'android' ? 14 : 15,
   },
   
   // Filters
   filtersContainer: {
-    paddingVertical: 12,
+    paddingTop: Platform.OS === 'android' ? 16 : 12,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
@@ -677,7 +679,7 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === 'ios' ? 36 : 40, // Better touch target on Android
   },
   filterChipText: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'android' ? 12 : 13,
     marginLeft: 4,
   },
   clearButton: {
@@ -716,7 +718,7 @@ const styles = StyleSheet.create({
   },
   selectButtonText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: Platform.OS === 'android' ? 13 : 14,
     marginLeft: 8,
   },
   dropdown: {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -32,6 +32,9 @@
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
         "ACCESS_WIFI_STATE"
       ]
     },
@@ -39,7 +42,8 @@
       "favicon": "./assets/images/favicon.png"
     },
     "updates": {
-      "enabled": false
+      "enabled": false,
+      "url": "https://u.expo.dev/4aced4e9-da53-4734-83d7-fa5fe9870884"
     },
     "extra": {
       "eas": {

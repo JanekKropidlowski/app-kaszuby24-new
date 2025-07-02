@@ -54,6 +54,8 @@ interface NotificationsState {
   markAllAsRead: () => void;
   clearNotifications: () => void;
   getUnreadCount: () => number;
+  hasUnreadNotifications: () => boolean;
+  incrementNotificationCount: () => void;
   
   // First time user actions
   completeFirstTimeSetup: () => void;
@@ -167,6 +169,17 @@ export const useNotificationsStore = create<NotificationsState>()(
       getUnreadCount: () => {
         const state = get();
         return state.notifications.filter(notif => !notif.read).length;
+      },
+      
+      hasUnreadNotifications: () => {
+        const state = get();
+        return state.notifications.some(notif => !notif.read);
+      },
+      
+      incrementNotificationCount: () => {
+        // This is for real-time notification count increment
+        // The actual notification will be added via addNotification
+        // This function can be used for UI updates
       },
       
       // First time user actions

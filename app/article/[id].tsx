@@ -376,7 +376,7 @@ export default function ArticleDetailScreen() {
           
           body {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-            font-size: 13px !important;
+            font-size: ${Platform.OS === 'android' ? '11px' : '13px'} !important;
             line-height: 1.6;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
             background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
@@ -394,7 +394,7 @@ export default function ArticleDetailScreen() {
             margin-bottom: 16px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 13px !important;
+            font-size: ${Platform.OS === 'android' ? '11px' : '13px'} !important;
             line-height: 1.6 !important;
             font-weight: 400 !important;
           }
@@ -429,12 +429,12 @@ export default function ArticleDetailScreen() {
             letter-spacing: -0.02em !important;
           }
           
-          h1 { font-size: 22px !important; }
-          h2 { font-size: 18px !important; }
-          h3 { font-size: 16px !important; }
-          h4 { font-size: 14px !important; }
-          h5 { font-size: 13px !important; }
-          h6 { font-size: 12px !important; }
+          h1 { font-size: ${Platform.OS === 'android' ? '20px' : '22px'} !important; }
+          h2 { font-size: ${Platform.OS === 'android' ? '16px' : '18px'} !important; }
+          h3 { font-size: ${Platform.OS === 'android' ? '14px' : '16px'} !important; }
+          h4 { font-size: ${Platform.OS === 'android' ? '12px' : '14px'} !important; }
+          h5 { font-size: ${Platform.OS === 'android' ? '11px' : '13px'} !important; }
+          h6 { font-size: ${Platform.OS === 'android' ? '10px' : '12px'} !important; }
           
           blockquote {
             position: relative !important;
@@ -1032,6 +1032,17 @@ export default function ArticleDetailScreen() {
       <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
         <TouchableOpacity
           style={styles.bottomMenuItem}
+          onPress={handleGoHome}
+          activeOpacity={0.7}
+        >
+          <Home size={22} color={theme.colors.primary} strokeWidth={2.5} />
+          <Text style={[styles.bottomMenuText, { color: theme.colors.primary, fontFamily: theme.fontFamily.medium }]}>
+            Główna
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.bottomMenuItem}
           onPress={handleGoSearch}
           activeOpacity={0.7}
         >
@@ -1049,17 +1060,6 @@ export default function ArticleDetailScreen() {
           <Bookmark size={20} color={theme.colors.text} />
           <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
             Zapisane
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoHome}
-          activeOpacity={0.7}
-        >
-          <Home size={22} color={theme.colors.primary} strokeWidth={2.5} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.primary, fontFamily: theme.fontFamily.medium }]}>
-            Główna
           </Text>
         </TouchableOpacity>
         
@@ -1235,10 +1235,10 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   title: {
-    fontSize: 24,
+    fontSize: Platform.OS === 'android' ? 22 : 24,
     fontWeight: '700',
     marginBottom: 16,
-    lineHeight: 32,
+    lineHeight: Platform.OS === 'android' ? 28 : 32,
     letterSpacing: -0.3,
   },
   metaContainer: {
