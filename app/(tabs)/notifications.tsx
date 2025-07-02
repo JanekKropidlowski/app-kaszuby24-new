@@ -27,7 +27,7 @@ const NotificationsHeader = () => {
         source={{ 
           uri: theme.isDarkMode 
             ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-            : 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png'
+            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
         }}
         style={styles.headerLogo}
         contentFit="contain"
@@ -184,30 +184,8 @@ export default function NotificationsScreen() {
       {/* Header with logo */}
       <NotificationsHeader />
       
-      <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
-        <View style={styles.headerTop}>
-          <Text style={[
-            styles.headerTitle, 
-            { 
-              color: theme.colors.text,
-              fontFamily: theme.fontFamily.semibold
-            }
-          ]}>
-            Powiadomienia
-          </Text>
-          {unreadCount > 0 && (
-            <View style={[styles.unreadBadge, { backgroundColor: theme.colors.notification }]}>
-              <Text style={[
-                styles.unreadBadgeText,
-                { fontFamily: theme.fontFamily.semibold }
-              ]}>
-                {unreadCount}
-              </Text>
-            </View>
-          )}
-        </View>
-        
-        {filteredNotifications.length > 0 && (
+      {filteredNotifications.length > 0 && (
+        <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
           <View style={styles.headerActions}>
             {unreadCount > 0 && (
               <TouchableOpacity 
@@ -243,8 +221,8 @@ export default function NotificationsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
+        </View>
+      )}
       
       <FlatList
         data={filteredNotifications}

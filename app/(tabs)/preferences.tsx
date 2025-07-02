@@ -246,7 +246,11 @@ export default function PreferencesScreen() {
       <View style={[styles.profileSection, { backgroundColor: theme.colors.card }]}>
         <View style={[styles.profileImageContainer, { backgroundColor: theme.colors.subtle }]}>
           <Image 
-            source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png' }}
+            source={{ 
+              uri: theme.isDarkMode 
+                ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+                : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+            }}
             style={styles.profileImage}
           />
         </View>
@@ -766,8 +770,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profileImage: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
   },
   profileName: {
     fontSize: 20,

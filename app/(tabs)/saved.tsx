@@ -33,7 +33,7 @@ const SavedHeader = () => {
         source={{ 
           uri: theme.isDarkMode 
             ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-            : 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png'
+            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
         }}
         style={styles.headerLogo}
         contentFit="contain"
@@ -142,18 +142,7 @@ export default function SavedScreen() {
         contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        ListHeaderComponent={
-          <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-              Zapisane artykuły
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
-              {filteredSavedArticles.length > 0 
-                ? `Masz ${filteredSavedArticles.length} zapisanych artykułów`
-                : 'Zapisz artykuły, aby czytać je później'}
-            </Text>
-          </View>
-        }
+        ListHeaderComponent={null}
         ListEmptyComponent={
           <EmptyState
             title="Brak zapisanych artykułów"

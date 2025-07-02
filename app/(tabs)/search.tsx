@@ -35,7 +35,7 @@ const SearchHeader = () => {
         source={{ 
           uri: theme.isDarkMode 
             ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-            : 'https://kaszuby24.pl/wp-content/uploads/2023/05/ikony_Obszar-roboczy-1.png'
+            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
         }}
         style={styles.headerLogo}
         contentFit="contain"

@@ -66,16 +66,13 @@ interface NotificationsState {
 }
 
 const defaultRegions: NotificationPreference[] = [
-  { id: 65556, name: 'Chojnice', type: 'region', enabled: false },
-  { id: 65545, name: 'Kartuzy', type: 'region', enabled: false },
-  { id: 65546, name: 'Kościerzyna', type: 'region', enabled: false },
-  { id: 66165, name: 'Kraj', type: 'region', enabled: false },
-  { id: 65558, name: 'Lębork', type: 'region', enabled: false },
-  { id: 2128, name: 'Puck', type: 'region', enabled: false },
-  { id: 7, name: 'Trójmiasto', type: 'region', enabled: false },
   { id: 2583, name: 'Wejherowo', type: 'region', enabled: false },
-  { id: 996, name: 'Władysławowo', type: 'region', enabled: false },
-  { id: 998, name: 'Hel', type: 'region', enabled: false },
+  { id: 7, name: 'Trójmiasto', type: 'region', enabled: false },
+  { id: 2128, name: 'Puck', type: 'region', enabled: false },
+  { id: 76797, name: 'Reda', type: 'region', enabled: false },
+  { id: 65546, name: 'Kościerzyna', type: 'region', enabled: false },
+  { id: 65545, name: 'Kartuzy', type: 'region', enabled: false },
+  { id: 65558, name: 'Lębork', type: 'region', enabled: false },
 ];
 
 const defaultCategories: NotificationPreference[] = [
@@ -91,16 +88,13 @@ const defaultCategories: NotificationPreference[] = [
 
 // Available locations for users to choose from
 export const availableLocations: UserLocation[] = [
-  { id: 65556, name: 'Chojnice', slug: 'chojnice' },
-  { id: 65545, name: 'Kartuzy', slug: 'kartuzy' },
-  { id: 65546, name: 'Kościerzyna', slug: 'koscierzyna' },
-  { id: 66165, name: 'Kraj', slug: 'kraj' },
-  { id: 65558, name: 'Lębork', slug: 'lebork' },
-  { id: 2128, name: 'Puck', slug: 'puck' },
-  { id: 7, name: 'Trójmiasto', slug: 'trojmiasto' },
   { id: 2583, name: 'Wejherowo', slug: 'wejherowo' },
-  { id: 996, name: 'Władysławowo', slug: 'wladyslawowo' },
-  { id: 998, name: 'Hel', slug: 'hel' },
+  { id: 7, name: 'Trójmiasto', slug: 'trojmiasto' },
+  { id: 2128, name: 'Puck', slug: 'puck' },
+  { id: 76797, name: 'Reda', slug: 'reda' },
+  { id: 65546, name: 'Kościerzyna', slug: 'koscierzyna' },
+  { id: 65545, name: 'Kartuzy', slug: 'kartuzy' },
+  { id: 65558, name: 'Lębork', slug: 'lebork' },
 ];
 
 export const useNotificationsStore = create<NotificationsState>()(

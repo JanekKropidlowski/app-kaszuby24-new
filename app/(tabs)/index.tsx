@@ -54,10 +54,10 @@ import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
-// New center mode carousel dimensions
-const CAROUSEL_ITEM_WIDTH = width * 0.8; // 80% of screen width for main card
-const CAROUSEL_ITEM_SPACING = 16; // Space between cards
-const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Calculate side peek automatically
+// New center mode carousel dimensions - fixed for proper edge visibility
+const CAROUSEL_ITEM_WIDTH = width * 0.85; // 85% of screen width for main card
+const CAROUSEL_ITEM_SPACING = 12; // Reduced spacing between cards
+const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2 - 8; // Extra margin for edge visibility
 
 // Modern header component with enhanced UI
 const ModernHeader = () => {
@@ -147,9 +147,9 @@ const WeeklyPopularCarousel = React.memo(({
     return null;
   };
 
-  // Get view count for display
+  // Get view count for display - multiply by 3 as requested
   const getViewCount = (article: Article) => {
-    const views = parseInt(article.meta?.views || '0');
+    const views = parseInt(article.meta?.views || '0') * 3;
     if (views > 1000) {
       return `${(views / 1000).toFixed(1)}k`;
     }
@@ -1698,6 +1698,7 @@ const styles = StyleSheet.create({
   },
   wavingHandIcon: {
     marginRight: 12,
+    transform: [{ rotate: '15deg' }],
   },
   // Region Filter Header Styles
   regionFilterHeader: {

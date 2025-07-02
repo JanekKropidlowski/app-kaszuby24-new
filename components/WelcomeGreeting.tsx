@@ -95,9 +95,6 @@ export const WelcomeGreeting = ({ compact = false, enlarged = false }: WelcomeGr
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        <View style={styles.iconContainer}>
-          <WavingHandIcon size={22} color={theme.colors.secondary} />
-        </View>
         <View style={styles.textContainer}>
           <Text style={[styles.greetingText, { 
             color: theme.colors.textSecondary,
