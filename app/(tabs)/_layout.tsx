@@ -83,26 +83,21 @@ export default function TabLayout() {
   }, [showTabBar, tabBarTranslateY]);
 
   useEffect(() => {
-    // Request permissions on app load
-    notificationService.requestPermissions();
-    
-    // Register for push notifications
-    notificationService.registerForPushNotifications();
-    
-    // Listen for notifications
+    // Listen for notifications (permissions and registration are handled in _layout.tsx)
     const notificationListener = notificationService.addNotificationReceivedListener((notification) => {
-      console.log('Notification received:', notification);
+      console.log('Notification received in TabLayout:', notification);
       incrementNotificationCount();
     });
     
     const responseListener = notificationService.addNotificationResponseReceivedListener((response) => {
-      console.log('Notification response:', response);
-      // Handle notification tap
+      console.log('Notification response in TabLayout:', response);
+      // Handle notification tap - navigation is handled in notificationService
     });
     
     return () => {
-      notificationListener.remove();
-      responseListener.remove();
+      // Use proper cleanup method for Expo notifications
+      notificationService.removeNotificationSubscription(notificationListener);
+      notificationService.removeNotificationSubscription(responseListener);
     };
   }, [incrementNotificationCount]);
 

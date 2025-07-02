@@ -330,6 +330,15 @@ class NotificationService {
     return Notifications.addNotificationResponseReceivedListener(callback);
   }
 
+  // Helper to properly remove notification subscriptions
+  removeNotificationSubscription(subscription: Notifications.Subscription): void {
+    try {
+      Notifications.removeNotificationSubscription(subscription);
+    } catch (error) {
+      console.warn('Error removing notification subscription:', error);
+    }
+  }
+
   cleanup() {
     try {
       if (Platform.OS === 'web' || this.initializationFailed) {
