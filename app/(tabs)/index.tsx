@@ -1009,16 +1009,16 @@ export default function HomeScreen() {
 
   // Render category pills with real categories
   const renderCategoryPills = () => {
-    // Real category data from your system
+    // Real category data from your system - using your blue-green theme
     const realCategories = [
       { id: 3, name: 'Wszystkie', slug: 'wszystkie', icon: '🏠', color: '#224996' },
-      { id: 17, name: 'Bezpieczeństwo', slug: 'bezpieczenstwo', icon: '🛡️', color: '#FF6B6B' },
-      { id: 11, name: 'Biznes', slug: 'biznes', icon: '💼', color: '#FFE66D' },
-      { id: 24, name: 'Sport', slug: 'sport', icon: '⚽', color: '#4ECDC4' },
-      { id: 22, name: 'Religia', slug: 'religia', icon: '⛪', color: '#A8E6CF' },
-      { id: 2246, name: 'Zdrowie', slug: 'zdrowie', icon: '🏥', color: '#FFB3BA' },
-      { id: 49, name: 'Nauka', slug: 'nauka', icon: '🔬', color: '#BFDBFE' },
-      { id: 16, name: 'Kultura', slug: 'kultura', icon: '🎭', color: '#DDD6FE' },
+      { id: 17, name: 'Bezpieczeństwo', slug: 'bezpieczenstwo', icon: '🛡️', color: '#224996' },
+      { id: 11, name: 'Biznes', slug: 'biznes', icon: '💼', color: '#224996' },
+      { id: 24, name: 'Sport', slug: 'sport', icon: '⚽', color: '#224996' },
+      { id: 22, name: 'Religia', slug: 'religia', icon: '⛪', color: '#224996' },
+      { id: 2246, name: 'Zdrowie', slug: 'zdrowie', icon: '🏥', color: '#224996' },
+      { id: 49, name: 'Nauka', slug: 'nauka', icon: '🔬', color: '#224996' },
+      { id: 16, name: 'Kultura', slug: 'kultura', icon: '🎭', color: '#224996' },
     ];
 
     return (

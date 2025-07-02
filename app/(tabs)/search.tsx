@@ -78,15 +78,26 @@ export default function SearchScreen() {
     { id: '65545', name: 'Kartuzy', icon: MapPin },
     { id: '65558', name: 'Lębork', icon: MapPin },
   ];
+
+  const nekrologiRegions = [
+    { id: '74867', name: 'Gm. Kosakowo', icon: MapPin },
+    { id: '74868', name: 'Gm. Krokowa', icon: MapPin },
+    { id: '74869', name: 'Gm. Puck', icon: MapPin },
+    { id: '74866', name: 'Miasto Puck', icon: MapPin },
+    { id: '74872', name: 'Półwysep', icon: MapPin },
+    { id: '74870', name: 'Powiat Wejherowski', icon: MapPin },
+    { id: '74871', name: 'Trójmiasto', icon: MapPin },
+    { id: '74865', name: 'Władysławowo', icon: MapPin },
+  ];
   
   const categories = [
-    { id: '17', name: 'Bezpieczeństwo', icon: Heart, color: '#FF6B6B' },
-    { id: '11', name: 'Biznes', icon: TrendingUp, color: '#FFE66D' },
-    { id: '24', name: 'Sport i Rekreacja', icon: Calendar, color: '#4ECDC4' },
-    { id: '22', name: 'Religia', icon: Clock, color: '#A8E6CF' },
-    { id: '2246', name: 'Zdrowie', icon: Heart, color: '#FFB3BA' },
-    { id: '49', name: 'Nauka', icon: TrendingUp, color: '#BFDBFE' },
-    { id: '16', name: 'Kultura i Rozrywka', icon: Calendar, color: '#DDD6FE' },
+    { id: '17', name: 'Bezpieczeństwo', icon: Heart, color: '#224996' },
+    { id: '11', name: 'Biznes', icon: TrendingUp, color: '#224996' },
+    { id: '24', name: 'Sport i Rekreacja', icon: Calendar, color: '#224996' },
+    { id: '22', name: 'Religia', icon: Clock, color: '#224996' },
+    { id: '2246', name: 'Zdrowie', icon: Heart, color: '#224996' },
+    { id: '49', name: 'Nauka', icon: TrendingUp, color: '#224996' },
+    { id: '16', name: 'Kultura i Rozrywka', icon: Calendar, color: '#224996' },
   ];
 
   // Bottom navigation functions
@@ -225,108 +236,169 @@ export default function SearchScreen() {
     handleSearch('');
   };
 
-  // Render filter sections
+  // Render filter sections with improved layout
   const renderRegionFilters = () => (
     <View style={styles.filterSection}>
       <View style={styles.filterHeader}>
-        <MapPin size={18} color={theme.colors.primary} />
+        <MapPin size={20} color={theme.colors.primary} />
         <Text style={[styles.filterTitle, { 
           color: theme.colors.text,
           fontFamily: theme.fontFamily.semibold 
         }]}>
-          Regiony
+          🌍 Regiony – ogólne
         </Text>
       </View>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterScrollContent}
-      >
+      <View style={styles.filterGrid}>
         {regions.map((region) => (
           <TouchableOpacity
             key={region.id}
             style={[
-              styles.filterChip,
+              styles.filterCard,
               { 
                 backgroundColor: selectedRegion === region.id 
                   ? theme.colors.primary 
                   : theme.colors.card,
                 borderColor: selectedRegion === region.id 
                   ? theme.colors.primary 
-                  : theme.colors.border
+                  : theme.colors.border,
+                shadowColor: selectedRegion === region.id 
+                  ? theme.colors.primary 
+                  : theme.colors.shadow,
               }
             ]}
             onPress={() => handleRegionFilter(region.id)}
             activeOpacity={0.8}
           >
-            <region.icon 
-              size={16} 
-              color={selectedRegion === region.id ? '#FFFFFF' : theme.colors.textSecondary} 
-            />
-            <Text style={[
-              styles.filterChipText,
-              { 
-                color: selectedRegion === region.id ? '#FFFFFF' : theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              {region.name}
-            </Text>
+            <View style={styles.filterCardContent}>
+              <region.icon 
+                size={20} 
+                color={selectedRegion === region.id ? '#FFFFFF' : theme.colors.primary} 
+              />
+              <Text style={[
+                styles.filterCardText,
+                { 
+                  color: selectedRegion === region.id ? '#FFFFFF' : theme.colors.text,
+                  fontFamily: selectedRegion === region.id 
+                    ? theme.fontFamily.semibold 
+                    : theme.fontFamily.medium
+                }
+              ]}>
+                {region.name}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 
   const renderCategoryFilters = () => (
     <View style={styles.filterSection}>
       <View style={styles.filterHeader}>
-        <Filter size={18} color={theme.colors.primary} />
+        <Filter size={20} color={theme.colors.primary} />
         <Text style={[styles.filterTitle, { 
           color: theme.colors.text,
           fontFamily: theme.fontFamily.semibold 
         }]}>
-          Działy
+          📂 Kategorie tematyczne
         </Text>
       </View>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterScrollContent}
-      >
+      <View style={styles.filterGrid}>
         {categories.map((category) => (
           <TouchableOpacity
             key={category.id}
             style={[
-              styles.filterChip,
+              styles.filterCard,
               { 
                 backgroundColor: selectedCategory === category.id 
                   ? category.color 
                   : theme.colors.card,
                 borderColor: selectedCategory === category.id 
                   ? category.color 
-                  : theme.colors.border
+                  : theme.colors.border,
+                shadowColor: selectedCategory === category.id 
+                  ? category.color 
+                  : theme.colors.shadow,
               }
             ]}
             onPress={() => handleCategoryFilter(category.id)}
             activeOpacity={0.8}
           >
-            <category.icon 
-              size={16} 
-              color={selectedCategory === category.id ? '#FFFFFF' : category.color} 
-            />
-            <Text style={[
-              styles.filterChipText,
-              { 
-                color: selectedCategory === category.id ? '#FFFFFF' : theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              {category.name}
-            </Text>
+            <View style={styles.filterCardContent}>
+              <category.icon 
+                size={20} 
+                color={selectedCategory === category.id ? '#FFFFFF' : category.color} 
+              />
+              <Text style={[
+                styles.filterCardText,
+                { 
+                  color: selectedCategory === category.id ? '#FFFFFF' : theme.colors.text,
+                  fontFamily: selectedCategory === category.id 
+                    ? theme.fontFamily.semibold 
+                    : theme.fontFamily.medium
+                }
+              ]}>
+                {category.name}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
+    </View>
+  );
+
+  const renderNekrologiFilters = () => (
+    <View style={styles.filterSection}>
+      <View style={styles.filterHeader}>
+        <MapPin size={20} color={theme.colors.primary} />
+        <Text style={[styles.filterTitle, { 
+          color: theme.colors.text,
+          fontFamily: theme.fontFamily.semibold 
+        }]}>
+          ⚰️ Regiony – dla nekrologów
+        </Text>
+      </View>
+      <View style={styles.filterGrid}>
+        {nekrologiRegions.map((region) => (
+          <TouchableOpacity
+            key={region.id}
+            style={[
+              styles.filterCard,
+              { 
+                backgroundColor: selectedRegion === region.id 
+                  ? theme.colors.primary 
+                  : theme.colors.card,
+                borderColor: selectedRegion === region.id 
+                  ? theme.colors.primary 
+                  : theme.colors.border,
+                shadowColor: selectedRegion === region.id 
+                  ? theme.colors.primary 
+                  : theme.colors.shadow,
+              }
+            ]}
+            onPress={() => handleRegionFilter(region.id)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.filterCardContent}>
+              <region.icon 
+                size={20} 
+                color={selectedRegion === region.id ? '#FFFFFF' : theme.colors.primary} 
+              />
+              <Text style={[
+                styles.filterCardText,
+                { 
+                  color: selectedRegion === region.id ? '#FFFFFF' : theme.colors.text,
+                  fontFamily: selectedRegion === region.id 
+                    ? theme.fontFamily.semibold 
+                    : theme.fontFamily.medium
+                }
+              ]}>
+                {region.name}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 
@@ -346,6 +418,7 @@ export default function SearchScreen() {
       <View style={styles.emptyFiltersContainer}>
         {renderRegionFilters()}
         {renderCategoryFilters()}
+        {renderNekrologiFilters()}
         
         {(selectedRegion || selectedCategory) && (
           <TouchableOpacity 
@@ -668,21 +741,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-     filterChip: {
-     flexDirection: 'row',
-     alignItems: 'center',
-     paddingHorizontal: 12,
-     paddingVertical: 8,
-     borderWidth: 1,
-     borderRadius: 20,
-     marginRight: 8,
-     marginBottom: 8,
-   },
-   filterChipText: {
-     fontSize: 14,
-     fontWeight: '500',
-     marginLeft: 6,
-   },
+  filterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  filterCard: {
+    width: '48%',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCardText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
+    textAlign: 'center',
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
    emptyFiltersContainer: {
      width: '100%',
      marginTop: 24,

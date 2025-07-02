@@ -42,12 +42,12 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
           styles.pill,
           {
             backgroundColor: isSelected 
-              ? theme.colors.primary 
+              ? '#224996' 
               : theme.colors.card,
             borderColor: isSelected
-              ? theme.colors.primary
+              ? '#224996'
               : theme.colors.border,
-            shadowColor: isSelected ? theme.colors.primary : theme.colors.border,
+            shadowColor: isSelected ? '#224996' : theme.colors.border,
             shadowOpacity: isSelected ? 0.4 : 0.1,
             transform: [{ scale: isSelected ? 1.02 : 1 }],
           },
