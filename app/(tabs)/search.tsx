@@ -57,13 +57,16 @@ const CATEGORIES = [
 // Real regions from your system
 const REGIONS = [
   { id: '', name: 'Wszystkie regiony' },
-  { id: '2583', name: 'Wejherowo' },
-  { id: '7', name: 'Trójmiasto' },
-  { id: '2128', name: 'Puck' },
-  { id: '76797', name: 'Reda' },
-  { id: '65546', name: 'Kościerzyna' },
+  { id: '65556', name: 'Chojnice' },
+  { id: '626', name: 'Gmina Puck' },
   { id: '65545', name: 'Kartuzy' },
+  { id: '65546', name: 'Kościerzyna' },
+  { id: '66165', name: 'Kraj' },
   { id: '65558', name: 'Lębork' },
+  { id: '2128', name: 'Puck' },
+  { id: '7', name: 'Trójmiasto' },
+  { id: '2583', name: 'Wejherowo' },
+  { id: '76797', name: 'Reda' },
 ];
 
 // Sort options
@@ -125,9 +128,20 @@ export default function SearchScreen() {
       
       let results;
       
+      // Combine category and region filters
+      let categoryIds: number[] = [];
+      
       if (selectedCategory && selectedCategory !== '') {
-        // Use category-based search
-        results = await fetchArticles(1, 20, [parseInt(selectedCategory)]);
+        categoryIds.push(parseInt(selectedCategory));
+      }
+      
+      if (selectedRegion && selectedRegion !== '') {
+        categoryIds.push(parseInt(selectedRegion));
+      }
+      
+      if (categoryIds.length > 0) {
+        // Use category-based search (includes regions)
+        results = await fetchArticles(1, 20, categoryIds);
       } else if (trimmedQuery) {
         // Use text search
         results = await searchArticles(trimmedQuery, 1);
@@ -137,6 +151,15 @@ export default function SearchScreen() {
       }
       
       let filteredResults = filterSponsoredArticles(results.articles || []);
+      
+      // Apply additional region filtering if both category and region are selected
+      if (selectedCategory && selectedCategory !== '' && selectedRegion && selectedRegion !== '') {
+        filteredResults = filteredResults.filter(article => {
+          const categoryIds = article.categories?.map(cat => cat.id) || [];
+          return categoryIds.includes(parseInt(selectedCategory)) && 
+                 categoryIds.includes(parseInt(selectedRegion));
+        });
+      }
       
       // Apply sorting
       filteredResults = applySorting(filteredResults, selectedSort);
@@ -178,8 +201,19 @@ export default function SearchScreen() {
       const nextPage = page + 1;
       let results;
       
+      // Combine category and region filters
+      let categoryIds: number[] = [];
+      
       if (selectedCategory && selectedCategory !== '') {
-        results = await fetchArticles(nextPage, 20, [parseInt(selectedCategory)]);
+        categoryIds.push(parseInt(selectedCategory));
+      }
+      
+      if (selectedRegion && selectedRegion !== '') {
+        categoryIds.push(parseInt(selectedRegion));
+      }
+      
+      if (categoryIds.length > 0) {
+        results = await fetchArticles(nextPage, 20, categoryIds);
       } else if (query.trim()) {
         results = await searchArticles(query.trim(), nextPage);
       } else {
@@ -187,6 +221,16 @@ export default function SearchScreen() {
       }
       
       let filteredResults = filterSponsoredArticles(results.articles || []);
+      
+      // Apply additional region filtering if both category and region are selected
+      if (selectedCategory && selectedCategory !== '' && selectedRegion && selectedRegion !== '') {
+        filteredResults = filteredResults.filter(article => {
+          const categoryIds = article.categories?.map(cat => cat.id) || [];
+          return categoryIds.includes(parseInt(selectedCategory)) && 
+                 categoryIds.includes(parseInt(selectedRegion));
+        });
+      }
+      
       filteredResults = applySorting(filteredResults, selectedSort);
       setArticles((prev) => [...prev, ...filteredResults]);
       setPage(nextPage);
@@ -218,9 +262,26 @@ export default function SearchScreen() {
       setLoading(true);
       
       try {
-        // Direct search with category
-        const results = await fetchArticles(1, 20, [parseInt(categoryId)]);
+        // Combine category and region filters
+        let categoryIds: number[] = [parseInt(categoryId)];
+        
+        if (selectedRegion && selectedRegion !== '') {
+          categoryIds.push(parseInt(selectedRegion));
+        }
+        
+        // Direct search with category (and region if selected)
+        const results = await fetchArticles(1, 20, categoryIds);
         let filteredResults = filterSponsoredArticles(results.articles || []);
+        
+        // Apply additional region filtering if both category and region are selected
+        if (selectedRegion && selectedRegion !== '') {
+          filteredResults = filteredResults.filter(article => {
+            const articleCategoryIds = article.categories?.map(cat => cat.id) || [];
+            return articleCategoryIds.includes(parseInt(categoryId)) && 
+                   articleCategoryIds.includes(parseInt(selectedRegion));
+          });
+        }
+        
         filteredResults = applySorting(filteredResults, selectedSort);
         
         setArticles(filteredResults);
@@ -237,11 +298,67 @@ export default function SearchScreen() {
     }
   };
   
-  const handleRegionPress = (regionId: string) => {
+  const handleRegionPress = async (regionId: string) => {
+    console.log('Region pressed:', regionId);
+    
+    // Close dropdowns first
+    closeAllDropdowns();
+    
+    // Update state
     setSelectedRegion(regionId);
-    setShowRegionSelect(false);
-    if (selectedCategory || query.trim()) {
-      handleSearch();
+    
+    // Force immediate search if we have active filters
+    if (regionId || selectedCategory || query.trim()) {
+      // Clear current results first
+      setArticles([]);
+      setLoading(true);
+      
+      try {
+        // Combine category and region filters
+        let categoryIds: number[] = [];
+        
+        if (selectedCategory && selectedCategory !== '') {
+          categoryIds.push(parseInt(selectedCategory));
+        }
+        
+        if (regionId && regionId !== '') {
+          categoryIds.push(parseInt(regionId));
+        }
+        
+        let results;
+        
+        if (categoryIds.length > 0) {
+          results = await fetchArticles(1, 20, categoryIds);
+        } else if (query.trim()) {
+          results = await searchArticles(query.trim(), 1);
+        } else {
+          results = await fetchArticles(1, 20);
+        }
+        
+        let filteredResults = filterSponsoredArticles(results.articles || []);
+        
+        // Apply additional filtering if both category and region are selected
+        if (selectedCategory && selectedCategory !== '' && regionId && regionId !== '') {
+          filteredResults = filteredResults.filter(article => {
+            const articleCategoryIds = article.categories?.map(cat => cat.id) || [];
+            return articleCategoryIds.includes(parseInt(selectedCategory)) && 
+                   articleCategoryIds.includes(parseInt(regionId));
+          });
+        }
+        
+        filteredResults = applySorting(filteredResults, selectedSort);
+        
+        setArticles(filteredResults);
+        setTotalPages(results.totalPages || 1);
+        setPage(1);
+      } catch (err) {
+        console.error('Error searching by region:', err);
+        setArticles([]);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setArticles([]);
     }
   };
   

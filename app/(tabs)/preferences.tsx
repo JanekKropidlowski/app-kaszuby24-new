@@ -247,17 +247,18 @@ export default function PreferencesScreen() {
         <View style={[
           styles.profileImageContainer, 
           { 
-            backgroundColor: theme.isDarkMode ? 'transparent' : '#FFFFFF'
+            backgroundColor: theme.isDarkMode ? 'transparent' : '#FFFFFF', // Białe tło dla jasnego motywu
+            marginTop: 20 // Zwiększony odstęp od góry
           }
         ]}>
           <Image 
             source={{ 
               uri: theme.isDarkMode 
-                ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-                : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+                ? 'https://kaszuby24.pl/wp-content/uploads/2022/11/naklejka_30x15-02.png' // Logo kolorowe dla ciemnego motywu
+                : 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png' // Logo białe dla jasnego motywu
             }}
             style={styles.profileImage}
-            contentFit="contain"
+            contentFit="contain" // Zmieniono z cover na contain aby logo nie było przycinane
           />
         </View>
         <Text style={[

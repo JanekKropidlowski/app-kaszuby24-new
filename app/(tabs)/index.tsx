@@ -1161,38 +1161,78 @@ export default function HomeScreen() {
             )}
             
             {/* Enhanced Latest Articles Carousel */}
-            {infiniteArticles.length > 0 && (
+            {featuredArticles.length > 0 && (
               <View style={styles.carouselContainer}>
                 <FlatList
                   ref={flatListRef}
-                  data={infiniteArticles}
+                  data={featuredArticles}
                   keyExtractor={(item, index) => `carousel-${item.id}-${index}`}
-                  renderItem={renderCarouselItem}
+                  renderItem={({ item, index }) => (
+                    <WeeklyPopularCarousel
+                      item={item}
+                      index={index}
+                      totalItems={featuredArticles.length}
+                      onPress={handleArticlePress}
+                      isActive={index === activeCarouselIndex}
+                    />
+                  )}
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
-                  snapToAlignment="center"
-                  decelerationRate="fast"
+                  snapToAlignment="start"
+                  decelerationRate={0.9}
                   contentContainerStyle={styles.carouselListContent}
                   pagingEnabled={false}
                   scrollEventThrottle={16}
-                  onScrollBeginDrag={handleCarouselScrollBegin}
-                  onScrollEndDrag={handleCarouselScrollEnd}
-                  onMomentumScrollEnd={handleCarouselMomentumScrollEnd}
-                  onScrollToIndexFailed={handleScrollToIndexFailed}
+                  onScrollBeginDrag={() => setUserInteracting(true)}
+                  onScrollEndDrag={() => setUserInteracting(false)}
+                  onMomentumScrollEnd={(event) => {
+                    const contentOffsetX = event.nativeEvent.contentOffset.x;
+                    const newIndex = Math.round(
+                      (contentOffsetX + CAROUSEL_SIDE_PEEK) / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING)
+                    );
+                    const clampedIndex = Math.max(0, Math.min(newIndex, featuredArticles.length - 1));
+                    setActiveCarouselIndex(clampedIndex);
+                    
+                    // Add haptic feedback on manual scroll
+                    if (Platform.OS !== 'web' && userInteracting) {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                  }}
                   removeClippedSubviews={listConfig.removeClippedSubviews}
-                  initialNumToRender={listConfig.initialNumToRender}
-                  maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
-                  windowSize={listConfig.windowSize}
+                  initialNumToRender={3}
+                  maxToRenderPerBatch={2}
+                  windowSize={5}
                   updateCellsBatchingPeriod={listConfig.updateCellsBatchingPeriod}
                   legacyImplementation={false}
-                  disableIntervalMomentum={true}
-                  maintainVisibleContentPosition={{
-                    minIndexForVisible: 0,
-                    autoscrollToTopThreshold: 10,
-                  }}
                 />
-                {renderCarouselIndicator}
+                {/* Simplified indicator */}
+                <View style={styles.indicatorContainer}>
+                  {featuredArticles.map((_, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.indicator,
+                        {
+                          width: index === activeCarouselIndex ? 24 : 8,
+                          backgroundColor: index === activeCarouselIndex 
+                            ? theme.colors.primary 
+                            : theme.colors.border,
+                        }
+                      ]}
+                      onPress={() => {
+                        if (flatListRef.current) {
+                          flatListRef.current.scrollToIndex({
+                            index,
+                            animated: true,
+                            viewPosition: 0.5,
+                          });
+                          setActiveCarouselIndex(index);
+                        }
+                      }}
+                    />
+                  ))}
+                </View>
               </View>
             )}
             
