@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Platform, View, Animated, StyleSheet, Text } from 'react-native';
+import { Platform, View, Animated, StyleSheet, Text, Dimensions, PanResponder } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Bell, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
@@ -8,6 +8,9 @@ import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 import { useScrollStore } from '@/store/scrollStore';
+import * as Haptics from 'expo-haptics';
+
+const { width } = Dimensions.get('window');
 
 // Scroll-responsive floating logo with gradient
 const FloatingLogo = () => {

@@ -254,8 +254,8 @@ export default function PreferencesScreen() {
           <Image 
             source={{ 
               uri: theme.isDarkMode 
-                ? 'https://kaszuby24.pl/wp-content/uploads/2022/11/naklejka_30x15-02.png' // Logo kolorowe dla ciemnego motywu
-                : 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png' // Logo białe dla jasnego motywu
+                ? 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png' // Logo białe dla ciemnego motywu
+                : 'https://kaszuby24.pl/wp-content/uploads/2022/11/naklejka_30x15-02.png' // Logo kolorowe dla jasnego motywu
             }}
             style={styles.profileImage}
             contentFit="contain" // Zmieniono z cover na contain aby logo nie było przycinane

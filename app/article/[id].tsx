@@ -11,13 +11,15 @@ import {
   Linking,
   StatusBar,
   BackHandler,
-  Modal
+  Modal,
+  Animated,
+  PanResponder
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings, Search } from 'lucide-react-native';
-import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
+import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles, getAdjacentArticle } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
@@ -32,6 +34,7 @@ import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl, getY
 import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
 import { progressBarStyles } from '@/styles/progressBar';
+import * as Haptics from 'expo-haptics';
 
 const MAX_RETRIES = 3;
 const { width, height } = Dimensions.get('window');
@@ -100,13 +103,21 @@ export default function ArticleDetailScreen() {
   const [readingProgress, setReadingProgress] = useState(0);
   const [showProgressBar, setShowProgressBar] = useState(false);
   
+  // Swipe navigation state
+  const [nextArticle, setNextArticle] = useState<Article | null>(null);
+  const [prevArticle, setPrevArticle] = useState<Article | null>(null);
+  const [swipePreviewVisible, setSwipePreviewVisible] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [isSwipeTransitioning, setIsSwipeTransitioning] = useState(false);
+  
   const scrollViewRef = useRef<ScrollView>(null);
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
   const webViewRef = useRef<WebView>(null);
   
-  // Add refs to track animated values
-  const progressOpacityValue = useRef(0);
-  const progressBarWidthValue = useRef(0);
+  // Swipe animation refs
+  const swipeTranslateX = useRef(new Animated.Value(0)).current;
+  const swipeOpacity = useRef(new Animated.Value(0)).current;
+  const swipeScale = useRef(new Animated.Value(0.9)).current;
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
@@ -203,6 +214,23 @@ export default function ArticleDetailScreen() {
             }
           }
         }, 100); // Reduced from 200ms to 100ms
+        
+        // Load adjacent articles for swipe navigation
+        setTimeout(async () => {
+          try {
+            const [nextArt, prevArt] = await Promise.all([
+              getAdjacentArticle(articleId, 'next'),
+              getAdjacentArticle(articleId, 'prev')
+            ]);
+            
+            if (isMounted) {
+              setNextArticle(nextArt);
+              setPrevArticle(prevArt);
+            }
+          } catch (err) {
+            console.warn('Failed to load adjacent articles:', err);
+          }
+        }, 150);
         
         // Mark content as loaded after minimal delay for smooth transition
         setTimeout(() => {
@@ -352,6 +380,133 @@ export default function ArticleDetailScreen() {
       }
     };
   }, []);
+  
+  // PanResponder for swipe navigation
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      const { dx, dy } = gestureState;
+      // Only respond to horizontal swipes with sufficient distance
+      return Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20;
+    },
+    onPanResponderGrant: () => {
+      // Reset animation values
+      swipeTranslateX.setValue(0);
+      swipeOpacity.setValue(0);
+      swipeScale.setValue(0.9);
+    },
+    onPanResponderMove: (_, gestureState) => {
+      const { dx } = gestureState;
+      const screenWidth = Dimensions.get('window').width;
+      
+      // Determine swipe direction
+      if (dx > 0 && prevArticle) {
+        // Swipe right - show previous article
+        setSwipeDirection('right');
+        setSwipePreviewVisible(true);
+        
+        // Animate preview
+        const progress = Math.min(dx / (screenWidth * 0.3), 1);
+        swipeTranslateX.setValue(dx * 0.3);
+        swipeOpacity.setValue(progress);
+        swipeScale.setValue(0.9 + (progress * 0.1));
+      } else if (dx < 0 && nextArticle) {
+        // Swipe left - show next article
+        setSwipeDirection('left');
+        setSwipePreviewVisible(true);
+        
+        // Animate preview
+        const progress = Math.min(Math.abs(dx) / (screenWidth * 0.3), 1);
+        swipeTranslateX.setValue(dx * 0.3);
+        swipeOpacity.setValue(progress);
+        swipeScale.setValue(0.9 + (progress * 0.1));
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      const { dx, vx } = gestureState;
+      const screenWidth = Dimensions.get('window').width;
+      const threshold = screenWidth * 0.25; // 25% of screen width
+      
+      if (Math.abs(dx) > threshold || Math.abs(vx) > 0.5) {
+        // Swipe threshold met - navigate to adjacent article
+        if (dx > 0 && prevArticle) {
+          // Navigate to previous article
+          handleSwipeToArticle(prevArticle.id, 'right');
+        } else if (dx < 0 && nextArticle) {
+          // Navigate to next article
+          handleSwipeToArticle(nextArticle.id, 'left');
+        } else {
+          // Reset animation
+          resetSwipeAnimation();
+        }
+      } else {
+        // Swipe not strong enough - reset
+        resetSwipeAnimation();
+      }
+    },
+    onPanResponderTerminate: () => {
+      resetSwipeAnimation();
+    }
+  }), [prevArticle, nextArticle, swipeTranslateX, swipeOpacity, swipeScale]);
+  
+  // Function to handle swipe navigation to article
+  const handleSwipeToArticle = useCallback((articleId: number, direction: 'left' | 'right') => {
+    if (isSwipeTransitioning) return;
+    
+    setIsSwipeTransitioning(true);
+    
+    // Haptic feedback
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    
+    // Animate transition
+    Animated.parallel([
+      Animated.timing(swipeTranslateX, {
+        toValue: direction === 'left' ? -width : width,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(swipeOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(swipeScale, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      // Navigate to new article
+      router.replace(`/article/${articleId}`);
+      setIsSwipeTransitioning(false);
+    });
+  }, [isSwipeTransitioning, swipeTranslateX, swipeOpacity, swipeScale, width, router]);
+  
+  // Function to reset swipe animation
+  const resetSwipeAnimation = useCallback(() => {
+    setSwipePreviewVisible(false);
+    setSwipeDirection(null);
+    
+    Animated.parallel([
+      Animated.timing(swipeTranslateX, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(swipeOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(swipeScale, {
+        toValue: 0.9,
+        duration: 200,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, [swipeTranslateX, swipeOpacity, swipeScale]);
   
   // Memoized enhanced HTML for better performance
   const enhancedHtml = useMemo(() => {
@@ -817,7 +972,10 @@ export default function ArticleDetailScreen() {
   }
   
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <Animated.View 
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      {...panResponder.panHandlers}
+    >
       <StatusBar 
         translucent 
         backgroundColor="transparent" 
@@ -835,6 +993,58 @@ export default function ArticleDetailScreen() {
             ]}
           />
         </View>
+      )}
+      
+      {/* Swipe Preview Component */}
+      {swipePreviewVisible && (
+        <Animated.View
+          style={[
+            styles.swipePreviewContainer,
+            {
+              opacity: swipeOpacity,
+              transform: [
+                { translateX: swipeTranslateX },
+                { scale: swipeScale }
+              ]
+            }
+          ]}
+        >
+          {swipeDirection === 'left' && nextArticle && (
+            <View style={styles.swipePreviewContent}>
+              <Image
+                source={{ uri: nextArticle.featured_media_url }}
+                style={styles.swipePreviewImage}
+                contentFit="cover"
+              />
+              <View style={styles.swipePreviewOverlay}>
+                <Text style={styles.swipePreviewTitle} numberOfLines={2}>
+                  {nextArticle.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+                </Text>
+                <Text style={styles.swipePreviewSubtitle}>
+                  Następny artykuł
+                </Text>
+              </View>
+            </View>
+          )}
+          
+          {swipeDirection === 'right' && prevArticle && (
+            <View style={styles.swipePreviewContent}>
+              <Image
+                source={{ uri: prevArticle.featured_media_url }}
+                style={styles.swipePreviewImage}
+                contentFit="cover"
+              />
+              <View style={styles.swipePreviewOverlay}>
+                <Text style={styles.swipePreviewTitle} numberOfLines={2}>
+                  {prevArticle.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+                </Text>
+                <Text style={styles.swipePreviewSubtitle}>
+                  Poprzedni artykuł
+                </Text>
+              </View>
+            </View>
+          )}
+        </Animated.View>
       )}
       
       <View style={styles.headerBar}>
@@ -1154,7 +1364,7 @@ export default function ArticleDetailScreen() {
           </View>
         </Modal>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -1545,5 +1755,57 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
+  },
+  swipePreviewContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  swipePreviewContent: {
+    width: width * 0.8,
+    height: height * 0.6,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: theme.colors.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  swipePreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  swipePreviewOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  swipePreviewTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  swipePreviewSubtitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    opacity: 0.9,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
