@@ -28,8 +28,6 @@
       },
       "package": "app.kaszuby24",
       "googleServicesFile": "./google-services.json",
-      "usesCleartextTraffic": true,
-      "networkSecurityConfig": "network_security_config",
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
@@ -65,12 +63,11 @@
         {
           "icon": "./assets/images/icon.png",
           "color": "#ffffff",
-          "defaultChannel": "default",
-          "sounds": [
-            "./assets/sounds/notification.wav"
-          ]
+          "defaultChannel": "default"
         }
-      ]
+      ],
+      "expo-router",
+      "expo-web-browser"
     ],
     "notification": {
       "icon": "./assets/images/icon.png",
