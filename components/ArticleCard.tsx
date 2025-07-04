@@ -61,14 +61,6 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
       router.push(`/article/${article.id}`);
     }
     
-    if (Platform.OS !== 'web') {
-      try {
-        Vibration.vibrate(20);
-      } catch (e) {
-        // Ignore vibration errors
-      }
-    }
-    
     setTimeout(() => {
       isPressingRef.current = false;
     }, 300);

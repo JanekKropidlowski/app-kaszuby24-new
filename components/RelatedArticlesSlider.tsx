@@ -13,8 +13,9 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.8; // Adjusted for better centering
-const ITEM_SPACING = 16;
+const ITEM_WIDTH = width * 0.75; // Zmniejszono z 0.8 na 0.75 aby lepiej pokazać sąsiednie
+const ITEM_SPACING = 20; // Zwiększono spacing
+const SIDE_PADDING = (width - ITEM_WIDTH) / 2; // Padding dla wyśrodkowania
 
 // Enhanced memoized article item component
 const RelatedArticleItem = memo(({ 
@@ -68,7 +69,7 @@ const RelatedArticleItem = memo(({
         styles.articleContainer,
         {
           width: ITEM_WIDTH,
-          marginRight: index === totalItems - 1 ? 24 : ITEM_SPACING,
+          marginRight: ITEM_SPACING,
           backgroundColor: theme.colors.card,
           shadowColor: theme.colors.shadow,
         },
@@ -135,7 +136,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
   const renderArticle = useCallback(({ item, index }: { item: Article; index: number }) => (
     <RelatedArticleItem
       item={item}
-      index={index % articles.length}
+      index={index}
       totalItems={articles.length}
       onPress={handleArticlePress}
     />
@@ -156,10 +157,6 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
     return null;
   }
 
-  const infiniteData = articles.length > 1 ? 
-    [...articles, ...articles, ...articles] : 
-    articles;
-
   return (
     <View style={styles.container}>
       <Text
@@ -175,35 +172,23 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
       </Text>
       
       <FlatList
-        data={infiniteData}
+        data={articles}
         renderItem={renderArticle}
         keyExtractor={keyExtractor}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
         snapToInterval={ITEM_WIDTH + ITEM_SPACING}
-        snapToAlignment="center"
-        decelerationRate="fast"
+        snapToAlignment="start"
+        decelerationRate={0.9} // Płynniejsze zatrzymywanie
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
         windowSize={listConfig.windowSize}
         pagingEnabled={false}
-        initialScrollIndex={articles.length > 1 ? articles.length : 0}
-        getItemLayout={(data, index) => ({
-          length: ITEM_WIDTH + ITEM_SPACING,
-          offset: (ITEM_WIDTH + ITEM_SPACING) * index,
-          index,
-        })}
-        onScrollToIndexFailed={() => {
-          // Handle scroll failure gracefully
-        }}
         updateCellsBatchingPeriod={listConfig.updateCellsBatchingPeriod}
         disableVirtualization={false}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-          autoscrollToTopThreshold: 10,
-        }}
+        scrollEventThrottle={16} // Płynniejsze przewijanie
       />
     </View>
   );
@@ -232,7 +217,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   listContainer: {
-    paddingHorizontal: (width - ITEM_WIDTH) / 2, // Perfect centering
+    paddingLeft: SIDE_PADDING, // Wyśrodkowanie z paddingiem po lewej
+    paddingRight: SIDE_PADDING - ITEM_SPACING, // Kompensacja ostatniego marginesu
   },
   articleContainer: {
     borderRadius: 24,

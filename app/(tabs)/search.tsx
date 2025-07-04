@@ -663,6 +663,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
+    zIndex: 1000,
   },
   filtersContent: {
     paddingHorizontal: 16,
@@ -701,11 +702,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
+    zIndex: 999,
   },
   selectColumn: {
     flex: 1,
     position: 'relative',
-    zIndex: 1,
+    zIndex: 1000,
   },
   selectButton: {
     flexDirection: 'row',
@@ -723,17 +725,17 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    top: 48,
+    top: Platform.OS === 'ios' ? 50 : 54,
     left: 0,
     right: 0,
     borderRadius: 12,
     borderWidth: 1,
     maxHeight: 200,
-    zIndex: 9999,
+    zIndex: 99999,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 12,
+    elevation: 20,
     overflow: 'hidden',
   },
   dropdownScrollView: {

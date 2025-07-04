@@ -244,7 +244,12 @@ export default function PreferencesScreen() {
     >
       {/* Profile Section */}
       <View style={[styles.profileSection, { backgroundColor: theme.colors.card }]}>
-        <View style={[styles.profileImageContainer, { backgroundColor: theme.colors.subtle }]}>
+        <View style={[
+          styles.profileImageContainer, 
+          { 
+            backgroundColor: theme.isDarkMode ? 'transparent' : '#FFFFFF'
+          }
+        ]}>
           <Image 
             source={{ 
               uri: theme.isDarkMode 
@@ -252,6 +257,7 @@ export default function PreferencesScreen() {
                 : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
             }}
             style={styles.profileImage}
+            contentFit="contain"
           />
         </View>
         <Text style={[
@@ -513,17 +519,6 @@ export default function PreferencesScreen() {
           ]}>
             Wybrano {enabledCount} z {preferences.length} sekcji
           </Text>
-          {expoPushToken && (
-            <Text style={[
-              styles.statsText, 
-              { 
-                color: theme.colors.textSecondary,
-                fontFamily: theme.fontFamily.regular
-              }
-            ]}>
-              Expo Push zarejestrowany ✓
-            </Text>
-          )}
         </View>
       </View>
       
