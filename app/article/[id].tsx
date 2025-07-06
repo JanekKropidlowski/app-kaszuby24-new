@@ -13,7 +13,8 @@ import {
   BackHandler,
   Modal,
   Animated,
-  PanResponder
+  PanResponder,
+  RefreshControl
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -102,6 +103,7 @@ export default function ArticleDetailScreen() {
   const [contentLoaded, setContentLoaded] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [showProgressBar, setShowProgressBar] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Swipe navigation state
   const [nextArticle, setNextArticle] = useState<Article | null>(null);
@@ -117,11 +119,42 @@ export default function ArticleDetailScreen() {
   // Swipe animation refs
   const swipeTranslateX = useRef(new Animated.Value(0)).current;
   const swipeOpacity = useRef(new Animated.Value(0)).current;
-  const swipeScale = useRef(new Animated.Value(0.9)).current;
+  const swipeScale = useRef(new Animated.Value(0.95)).current;
   
   const articleId = parseInt(id as string, 10);
   const isSaved = isArticleSaved(articleId);
   const unreadCount = getUnreadCount();
+  
+  // Add new state for peek preview
+  const [isPeeking, setIsPeeking] = useState(false);
+  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Add new states for edge indicators and drag progress
+  const [showEdgeIndicators, setShowEdgeIndicators] = useState(false);
+  const dragProgress = useRef(new Animated.Value(0)).current;
+  const edgeIndicatorOpacity = useRef(new Animated.Value(0)).current;
+  
+  // Function to animate edge indicators
+  const animateEdgeIndicators = useCallback((show: boolean) => {
+    Animated.timing(edgeIndicatorOpacity, {
+      toValue: show ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true
+    }).start();
+  }, [edgeIndicatorOpacity]);
+
+  // Show edge indicators on mount if we have adjacent articles
+  useEffect(() => {
+    if ((nextArticle || prevArticle) && !showEdgeIndicators) {
+      setShowEdgeIndicators(true);
+      // Show briefly then hide
+      animateEdgeIndicators(true);
+      const timer = setTimeout(() => {
+        animateEdgeIndicators(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [nextArticle, prevArticle, showEdgeIndicators, animateEdgeIndicators]);
   
   // Optimized load article data with immediate skeleton display
   useEffect(() => {
@@ -386,68 +419,101 @@ export default function ArticleDetailScreen() {
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: (_, gestureState) => {
       const { dx, dy } = gestureState;
-      // Only respond to horizontal swipes with sufficient distance
-      return Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20;
+      return Math.abs(dx) > Math.abs(dy) * 1.5 && Math.abs(dx) > 10;
     },
     onPanResponderGrant: () => {
-      // Reset animation values
+      // Show edge indicators when starting drag
+      animateEdgeIndicators(true);
+      
+      // Start long press timer
+      longPressTimeout.current = setTimeout(() => {
+        setIsPeeking(true);
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      }, 300);
+
       swipeTranslateX.setValue(0);
       swipeOpacity.setValue(0);
-      swipeScale.setValue(0.9);
+      swipeScale.setValue(0.95);
+      dragProgress.setValue(0);
+      
+      Animated.spring(swipeScale, {
+        toValue: 0.98,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
     },
     onPanResponderMove: (_, gestureState) => {
       const { dx } = gestureState;
       const screenWidth = Dimensions.get('window').width;
+      const moveMultiplier = isPeeking ? 0.1 : 0.2;
       
-      // Determine swipe direction
+      // Update drag progress
+      const progressValue = Math.min(Math.abs(dx) / (screenWidth * (isPeeking ? 0.2 : 0.4)), 1);
+      dragProgress.setValue(progressValue);
+      
       if (dx > 0 && prevArticle) {
-        // Swipe right - show previous article
         setSwipeDirection('right');
         setSwipePreviewVisible(true);
         
-        // Animate preview
-        const progress = Math.min(dx / (screenWidth * 0.3), 1);
-        swipeTranslateX.setValue(dx * 0.3);
-        swipeOpacity.setValue(progress);
-        swipeScale.setValue(0.9 + (progress * 0.1));
+        const easedProgress = Math.sin(progressValue * Math.PI / 2);
+        swipeTranslateX.setValue(dx * moveMultiplier);
+        swipeOpacity.setValue(easedProgress);
+        swipeScale.setValue(0.98 + (easedProgress * 0.04));
       } else if (dx < 0 && nextArticle) {
-        // Swipe left - show next article
         setSwipeDirection('left');
         setSwipePreviewVisible(true);
         
-        // Animate preview
-        const progress = Math.min(Math.abs(dx) / (screenWidth * 0.3), 1);
-        swipeTranslateX.setValue(dx * 0.3);
-        swipeOpacity.setValue(progress);
-        swipeScale.setValue(0.9 + (progress * 0.1));
+        const easedProgress = Math.sin(progressValue * Math.PI / 2);
+        swipeTranslateX.setValue(dx * moveMultiplier);
+        swipeOpacity.setValue(easedProgress);
+        swipeScale.setValue(0.98 + (easedProgress * 0.04));
       }
     },
     onPanResponderRelease: (_, gestureState) => {
+      if (longPressTimeout.current) {
+        clearTimeout(longPressTimeout.current);
+        longPressTimeout.current = null;
+      }
+
+      // Hide edge indicators after a short delay
+      setTimeout(() => {
+        animateEdgeIndicators(false);
+      }, 200);
+
       const { dx, vx } = gestureState;
       const screenWidth = Dimensions.get('window').width;
-      const threshold = screenWidth * 0.25; // 25% of screen width
+      const threshold = screenWidth * (isPeeking ? 0.15 : 0.2);
       
-      if (Math.abs(dx) > threshold || Math.abs(vx) > 0.5) {
-        // Swipe threshold met - navigate to adjacent article
+      if (Math.abs(dx) > threshold || Math.abs(vx) > (isPeeking ? 0.2 : 0.3)) {
         if (dx > 0 && prevArticle) {
-          // Navigate to previous article
           handleSwipeToArticle(prevArticle.id, 'right');
         } else if (dx < 0 && nextArticle) {
-          // Navigate to next article
           handleSwipeToArticle(nextArticle.id, 'left');
         } else {
-          // Reset animation
           resetSwipeAnimation();
         }
       } else {
-        // Swipe not strong enough - reset
         resetSwipeAnimation();
       }
+      
+      setIsPeeking(false);
+      dragProgress.setValue(0);
     },
     onPanResponderTerminate: () => {
+      if (longPressTimeout.current) {
+        clearTimeout(longPressTimeout.current);
+        longPressTimeout.current = null;
+      }
+      
+      animateEdgeIndicators(false);
       resetSwipeAnimation();
+      setIsPeeking(false);
+      dragProgress.setValue(0);
     }
-  }), [prevArticle, nextArticle, swipeTranslateX, swipeOpacity, swipeScale]);
+  }), [prevArticle, nextArticle, swipeTranslateX, swipeOpacity, swipeScale, isPeeking, animateEdgeIndicators, dragProgress]);
   
   // Function to handle swipe navigation to article
   const handleSwipeToArticle = useCallback((articleId: number, direction: 'left' | 'right') => {
@@ -457,28 +523,29 @@ export default function ArticleDetailScreen() {
     
     // Haptic feedback
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     
-    // Animate transition
+    // Enhanced transition animation
     Animated.parallel([
-      Animated.timing(swipeTranslateX, {
+      Animated.spring(swipeTranslateX, {
         toValue: direction === 'left' ? -width : width,
-        duration: 300,
+        friction: 12,
+        tension: 40,
         useNativeDriver: true,
       }),
       Animated.timing(swipeOpacity, {
         toValue: 1,
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
       }),
-      Animated.timing(swipeScale, {
+      Animated.spring(swipeScale, {
         toValue: 1,
-        duration: 300,
+        friction: 8,
+        tension: 40,
         useNativeDriver: true,
       })
     ]).start(() => {
-      // Navigate to new article
       router.replace(`/article/${articleId}`);
       setIsSwipeTransitioning(false);
     });
@@ -489,10 +556,12 @@ export default function ArticleDetailScreen() {
     setSwipePreviewVisible(false);
     setSwipeDirection(null);
     
+    // Enhanced reset animation
     Animated.parallel([
-      Animated.timing(swipeTranslateX, {
+      Animated.spring(swipeTranslateX, {
         toValue: 0,
-        duration: 200,
+        friction: 8,
+        tension: 40,
         useNativeDriver: true,
       }),
       Animated.timing(swipeOpacity, {
@@ -500,9 +569,10 @@ export default function ArticleDetailScreen() {
         duration: 200,
         useNativeDriver: true,
       }),
-      Animated.timing(swipeScale, {
-        toValue: 0.9,
-        duration: 200,
+      Animated.spring(swipeScale, {
+        toValue: 0.95,
+        friction: 8,
+        tension: 40,
         useNativeDriver: true,
       })
     ]).start();
@@ -971,9 +1041,35 @@ export default function ArticleDetailScreen() {
     }
   }
   
+  // Funkcja do odświeżania artykułu
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Wymuś ponowne pobranie artykułu
+      setLoading(true);
+      setError(null);
+      const articleData = await fetchArticleById(articleId);
+      setArticle(articleData);
+      addRecentArticle(articleData);
+      setContentLoaded(true);
+    } catch (err: any) {
+      setError(err.message || 'Nie udało się odświeżyć artykułu.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [articleId, addRecentArticle]);
+  
   return (
     <Animated.View 
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[
+        styles.container, 
+        { 
+          backgroundColor: theme.colors.background,
+          // Add subtle visual feedback for peek mode
+          opacity: isPeeking ? 0.95 : 1
+        }
+      ]}
       {...panResponder.panHandlers}
     >
       <StatusBar 
@@ -995,6 +1091,50 @@ export default function ArticleDetailScreen() {
         </View>
       )}
       
+      {/* Edge Indicators */}
+      {prevArticle && (
+        <Animated.View 
+          style={[
+            styles.edgeIndicator,
+            styles.leftEdgeIndicator,
+            {
+              opacity: edgeIndicatorOpacity,
+              backgroundColor: theme.colors.primary
+            }
+          ]}
+        />
+      )}
+      {nextArticle && (
+        <Animated.View 
+          style={[
+            styles.edgeIndicator,
+            styles.rightEdgeIndicator,
+            {
+              opacity: edgeIndicatorOpacity,
+              backgroundColor: theme.colors.primary
+            }
+          ]}
+        />
+      )}
+
+      {/* Drag Progress Indicator */}
+      <Animated.View
+        style={[
+          styles.dragProgressBar,
+          {
+            opacity: dragProgress.interpolate({
+              inputRange: [0, 0.1],
+              outputRange: [0, 1],
+              extrapolate: 'clamp'
+            }),
+            transform: [{
+              scaleX: dragProgress
+            }],
+            backgroundColor: theme.colors.primary
+          }
+        ]}
+      />
+      
       {/* Swipe Preview Component */}
       {swipePreviewVisible && (
         <Animated.View
@@ -1010,7 +1150,12 @@ export default function ArticleDetailScreen() {
           ]}
         >
           {swipeDirection === 'left' && nextArticle && (
-            <View style={styles.swipePreviewContent}>
+            <View style={[
+              styles.swipePreviewContent,
+              {
+                backgroundColor: theme.colors.card
+              }
+            ]}>
               <Image
                 source={{ uri: nextArticle.featured_media_url }}
                 style={styles.swipePreviewImage}
@@ -1028,7 +1173,12 @@ export default function ArticleDetailScreen() {
           )}
           
           {swipeDirection === 'right' && prevArticle && (
-            <View style={styles.swipePreviewContent}>
+            <View style={[
+              styles.swipePreviewContent,
+              {
+                backgroundColor: theme.colors.card
+              }
+            ]}>
               <Image
                 source={{ uri: prevArticle.featured_media_url }}
                 style={styles.swipePreviewImage}
@@ -1089,6 +1239,14 @@ export default function ArticleDetailScreen() {
         removeClippedSubviews={Platform.OS === 'android'}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
       >
         {article.featured_media_url ? (
           <View style={styles.featuredImageContainer}>
@@ -1771,7 +1929,6 @@ const styles = StyleSheet.create({
     height: height * 0.6,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: theme.colors.card,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
@@ -1808,4 +1965,29 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  edgeIndicator: {
+    position: 'absolute',
+    top: '40%',
+    width: 3,
+    height: 60,
+    borderRadius: 1.5,
+    opacity: 0,
+    zIndex: 100,
+  } as const,
+  leftEdgeIndicator: {
+    left: 8,
+  } as const,
+  rightEdgeIndicator: {
+    right: 8,
+  } as const,
+  dragProgressBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    opacity: 0,
+    transform: [{ scaleX: 0 }],
+    zIndex: 100,
+  } as const,
 });

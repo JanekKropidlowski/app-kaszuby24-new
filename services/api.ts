@@ -22,6 +22,10 @@ export interface ExpoPushTokenRegistration {
   location: string;
   locationId: number;
   platform: string;
+  preferences?: {
+    regions: number[];
+    categories: number[];
+  };
 }
 
 // Helper function to handle fetch with timeout and retries

@@ -117,20 +117,44 @@ export const useNotificationsStore = create<NotificationsState>()(
       setExpoPushToken: (token: string) => set({ expoPushToken: token }),
       
       setUserLocation: (location: UserLocation) => 
-        set({ 
-          userLocation: location, 
-          hasSelectedLocation: true 
+        set((state) => {
+          // Update push notification location when user changes it
+          setTimeout(async () => {
+            try {
+              const { notificationService } = await import('@/services/notificationService');
+              await notificationService.updateLocationAndReregister();
+            } catch (error) {
+              console.warn('Failed to update push location:', error);
+            }
+          }, 100);
+          
+          return { 
+            userLocation: location, 
+            hasSelectedLocation: true 
+          };
         }),
       
       toggleNotifications: () => 
         set((state) => ({ notificationsEnabled: !state.notificationsEnabled })),
       
       updatePreference: (id: number, enabled: boolean) =>
-        set((state) => ({
-          preferences: state.preferences.map(pref =>
+        set((state) => {
+          const updatedPreferences = state.preferences.map(pref =>
             pref.id === id ? { ...pref, enabled } : pref
-          )
-        })),
+          );
+          
+          // Update push notification preferences when user changes settings
+          setTimeout(async () => {
+            try {
+              const { notificationService } = await import('@/services/notificationService');
+              await notificationService.updatePreferences();
+            } catch (error) {
+              console.warn('Failed to update push preferences:', error);
+            }
+          }, 100);
+          
+          return { preferences: updatedPreferences };
+        }),
       
       addNotification: (notification) =>
         set((state) => {

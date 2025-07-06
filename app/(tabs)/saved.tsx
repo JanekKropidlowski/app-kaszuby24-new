@@ -58,9 +58,9 @@ export default function SavedScreen() {
   const filteredSavedArticles = useMemo(() => filterSponsoredArticles(savedArticles), [savedArticles]);
   const filteredRecentArticles = useMemo(() => filterSponsoredArticles(recentArticles), [recentArticles]);
   
-  const navigateToHome = () => {
-    router.push('/');
-  };
+  const navigateToHome = useCallback(() => {
+    router.push('/(tabs)/');
+  }, [router]);
 
   // Bottom navigation functions
   const handleGoHome = useCallback(() => {
@@ -86,8 +86,10 @@ export default function SavedScreen() {
   const unreadCount = getUnreadCount();
   
   const toggleRecentSection = () => {
+    const targetValue = showRecent ? 0 : 1;
+    
     Animated.timing(recentHeight, {
-      toValue: showRecent ? 0 : 1,
+      toValue: targetValue,
       duration: ANIMATION_DURATION,
       useNativeDriver: false, // Height is not supported by native driver
     }).start();
@@ -117,6 +119,18 @@ export default function SavedScreen() {
       resetScroll();
     };
   }, [resetScroll]);
+
+  // Synchronize recent section animation with data changes
+  useEffect(() => {
+    if (filteredRecentArticles.length === 0) {
+      Animated.timing(recentHeight, {
+        toValue: 0,
+        duration: ANIMATION_DURATION,
+        useNativeDriver: false,
+      }).start();
+      setShowRecent(false);
+    }
+  }, [filteredRecentArticles.length, recentHeight]);
   
   const maxRecentHeight = filteredRecentArticles.length * 92 + 80; // Approximate height based on items
   const recentSectionHeight = recentHeight.interpolate({
@@ -138,7 +152,10 @@ export default function SavedScreen() {
         data={filteredSavedArticles}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <ArticleCard article={item} />
+          <ArticleCard 
+            article={item} 
+            onPress={() => router.push(`/article/${item.id}`)}
+          />
         )}
         contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
@@ -205,7 +222,11 @@ export default function SavedScreen() {
                   data={filteredRecentArticles.slice(0, 5)}
                   keyExtractor={(item) => `recent-${item.id}`}
                   renderItem={({ item }) => (
-                    <ArticleCard article={item} compact />
+                    <ArticleCard 
+                      article={item} 
+                      compact 
+                      onPress={() => router.push(`/article/${item.id}`)}
+                    />
                   )}
                   ItemSeparatorComponent={() => <View style={styles.separator} />}
                   scrollEnabled={false}
@@ -319,7 +340,12 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
-    paddingBottom: 16,
+    paddingBottom: Platform.select({
+      ios: 120, // Więcej miejsca na iOS przez bottom bar
+      android: 108,
+      default: 108
+    }),
+    paddingHorizontal: 0,
   },
   recentSection: {
     marginTop: 24,
@@ -377,17 +403,35 @@ const styles = StyleSheet.create({
     height: 12,
   },
   savedHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 30, // Increased padding for Android to prevent cutoff
+    paddingTop: Platform.select({
+      ios: 60,
+      android: 50, // Zwiększono z 30 na 50 dla lepszej widoczności
+      default: 50
+    }),
     paddingBottom: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
-    backgroundColor: 'rgba(248, 250, 252, 0.8)',
+    backgroundColor: 'rgba(248, 250, 252, 0.95)', // Zwiększono opacity
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   headerLogo: {
-    width: Platform.OS === 'ios' ? 140 : 150, // Slightly larger on Android
-    height: Platform.OS === 'ios' ? 38 : 42, // Slightly taller on Android
+    width: Platform.select({
+      ios: 140,
+      android: 150,
+      default: 150
+    }),
+    height: Platform.select({
+      ios: 38,
+      android: 42,
+      default: 42
+    }),
+    resizeMode: 'contain',
   },
   // Enhanced Modern Bottom Bar Styles
   modernBottomBar: {

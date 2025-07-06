@@ -231,16 +231,31 @@ class NotificationService {
   
   private async registerTokenWithBackend(pushToken: string) {
     try {
-      const { userLocation } = useNotificationsStore.getState();
+      const { userLocation, preferences } = useNotificationsStore.getState();
+      
+      // Extract enabled region and category IDs from preferences
+      const enabledRegions = preferences
+        .filter(pref => pref.type === 'region' && pref.enabled)
+        .map(pref => pref.id);
+      
+      const enabledCategories = preferences
+        .filter(pref => pref.type === 'category' && pref.enabled)
+        .map(pref => pref.id);
       
       await registerExpoPushToken({
         pushToken,
         location: userLocation?.name || 'Kaszuby',
         locationId: userLocation?.id || 1,
         platform: Platform.OS,
+        preferences: {
+          regions: enabledRegions,
+          categories: enabledCategories,
+        },
       });
       
       console.log('Expo Push token registered with backend successfully');
+      console.log('Enabled regions:', enabledRegions);
+      console.log('Enabled categories:', enabledCategories);
     } catch (error) {
       console.warn('Failed to register Expo Push token with backend:', error);
     }
@@ -255,8 +270,12 @@ class NotificationService {
         return;
       }
       
+      console.log('Updating push notification preferences...');
+      
       // Re-register with updated preferences
       await this.registerTokenWithBackend(expoPushToken);
+      
+      console.log('Push notification preferences updated successfully');
       
     } catch (error) {
       console.warn('Failed to update Expo Push preferences:', error);

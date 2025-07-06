@@ -161,20 +161,46 @@ const darkTheme: Theme = {
 
 interface ThemeState {
   isDarkMode: boolean;
+  autoTheme: boolean; // Nowa opcja automatycznego przełączania
   theme: Theme;
   toggleTheme: () => void;
+  toggleAutoTheme: () => void;
+  setAutoTheme: (enabled: boolean) => void;
+  updateThemeByTime: () => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       isDarkMode: false,
+      autoTheme: false, // Domyślnie wyłączone
       theme: lightTheme, // Ensure default theme is always set
       toggleTheme: () =>
         set((state) => ({
           isDarkMode: !state.isDarkMode,
           theme: !state.isDarkMode ? darkTheme : lightTheme,
         })),
+      toggleAutoTheme: () =>
+        set((state) => ({
+          autoTheme: !state.autoTheme,
+        })),
+      setAutoTheme: (enabled: boolean) =>
+        set({ autoTheme: enabled }),
+      updateThemeByTime: () => {
+        const state = get();
+        if (!state.autoTheme) return;
+        
+        const now = new Date();
+        const hour = now.getHours();
+        const isNight = hour < 6 || hour >= 20; // 20:00 - 6:00
+        
+        if (isNight !== state.isDarkMode) {
+          set({
+            isDarkMode: isNight,
+            theme: isNight ? darkTheme : lightTheme,
+          });
+        }
+      },
     }),
     {
       name: 'theme-storage',

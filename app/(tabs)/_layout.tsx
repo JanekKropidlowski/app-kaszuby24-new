@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Platform, View, Animated, StyleSheet, Text, Dimensions, PanResponder } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Bell, Settings, Bookmark, Search } from 'lucide-react-native';
+import { Home, Bell, Settings, Bookmark, Search, Calendar as CalendarIcon } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotificationsStore } from '@/store/notificationsStore';
@@ -222,9 +222,9 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
-          name="notifications"
+          name="kalendarz"
           options={{
-            title: 'Powiadomienia',
+            title: 'Kalendarz',
             tabBarIcon: ({ color, size, focused }) => (
               <View style={{
                 backgroundColor: focused ? theme.colors.primary : 'transparent',
@@ -234,22 +234,11 @@ export default function TabLayout() {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                <Bell 
-                  size={focused ? 26 : 24} 
-                  color={focused ? '#FFFFFF' : color} 
+                <CalendarIcon
+                  size={focused ? 26 : 24}
+                  color={focused ? '#FFFFFF' : color}
                   strokeWidth={focused ? 2.5 : 2}
                 />
-                {hasUnreadNotifications && (
-                  <View style={{
-                    position: 'absolute',
-                    top: focused ? 2 : 0,
-                    right: focused ? 2 : -4,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: theme.colors.notification,
-                  }} />
-                )}
               </View>
             ),
             headerShown: false,

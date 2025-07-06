@@ -35,6 +35,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { Image } from 'expo-image';
 import { useScrollStore } from '@/store/scrollStore';
+import { useRouter } from 'expo-router';
 
 export default function PreferencesScreen() {
   const { 
@@ -46,12 +47,15 @@ export default function PreferencesScreen() {
     isFirstTimeUser,
     userLocation,
     setUserLocation,
-    expoPushToken
+    expoPushToken,
+    getUnreadCount
   } = useNotificationsStore();
   
   const { isDarkMode, toggleTheme, theme } = useThemeStore();
   const { clearRecentArticles } = useArticlesStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
+  const router = useRouter();
+  const unreadCount = getUnreadCount();
   
   // Add scroll handler for logo visibility
   const handleScroll = useCallback((event: any) => {
