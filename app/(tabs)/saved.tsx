@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import ArticleCard from '@/components/ArticleCard';
 import EmptyState from '@/components/EmptyState';
 import { useArticlesStore } from '@/store/articlesStore';
+import { useEventsStore } from '@/store/eventsStore';
 import { useRouter } from 'expo-router';
 import { useThemeStore } from '@/store/themeStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
@@ -43,15 +44,61 @@ const SavedHeader = () => {
   );
 };
 
+// Event Card Component
+const EventCard = ({ event, onPress }: { event: any, onPress: () => void }) => {
+  const { theme } = useThemeStore();
+  
+  return (
+    <TouchableOpacity style={[styles.eventCard, { backgroundColor: theme.colors.card }]} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.eventCardContent}>
+        {event.image && (
+          <Image
+            source={{ uri: event.image }}
+            style={styles.eventImage}
+            contentFit="cover"
+            transition={200}
+          />
+        )}
+        <View style={styles.eventInfo}>
+          <Text style={[styles.eventTitle, { color: theme.colors.text }]} numberOfLines={2}>
+            {event.title.rendered
+              .replace(/&#8222;|&#8221;|&#8211;/g, '')
+              .replace(/&#038;/g, '&')
+              .replace(/&nbsp;/g, ' ')
+              .trim()}
+          </Text>
+          <View style={styles.eventMeta}>
+            <Text style={[styles.eventDate, { color: theme.colors.textSecondary }]}>
+              {new Date(event.date).toLocaleDateString('pl-PL', { 
+                day: 'numeric', 
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </Text>
+            {event.meta?.miasto && (
+              <Text style={[styles.eventLocation, { color: theme.colors.textSecondary }]}>
+                {event.meta.miasto}
+              </Text>
+            )}
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 export default function SavedScreen() {
   const router = useRouter();
   const { savedArticles, recentArticles, clearRecentArticles } = useArticlesStore();
+  const { savedEvents } = useEventsStore();
   const { theme } = useThemeStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
   const { getUnreadCount } = useNotificationsStore();
   
   const [showRecent, setShowRecent] = useState(true);
   const recentHeight = useState(new Animated.Value(recentArticles.length > 0 ? 1 : 0))[0];
+  const [activeTab, setActiveTab] = useState<'articles' | 'events'>('articles');
   
   // Filter out any sponsored content that might exist (optimized with useMemo)
   // Note: Store already filters on add, but this is extra safety - only runs when data changes
@@ -148,95 +195,153 @@ export default function SavedScreen() {
       {/* Header with logo */}
       <SavedHeader />
       
-      <FlatList
-        data={filteredSavedArticles}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <ArticleCard 
-            article={item} 
-            onPress={() => router.push(`/article/${item.id}`)}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        ListHeaderComponent={null}
-        ListEmptyComponent={
-          <EmptyState
-            title="Brak zapisanych artykułów"
-            message="Artykuły, które zapiszesz, pojawią się tutaj do czytania offline."
-            actionLabel="Przeglądaj artykuły"
-            onAction={navigateToHome}
-            icon={<Bookmark size={48} color={theme.colors.primary} />}
-          />
-        }
-        ListFooterComponent={
-          filteredRecentArticles.length > 0 ? (
-            <Animated.View 
-              style={[
-                styles.recentSection, 
-                { 
-                  backgroundColor: theme.colors.card,
-                  height: recentSectionHeight,
-                  overflow: 'hidden',
-                }
-              ]}
-            >
-              <TouchableOpacity 
-                style={styles.recentHeader} 
-                onPress={toggleRecentSection}
-                activeOpacity={0.7}
+      {/* Tab Selector */}
+      <View style={[styles.tabSelector, { backgroundColor: theme.colors.card }]}>
+        <TouchableOpacity 
+          style={[
+            styles.tabButton, 
+            activeTab === 'articles' && { backgroundColor: theme.colors.primary }
+          ]} 
+          onPress={() => setActiveTab('articles')}
+        >
+          <Text style={[
+            styles.tabButtonText, 
+            { color: activeTab === 'articles' ? '#ffffff' : theme.colors.text }
+          ]}>
+            Artykuły ({filteredSavedArticles.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[
+            styles.tabButton, 
+            activeTab === 'events' && { backgroundColor: theme.colors.primary }
+          ]} 
+          onPress={() => setActiveTab('events')}
+        >
+          <Text style={[
+            styles.tabButtonText, 
+            { color: activeTab === 'events' ? '#ffffff' : theme.colors.text }
+          ]}>
+            Wydarzenia ({savedEvents.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
+      {activeTab === 'articles' ? (
+        <FlatList
+          data={filteredSavedArticles}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <ArticleCard 
+              article={item} 
+              onPress={() => router.push(`/article/${item.id}`)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          ListHeaderComponent={null}
+          ListEmptyComponent={
+            <EmptyState
+              title="Brak zapisanych artykułów"
+              message="Artykuły, które zapiszesz, pojawią się tutaj do czytania offline."
+              actionLabel="Przeglądaj artykuły"
+              onAction={navigateToHome}
+              icon={<Bookmark size={48} color={theme.colors.primary} />}
+            />
+          }
+          ListFooterComponent={
+            filteredRecentArticles.length > 0 ? (
+              <Animated.View 
+                style={[
+                  styles.recentSection, 
+                  { 
+                    backgroundColor: theme.colors.card,
+                    height: recentSectionHeight,
+                    overflow: 'hidden',
+                  }
+                ]}
               >
-                <View style={styles.recentTitleContainer}>
-                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                    Ostatnio przeglądane
-                  </Text>
-                  <Text style={[styles.recentCount, { color: theme.colors.textSecondary }]}>
-                    {filteredRecentArticles.length}
-                  </Text>
-                </View>
-                
-                <View style={styles.recentActions}>
-                  {showRecent && (
-                    <TouchableOpacity 
-                      onPress={handleClearRecent}
-                      style={[
-                        styles.clearButton,
-                        { borderColor: theme.colors.border }
-                      ]}
-                    >
-                      <Text style={[styles.clearText, { color: theme.colors.textSecondary }]}>
-                        Wyczyść
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                <TouchableOpacity 
+                  style={styles.recentHeader} 
+                  onPress={toggleRecentSection}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.recentTitleContainer}>
+                    <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                      Ostatnio przeglądane
+                    </Text>
+                    <Text style={[styles.recentCount, { color: theme.colors.textSecondary }]}>
+                      {filteredRecentArticles.length}
+                    </Text>
+                  </View>
                   
-                  <Animated.View style={{ transform: [{ rotate: chevronRotation }] }}>
-                    <ChevronRight size={20} color={theme.colors.textSecondary} />
-                  </Animated.View>
-                </View>
-              </TouchableOpacity>
-              
-              {showRecent && (
-                <FlatList
-                  data={filteredRecentArticles.slice(0, 5)}
-                  keyExtractor={(item) => `recent-${item.id}`}
-                  renderItem={({ item }) => (
-                    <ArticleCard 
-                      article={item} 
-                      compact 
-                      onPress={() => router.push(`/article/${item.id}`)}
-                    />
-                  )}
-                  ItemSeparatorComponent={() => <View style={styles.separator} />}
-                  scrollEnabled={false}
-                  contentContainerStyle={styles.recentList}
-                />
-              )}
-            </Animated.View>
-          ) : null
-        }
-      />
+                  <View style={styles.recentActions}>
+                    {showRecent && (
+                      <TouchableOpacity 
+                        onPress={handleClearRecent}
+                        style={[
+                          styles.clearButton,
+                          { borderColor: theme.colors.border }
+                        ]}
+                      >
+                        <Text style={[styles.clearText, { color: theme.colors.textSecondary }]}>
+                          Wyczyść
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    
+                    <Animated.View style={{ transform: [{ rotate: chevronRotation }] }}>
+                      <ChevronRight size={20} color={theme.colors.textSecondary} />
+                    </Animated.View>
+                  </View>
+                </TouchableOpacity>
+                
+                {showRecent && (
+                  <FlatList
+                    data={filteredRecentArticles.slice(0, 5)}
+                    keyExtractor={(item) => `recent-${item.id}`}
+                    renderItem={({ item }) => (
+                      <ArticleCard 
+                        article={item} 
+                        compact 
+                        onPress={() => router.push(`/article/${item.id}`)}
+                      />
+                    )}
+                    ItemSeparatorComponent={() => <View style={styles.separator} />}
+                    scrollEnabled={false}
+                    contentContainerStyle={styles.recentList}
+                  />
+                )}
+              </Animated.View>
+            ) : null
+          }
+        />
+      ) : (
+        <FlatList
+          data={savedEvents}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <EventCard 
+              event={item} 
+              onPress={() => router.push(`/event/${item.id}`)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          ListEmptyComponent={
+            <EmptyState
+              title="Brak zapisanych wydarzeń"
+              message="Wydarzenia, które zapiszesz, pojawią się tutaj."
+              actionLabel="Przeglądaj kalendarz"
+              onAction={() => router.push('/(tabs)/kalendarz')}
+              icon={<Bookmark size={48} color={theme.colors.primary} />}
+            />
+          }
+          ListFooterComponent={<View style={{ height: 120 }} />}
+        />
+      )}
       
       {/* Enhanced Bottom Navigation Menu - Modern & Comfortable */}
       <View style={[styles.modernBottomBar, { backgroundColor: theme.colors.tabBarBackground }]}>
@@ -508,5 +613,71 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+  },
+  // New styles for EventCard
+  eventCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  eventCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  eventImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 16,
+  },
+  eventInfo: {
+    flex: 1,
+  },
+  eventTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  eventMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  eventDate: {
+    fontSize: 12,
+    marginRight: 12,
+  },
+  eventLocation: {
+    fontSize: 12,
+  },
+  tabSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  tabButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

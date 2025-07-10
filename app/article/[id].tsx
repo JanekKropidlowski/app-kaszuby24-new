@@ -1,1993 +1,251 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Share,
-  Platform,
-  Dimensions,
-  Linking,
-  StatusBar,
-  BackHandler,
-  Modal,
-  Animated,
-  PanResponder,
-  RefreshControl
-} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Share, Platform, Dimensions, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { WebView } from 'react-native-webview';
-import { Bookmark, Share2, RefreshCw, ArrowLeft, Calendar, X, ChevronLeft, ChevronRight, Home, Bell, Settings, Search } from 'lucide-react-native';
-import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles, getAdjacentArticle } from '@/services/api';
-import { Article, MediaItem } from '@/types/article';
-import LoadingIndicator from '@/components/LoadingIndicator';
-import EmptyState from '@/components/EmptyState';
-import VideoPlayer from '@/components/VideoPlayer';
-import { ArticleCard } from '@/components/ArticleCard';
-import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
-import SkeletonLoader from '@/components/SkeletonLoader';
-import { useArticlesStore } from '@/store/articlesStore';
-import { useNotificationsStore } from '@/store/notificationsStore';
-import { formatDateTime } from '@/utils/dateFormatter';
-import { cleanHtml, extractVideoUrls, processGalleryIds, extractYouTubeUrl, getYouTubeVideoId } from '@/utils/htmlParser';
+import { ArrowLeft, Share2, Home, Search, Bookmark, Calendar as CalendarIcon, Bookmark as BookmarkFilled, Settings } from 'lucide-react-native';
+import { fetchArticleById, fetchArticles } from '@/services/api';
+import { Article } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
-import { isSponsoredContent } from '@/utils/contentFilter';
-import { progressBarStyles } from '@/styles/progressBar';
-import * as Haptics from 'expo-haptics';
+import { cleanHtml } from '@/utils/htmlParser';
+import { formatDateTime } from '@/utils/dateFormatter';
+import RenderHtml from 'react-native-render-html';
+import { useArticlesStore } from '@/store/articlesStore';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const MAX_RETRIES = 3;
 const { width, height } = Dimensions.get('window');
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 94 : 82;
 
-// Memoized gallery image component for better performance
-const GalleryImage = React.memo(({ 
-  image, 
-  index, 
-  onPress 
-}: { 
-  image: MediaItem; 
-  index: number; 
-  onPress: (index: number) => void;
-}) => (
-  <TouchableOpacity
-    style={styles.galleryImageContainer}
-    onPress={() => onPress(index)}
-    activeOpacity={0.8}
-  >
-    <Image
-      source={{ 
-        uri: image.media_details?.sizes?.medium?.source_url || image.source_url 
-      }}
-      style={styles.galleryImage}
-      contentFit="cover"
-      transition={200}
-      placeholder="Loading..."
-      cachePolicy="memory-disk"
-      priority="normal"
-    />
-  </TouchableOpacity>
-));
-
-export default function ArticleDetailScreen() {
+export default function ArticleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  
-  // Add validation for articleId
-  useEffect(() => {
-    if (!id || isNaN(parseInt(id as string, 10))) {
-      console.error('Invalid article ID:', id);
-      router.back();
-      return;
-    }
-  }, [id, router]);
-  
-  const { isArticleSaved, saveArticle, removeArticle, addRecentArticle } = useArticlesStore();
-  const { getUnreadCount } = useNotificationsStore();
-  const { theme, isDarkMode } = useThemeStore();
-  
+  const { theme } = useThemeStore();
+  const { isArticleSaved, saveArticle, removeArticle } = useArticlesStore();
+
   const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(false); // Changed: start with false
-  const [initialLoading, setInitialLoading] = useState(true); // Show skeleton immediately
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [videoUrls, setVideoUrls] = useState<string[]>([]);
-  const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
-  const [webViewHeight, setWebViewHeight] = useState(300);
-  const [webViewError, setWebViewError] = useState(false);
-  const [galleryImages, setGalleryImages] = useState<MediaItem[]>([]);
-  const [galleryLoading, setGalleryLoading] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const [relatedSliderArticles, setRelatedSliderArticles] = useState<Article[]>([]);
-  const [relatedListArticles, setRelatedListArticles] = useState<Article[]>([]);
-  const [relatedLoading, setRelatedLoading] = useState(false);
-  const [contentLoaded, setContentLoaded] = useState(false);
-  const [readingProgress, setReadingProgress] = useState(0);
-  const [showProgressBar, setShowProgressBar] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  // Swipe navigation state
-  const [nextArticle, setNextArticle] = useState<Article | null>(null);
-  const [prevArticle, setPrevArticle] = useState<Article | null>(null);
-  const [swipePreviewVisible, setSwipePreviewVisible] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  const [isSwipeTransitioning, setIsSwipeTransitioning] = useState(false);
-  
-  const scrollViewRef = useRef<ScrollView>(null);
-  const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
-  const webViewRef = useRef<WebView>(null);
-  
-  // Swipe animation refs
-  const swipeTranslateX = useRef(new Animated.Value(0)).current;
-  const swipeOpacity = useRef(new Animated.Value(0)).current;
-  const swipeScale = useRef(new Animated.Value(0.95)).current;
-  
-  const articleId = parseInt(id as string, 10);
-  const isSaved = isArticleSaved(articleId);
-  const unreadCount = getUnreadCount();
-  
-  // Add new state for peek preview
-  const [isPeeking, setIsPeeking] = useState(false);
-  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
-  
-  // Add new states for edge indicators and drag progress
-  const [showEdgeIndicators, setShowEdgeIndicators] = useState(false);
-  const dragProgress = useRef(new Animated.Value(0)).current;
-  const edgeIndicatorOpacity = useRef(new Animated.Value(0)).current;
-  
-  // Function to animate edge indicators
-  const animateEdgeIndicators = useCallback((show: boolean) => {
-    Animated.timing(edgeIndicatorOpacity, {
-      toValue: show ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true
-    }).start();
-  }, [edgeIndicatorOpacity]);
+  const [related, setRelated] = useState<Article[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
+  const [isSaved, setIsSaved] = useState(false);
 
-  // Show edge indicators on mount if we have adjacent articles
   useEffect(() => {
-    if ((nextArticle || prevArticle) && !showEdgeIndicators) {
-      setShowEdgeIndicators(true);
-      // Show briefly then hide
-      animateEdgeIndicators(true);
-      const timer = setTimeout(() => {
-        animateEdgeIndicators(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [nextArticle, prevArticle, showEdgeIndicators, animateEdgeIndicators]);
-  
-  // Optimized load article data with immediate skeleton display
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadArticleData = async () => {
-      if (!articleId || isNaN(articleId)) return;
-      
+    const loadArticle = async () => {
       try {
-        console.log(`Loading article ${articleId} with optimized strategy`);
-        setError(null);
-        
-        // Show skeleton immediately, no delay
-        setInitialLoading(true);
-        
-        // Load article with cache-first strategy
-        const articleData = await fetchArticleById(articleId);
-        
-        if (!isMounted) return;
-        
+        setLoading(true);
+        const articleData = await fetchArticleById(parseInt(id as string, 10));
         setArticle(articleData);
-        addRecentArticle(articleData);
-        
-        // Process content in parallel
-        const [extractedVideoUrls, ytUrl] = await Promise.all([
-          // Extract videos asynchronously
-          new Promise<string[]>((resolve) => {
-            setTimeout(() => {
-              resolve(extractVideoUrls(articleData.content.rendered));
-            }, 0);
-          }),
-          // Extract YouTube URL asynchronously
-          new Promise<string | null>((resolve) => {
-            setTimeout(() => {
-              if (articleData.meta?.youtube) {
-                resolve(extractYouTubeUrl(articleData.meta.youtube));
-              } else {
-                resolve(null);
-              }
-            }, 0);
-          })
-        ]);
-        
-        if (!isMounted) return;
-        
-        setVideoUrls(extractedVideoUrls);
-        setYoutubeUrl(ytUrl);
-        
-        // Load gallery images in background
-        if (articleData.meta?.galeria) {
-          setGalleryLoading(true);
-          setTimeout(async () => {
-            try {
-              const galleryIds = processGalleryIds(articleData.meta?.galeria);
-              
-              if (galleryIds.length > 0) {
-                const mediaItems = await fetchMediaByIds(galleryIds);
-                if (isMounted) {
-                  setGalleryImages(mediaItems);
-                }
-              }
-            } catch (err) {
-              console.warn('Failed to load gallery images:', err);
-            } finally {
-              if (isMounted) {
-                setGalleryLoading(false);
-              }
-            }
-          }, 50); // Reduced from 100ms to 50ms
-        }
-        
-        // Load related articles in background
-        setRelatedLoading(true);
-        setTimeout(async () => {
-          try {
-            const { sliderArticles, listArticles } = await fetchRelatedArticles(
-              articleId,
-              articleData.categories || []
-            );
-            
-            if (isMounted) {
-              setRelatedSliderArticles(sliderArticles);
-              setRelatedListArticles(listArticles);
-            }
-          } catch (err) {
-            console.warn('Failed to load related articles:', err);
-          } finally {
-            if (isMounted) {
-              setRelatedLoading(false);
-            }
-          }
-        }, 100); // Reduced from 200ms to 100ms
-        
-        // Load adjacent articles for swipe navigation
-        setTimeout(async () => {
-          try {
-            const [nextArt, prevArt] = await Promise.all([
-              getAdjacentArticle(articleId, 'next'),
-              getAdjacentArticle(articleId, 'prev')
-            ]);
-            
-            if (isMounted) {
-              setNextArticle(nextArt);
-              setPrevArticle(prevArt);
-            }
-          } catch (err) {
-            console.warn('Failed to load adjacent articles:', err);
-          }
-        }, 150);
-        
-        // Mark content as loaded after minimal delay for smooth transition
-        setTimeout(() => {
-          if (isMounted) {
-            setContentLoaded(true);
-            setInitialLoading(false);
-          }
-        }, 150); // Reduced from 300ms to 150ms
-        
-      } catch (err: any) {
-        if (isMounted) {
-          console.error('Error loading article:', err);
-          setError(err.message || 'Nie udało się załadować artykułu. Spróbuj ponownie.');
-          setInitialLoading(false);
-        }
+        setIsSaved(isArticleSaved(articleData.id));
+      } catch (err) {
+        setError('Nie udało się załadować artykułu');
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
-    
-    loadArticleData();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [articleId, addRecentArticle]);
-  
-  // Function to handle retry when article loading fails
-  const handleRetry = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    
-    // Force reload the current page
-    router.replace(`/article/${articleId}`);
-  }, [router, articleId]);
+    loadArticle();
+  }, [id, isArticleSaved]);
 
-  // Function to handle going back
-  const handleGoBack = useCallback(() => {
-    router.back();
-  }, [router]);
-
-  // Function to handle sharing the article
-  const handleShare = useCallback(() => {
-    if (article) {
-      Share.share({
-        message: article.title.rendered,
-        url: article.link,
-        title: article.title.rendered,
-      });
-    }
-  }, [article]);
-
-  // Function to toggle saving/unsaving the article
-  const toggleSave = useCallback(() => {
-    if (article) {
-      if (isSaved) {
-        removeArticle(article.id);
-      } else {
-        saveArticle(article);
-      }
-    }
-  }, [article, isSaved, removeArticle, saveArticle]);
-
-  // Function to open image modal
-  const openImageModal = useCallback((index: number) => {
-    setSelectedImageIndex(index);
-  }, []);
-
-  // Function to close image modal
-  const closeImageModal = useCallback(() => {
-    setSelectedImageIndex(null);
-  }, []);
-
-  // Function to navigate between images in the modal
-  const navigateImage = useCallback((direction: 'prev' | 'next') => {
-    if (selectedImageIndex === null || !galleryImages.length) return;
-    
-    if (direction === 'prev' && selectedImageIndex > 0) {
-      setSelectedImageIndex(selectedImageIndex - 1);
-    } else if (direction === 'next' && selectedImageIndex < galleryImages.length - 1) {
-      setSelectedImageIndex(selectedImageIndex + 1);
-    }
-  }, [selectedImageIndex, galleryImages]);
-
-  // Navigation functions for bottom menu - updated to match main tabs
-  const handleGoHome = useCallback(() => {
-    router.replace('/(tabs)');
-  }, [router]);
-
-  const handleGoSearch = useCallback(() => {
-    router.push('/(tabs)/search');
-  }, [router]);
-
-  const handleGoSaved = useCallback(() => {
-    router.push('/(tabs)/saved');
-  }, [router]);
-
-  const handleGoNotifications = useCallback(() => {
-    router.push('/(tabs)/notifications');
-  }, [router]);
-
-  const handleGoSettings = useCallback(() => {
-    router.push('/(tabs)/preferences');
-  }, [router]);
-  
-  // Handle Android back button
   useEffect(() => {
-    if (Platform.OS === 'android') {
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (selectedImageIndex !== null) {
-          setSelectedImageIndex(null);
-          return true;
-        }
-        router.back();
-        return true;
-      });
-      
-      return () => backHandler.remove();
-    }
-  }, [router, selectedImageIndex]);
-  
-  // Simple scroll handler without animations
-  const handleScroll = useCallback((event: any) => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
-    const contentHeight = event.nativeEvent.contentSize.height;
-    
-    // Calculate reading progress (0 to 1)
-    const progress = Math.min(
-      Math.max(scrollY / (contentHeight - scrollViewHeight), 0),
-      1
-    );
-    
-    setReadingProgress(progress);
-    
-    // Show/hide progress bar based on scroll position
-    setShowProgressBar(scrollY > 50);
-  }, []);
-
-  // Cleanup timeout when component unmounts
-  useEffect(() => {
-    return () => {
-      if (redirectTimeout.current) {
-        clearTimeout(redirectTimeout.current);
-      }
+    // Warto sprawdzić również: pobierz 2 losowe artykuły
+    const loadRelated = async () => {
+      try {
+        const { articles } = await fetchArticles(1, 10);
+        setRelated(articles.filter(a => a.id !== Number(id)).slice(0, 2));
+      } catch {}
     };
-  }, []);
-  
-  // PanResponder for swipe navigation
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      const { dx, dy } = gestureState;
-      return Math.abs(dx) > Math.abs(dy) * 1.5 && Math.abs(dx) > 10;
-    },
-    onPanResponderGrant: () => {
-      // Show edge indicators when starting drag
-      animateEdgeIndicators(true);
-      
-      // Start long press timer
-      longPressTimeout.current = setTimeout(() => {
-        setIsPeeking(true);
-        if (Platform.OS !== 'web') {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-      }, 300);
+    loadRelated();
+  }, [id]);
 
-      swipeTranslateX.setValue(0);
-      swipeOpacity.setValue(0);
-      swipeScale.setValue(0.95);
-      dragProgress.setValue(0);
-      
-      Animated.spring(swipeScale, {
-        toValue: 0.98,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }).start();
-    },
-    onPanResponderMove: (_, gestureState) => {
-      const { dx } = gestureState;
-      const screenWidth = Dimensions.get('window').width;
-      const moveMultiplier = isPeeking ? 0.1 : 0.2;
-      
-      // Update drag progress
-      const progressValue = Math.min(Math.abs(dx) / (screenWidth * (isPeeking ? 0.2 : 0.4)), 1);
-      dragProgress.setValue(progressValue);
-      
-      if (dx > 0 && prevArticle) {
-        setSwipeDirection('right');
-        setSwipePreviewVisible(true);
-        
-        const easedProgress = Math.sin(progressValue * Math.PI / 2);
-        swipeTranslateX.setValue(dx * moveMultiplier);
-        swipeOpacity.setValue(easedProgress);
-        swipeScale.setValue(0.98 + (easedProgress * 0.04));
-      } else if (dx < 0 && nextArticle) {
-        setSwipeDirection('left');
-        setSwipePreviewVisible(true);
-        
-        const easedProgress = Math.sin(progressValue * Math.PI / 2);
-        swipeTranslateX.setValue(dx * moveMultiplier);
-        swipeOpacity.setValue(easedProgress);
-        swipeScale.setValue(0.98 + (easedProgress * 0.04));
-      }
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (longPressTimeout.current) {
-        clearTimeout(longPressTimeout.current);
-        longPressTimeout.current = null;
-      }
-
-      // Hide edge indicators after a short delay
-      setTimeout(() => {
-        animateEdgeIndicators(false);
-      }, 200);
-
-      const { dx, vx } = gestureState;
-      const screenWidth = Dimensions.get('window').width;
-      const threshold = screenWidth * (isPeeking ? 0.15 : 0.2);
-      
-      if (Math.abs(dx) > threshold || Math.abs(vx) > (isPeeking ? 0.2 : 0.3)) {
-        if (dx > 0 && prevArticle) {
-          handleSwipeToArticle(prevArticle.id, 'right');
-        } else if (dx < 0 && nextArticle) {
-          handleSwipeToArticle(nextArticle.id, 'left');
-        } else {
-          resetSwipeAnimation();
-        }
-      } else {
-        resetSwipeAnimation();
-      }
-      
-      setIsPeeking(false);
-      dragProgress.setValue(0);
-    },
-    onPanResponderTerminate: () => {
-      if (longPressTimeout.current) {
-        clearTimeout(longPressTimeout.current);
-        longPressTimeout.current = null;
-      }
-      
-      animateEdgeIndicators(false);
-      resetSwipeAnimation();
-      setIsPeeking(false);
-      dragProgress.setValue(0);
+  const handleGoBack = () => router.back();
+  const handleShare = async () => {
+    if (article) {
+      try {
+        await Share.share({
+          message: article.title.rendered,
+          url: article.link,
+          title: article.title.rendered,
+        });
+      } catch {}
     }
-  }), [prevArticle, nextArticle, swipeTranslateX, swipeOpacity, swipeScale, isPeeking, animateEdgeIndicators, dragProgress]);
-  
-  // Function to handle swipe navigation to article
-  const handleSwipeToArticle = useCallback((articleId: number, direction: 'left' | 'right') => {
-    if (isSwipeTransitioning) return;
-    
-    setIsSwipeTransitioning(true);
-    
-    // Haptic feedback
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    
-    // Enhanced transition animation
-    Animated.parallel([
-      Animated.spring(swipeTranslateX, {
-        toValue: direction === 'left' ? -width : width,
-        friction: 12,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(swipeOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.spring(swipeScale, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      router.replace(`/article/${articleId}`);
-      setIsSwipeTransitioning(false);
-    });
-  }, [isSwipeTransitioning, swipeTranslateX, swipeOpacity, swipeScale, width, router]);
-  
-  // Function to reset swipe animation
-  const resetSwipeAnimation = useCallback(() => {
-    setSwipePreviewVisible(false);
-    setSwipeDirection(null);
-    
-    // Enhanced reset animation
-    Animated.parallel([
-      Animated.spring(swipeTranslateX, {
-        toValue: 0,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(swipeOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(swipeScale, {
-        toValue: 0.95,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      })
-    ]).start();
-  }, [swipeTranslateX, swipeOpacity, swipeScale]);
-  
-  // Memoized enhanced HTML for better performance
-  const enhancedHtml = useMemo(() => {
-    if (!article) return '';
-    
-    const cleanedHtml = cleanHtml(article.content.rendered);
-    
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-          
-          * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-          }
-          
-          body {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-            font-size: ${Platform.OS === 'android' ? '11px' : '13px'} !important;
-            line-height: 1.6;
-            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
-            margin: 0;
-            padding: 20px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            -webkit-text-size-adjust: 100%;
-            text-size-adjust: 100%;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-          }
-          
-          p {
-            margin-bottom: 16px !important;
-            font-family: 'Poppins', sans-serif !important;
-            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: ${Platform.OS === 'android' ? '11px' : '13px'} !important;
-            line-height: 1.6 !important;
-            font-weight: 400 !important;
-          }
-          
-          img {
-            max-width: 100% !important;
-            height: auto !important;
-            border-radius: 12px !important;
-            margin: 20px 0 !important;
-            display: block !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-          }
-          
-          a {
-            color: ${theme.colors.primary} !important;
-            text-decoration: none !important;
-            font-weight: 500 !important;
-            border-bottom: 1px solid transparent !important;
-            transition: border-color 0.2s ease !important;
-          }
-          
-          a:hover {
-            border-bottom-color: ${theme.colors.primary} !important;
-          }
-          
-          h1, h2, h3, h4, h5, h6 {
-            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            margin: 28px 0 18px 0 !important;
-            line-height: 1.3 !important;
-            font-family: 'Poppins', sans-serif !important;
-            font-weight: 700 !important;
-            letter-spacing: -0.02em !important;
-          }
-          
-          h1 { font-size: ${Platform.OS === 'android' ? '20px' : '22px'} !important; }
-          h2 { font-size: ${Platform.OS === 'android' ? '16px' : '18px'} !important; }
-          h3 { font-size: ${Platform.OS === 'android' ? '14px' : '16px'} !important; }
-          h4 { font-size: ${Platform.OS === 'android' ? '12px' : '14px'} !important; }
-          h5 { font-size: ${Platform.OS === 'android' ? '11px' : '13px'} !important; }
-          h6 { font-size: ${Platform.OS === 'android' ? '10px' : '12px'} !important; }
-          
-          blockquote {
-            position: relative !important;
-            margin: 24px 0 !important;
-            padding: 20px 24px 20px 60px !important;
-            background: ${isDarkMode ? 'rgba(74, 123, 200, 0.12)' : 'rgba(34, 74, 150, 0.06)'} !important;
-            border-radius: 16px !important;
-            border-left: 4px solid ${theme.colors.primary} !important;
-            font-style: italic !important;
-            font-size: 14px !important;
-            line-height: 1.5 !important;
-            color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
-            box-shadow: ${isDarkMode ? '0 6px 24px rgba(0, 0, 0, 0.2)' : '0 6px 24px rgba(34, 74, 150, 0.06)'} !important;
-            font-family: 'Poppins', sans-serif !important;
-          }
-          
-          blockquote::before {
-            content: '"' !important;
-            position: absolute !important;
-            left: 20px !important;
-            top: 12px !important;
-            font-size: 48px !important;
-            font-weight: bold !important;
-            color: ${theme.colors.primary} !important;
-            opacity: 0.25 !important;
-            line-height: 1 !important;
-            font-family: 'Poppins', sans-serif !important;
-          }
-          
-          blockquote p {
-            margin: 0 !important;
-            position: relative !important;
-            z-index: 1 !important;
-            font-family: 'Poppins', sans-serif !important;
-            color: ${isDarkMode ? '#E2E8F0' : '#475569'} !important;
-            font-size: 14px !important;
-          }
-          
-          ul, ol {
-            padding-left: 24px !important;
-            margin: 18px 0 !important;
-          }
-          
-          li {
-            margin-bottom: 10px !important;
-            font-family: 'Poppins', sans-serif !important;
-            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 13px !important;
-            line-height: 1.5 !important;
-          }
-          
-          table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            margin: 20px 0 !important;
-            border-radius: 12px !important;
-            overflow: hidden !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-          }
-          
-          th, td {
-            border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'} !important;
-            padding: 14px 10px !important;
-            text-align: left !important;
-            font-family: 'Poppins', sans-serif !important;
-            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 13px !important;
-          }
-          
-          th {
-            background-color: ${isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'} !important;
-            font-weight: 600 !important;
-            font-family: 'Poppins', sans-serif !important;
-          }
-          
-          /* Remove any video/iframe elements to prevent conflicts */
-          iframe, video, embed, object {
-            display: none !important;
-          }
-          
-          /* Force text color on all elements */
-          *, *::before, *::after {
-            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-          }
-          
-          /* iOS specific fixes */
-          @supports (-webkit-touch-callout: none) {
-            body {
-              -webkit-text-size-adjust: 100% !important;
-              -webkit-font-smoothing: antialiased !important;
-              color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-              background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
-            }
-            
-            p, span, div, li, td, th, h1, h2, h3, h4, h5, h6, a {
-              color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-              -webkit-font-smoothing: antialiased !important;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        ${cleanedHtml}
-        <script>
-          // Send height to React Native
-          function sendHeight() {
-            const height = Math.max(
-              document.body.scrollHeight,
-              document.body.offsetHeight,
-              document.documentElement.clientHeight,
-              document.documentElement.scrollHeight,
-              document.documentElement.offsetHeight
-            );
-            
-            if (window.ReactNativeWebView) {
-              window.ReactNativeWebView.postMessage(height.toString());
-            }
-          }
-          
-          // Send height when content is loaded
-          document.addEventListener('DOMContentLoaded', sendHeight);
-          window.addEventListener('load', sendHeight);
-          
-          // Send height when images load
-          const images = document.getElementsByTagName('img');
-          for (let i = 0; i < images.length; i++) {
-            images[i].addEventListener('load', sendHeight);
-            images[i].addEventListener('error', sendHeight);
-          }
-          
-          // Handle link clicks
-          document.addEventListener('click', function(e) {
-            if (e.target.tagName === 'A') {
-              e.preventDefault();
-              if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage('link:' + e.target.href);
-              }
-            }
-          });
-          
-          // Initial height send
-          setTimeout(sendHeight, 100);
-          setTimeout(sendHeight, 500);
-          setTimeout(sendHeight, 1000);
-        </script>
-      </body>
-      </html>
-    `;
-  }, [article, isDarkMode, theme.colors.primary]);
-  
-  // Memoized content renderer
-  const renderContent = useMemo(() => {
-    if (Platform.OS === 'web') {
-      return (
-        <View style={[styles.htmlContainer, { backgroundColor: theme.colors.background }]}>
-          <div 
-            dangerouslySetInnerHTML={{ __html: enhancedHtml }}
-            style={{
-              color: isDarkMode ? '#F1F5F9' : '#1E293B',
-              fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              fontSize: '13px',
-              lineHeight: '1.6',
-              backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC',
-            }}
-          />
-        </View>
-      );
-    } else if (webViewError) {
-      // Fallback for Android when WebView fails - now using embedded iframe instead of external link
-      const youtubeVideoId = getYouTubeVideoId(article?.link || '');
-      if (youtubeVideoId) {
-        return (
-          <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.background }]}>
-            <VideoPlayer url={`https://www.youtube.com/watch?v=${youtubeVideoId}`} />
-          </View>
-        );
-      }
-      
-      return (
-        <View style={[styles.fallbackContainer, { backgroundColor: theme.colors.background }]}>
-          <WebView
-            source={{ uri: article?.link || '' }}
-            style={styles.webview}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            startInLoadingState={true}
-            renderLoading={() => (
-              <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-                <LoadingIndicator size="small" />
-              </View>
-            )}
-          />
-        </View>
-      );
+  };
+  const handleToggleSave = () => {
+    if (!article) return;
+    if (isSaved) {
+      removeArticle(article.id);
+      setIsSaved(false);
     } else {
-      return (
-        <View style={[styles.htmlContainer, { backgroundColor: theme.colors.background }]}>
-          <WebView
-            ref={webViewRef}
-            originWhitelist={['*']}
-            source={{ html: enhancedHtml }}
-            style={[
-              styles.webview, 
-              { 
-                height: webViewHeight,
-                backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC'
-              }
-            ]}
-            scrollEnabled={false}
-            onNavigationStateChange={(event) => {
-              // Handle link clicks
-              if (event.url !== 'about:blank' && !event.url.startsWith('data:')) {
-                Linking.openURL(event.url);
-                return false;
-              }
-              return true;
-            }}
-            onMessage={(event) => {
-              const message = event.nativeEvent.data;
-              
-              if (message.startsWith('link:')) {
-                // Handle link clicks
-                const url = message.substring(5);
-                Linking.openURL(url);
-              } else {
-                // Adjust WebView height based on content
-                const height = parseInt(message, 10);
-                if (height > 0 && height !== webViewHeight) {
-                  setWebViewHeight(Math.max(height + (Platform.OS === 'android' ? 100 : 50), 300));
-                }
-              }
-            }}
-            onError={(syntheticEvent) => {
-              const { nativeEvent } = syntheticEvent;
-              console.warn('WebView error: ', nativeEvent);
-              setWebViewError(true);
-            }}
-            onHttpError={(syntheticEvent) => {
-              const { nativeEvent } = syntheticEvent;
-              console.warn('WebView HTTP error: ', nativeEvent);
-              if (Platform.OS === 'android') {
-                setWebViewError(true);
-              }
-            }}
-            onRenderProcessGone={() => {
-              console.warn('WebView render process gone');
-              setWebViewError(true);
-            }}
-            androidLayerType="hardware"
-            mixedContentMode="compatibility"
-            allowsFullscreenVideo={false}
-            mediaPlaybackRequiresUserAction={true}
-            cacheEnabled={Platform.OS === 'android'}
-            domStorageEnabled={true}
-            javaScriptEnabled={true}
-            startInLoadingState={true}
-            renderLoading={() => (
-              <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-                <LoadingIndicator size="small" />
-              </View>
-            )}
-          />
-        </View>
-      );
+      saveArticle(article);
+      setIsSaved(true);
     }
-  }, [enhancedHtml, webViewError, webViewHeight, isDarkMode, theme.colors, article]);
-  
-  // Memoized gallery render
-  const renderGallery = useMemo(() => {
-    if (!contentLoaded) return null;
-    
-    if (galleryLoading) {
-      return (
-        <View style={styles.galleryContainer}>
-          <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
-            Galeria
-          </Text>
-          <View style={styles.galleryLoadingContainer}>
-            <LoadingIndicator size="small" />
-          </View>
-        </View>
-      );
+  };
+
+  // Auto-powrót na główną po scrollu do końca
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 40;
+    if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
+      setTimeout(() => router.replace('/(tabs)'), 1200);
     }
-    
-    if (galleryImages.length === 0) {
-      return null;
-    }
-    
+  };
+
+  if (loading) {
     return (
-      <View style={styles.galleryContainer}>
-        <Text style={[
-          styles.galleryTitle, 
-          { 
-            color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold
-          }
-        ]}>
-          Galeria ({galleryImages.length})
-        </Text>
-        <View style={styles.galleryGrid}>
-          {galleryImages.map((image, index) => (
-            <GalleryImage
-              key={image.id}
-              image={image}
-              index={index}
-              onPress={openImageModal}
-            />
-          ))}
-        </View>
+      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}> 
+        <Text style={{ color: theme.colors.text, fontSize: 18 }}>Ładowanie artykułu...</Text>
       </View>
     );
-  }, [contentLoaded, galleryLoading, galleryImages, theme.colors, openImageModal]);
-  
-  // Render source and photo credit at the bottom
-  const renderSourceAndCredit = useMemo(() => {
-    if (!article) return null;
-    
-    const metaSource = article.meta?.zrudlo || article.meta?.zrodlo || '';
-    const photoCredit = article.meta?.foto || '';
-    
-    if (!metaSource && !photoCredit) return null;
-    
-    return (
-      <View style={styles.sourceCreditsContainer}>
-        {photoCredit && (
-          <Text style={[
-            styles.sourceCreditsText, 
-            { 
-              color: theme.colors.textSecondary,
-              fontFamily: theme.fontFamily.regular
-            }
-          ]}>
-            📷 Zdjęcie: {photoCredit}
-          </Text>
-        )}
-        
-        {metaSource && (
-          <Text style={[
-            styles.sourceCreditsText, 
-            { 
-              color: theme.colors.textSecondary,
-              fontFamily: theme.fontFamily.regular
-            }
-          ]}>
-            ℹ️ Źródło: {metaSource}
-          </Text>
-        )}
-      </View>
-    );
-  }, [article, theme.colors, theme.fontFamily]);
-  
-  // Enhanced skeleton display with immediate rendering
-  if (initialLoading) {
-    return <SkeletonLoader type="article" immediate={true} />;
   }
-  
-  if (loading && !initialLoading) {
-    return <LoadingIndicator fullScreen />;
-  }
-  
   if (error || !article) {
     return (
-      <EmptyState
-        title="Coś poszło nie tak"
-        message={error || "Nie udało się załadować artykułu."}
-        actionLabel="Spróbuj ponownie"
-        onAction={handleRetry}
-        icon={<RefreshCw size={48} color={theme.colors.primary} />}
-      />
+      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}> 
+        <Text style={{ color: theme.colors.error, fontSize: 18 }}>{error || 'Nie znaleziono artykułu'}</Text>
+        <TouchableOpacity onPress={handleGoBack} style={styles.headerButton}>
+          <ArrowLeft size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+      </View>
     );
   }
-  
-  // Get category name if available
-  let categoryName = "";
-  if (article._embedded && article._embedded["wp:term"]) {
-    const categories = article._embedded["wp:term"][0];
-    if (categories && categories.length > 0) {
-      categoryName = categories[0].name;
-    }
-  }
-  
-  // Funkcja do odświeżania artykułu
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      // Wymuś ponowne pobranie artykułu
-      setLoading(true);
-      setError(null);
-      const articleData = await fetchArticleById(articleId);
-      setArticle(articleData);
-      addRecentArticle(articleData);
-      setContentLoaded(true);
-    } catch (err: any) {
-      setError(err.message || 'Nie udało się odświeżyć artykułu.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [articleId, addRecentArticle]);
-  
-  return (
-    <Animated.View 
-      style={[
-        styles.container, 
-        { 
-          backgroundColor: theme.colors.background,
-          // Add subtle visual feedback for peek mode
-          opacity: isPeeking ? 0.95 : 1
-        }
-      ]}
-      {...panResponder.panHandlers}
-    >
-      <StatusBar 
-        translucent 
-        backgroundColor="transparent" 
-        barStyle="light-content" 
-      />
-      
-      {showProgressBar && (
-        <View style={[styles.progressBar, { backgroundColor: theme.colors.primary }]}>
-          <View
-            style={[
-              styles.progressBarFill,
-              {
-                width: `${readingProgress * 100}%`
-              }
-            ]}
-          />
-        </View>
-      )}
-      
-      {/* Edge Indicators */}
-      {prevArticle && (
-        <Animated.View 
-          style={[
-            styles.edgeIndicator,
-            styles.leftEdgeIndicator,
-            {
-              opacity: edgeIndicatorOpacity,
-              backgroundColor: theme.colors.primary
-            }
-          ]}
-        />
-      )}
-      {nextArticle && (
-        <Animated.View 
-          style={[
-            styles.edgeIndicator,
-            styles.rightEdgeIndicator,
-            {
-              opacity: edgeIndicatorOpacity,
-              backgroundColor: theme.colors.primary
-            }
-          ]}
-        />
-      )}
 
-      {/* Drag Progress Indicator */}
-      <Animated.View
-        style={[
-          styles.dragProgressBar,
-          {
-            opacity: dragProgress.interpolate({
-              inputRange: [0, 0.1],
-              outputRange: [0, 1],
-              extrapolate: 'clamp'
-            }),
-            transform: [{
-              scaleX: dragProgress
-            }],
-            backgroundColor: theme.colors.primary
-          }
-        ]}
-      />
-      
-      {/* Swipe Preview Component */}
-      {swipePreviewVisible && (
-        <Animated.View
-          style={[
-            styles.swipePreviewContainer,
-            {
-              opacity: swipeOpacity,
-              transform: [
-                { translateX: swipeTranslateX },
-                { scale: swipeScale }
-              ]
-            }
-          ]}
-        >
-          {swipeDirection === 'left' && nextArticle && (
-            <View style={[
-              styles.swipePreviewContent,
-              {
-                backgroundColor: theme.colors.card
-              }
-            ]}>
-              <Image
-                source={{ uri: nextArticle.featured_media_url }}
-                style={styles.swipePreviewImage}
-                contentFit="cover"
-              />
-              <View style={styles.swipePreviewOverlay}>
-                <Text style={styles.swipePreviewTitle} numberOfLines={2}>
-                  {nextArticle.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-                </Text>
-                <Text style={styles.swipePreviewSubtitle}>
-                  Następny artykuł
-                </Text>
-              </View>
-            </View>
-          )}
-          
-          {swipeDirection === 'right' && prevArticle && (
-            <View style={[
-              styles.swipePreviewContent,
-              {
-                backgroundColor: theme.colors.card
-              }
-            ]}>
-              <Image
-                source={{ uri: prevArticle.featured_media_url }}
-                style={styles.swipePreviewImage}
-                contentFit="cover"
-              />
-              <View style={styles.swipePreviewOverlay}>
-                <Text style={styles.swipePreviewTitle} numberOfLines={2}>
-                  {prevArticle.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
-                </Text>
-                <Text style={styles.swipePreviewSubtitle}>
-                  Poprzedni artykuł
-                </Text>
-              </View>
-            </View>
-          )}
-        </Animated.View>
-      )}
-      
-      <View style={styles.headerBar}>
-        <TouchableOpacity 
-          style={styles.circularButton} 
-          onPress={handleGoBack}
-          activeOpacity={0.8}
-        >
-          <ArrowLeft size={20} color="#FFFFFF" />
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}> 
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}> 
+        <TouchableOpacity onPress={handleGoBack} style={styles.headerButton}>
+          <ArrowLeft size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.circularButton}
-            onPress={handleShare}
-            activeOpacity={0.7}
-          >
-            <Share2 size={20} color="#FFFFFF" />
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity onPress={handleShare} style={styles.headerButton}>
+            <Share2 size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          
-          {!isSponsoredContent(article) && (
-            <TouchableOpacity
-              style={styles.circularButton}
-              onPress={toggleSave}
-              activeOpacity={0.7}
-            >
-              <Bookmark 
-                size={20} 
-                color="#FFFFFF"
-                fill={isSaved ? "#FFFFFF" : 'transparent'} 
-              />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={handleToggleSave} style={styles.headerButton}>
+            <Bookmark size={24} color={isSaved ? theme.colors.primary : theme.colors.text} fill={isSaved ? theme.colors.primary : 'none'} />
+          </TouchableOpacity>
         </View>
       </View>
-      
-      <ScrollView 
-        ref={scrollViewRef}
+
+
+
+      <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={Platform.OS === 'android'}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
-          />
-        }
+        bounces={false}
       >
-        {article.featured_media_url ? (
-          <View style={styles.featuredImageContainer}>
-            <Image
-              source={{ uri: article.featured_media_url }}
-              style={styles.featuredImage}
-              contentFit="cover"
-              transition={300}
-              placeholder="Loading..."
-              cachePolicy="memory-disk"
-              priority="high"
-            />
-            <View style={styles.imageDarkOverlay} />
-          </View>
-        ) : (
-          <View style={[styles.featuredImageContainer, styles.featuredImagePlaceholder, { backgroundColor: theme.colors.subtle }]}>
-            <View style={styles.imageDarkOverlay} />
-          </View>
-        )}
-        
-        <View style={[styles.articleContent, { backgroundColor: theme.colors.background }]}>
-          <Text style={[
-            styles.title, 
-            { 
-              color: theme.colors.text,
-              fontFamily: theme.fontFamily.bold
-            }
-          ]}>
+        {/* Featured image with gradient overlay */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: article.featured_media_url }}
+            style={styles.featuredImage}
+            contentFit="cover"
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.7)', 'transparent', 'transparent']}
+            style={styles.imageGradient}
+          />
+        </View>
+
+        {/* Content container with rounded corners */}
+        <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]}> 
+          <Text style={[styles.title, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
             {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
           </Text>
-          
-          <View style={styles.metaContainer}>
-            <View style={styles.metaItem}>
-              <Calendar size={14} color={theme.colors.textSecondary} />
-              <Text style={[
-                styles.metaText, 
-                { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular
-                }
-              ]}>
-                {formatDateTime(article.date)}
-              </Text>
-            </View>
-            {categoryName && (
-              <View style={styles.metaItem}>
-                <Text style={[
-                  styles.categoryMetaText, 
-                  { 
-                    color: theme.colors.primary,
-                    fontFamily: theme.fontFamily.semibold,
-                    backgroundColor: isDarkMode ? 'rgba(74, 123, 200, 0.15)' : 'rgba(34, 74, 150, 0.1)'
-                  }
-                ]}>
-                  {categoryName}
-                </Text>
-              </View>
-            )}
-          </View>
-          
-          {videoUrls.length > 0 && (
-            <View style={styles.videoContainer}>
-              {videoUrls.map((url, index) => (
-                <VideoPlayer key={`video-${index}`} url={url} />
-              ))}
-            </View>
-          )}
-          
-          {renderContent}
-          
-          {youtubeUrl && (
-            <View style={styles.youtubeContainer}>
-              <Text style={[
-                styles.youtubeTitle,
-                { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.bold
-                }
-              ]}>
-                Wideo
-              </Text>
-              <VideoPlayer url={youtubeUrl} title="YouTube Video" />
-            </View>
-          )}
-          
-          {videoUrls.length > 0 && (
-            <View style={styles.additionalVideosContainer}>
-              <Text style={[
-                styles.sectionTitle,
-                { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.bold
-                }
-              ]}>
-                Powiązane wideo
-              </Text>
-              {videoUrls.map((url, index) => (
-                <VideoPlayer 
-                  key={`additional-video-${index}`} 
-                  url={url} 
-                  title={`Wideo ${index + 1}`} 
-                />
-              ))}
-            </View>
-          )}
-          
-          {renderGallery}
-          {renderSourceAndCredit}
-          
-          {contentLoaded && (
-            <View style={styles.relatedContainer}>
-              {relatedSliderArticles.length > 0 && (
-                <RelatedArticlesSlider 
-                  articles={relatedSliderArticles} 
-                  title="Sprawdź również" 
-                />
-              )}
-              
-              {relatedListArticles.length > 0 && (
-                <View style={styles.relatedListContainer}>
-                  <Text style={[
-                    styles.relatedTitle, 
-                    { 
-                      color: theme.colors.text,
-                      fontFamily: theme.fontFamily.bold
-                    }
-                  ]}>
-                    Najnowsze artykuły
-                  </Text>
-                  
-                  {relatedLoading ? (
-                    <LoadingIndicator size="small" />
-                  ) : (
-                    <View style={styles.relatedList}>
-                      {relatedListArticles.map((relatedArticle) => (
-                        <ArticleCard
-                          key={relatedArticle.id}
-                          article={relatedArticle}
-                          compact={true}
-                        />
-                      ))}
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
+          <Text style={[styles.date, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+            {formatDateTime(article.date)}
+          </Text>
+          <RenderHtml
+            contentWidth={width - 40}
+            source={{ html: article.content.rendered }}
+            baseStyle={{ color: theme.colors.text, fontSize: 17, lineHeight: 28, fontFamily: theme.fontFamily.regular }}
+            tagsStyles={{
+              p: { marginBottom: 16 },
+              h1: { fontSize: 26, fontWeight: 'bold', marginBottom: 12 },
+              h2: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
+              h3: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+              img: { borderRadius: 16, marginVertical: 12 },
+            }}
+            enableExperimentalMarginCollapsing
+          />
         </View>
-      </ScrollView>
-      
-      <View style={[styles.bottomMenuBar, { backgroundColor: theme.colors.card }]}>
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoHome}
-          activeOpacity={0.7}
-        >
-          <Home size={22} color={theme.colors.primary} strokeWidth={2.5} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.primary, fontFamily: theme.fontFamily.medium }]}>
-            Główna
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoSearch}
-          activeOpacity={0.7}
-        >
-          <Search size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Szukaj
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoSaved}
-          activeOpacity={0.7}
-        >
-          <Bookmark size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Zapisane
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoNotifications}
-          activeOpacity={0.7}
-        >
-          <Bell size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Powiadomienia
-          </Text>
-          {unreadCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: theme.colors.notification }]}>
-              <Text style={[styles.badgeText, { fontFamily: theme.fontFamily.semibold }]}>
-                {unreadCount > 9 ? '9+' : unreadCount.toString()}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoSettings}
-          activeOpacity={0.7}
-        >
-          <Settings size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Ustawienia
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      {selectedImageIndex !== null && galleryImages[selectedImageIndex] && (
-        <Modal
-          visible={selectedImageIndex !== null}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={closeImageModal}
-        >
-          <View style={styles.modalContainer}>
-            <StatusBar hidden />
-            
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={closeImageModal}
-              activeOpacity={0.8}
-            >
-              <X size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            
-            {selectedImageIndex > 0 && (
-              <TouchableOpacity
-                style={[styles.modalNavButton, styles.modalNavButtonLeft]}
-                onPress={() => navigateImage('prev')}
-                activeOpacity={0.8}
-              >
-                <ChevronLeft size={32} color="#FFFFFF" />
+
+        {/* Warto sprawdzić również */}
+        {related.length > 0 && (
+          <View style={styles.relatedContainer}>
+            <Text style={[styles.relatedTitle, { color: theme.colors.text }]}>Warto sprawdzić również</Text>
+            {related.map((a) => (
+              <TouchableOpacity key={a.id} style={styles.relatedCard} onPress={() => router.push(`/article/${a.id}`)}>
+                {a.featured_media_url && (
+                  <Image source={{ uri: a.featured_media_url }} style={styles.relatedImage} contentFit="cover" />
+                )}
+                <View style={styles.relatedContent}>
+                  <Text style={[styles.relatedCardTitle, { color: theme.colors.text }]} numberOfLines={2}>
+                    {a.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+                  </Text>
+                  <Text style={[styles.relatedCardDate, { color: theme.colors.textSecondary }]}>
+                    {formatDateTime(a.date)}
+                  </Text>
+                </View>
               </TouchableOpacity>
-            )}
-            
-            {selectedImageIndex < galleryImages.length - 1 && (
-              <TouchableOpacity
-                style={[styles.modalNavButton, styles.modalNavButtonRight]}
-                onPress={() => navigateImage('next')}
-                activeOpacity={0.8}
-              >
-                <ChevronRight size={32} color="#FFFFFF" />
-              </TouchableOpacity>
-            )}
-            
-            <View style={styles.modalCounter}>
-              <Text style={[styles.modalCounterText, { fontFamily: theme.fontFamily.medium }]}>
-                {selectedImageIndex + 1} / {galleryImages.length}
-              </Text>
-            </View>
-            
-            <Image
-              source={{ uri: galleryImages[selectedImageIndex].source_url }}
-              style={styles.modalImage}
-              contentFit="contain"
-              transition={200}
-            />
-            
-            {galleryImages[selectedImageIndex].caption?.rendered && (
-              <View style={styles.modalCaptionContainer}>
-                <Text style={[styles.modalCaption, { fontFamily: theme.fontFamily.regular }]}>
-                  {galleryImages[selectedImageIndex].caption.rendered.replace(/<[^>]*>/g, '')}
-                </Text>
-              </View>
-            )}
+            ))}
           </View>
-        </Modal>
-      )}
-    </Animated.View>
+        )}
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      {/* Tab Bar (identyczny jak na głównej) */}
+      <View style={[styles.tabBar, { backgroundColor: theme.colors.tabBarBackground, borderTopColor: theme.colors.border }]}> 
+        <TabBarButton icon="Home" label="Główna" onPress={() => router.push('/(tabs)')} active={false} />
+        <TabBarButton icon="Search" label="Szukaj" onPress={() => router.push('/(tabs)/search')} active={false} />
+        <TabBarButton icon="Bookmark" label="Zapisane" onPress={() => router.push('/(tabs)/saved')} active={false} />
+        <TabBarButton icon="CalendarIcon" label="Kalendarz" onPress={() => router.push('/(tabs)/kalendarz')} active={false} />
+        <TabBarButton icon="Settings" label="Ustawienia" onPress={() => router.push('/(tabs)/preferences')} active={false} />
+      </View>
+    </View>
+  );
+}
+
+function TabBarButton({ icon, label, onPress, active }: { icon: string, label: string, onPress: () => void, active: boolean }) {
+  const { theme } = useThemeStore();
+  const iconMap = { Home, Search, Bookmark, CalendarIcon, Settings };
+  const Icon = iconMap[icon as keyof typeof iconMap];
+  
+  if (!Icon) return null;
+  
+  return (
+    <TouchableOpacity style={styles.tabItem} onPress={onPress}>
+      <View style={{
+        backgroundColor: active ? theme.colors.primary : 'transparent',
+        borderRadius: active ? 24 : 0,
+        width: active ? 48 : 'auto',
+        height: active ? 48 : 'auto',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <Icon size={active ? 26 : 24} color={active ? '#FFFFFF' : theme.colors.textSecondary} strokeWidth={active ? 2.5 : 2} />
+      </View>
+      <Text style={[styles.tabLabel, { color: active ? theme.colors.primary : theme.colors.textSecondary }]}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.select({
-      ios: 54,
-      android: 48,
-      default: 54
-    }),
-    paddingBottom: 16,
-    zIndex: 1000,
-  },
-  circularButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: 120,
-  },
-  featuredImageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: height * 0.45, // Changed from 0.65 to 0.45 (45% of screen height)
-  },
-  featuredImage: {
-    width: '100%',
-    height: '100%',
-  },
-  featuredImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  imageDarkOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-  },
-  articleContent: {
-    padding: 24,
-    marginTop: -24,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    minHeight: 500,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  title: {
-    fontSize: Platform.OS === 'android' ? 22 : 24,
-    fontWeight: '700',
-    marginBottom: 16,
-    lineHeight: Platform.OS === 'android' ? 28 : 32,
-    letterSpacing: -0.3,
-  },
-  metaContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  metaText: {
-    fontSize: 14,
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  categoryMetaText: {
-    fontSize: 14,
-    fontWeight: '600',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  videoContainer: {
-    marginBottom: 28,
-  },
-  youtubeContainer: {
-    marginTop: 28,
-    marginBottom: 28,
-  },
-  youtubeTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: -0.3,
-  },
-  additionalVideosContainer: {
-    marginTop: 28,
-    marginBottom: 28,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: -0.3,
-  },
-  galleryContainer: {
-    marginTop: 32,
-    marginBottom: 24,
-  },
-  galleryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: -0.3,
-  },
-  galleryLoadingContainer: {
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  galleryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8, // Reduced from 16 to 8
-    justifyContent: 'space-between',
-  },
-  galleryImageContainer: {
-    width: (width - 64) / 2, // Increased from (width - 88) / 2
-    height: 160, // Increased from 140
-    borderRadius: 12, // Reduced from 16 for tighter look
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, // Reduced shadow
-    shadowOpacity: 0.1, // Reduced from 0.15
-    shadowRadius: 4, // Reduced from 8
-    elevation: 3, // Reduced from 6
-  },
-  galleryImage: {
-    width: '100%',
-    height: '100%',
-  },
-  relatedContainer: {
-    marginTop: 32,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
-    marginHorizontal: -24,
-  },
-  relatedListContainer: {
-    marginTop: 24,
-    paddingHorizontal: 24,
-  },
-  relatedTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 20,
-    letterSpacing: -0.3,
-  },
-  relatedList: {
-    gap: 16,
-  },
-  sourceCreditsContainer: {
-    marginTop: 24,
-    marginBottom: 8,
-    padding: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
-    borderRadius: 12,
-  },
-  sourceCreditsText: {
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  bottomMenuBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    paddingBottom: Platform.select({
-      ios: 20,
-      android: 15,
-      default: 15,
-    }),
-    paddingTop: 10,
-    borderTopWidth: 0,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    height: Platform.select({
-      ios: 85,
-      android: 75,
-      default: 75
-    }),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  bottomMenuItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-    position: 'relative',
-  },
-  bottomMenuText: {
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 4,
-    letterSpacing: 0.2,
-  },
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: '25%',
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  htmlContainer: {
-    width: '100%',
-    minHeight: 200,
-    marginTop: 8,
-  },
-  webview: {
-    width: '100%',
-    minHeight: 300,
-    backgroundColor: 'transparent',
-  },
-  fallbackContainer: {
-    padding: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 200,
-    marginTop: 8,
-  },
-  fallbackText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 24,
-  },
-  fallbackButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  fallbackButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 16,
-  },
-  progressBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    zIndex: 1001,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.96)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalCloseButton: {
-    position: 'absolute',
-    top: Platform.select({
-      ios: 54,
-      android: 44,
-      default: 54
-    }),
-    right: 24,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  modalNavButton: {
-    position: 'absolute',
-    top: '50%',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    marginTop: -24,
-  },
-  modalNavButtonLeft: {
-    left: 24,
-  },
-  modalNavButtonRight: {
-    right: 24,
-  },
-  modalCounter: {
-    position: 'absolute',
-    top: Platform.select({
-      ios: 54,
-      android: 44,
-      default: 54
-    }),
-    left: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    zIndex: 1000,
-  },
-  modalCounterText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  modalImage: {
-    width: width,
-    height: '70%',
-  },
-  modalCaptionContainer: {
-    position: 'absolute',
-    bottom: 48,
-    left: 24,
-    right: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  },
-  modalCaption: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  swipePreviewContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  swipePreviewContent: {
-    width: width * 0.8,
-    height: height * 0.6,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
-  },
-  swipePreviewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  swipePreviewOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  swipePreviewTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  swipePreviewSubtitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-    opacity: 0.9,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  edgeIndicator: {
-    position: 'absolute',
-    top: '40%',
-    width: 3,
-    height: 60,
-    borderRadius: 1.5,
-    opacity: 0,
-    zIndex: 100,
-  } as const,
-  leftEdgeIndicator: {
-    left: 8,
-  } as const,
-  rightEdgeIndicator: {
-    right: 8,
-  } as const,
-  dragProgressBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    opacity: 0,
-    transform: [{ scaleX: 0 }],
-    zIndex: 100,
-  } as const,
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
+  imageContainer: { width: '100%', height: height * 0.5, position: 'relative' },
+  featuredImage: { width: '100%', height: '100%' },
+  imageGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 200 },
+  contentContainer: { marginTop: -30, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 20, paddingTop: 30, paddingBottom: 40 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'ios' ? 54 : 40, paddingHorizontal: 20, paddingBottom: 10 },
+  headerButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.06)' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 12, lineHeight: 36 },
+  date: { fontSize: 15, marginBottom: 24 },
+  tabBar: { position: 'absolute', bottom: 0, left: 0, right: 0, height: Platform.OS === 'ios' ? 110 : 98, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingBottom: Platform.OS === 'ios' ? 32 : 18, borderTopWidth: 1 },
+  tabItem: { alignItems: 'center' },
+  tabLabel: { fontSize: 12, marginTop: 4, fontWeight: '500' },
+  relatedContainer: { marginTop: 32, paddingHorizontal: 20 },
+  relatedTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+  relatedCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, backgroundColor: '#F3F4F6', borderRadius: 16, overflow: 'hidden' },
+  relatedImage: { width: 80, height: 80, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 },
+  relatedContent: { flex: 1, padding: 12 },
+  relatedCardTitle: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
+  relatedCardDate: { fontSize: 12, color: '#888' },
 });

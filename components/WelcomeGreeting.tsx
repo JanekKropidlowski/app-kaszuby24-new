@@ -39,11 +39,16 @@ export const WelcomeGreeting = ({ compact = false, enlarged = false }: WelcomeGr
   const [greeting, setGreeting] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
+  const [debugMode, setDebugMode] = useState(false);
 
   useEffect(() => {
     loadUserName();
     updateGreeting();
     const interval = setInterval(updateGreeting, 60000); // Aktualizuj co minutę
+    AsyncStorage.getItem('debugMode').then(val => {
+      if (val === 'true') setDebugMode(true);
+    });
     return () => clearInterval(interval);
   }, []);
 
@@ -86,6 +91,18 @@ export const WelcomeGreeting = ({ compact = false, enlarged = false }: WelcomeGr
       await AsyncStorage.setItem('@hasSeenNameModal', 'true');
       setIsFirstTime(false);
     }
+  };
+
+  const handleHandTap = async () => {
+    setTapCount(prev => {
+      const newCount = prev + 1;
+      if (newCount >= 5) {
+        setDebugMode(true);
+        AsyncStorage.setItem('debugMode', 'true');
+      }
+      setTimeout(() => setTapCount(0), 2000); // reset po 2s
+      return newCount;
+    });
   };
 
   return (

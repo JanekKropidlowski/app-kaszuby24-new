@@ -159,22 +159,25 @@ const darkTheme: Theme = {
   },
 };
 
-interface ThemeState {
+export interface ThemeState {
   isDarkMode: boolean;
-  autoTheme: boolean; // Nowa opcja automatycznego przełączania
-  theme: Theme;
+  autoTheme: boolean;
+  theme: typeof lightTheme;
+  debugMode: boolean;
   toggleTheme: () => void;
   toggleAutoTheme: () => void;
   setAutoTheme: (enabled: boolean) => void;
   updateThemeByTime: () => void;
+  toggleDebugMode: () => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       isDarkMode: false,
-      autoTheme: false, // Domyślnie wyłączone
-      theme: lightTheme, // Ensure default theme is always set
+      autoTheme: false,
+      theme: lightTheme,
+      debugMode: false,
       toggleTheme: () =>
         set((state) => ({
           isDarkMode: !state.isDarkMode,
@@ -201,16 +204,14 @@ export const useThemeStore = create<ThemeState>()(
           });
         }
       },
+      toggleDebugMode: () =>
+        set((state) => ({
+          debugMode: !state.debugMode,
+        })),
     }),
     {
       name: 'theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Add onRehydrateStorage to ensure theme is properly set after loading
-      onRehydrateStorage: () => (state) => {
-        if (state && !state.theme) {
-          state.theme = state.isDarkMode ? darkTheme : lightTheme;
-        }
-      },
     }
   )
 );

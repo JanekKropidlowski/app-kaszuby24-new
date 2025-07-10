@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -36,6 +36,7 @@ import { useArticlesStore } from '@/store/articlesStore';
 import { Image } from 'expo-image';
 import { useScrollStore } from '@/store/scrollStore';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PreferencesScreen() {
   const { 
@@ -51,7 +52,7 @@ export default function PreferencesScreen() {
     getUnreadCount
   } = useNotificationsStore();
   
-  const { isDarkMode, toggleTheme, theme } = useThemeStore();
+  const { isDarkMode, toggleTheme, theme, debugMode, toggleDebugMode } = useThemeStore();
   const { clearRecentArticles } = useArticlesStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
   const router = useRouter();
@@ -238,6 +239,8 @@ export default function PreferencesScreen() {
   const regions = preferences.filter(pref => pref.type === 'region');
   const categories = preferences.filter(pref => pref.type === 'category');
   const enabledCount = preferences.filter(pref => pref.enabled).length;
+  
+  console.log('PreferencesScreen render - debugMode:', debugMode);
   
   return (
     <ScrollView 
@@ -724,6 +727,22 @@ export default function PreferencesScreen() {
         </TouchableOpacity>
       </View>
       
+      {/* Ustawienia debugowania */}
+      <View style={styles.settingRow}>
+        <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Tryb debugowania</Text>
+        <View style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+          <Switch
+            value={debugMode}
+            onValueChange={toggleDebugMode}
+            thumbColor={theme.colors.primary}
+            trackColor={{ false: theme.colors.border, true: theme.colors.primary + '55' }}
+          />
+          <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+            {debugMode ? 'Włączony' : 'Wyłączony'}
+          </Text>
+        </View>
+      </View>
+      
       <View style={styles.footer}>
         <Text style={[
           styles.footerText, 
@@ -743,7 +762,7 @@ export default function PreferencesScreen() {
         ]}>
           © 2025 Kaszuby24.pl
         </Text>
-      </View>
+    </View>
     </ScrollView>
   );
 }
@@ -943,4 +962,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 4,
   },
-});
+}); 

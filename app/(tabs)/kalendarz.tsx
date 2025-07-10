@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, StyleSheet, Platform, Modal, Linking, TextInput, ScrollView, Share } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, StyleSheet, Platform, Modal, Linking, TextInput, ScrollView, Share, SafeAreaView } from 'react-native';
 import { Calendar, MapPin, Tag, X } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import he from 'he';
 
 const BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2/kalendarz?_embed&per_page=20';
 
@@ -18,6 +20,7 @@ function formatTime(dateStr: string) {
 
 export default function EventCalendarScreen() {
   const { theme } = useThemeStore();
+  const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,8 +30,6 @@ export default function EventCalendarScreen() {
   const [error, setError] = useState<string | null>(null);
   const [cityFilter, setCityFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalEvent, setModalEvent] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cityModal, setCityModal] = useState(false);
   const [catModal, setCatModal] = useState(false);
@@ -107,8 +108,7 @@ export default function EventCalendarScreen() {
   };
 
   const handleEventPress = (event: any) => {
-    setModalEvent(event);
-    setModalVisible(true);
+    router.push(`/event/${event.id}`);
   };
 
   const handleShare = async (event: any) => {
@@ -148,7 +148,7 @@ export default function EventCalendarScreen() {
         <Image source={{ uri: item._embedded["wp:featuredmedia"][0].source_url }} style={styles.image} contentFit="cover" />
       ) : null}
       <View style={styles.cardContent}>
-        <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>{item.title.rendered}</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>{he.decode(item.title.rendered)}</Text>
         <View style={styles.row}>
           <Calendar size={16} color={theme.colors.primary} />
           <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatDate(item.date)} {formatTime(item.date)}</Text>
@@ -173,7 +173,7 @@ export default function EventCalendarScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>  
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>  
       {/* Search Bar */}
       <View style={[styles.searchBarWrapper, { backgroundColor: theme.colors.card }]}> 
         <TextInput
@@ -215,38 +215,7 @@ export default function EventCalendarScreen() {
           ListFooterComponent={loadingMore ? <ActivityIndicator style={{ marginVertical: 20 }} color={theme.colors.primary} /> : null}
         />
       )}
-      {/* Modal szczegółów */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}> 
-            <TouchableOpacity style={styles.modalClose} onPress={() => setModalVisible(false)}>
-              <X size={22} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-            {modalEvent && (
-              <>
-                <Text style={[styles.title, { color: theme.colors.text, fontSize: 20, marginBottom: 8 }]}>{modalEvent.title.rendered}</Text>
-                <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatDate(modalEvent.date)} {formatTime(modalEvent.date)}</Text>
-                {modalEvent.meta?.miasto && <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>Miasto: {modalEvent.meta.miasto}</Text>}
-                {modalEvent.meta?.cena && <Text style={[styles.price, { color: theme.colors.primary }]}>Cena: {modalEvent.meta.cena} zł</Text>}
-                {modalEvent.meta?.['opis-wydarzenia'] && <Text style={[styles.desc, { color: theme.colors.text }]}>{modalEvent.meta['opis-wydarzenia'].replace(/<[^>]*>/g, '').trim()}</Text>}
-                {modalEvent.meta?.['link-do-wydarzenia'] && (
-                  <TouchableOpacity onPress={() => { Linking.openURL(modalEvent.meta['link-do-wydarzenia']); }} style={styles.ticketBtn}>
-                    <Text style={[styles.ticketText, { color: theme.colors.primary }]}>Kup bilet / Szczegóły</Text>
-                  </TouchableOpacity>
-                )}
-                <View style={styles.modalActions}>
-                  <TouchableOpacity onPress={() => handleShare(modalEvent)} style={styles.actionBtn}>
-                    <Text style={[styles.actionText, { color: theme.colors.primary }]}>Udostępnij</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleAddToCalendar(modalEvent)} style={styles.actionBtn}>
-                    <Text style={[styles.actionText, { color: theme.colors.primary }]}>Dodaj do kalendarza</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
+      {/* Szczegóły wydarzenia są teraz na osobnej stronie */}
       {/* City Picker Modal */}
       <Modal visible={cityModal} transparent animationType="slide" onRequestClose={()=>setCityModal(false)}>
         <View style={styles.modalOverlay}>
@@ -284,7 +253,7 @@ export default function EventCalendarScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
