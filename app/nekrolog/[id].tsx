@@ -12,10 +12,10 @@ import {
   Alert
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Share2, MapPin, Download, Heart, Home, Bell, Settings, Bookmark, Search } from 'lucide-react-native';
+import { ArrowLeft, Share2, MapPin, Download, Heart, Home, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useThemeStore } from '@/store/themeStore';
-import { useNotificationsStore } from '@/store/notificationsStore';
+
 import { fetchNekrologById } from '@/services/api';
 import { Nekrolog } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -25,7 +25,7 @@ export default function NekrologDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { theme, isDarkMode } = useThemeStore();
-  const { getUnreadCount } = useNotificationsStore();
+
   
   const [nekrolog, setNekrolog] = useState<Nekrolog | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,7 @@ export default function NekrologDetailScreen() {
   const [regionName, setRegionName] = useState<string>('');
   
   const isMounted = useRef(true);
-  const unreadCount = getUnreadCount();
+
 
   // Load nekrolog data
   useEffect(() => {
@@ -377,28 +377,7 @@ export default function NekrologDetailScreen() {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.tabItem}
-          onPress={() => handleTabNavigation('/(tabs)/notifications')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.tabItemWithBadge}>
-            <Bell size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-            {unreadCount > 0 && (
-              <View style={[styles.tabBadge, { backgroundColor: theme.colors.notification }]}>
-                <Text style={styles.tabBadgeText}>
-                  {unreadCount > 9 ? '9+' : unreadCount.toString()}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.tabLabel, { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.medium 
-          }]}>
-            Powiadomienia
-          </Text>
-        </TouchableOpacity>
+
 
         <TouchableOpacity 
           style={styles.tabItem}

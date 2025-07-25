@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Share, Platform, Dimensions, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { ArrowLeft, Share2, Home, Search, Bookmark, Calendar as CalendarIcon, Bookmark as BookmarkFilled, Bell, Settings } from 'lucide-react-native';
+import { ArrowLeft, Share2, Home, Search, Bookmark, Calendar as CalendarIcon, Bookmark as BookmarkFilled, Settings } from 'lucide-react-native';
 import { fetchArticleById, fetchArticles } from '@/services/api';
 import { Article } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
@@ -197,7 +197,7 @@ export default function ArticleScreen() {
         <TabBarButton icon="Search" label="Szukaj" onPress={() => router.push('/(tabs)/search')} active={false} />
         <TabBarButton icon="Bookmark" label="Zapisane" onPress={() => router.push('/(tabs)/saved')} active={false} />
         <TabBarButton icon="CalendarIcon" label="Kalendarz" onPress={() => router.push('/(tabs)/kalendarz')} active={false} />
-        <TabBarButton icon="Bell" label="Powiadomienia" onPress={() => router.push('/(tabs)/notifications')} active={false} />
+
         <TabBarButton icon="Settings" label="Ustawienia" onPress={() => router.push('/(tabs)/preferences')} active={false} />
       </View>
     </View>
@@ -206,7 +206,7 @@ export default function ArticleScreen() {
 
 function TabBarButton({ icon, label, onPress, active }: { icon: string, label: string, onPress: () => void, active: boolean }) {
   const { theme } = useThemeStore();
-  const iconMap = { Home, Search, Bookmark, CalendarIcon, Bell, Settings };
+  const iconMap = { Home, Search, Bookmark, CalendarIcon, Settings };
   const Icon = iconMap[icon as keyof typeof iconMap];
   
   if (!Icon) return null;

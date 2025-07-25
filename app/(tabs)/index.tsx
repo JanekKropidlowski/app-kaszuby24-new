@@ -771,8 +771,10 @@ export default function HomeScreen() {
   }, [loadArticles]);
 
   const handleBannerPress = useCallback(() => {
-    router.push('/(tabs)/notifications');
-  }, [router]);
+    // Notifications screen removed from main tabs
+    // Could redirect to settings or dismiss banner
+    dismissBanner();
+  }, [dismissBanner]);
 
   const handleBannerDismiss = useCallback(() => {
     dismissBanner();
