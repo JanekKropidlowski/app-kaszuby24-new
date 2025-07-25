@@ -64,8 +64,8 @@ import * as Haptics from 'expo-haptics';
 const { width, height } = Dimensions.get('window');
 
 // New center mode carousel dimensions - optimized for true center mode
-const CAROUSEL_ITEM_WIDTH = width * 0.8; // 80% of screen width for a wider active slide
-const CAROUSEL_ITEM_SPACING = 8; // Reduced spacing for a tighter look
+const CAROUSEL_ITEM_WIDTH = width * 0.75; // 75% of screen width for better visibility
+const CAROUSEL_ITEM_SPACING = 12; // Better spacing for visual separation
 const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Perfect centering calculation
 
 // Modern header component with enhanced UI
@@ -1035,8 +1035,8 @@ export default function HomeScreen() {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
-                  snapToAlignment="start"
-                  decelerationRate="fast"
+                  snapToAlignment="center"
+                  decelerationRate={0.92}
                   contentContainerStyle={styles.carouselListContent}
                   scrollEventThrottle={16}
                   onScroll={scrollHandler}
@@ -1149,6 +1149,7 @@ const styles = StyleSheet.create({
   carouselListContent: {
     paddingHorizontal: CAROUSEL_SIDE_PEEK,
     paddingVertical: 6,
+    alignItems: 'center',
   },
   carouselItemWrapper: {
     width: CAROUSEL_ITEM_WIDTH,
@@ -1361,6 +1362,7 @@ const styles = StyleSheet.create({
   categoriesContent: {
     paddingHorizontal: 16,
     paddingVertical: 6,
+    alignItems: 'center',
   },
   categoryPill: {
     flexDirection: 'row',

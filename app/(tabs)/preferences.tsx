@@ -743,6 +743,30 @@ export default function PreferencesScreen() {
         </View>
       </View>
       
+      {/* Logo Section */}
+      <View style={[styles.logoSection, { backgroundColor: theme.colors.card }]}>
+        <View style={styles.logoContainer}>
+          <Image 
+            source={{ 
+              uri: theme.isDarkMode 
+                ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY_Obszar-roboczy-1-scaled.png' // Białe logo dla ciemnego motywu
+                : 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-02.png' // Czarne logo dla jasnego motywu
+            }}
+            style={styles.sponsorLogo}
+            contentFit="contain"
+          />
+        </View>
+        <Text style={[
+          styles.sponsorText, 
+          { 
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fontFamily.regular
+          }
+        ]}>
+          Aplikacja wspierana przez
+        </Text>
+      </View>
+
       <View style={styles.footer}>
         <Text style={[
           styles.footerText, 
@@ -762,7 +786,7 @@ export default function PreferencesScreen() {
         ]}>
           © 2025 Kaszuby24.pl
         </Text>
-    </View>
+      </View>
     </ScrollView>
   );
 }
@@ -953,6 +977,28 @@ const styles = StyleSheet.create({
   },
   preferenceName: {
     fontSize: 16,
+  },
+  logoSection: {
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  logoContainer: {
+    width: 200,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  sponsorLogo: {
+    width: '100%',
+    height: '100%',
+  },
+  sponsorText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   footer: {
     alignItems: 'center',

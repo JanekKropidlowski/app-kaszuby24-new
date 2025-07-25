@@ -593,7 +593,12 @@ const styles = StyleSheet.create({
   },
 
   infoScroll: { marginTop: 5, marginBottom: 25 },
-  infoScrollContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoScrollContent: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8,
+    paddingHorizontal: 20,
+  },
   infoRowHorizontal: { flexDirection: 'row', alignItems: 'center', marginRight: 18 },
   infoKafelek: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, marginRight: 8, borderWidth: 1, borderColor: '#F0F1F3', shadowColor: 'transparent', elevation: 0 },
   infoIconWrap: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F5F6FA', justifyContent: 'center', alignItems: 'center', marginRight: 7 },

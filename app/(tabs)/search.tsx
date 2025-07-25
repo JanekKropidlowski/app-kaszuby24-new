@@ -785,6 +785,7 @@ const styles = StyleSheet.create({
   filtersContent: {
     paddingHorizontal: 16,
     marginBottom: 12,
+    alignItems: 'center',
   },
   filterChip: {
     flexDirection: 'row',

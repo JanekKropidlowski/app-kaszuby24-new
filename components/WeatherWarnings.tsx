@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, LayoutAnimation, Platform, UIManager } from 'react-native';
-import { AlertTriangle, ChevronDown } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, LayoutAnimation, Platform, UIManager, Animated } from 'react-native';
+import { AlertTriangle, ChevronDown, AlertCircle, AlertOctagon } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -8,15 +8,34 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const getWarningStyles = (theme, level) => {
-    const baseColor = level > 1 ? theme.colors.error : theme.colors.warning;
+    const getWarningColor = (level) => {
+        if (level >= 3) return theme.colors.error;
+        if (level === 2) return '#FF6B35'; // Orange for medium warnings
+        return theme.colors.warning;
+    };
+
+    const getWarningIcon = (level) => {
+        if (level >= 3) return AlertOctagon;
+        if (level === 2) return AlertTriangle;
+        return AlertCircle;
+    };
+
+    const baseColor = getWarningColor(level);
+    const IconComponent = getWarningIcon(level);
+    
     return StyleSheet.create({
         container: {
-            backgroundColor: `${baseColor}20`, // e.g., #ffab0020
+            backgroundColor: `${baseColor}10`,
             borderRadius: 16,
             marginBottom: 12,
             borderWidth: 1,
-            borderColor: `${baseColor}50`,
+            borderColor: `${baseColor}30`,
             overflow: 'hidden',
+            shadowColor: baseColor,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
         },
         header: {
             flexDirection: 'row',
@@ -25,6 +44,12 @@ const getWarningStyles = (theme, level) => {
         },
         iconContainer: {
             marginRight: 12,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: `${baseColor}20`,
+            alignItems: 'center',
+            justifyContent: 'center',
         },
         headerTextContainer: {
             flex: 1,
@@ -33,11 +58,24 @@ const getWarningStyles = (theme, level) => {
             fontFamily: theme.fontFamily.bold,
             fontSize: 16,
             color: theme.colors.text,
+            marginBottom: 2,
         },
         headerSubtitle: {
-            fontFamily: theme.fontFamily.regular,
+            fontFamily: theme.fontFamily.medium,
             fontSize: 13,
             color: theme.colors.textSecondary,
+        },
+        levelBadge: {
+            backgroundColor: baseColor,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 12,
+            marginLeft: 8,
+        },
+        levelText: {
+            color: 'white',
+            fontFamily: theme.fontFamily.bold,
+            fontSize: 11,
         },
         chevron: {
             transform: [{ rotate: '0deg' }],
@@ -48,6 +86,8 @@ const getWarningStyles = (theme, level) => {
         body: {
             padding: 16,
             paddingTop: 0,
+            borderTopWidth: 1,
+            borderTopColor: `${baseColor}20`,
         },
         content: {
             fontFamily: theme.fontFamily.regular,
@@ -55,35 +95,72 @@ const getWarningStyles = (theme, level) => {
             color: theme.colors.textSecondary,
             lineHeight: 21,
         },
+        timestamp: {
+            fontFamily: theme.fontFamily.medium,
+            fontSize: 12,
+            color: theme.colors.textSecondary,
+            marginTop: 8,
+            fontStyle: 'italic',
+        },
     });
 };
 
-const WarningItem = ({ title, subtitle, content, level }) => {
+const WarningItem = ({ title, subtitle, content, level, validUntil }) => {
     const { theme } = useThemeStore();
     const [isExpanded, setIsExpanded] = useState(false);
+    const [rotateAnim] = useState(new Animated.Value(0));
     const styles = getWarningStyles(theme, level);
 
     const toggleExpand = () => {
+        const toValue = isExpanded ? 0 : 1;
+        
+        Animated.timing(rotateAnim, {
+            toValue,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setIsExpanded(!isExpanded);
     };
 
+    const getLevelText = (level) => {
+        if (level >= 3) return 'KRYTYCZNE';
+        if (level === 2) return 'ŚREDNIE';
+        return 'NISKIE';
+    };
+
+    const rotate = rotateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '180deg'],
+    });
+
     return (
         <View style={styles.container}>
-            <TouchableOpacity onPress={toggleExpand} style={styles.header}>
+            <TouchableOpacity onPress={toggleExpand} style={styles.header} activeOpacity={0.7}>
                 <View style={styles.iconContainer}>
-                    <AlertTriangle size={24} color={level > 1 ? theme.colors.error : theme.colors.warning} />
+                    <AlertTriangle size={20} color={styles.container.borderColor} />
                 </View>
                 <View style={styles.headerTextContainer}>
-                    <Text style={styles.headerTitle}>{title}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={styles.headerTitle}>{title}</Text>
+                        <View style={styles.levelBadge}>
+                            <Text style={styles.levelText}>{getLevelText(level)}</Text>
+                        </View>
+                    </View>
                     <Text style={styles.headerSubtitle}>{subtitle}</Text>
                 </View>
-                <ChevronDown size={24} color={theme.colors.textSecondary} style={isExpanded ? styles.chevronExpanded : styles.chevron} />
+                <Animated.View style={{ transform: [{ rotate }] }}>
+                    <ChevronDown size={20} color={theme.colors.textSecondary} />
+                </Animated.View>
             </TouchableOpacity>
 
             {isExpanded && (
                 <View style={styles.body}>
                     <Text style={styles.content}>{content.replace(/<br\s*\/?>/gi, "\n")}</Text>
+                    {validUntil && (
+                        <Text style={styles.timestamp}>Ważne do: {validUntil}</Text>
+                    )}
                 </View>
             )}
         </View>
@@ -94,26 +171,33 @@ export const WeatherWarnings = ({ warnings }) => {
     const meteoWarnings = (warnings.meteo || []).map(w => ({
         id: `meteo-${w.ID}`,
         title: w.Name,
-        subtitle: `Poziom ${w.level}, ważne do ${w.valid_do}`,
+        subtitle: `Ostrzeżenie meteorologiczne`,
         content: w.tresc,
         level: w.level,
+        validUntil: w.valid_do,
     }));
 
     const hydroWarnings = (warnings.hydro || []).map(w => ({
         id: `hydro-${w.ID}`,
         title: `Ostrzeżenie hydrologiczne`,
-        subtitle: `Poziom ${w.Stopien}, ważne do ${w.valid_do}`,
+        subtitle: `Poziom ${w.Stopien}`,
         content: w.tresc,
         level: w.Stopien,
+        validUntil: w.valid_do,
     }));
 
     const allWarnings = [...meteoWarnings, ...hydroWarnings];
 
     if (allWarnings.length === 0) return null;
 
+    // Sort warnings by level (highest first)
+    const sortedWarnings = allWarnings.sort((a, b) => b.level - a.level);
+
     return (
-        <View>
-            {allWarnings.map(warning => <WarningItem key={warning.id} {...warning} />)}
+        <View style={{ marginBottom: 20 }}>
+            {sortedWarnings.map(warning => (
+                <WarningItem key={warning.id} {...warning} />
+            ))}
         </View>
     );
 }; 

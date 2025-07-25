@@ -13,8 +13,8 @@ interface RelatedArticlesSliderProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.72; // Optymalna szerokość dla center mode
-const ITEM_SPACING = 16; // Optymalne spacing dla płynnego przewijania
+const ITEM_WIDTH = width * 0.75; // Lepsza szerokość dla center mode
+const ITEM_SPACING = 12; // Lepsze spacing dla płynnego przewijania
 const SIDE_PADDING = (width - ITEM_WIDTH) / 2; // Padding dla wyśrodkowania
 
 // Enhanced memoized article item component
@@ -180,7 +180,7 @@ export const RelatedArticlesSlider: React.FC<RelatedArticlesSliderProps> = memo(
         contentContainerStyle={styles.listContainer}
         snapToInterval={ITEM_WIDTH + ITEM_SPACING}
         snapToAlignment="center"
-        decelerationRate={0.92} // Płynniejsze zatrzymywanie
+        decelerationRate={0.85} // Lepsze zatrzymywanie
         removeClippedSubviews={listConfig.removeClippedSubviews}
         initialNumToRender={listConfig.initialNumToRender}
         maxToRenderPerBatch={listConfig.maxToRenderPerBatch}
@@ -218,7 +218,8 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingLeft: SIDE_PADDING, // Wyśrodkowanie z paddingiem po lewej
-    paddingRight: SIDE_PADDING - ITEM_SPACING, // Kompensacja ostatniego marginesu
+    paddingRight: SIDE_PADDING, // Równy padding po prawej
+    alignItems: 'center',
   },
   articleContainer: {
     borderRadius: 24,

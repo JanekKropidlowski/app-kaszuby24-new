@@ -1,121 +1,280 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Sun, Cloud, CloudRain, CloudSnow, Wind, CloudDrizzle } from 'lucide-react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { Svg, Path, Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
 import { useThemeStore } from '@/store/themeStore';
-import { useRouter } from 'expo-router';
+import { Thermometer, Droplets, Wind, Gauge } from 'lucide-react-native';
 
-interface WeatherData {
-  temperature: number;
-  weatherCode: number;
-  location: string;
-}
+const { width: screenWidth } = Dimensions.get('window');
 
-export const WeatherWidget = () => {
-  const { theme } = useThemeStore();
-  const router = useRouter();
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(true);
+const WeatherGauge = ({ value, maxValue, title, unit, color, icon: Icon }) => {
+    const { theme } = useThemeStore();
+    const percentage = Math.min((value / maxValue) * 100, 100);
+    const radius = 30;
+    const strokeWidth = 6;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDasharray = circumference;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  useEffect(() => {
-    fetchWeather();
-    // Odświeżaj co 10 minut
-    const interval = setInterval(fetchWeather, 600000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchWeather = async () => {
-    try {
-      // Domyślnie Gdańsk - później można dodać geolokalizację
-      const lat = 54.3520;
-      const lon = 18.6466;
-      
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Europe/Warsaw`
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setWeather({
-          temperature: Math.round(data.current.temperature_2m),
-          weatherCode: data.current.weather_code,
-          location: 'Gdańsk'
-        });
-      }
-    } catch (error) {
-      console.log('Weather fetch error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getWeatherIcon = (code: number) => {
-    const iconProps = { 
-      size: 20, 
-      color: theme.isDarkMode ? '#FFFFFF' : '#1E293B',
-      strokeWidth: 1.5 
-    };
-    
-    // Mapowanie kodów pogody Open-Meteo na ikony
-    if (code === 0 || code === 1) return <Sun {...iconProps} />;
-    if (code === 2 || code === 3) return <Cloud {...iconProps} />;
-    if ([51, 53, 55, 61, 63, 65].includes(code)) return <CloudRain {...iconProps} />;
-    if ([56, 57, 66, 67].includes(code)) return <CloudDrizzle {...iconProps} />;
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow {...iconProps} />;
-    if ([95, 96, 99].includes(code)) return <Wind {...iconProps} />;
-    return <Cloud {...iconProps} />;
-  };
-
-  const handlePress = () => {
-    // Nawigacja do dashboardu pogody
-    router.push('/weather');
-  };
-
-  if (loading) {
     return (
-      <View style={[styles.container, { 
-        backgroundColor: theme.isDarkMode ? 'rgba(254, 204, 0, 0.15)' : 'rgba(254, 204, 0, 0.1)'
-      }]}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-      </View>
+        <View style={styles.gaugeContainer}>
+            <View style={styles.gaugeHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: `${color}15` }]}>
+                    <Icon size={20} color={color} />
+                </View>
+                <Text style={styles.gaugeTitle}>{title}</Text>
+            </View>
+            <View style={styles.gaugeContent}>
+                <Svg width={80} height={80} style={styles.gaugeSvg}>
+                    <Defs>
+                        <LinearGradient id={`gaugeGradient-${title}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                            <Stop offset="0%" stopColor={color} />
+                            <Stop offset="100%" stopColor={`${color}80`} />
+                        </LinearGradient>
+                    </Defs>
+                    <G transform={`translate(40, 40)`}>
+                        {/* Background circle */}
+                        <Circle
+                            cx="0"
+                            cy="0"
+                            r={radius}
+                            stroke={theme.colors.border}
+                            strokeWidth={strokeWidth}
+                            fill="none"
+                        />
+                        {/* Progress circle */}
+                        <Circle
+                            cx="0"
+                            cy="0"
+                            r={radius}
+                            stroke={`url(#gaugeGradient-${title})`}
+                            strokeWidth={strokeWidth}
+                            fill="none"
+                            strokeDasharray={strokeDasharray}
+                            strokeDashoffset={strokeDashoffset}
+                            strokeLinecap="round"
+                            transform="rotate(-90)"
+                        />
+                    </G>
+                </Svg>
+                <View style={styles.gaugeValueContainer}>
+                    <Text style={styles.gaugeValue}>{value}</Text>
+                    <Text style={styles.gaugeUnit}>{unit}</Text>
+                </View>
+            </View>
+        </View>
     );
-  }
-
-  return (
-    <TouchableOpacity 
-      style={[styles.container, { 
-        backgroundColor: theme.isDarkMode ? 'rgba(254, 204, 0, 0.15)' : 'rgba(254, 204, 0, 0.1)'
-      }]}
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      {weather && (
-        <>
-          <Text style={[styles.temperature, { 
-            color: theme.isDarkMode ? '#FFFFFF' : '#1E293B',
-            fontFamily: theme.fontFamily.bold 
-          }]}>
-            {weather.temperature}°
-          </Text>
-          {getWeatherIcon(weather.weatherCode)}
-        </>
-      )}
-    </TouchableOpacity>
-  );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 24,
-    gap: 7,
-    minWidth: 70,
-    justifyContent: 'center',
-  },
-  temperature: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
+const WeatherTrend = ({ data, title, color }) => {
+    const { theme } = useThemeStore();
+    
+    if (!data || data.length < 2) return null;
+
+    const maxValue = Math.max(...data);
+    const minValue = Math.min(...data);
+    const range = maxValue - minValue;
+    
+    const points = data.map((value, index) => {
+        const x = (index / (data.length - 1)) * 100;
+        const y = range > 0 ? 100 - ((value - minValue) / range) * 100 : 50;
+        return `${x},${y}`;
+    }).join(' ');
+
+    return (
+        <View style={styles.trendContainer}>
+            <Text style={styles.trendTitle}>{title}</Text>
+            <View style={styles.trendChart}>
+                <Svg width="100%" height={60} style={styles.trendSvg}>
+                    <Defs>
+                        <LinearGradient id={`trendGradient-${title}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <Stop offset="0%" stopColor={color} />
+                            <Stop offset="100%" stopColor={`${color}60`} />
+                        </LinearGradient>
+                    </Defs>
+                    <Path
+                        d={`M ${points}`}
+                        stroke={`url(#trendGradient-${title})`}
+                        strokeWidth="2"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                    <Path
+                        d={`M ${points} L 100,${points.split(' ').pop().split(',')[1]} L 100,100 L 0,100 Z`}
+                        fill={`url(#trendGradient-${title})`}
+                        opacity="0.1"
+                    />
+                </Svg>
+            </View>
+        </View>
+    );
+};
+
+export const WeatherWidget = ({ weatherData, forecastData }) => {
+    const { theme } = useThemeStore();
+    const styles = getStyles(theme);
+
+    if (!weatherData) return null;
+
+    const { temperatura, cisnienie, wilgotnosc_wzgledna, predkosc_wiatru } = weatherData;
+
+    // Prepare trend data for the next 7 days
+    const temperatureTrend = forecastData?.temperature_2m_max?.slice(0, 7) || [];
+    const pressureTrend = Array(7).fill(parseFloat(cisnienie)).map((p, i) => p + (Math.random() - 0.5) * 5);
+
+    return (
+        <View style={styles.container}>
+            <Text style={styles.sectionTitle}>Szczegółowe dane</Text>
+            
+            <View style={styles.gaugesContainer}>
+                <WeatherGauge
+                    value={parseFloat(temperatura).toFixed(1)}
+                    maxValue={40}
+                    title="Temperatura"
+                    unit="°C"
+                    color="#FF6B6B"
+                    icon={Thermometer}
+                />
+                <WeatherGauge
+                    value={parseFloat(wilgotnosc_wzgledna).toFixed(0)}
+                    maxValue={100}
+                    title="Wilgotność"
+                    unit="%"
+                    color="#4ECDC4"
+                    icon={Droplets}
+                />
+                <WeatherGauge
+                    value={parseFloat(predkosc_wiatru).toFixed(1)}
+                    maxValue={20}
+                    title="Wiatr"
+                    unit="m/s"
+                    color="#45B7D1"
+                    icon={Wind}
+                />
+                <WeatherGauge
+                    value={parseFloat(cisnienie).toFixed(0)}
+                    maxValue={1100}
+                    title="Ciśnienie"
+                    unit="hPa"
+                    color="#96CEB4"
+                    icon={Gauge}
+                />
+            </View>
+
+            {temperatureTrend.length > 0 && (
+                <View style={styles.trendsContainer}>
+                    <WeatherTrend
+                        data={temperatureTrend}
+                        title="Trend temperatury (7 dni)"
+                        color="#FF6B6B"
+                    />
+                </View>
+            )}
+        </View>
+    );
+};
+
+const getStyles = (theme) => StyleSheet.create({
+    container: {
+        backgroundColor: theme.colors.card,
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 20,
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    sectionTitle: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 20,
+        color: theme.colors.text,
+        marginBottom: 20,
+    },
+    gaugesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    gaugeContainer: {
+        width: '48%',
+        backgroundColor: theme.colors.background,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        alignItems: 'center',
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    gaugeHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    iconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 8,
+    },
+    gaugeTitle: {
+        fontFamily: theme.fontFamily.semibold,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+    },
+    gaugeContent: {
+        position: 'relative',
+        alignItems: 'center',
+    },
+    gaugeSvg: {
+        position: 'absolute',
+    },
+    gaugeValueContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 80,
+        height: 80,
+    },
+    gaugeValue: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 18,
+        color: theme.colors.text,
+    },
+    gaugeUnit: {
+        fontFamily: theme.fontFamily.regular,
+        fontSize: 12,
+        color: theme.colors.textSecondary,
+    },
+    trendsContainer: {
+        marginTop: 10,
+    },
+    trendContainer: {
+        backgroundColor: theme.colors.background,
+        borderRadius: 16,
+        padding: 16,
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    trendTitle: {
+        fontFamily: theme.fontFamily.semibold,
+        fontSize: 14,
+        color: theme.colors.text,
+        marginBottom: 12,
+    },
+    trendChart: {
+        height: 60,
+    },
+    trendSvg: {
+        width: '100%',
+    },
 }); 
