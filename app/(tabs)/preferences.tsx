@@ -745,17 +745,6 @@ export default function PreferencesScreen() {
       
       {/* Logo Section */}
       <View style={[styles.logoSection, { backgroundColor: theme.colors.card }]}>
-        <View style={styles.logoContainer}>
-          <Image 
-            source={{ 
-              uri: theme.isDarkMode 
-                ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY_Obszar-roboczy-1-scaled.png' // Białe logo dla ciemnego motywu
-                : 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-02.png' // Czarne logo dla jasnego motywu
-            }}
-            style={styles.sponsorLogo}
-            contentFit="contain"
-          />
-        </View>
         <Text style={[
           styles.sponsorText, 
           { 
@@ -765,6 +754,15 @@ export default function PreferencesScreen() {
         ]}>
           Aplikacja wspierana przez
         </Text>
+        <View style={styles.logoContainer}>
+          <Image 
+            source={{ 
+              uri: 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-03-scaled.png' // Pełna wersja kolorowa
+            }}
+            style={styles.sponsorLogo}
+            contentFit="contain"
+          />
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -981,24 +979,25 @@ const styles = StyleSheet.create({
   logoSection: {
     marginHorizontal: 20,
     borderRadius: 16,
-    padding: 24,
+    padding: 32,
     marginBottom: 16,
     alignItems: 'center',
   },
   logoContainer: {
-    width: 200,
-    height: 80,
+    width: 280,
+    height: 120,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginTop: 16,
   },
   sponsorLogo: {
     width: '100%',
     height: '100%',
   },
   sponsorText: {
-    fontSize: 14,
+    fontSize: 16,
     textAlign: 'center',
+    marginBottom: 8,
   },
   footer: {
     alignItems: 'center',
