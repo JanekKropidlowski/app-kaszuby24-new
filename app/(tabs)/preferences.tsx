@@ -757,7 +757,9 @@ export default function PreferencesScreen() {
         <View style={styles.logoContainer}>
           <Image 
             source={{ 
-              uri: 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-03-scaled.png' // Pełna wersja kolorowa
+              uri: theme.isDarkMode 
+                ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY_Obszar-roboczy-1-scaled.png' // Wersja biała dla ciemnego motywu
+                : 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-03-scaled.png' // Pełna wersja kolorowa dla jasnego motywu
             }}
             style={styles.sponsorLogo}
             contentFit="contain"
@@ -984,8 +986,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoContainer: {
-    width: 280,
-    height: 120,
+    width: 200,
+    height: 80,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 16,

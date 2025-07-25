@@ -59,6 +59,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { WelcomeGreeting } from '@/components/WelcomeGreeting';
 import { WeatherIcon } from '@/components/WeatherIcon';
+import WeatherSummary from '@/components/WeatherSummary';
 import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
@@ -69,7 +70,7 @@ const CAROUSEL_ITEM_SPACING = 12; // Better spacing for visual separation
 const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Perfect centering calculation
 
 // Modern header component with enhanced UI
-const ModernHeader = () => {
+const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }) => {
   const { theme } = useThemeStore();
   const router = useRouter();
 
@@ -94,10 +95,25 @@ const ModernHeader = () => {
           </View>
         </View>
         
-        {/* Right side - Weather Icon */}
-        <View style={styles.weatherIconContainer}>
-          <WeatherIcon wmoCode={0} size={40} />
-        </View>
+        {/* Right side - Weather Summary */}
+        <TouchableOpacity 
+          style={styles.weatherIconContainer}
+          onPress={onWeatherPress}
+          activeOpacity={0.7}
+        >
+          {weatherLoading ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : weatherData ? (
+            <View style={styles.weatherSummaryContainer}>
+              <WeatherIcon wmoCode={0} size={32} />
+              <Text style={[styles.weatherTemperature, { color: theme.colors.text }]}>
+                {parseFloat(weatherData.temperatura).toFixed(1)}°
+              </Text>
+            </View>
+          ) : (
+            <WeatherIcon wmoCode={0} size={40} />
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -269,6 +285,8 @@ export default function HomeScreen() {
 
   // New state for infinite scroll carousel
   const [carouselData, setCarouselData] = useState<Article[]>([]);
+  const [weatherData, setWeatherData] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
   const PEEK_COUNT = 2; // Number of items to clone for infinite scroll
   const currentRawIndexRef = useRef(PEEK_COUNT);
 
@@ -483,6 +501,28 @@ export default function HomeScreen() {
     }
   }, []);
   
+  // Load weather data for header
+  const loadWeatherData = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    
+    try {
+      setWeatherLoading(true);
+      // Simple weather data for header - using default station (Gdańsk)
+      const response = await fetch('https://danepubliczne.imgw.pl/api/data/synop/id/12160');
+      if (response.ok) {
+        const data = await response.json();
+        setWeatherData(data);
+      }
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      console.error('Error loading weather data:', err);
+    } finally {
+      if (isMountedRef.current) {
+        setWeatherLoading(false);
+      }
+    }
+  }, [loadArticles]);
+
   // Load nekrologi - sorted by date
   const loadNekrologi = useCallback(async () => {
     if (!isMountedRef.current) return;
@@ -560,7 +600,8 @@ export default function HomeScreen() {
           await Promise.allSettled([
             loadArticles(1, false),
             loadCategories(),
-            loadNekrologi()
+            loadNekrologi(),
+            loadWeatherData()
           ]);
         } catch (error) {
           console.warn('Error during initial load:', error);
@@ -569,7 +610,7 @@ export default function HomeScreen() {
       
       loadData();
     }
-  }, [loadArticles, loadCategories, loadNekrologi]);
+  }, [loadArticles, loadCategories, loadNekrologi, loadWeatherData]);
   
   // Handle category changes
   useEffect(() => {
@@ -869,6 +910,10 @@ export default function HomeScreen() {
     setShowWelcomeModal(false);
   }, []);
 
+  const handleWeatherPress = useCallback(() => {
+    router.push('/(tabs)/weather');
+  }, [router]);
+
   // Render category pills with real categories
   const renderCategoryPills = () => {
     // Real category data from your system - using your blue-green theme
@@ -1009,7 +1054,11 @@ export default function HomeScreen() {
         ListHeaderComponent={
           <View>
             {/* Modern Header */}
-            <ModernHeader />
+            <ModernHeader 
+              weatherData={weatherData}
+              weatherLoading={weatherLoading}
+              onWeatherPress={handleWeatherPress}
+            />
             
             {/* Notifications Banner */}
             {shouldShowBanner() && (
@@ -1564,8 +1613,17 @@ const styles = StyleSheet.create({
   weatherIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 60,
+    width: 80,
     height: 60,
+  },
+  weatherSummaryContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weatherTemperature: {
+    fontSize: 16,
+    fontFamily: 'Poppins-Bold',
+    marginTop: 2,
   },
 
 });
