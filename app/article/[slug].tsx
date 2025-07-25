@@ -78,7 +78,7 @@ export default function ArticleSlugScreen() {
   }, [slug, router]);
   
   const { isArticleSaved, saveArticle, removeArticle, addRecentArticle } = useArticlesStore();
-  const { getUnreadCount } = useNotificationsStore();
+
   const { theme, isDarkMode } = useThemeStore();
   
   const [article, setArticle] = useState<Article | null>(null);
@@ -106,7 +106,7 @@ export default function ArticleSlugScreen() {
   const progressBarWidthValue = useRef(0);
   
   const isSaved = article ? isArticleSaved(article.id) : false;
-  const unreadCount = getUnreadCount();
+
   
   // Optimized load article data with immediate skeleton display
   useEffect(() => {
@@ -296,9 +296,7 @@ export default function ArticleSlugScreen() {
     router.push('/(tabs)/saved');
   }, [router]);
 
-  const handleGoNotifications = useCallback(() => {
-    router.push('/(tabs)/notifications');
-  }, [router]);
+
 
   const handleGoSettings = useCallback(() => {
     router.push('/(tabs)/preferences');
@@ -1072,23 +1070,7 @@ export default function ArticleSlugScreen() {
           </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity
-          style={styles.bottomMenuItem}
-          onPress={handleGoNotifications}
-          activeOpacity={0.7}
-        >
-          <Bell size={20} color={theme.colors.text} />
-          <Text style={[styles.bottomMenuText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Powiadomienia
-          </Text>
-          {unreadCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: theme.colors.notification }]}>
-              <Text style={[styles.badgeText, { fontFamily: theme.fontFamily.semibold }]}>
-                {unreadCount > 9 ? '9+' : unreadCount.toString()}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+
         
         <TouchableOpacity
           style={styles.bottomMenuItem}

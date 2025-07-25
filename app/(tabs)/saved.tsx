@@ -9,7 +9,7 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
-import { Bookmark, ChevronRight, Home, Bell, Settings, Search } from 'lucide-react-native';
+import { Bookmark, ChevronRight, Home, Settings, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import ArticleCard from '@/components/ArticleCard';
 import EmptyState from '@/components/EmptyState';
@@ -19,7 +19,7 @@ import { useRouter } from 'expo-router';
 import { useThemeStore } from '@/store/themeStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
 import { useScrollStore } from '@/store/scrollStore';
-import { useNotificationsStore } from '@/store/notificationsStore';
+
 
 const { width } = Dimensions.get('window');
 const ANIMATION_DURATION = 300;
@@ -94,7 +94,7 @@ export default function SavedScreen() {
   const { savedEvents } = useEventsStore();
   const { theme } = useThemeStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
-  const { getUnreadCount } = useNotificationsStore();
+
   
   const [showRecent, setShowRecent] = useState(true);
   const recentHeight = useState(new Animated.Value(recentArticles.length > 0 ? 1 : 0))[0];
@@ -122,15 +122,13 @@ export default function SavedScreen() {
     // Already on saved
   }, []);
 
-  const handleGoNotifications = useCallback(() => {
-    router.push('/(tabs)/notifications');
-  }, [router]);
+
 
   const handleGoSettings = useCallback(() => {
     router.push('/(tabs)/preferences');
   }, [router]);
 
-  const unreadCount = getUnreadCount();
+
   
   const toggleRecentSection = () => {
     const targetValue = showRecent ? 0 : 1;
@@ -388,25 +386,7 @@ export default function SavedScreen() {
           </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity
-          style={[styles.modernBottomItem, { opacity: 0.7 }]}
-          onPress={handleGoNotifications}
-          activeOpacity={0.8}
-        >
-          <View style={styles.modernBottomIconWrapper}>
-            <Bell size={24} color={theme.colors.text} strokeWidth={2} />
-            {unreadCount > 0 && (
-              <View style={[styles.modernBadge, { backgroundColor: theme.colors.notification }]}>
-                <Text style={[styles.modernBadgeText, { fontFamily: theme.fontFamily.bold }]}>
-                  {unreadCount > 9 ? '9+' : unreadCount.toString()}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Powiadomienia
-          </Text>
-        </TouchableOpacity>
+
         
         <TouchableOpacity
           style={[styles.modernBottomItem, { opacity: 0.7 }]}

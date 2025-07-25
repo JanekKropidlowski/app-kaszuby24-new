@@ -216,6 +216,10 @@ class Kaszuby24_Push_Hooks {
                 <textarea name="push_custom_body" style="width: 100%; height: 60px;" 
                           placeholder="Zostaw puste aby użyć automatycznej treści"></textarea>
             </p>
+            <p>
+                <label>Custom Deep Link (opcjonalnie):</label><br />
+                <input type="text" name="push_custom_deeplink" style="width: 100%;" placeholder="np. kaszuby24://article/123 lub https://..." value="<?php echo esc_attr(get_post_meta($post->ID, '_push_custom_deeplink', true)); ?>" />
+            </p>
         </div>
         <?php
     }
@@ -252,19 +256,18 @@ class Kaszuby24_Push_Hooks {
         }
         
         // Handle custom notification
-        if (!empty($_POST['push_custom_title']) || !empty($_POST['push_custom_body'])) {
+        if (!empty($_POST['push_custom_title']) || !empty($_POST['push_custom_body']) || !empty($_POST['push_custom_deeplink'])) {
             $custom_title = sanitize_text_field($_POST['push_custom_title']);
             $custom_body = sanitize_textarea_field($_POST['push_custom_body']);
-            
+            $custom_deeplink = isset($_POST['push_custom_deeplink']) ? esc_url_raw($_POST['push_custom_deeplink']) : '';
+            update_post_meta($post_id, '_push_custom_deeplink', $custom_deeplink);
             if (empty($custom_title)) {
                 $custom_title = get_the_title($post_id);
             }
-            
             if (empty($custom_body)) {
                 $post = get_post($post_id);
                 $custom_body = $this->create_notification_body($post);
             }
-            
             // Get post categories and regions
             $categories = wp_get_post_categories($post_id);
             $regions = array();
@@ -274,19 +277,17 @@ class Kaszuby24_Push_Hooks {
                     return $term->term_id;
                 }, $region_terms);
             }
-            
             // Send custom notification
             $tokens = $this->database->get_tokens_by_preferences($regions, $categories);
             if (!empty($tokens)) {
-                $result = $this->expo_push->send_notifications($tokens, $custom_title, $custom_body, $post_id);
-                
+                $result = $this->expo_push->send_notifications($tokens, $custom_title, $custom_body, $post_id, $custom_deeplink);
                 // Update meta
                 update_post_meta($post_id, '_push_notification_sent', time());
                 update_post_meta($post_id, '_push_notification_result', $result);
-                
                 // Clear custom fields
                 $_POST['push_custom_title'] = '';
                 $_POST['push_custom_body'] = '';
+                $_POST['push_custom_deeplink'] = '';
             }
         }
     }

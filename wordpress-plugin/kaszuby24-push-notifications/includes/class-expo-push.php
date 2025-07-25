@@ -13,7 +13,7 @@ class Kaszuby24_Expo_Push {
         $this->database = new Kaszuby24_Push_Database();
     }
     
-    public function send_notifications($tokens, $title, $body, $article_id = null) {
+    public function send_notifications($tokens, $title, $body, $article_id = null, $custom_deeplink = null) {
         if (empty($tokens)) {
             return array('sent' => 0, 'failed' => 0);
         }
@@ -26,7 +26,7 @@ class Kaszuby24_Expo_Push {
         $token_batches = array_chunk($tokens, $batch_size);
         
         foreach ($token_batches as $batch) {
-            $result = $this->send_batch($batch, $title, $body, $article_id);
+            $result = $this->send_batch($batch, $title, $body, $article_id, $custom_deeplink);
             $sent_count += $result['sent'];
             $failed_count += $result['failed'];
             
@@ -40,7 +40,7 @@ class Kaszuby24_Expo_Push {
         return array('sent' => $sent_count, 'failed' => $failed_count);
     }
     
-    private function send_batch($tokens, $title, $body, $article_id = null) {
+    private function send_batch($tokens, $title, $body, $article_id = null, $custom_deeplink = null) {
         $messages = array();
         
         foreach ($tokens as $token_data) {
@@ -55,12 +55,17 @@ class Kaszuby24_Expo_Push {
             );
             
             // Add data payload
-            if ($article_id) {
-                $message['data'] = array(
-                    'articleId' => $article_id,
-                    'type' => 'article',
-                    'url' => get_permalink($article_id)
-                );
+            if ($article_id || $custom_deeplink) {
+                $data = array();
+                if ($article_id) {
+                    $data['articleId'] = $article_id;
+                    $data['type'] = 'article';
+                    $data['url'] = get_permalink($article_id);
+                }
+                if ($custom_deeplink) {
+                    $data['deeplink'] = $custom_deeplink;
+                }
+                $message['data'] = $data;
             }
             
             // Platform-specific settings
