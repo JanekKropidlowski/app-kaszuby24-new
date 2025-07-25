@@ -58,7 +58,7 @@ import { useScrollStore } from '@/store/scrollStore';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { WelcomeGreeting } from '@/components/WelcomeGreeting';
-import { WeatherWidget } from '@/components/WeatherWidget';
+import { WeatherIcon } from '@/components/WeatherIcon';
 import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
@@ -94,8 +94,10 @@ const ModernHeader = () => {
           </View>
         </View>
         
-        {/* Right side - Weather Widget */}
-        <WeatherWidget />
+        {/* Right side - Weather Icon */}
+        <View style={styles.weatherIconContainer}>
+          <WeatherIcon wmoCode={0} size={40} />
+        </View>
       </View>
     </View>
   );
@@ -1558,6 +1560,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.3,
     marginLeft: 8,
+  },
+  weatherIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    height: 60,
   },
 
 });
