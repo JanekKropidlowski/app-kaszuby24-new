@@ -333,24 +333,65 @@ export default function WeatherScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Simple debug info */}
-                    <View style={styles.debugContainer}>
-                        <Text style={styles.debugTitle}>Debug Info:</Text>
-                        <Text style={styles.debugText}>{debugInfo}</Text>
-                    </View>
+                    {/* Weather Warnings */}
+                    <WeatherWarnings warnings={warnings} />
 
-                    {/* Simple weather display */}
-                    <View style={styles.simpleWeatherContainer}>
-                        <Text style={styles.simpleTitle}>Pogoda - {stacja}</Text>
-                        <Text style={styles.simpleTemp}>{parseFloat(temperatura).toFixed(1)}°C</Text>
-                        <Text style={styles.simpleDetails}>
-                            Wilgotność: {parseFloat(wilgotnosc_wzgledna).toFixed(0)}% | 
-                            Wiatr: {parseFloat(predkosc_wiatru).toFixed(1)} m/s | 
-                            Ciśnienie: {parseFloat(cisnienie).toFixed(0)} hPa
-                        </Text>
-                        <Text style={styles.simpleTime}>
-                            Ostatni pomiar: {data_pomiaru} o {godzina_pomiaru}:00
-                        </Text>
-                    </View>
+                    {/* Weather Summary Component */}
+                    <WeatherSummary 
+                        weatherData={weatherData} 
+                        stationName={stacja} 
+                        currentWmoCode={currentWmoCode} 
+                    />
+
+                    {/* Weather Widget Component */}
+                    <WeatherWidget weatherData={weatherData} forecastData={forecastData} />
+
+                    {/* 7-Day Forecast */}
+                    {forecastData?.time && (
+                        <View style={styles.sectionContainer}>
+                            <Text style={styles.sectionTitle}>Prognoza na 7 dni</Text>
+                            <ScrollView 
+                                horizontal 
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.forecastScrollContainer}
+                            >
+                                {forecastData.time.map((day, index) => (
+                                    <View key={day} style={styles.dailyForecastCard}>
+                                        <Text style={styles.dailyForecastDay}>
+                                            {new Date(day).toLocaleDateString('pl-PL', { weekday: 'short' })}
+                                        </Text>
+                                        <WeatherIcon wmoCode={forecastData.weathercode[index]} size={40} />
+                                        <View style={styles.tempContainer}>
+                                            <Text style={styles.dailyForecastTemp}>
+                                                {Math.round(forecastData.temperature_2m_max[index])}°
+                                            </Text>
+                                            <Text style={styles.dailyForecastTempMin}>
+                                                {Math.round(forecastData.temperature_2m_min[index])}°
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
+
+                    {/* Weekend Forecast */}
+                    {weekendForecast.length > 0 && (
+                        <View style={styles.sectionContainer}>
+                            <Text style={styles.sectionTitle}>Pogoda na Weekend</Text>
+                            <View style={styles.weekendContainer}>
+                                {weekendForecast.map(day => (
+                                    <View key={day.dayName} style={styles.weekendCard}>
+                                        <Text style={styles.weekendDay}>{day.dayName}</Text>
+                                        <WeatherIcon wmoCode={day.weathercode} size={54} />
+                                        <Text style={styles.weekendTemp}>
+                                            {Math.round(day.temp_max)}° / {Math.round(day.temp_min)}°
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    )}
 
                     {/* Station selector */}
                     <TouchableOpacity style={styles.headerContainer} onPress={() => setPickerVisible(true)}>
@@ -755,5 +796,116 @@ const getStyles = (theme) => StyleSheet.create({
         fontSize: 12,
         color: theme.colors.textSecondary,
         textAlign: 'center',
+    },
+    sectionContainer: {
+        backgroundColor: theme.colors.card,
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 20,
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    sectionTitle: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 20,
+        color: theme.colors.text,
+        marginBottom: 16,
+    },
+    forecastScrollContainer: {
+        paddingRight: 20,
+    },
+    dailyForecastCard: {
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: theme.colors.background,
+        marginRight: 12,
+        minWidth: 80,
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    dailyForecastDay: {
+        fontFamily: theme.fontFamily.medium,
+        fontSize: 14,
+        color: theme.colors.text,
+        marginBottom: 8,
+    },
+    tempContainer: {
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    dailyForecastTemp: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 16,
+        color: theme.colors.text,
+    },
+    dailyForecastTempMin: {
+        fontFamily: theme.fontFamily.medium,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+    },
+    weekendContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+    },
+    weekendCard: {
+        alignItems: 'center',
+        padding: 20,
+        borderRadius: 20,
+        backgroundColor: theme.colors.background,
+        width: '48%',
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    weekendDay: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 16,
+        color: theme.colors.text,
+        marginBottom: 10,
+    },
+    weekendTemp: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 20,
+        color: theme.colors.text,
+        marginTop: 10,
+    },
+    headerContainer: {
+        backgroundColor: theme.colors.card,
+        borderRadius: 24,
+        marginBottom: 20,
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    headerContent: {
+        padding: 20,
+    },
+    stationLabel: {
+        fontFamily: theme.fontFamily.medium,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        marginBottom: 8,
+    },
+    stationNameContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    stationName: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 18,
+        color: theme.colors.text,
+        flex: 1,
     }
 }); 
