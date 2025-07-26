@@ -64,6 +64,13 @@ export default function WeatherScreen() {
     const [isPickerVisible, setPickerVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [fadeAnim] = useState(new Animated.Value(0));
+    const [debugInfo, setDebugInfo] = useState('');
+
+    // Debug function
+    const addDebugInfo = (info) => {
+        console.log('Weather Debug:', info);
+        setDebugInfo(prev => prev + '\n' + new Date().toLocaleTimeString() + ': ' + info);
+    };
 
     const findNearestStation = useCallback((userLat, userLon, stations) => {
         return stations.reduce((closest, station) => {
@@ -75,21 +82,36 @@ export default function WeatherScreen() {
     const initializeLocationAndStation = useCallback(async () => {
         setLoading(true);
         setErrorMsg(null);
+        addDebugInfo('Inicjalizacja lokalizacji...');
+        
         try {
             let { status } = await Location.requestForegroundPermissionsAsync();
+            addDebugInfo(`Status uprawnień: ${status}`);
+            
             if (status !== 'granted') {
+                addDebugInfo('Brak zgody na lokalizację - ustawiam Gdańsk');
                 setErrorMsg('Brak zgody na lokalizację. Wybierz stację ręcznie.');
-                setSelectedStation(allStations.find(s => s.name.toLowerCase() === 'gdańsk'));
+                const gdanskStation = allStations.find(s => s.name.toLowerCase() === 'gdańsk');
+                setSelectedStation(gdanskStation);
+                addDebugInfo(`Ustawiono stację: ${gdanskStation?.name}`);
                 return;
             }
 
+            addDebugInfo('Pobieranie lokalizacji...');
             const location = await Location.getCurrentPositionAsync({});
+            addDebugInfo(`Lokalizacja: ${location.coords.latitude}, ${location.coords.longitude}`);
+            
             const nearestStation = findNearestStation(location.coords.latitude, location.coords.longitude, allStations);
+            addDebugInfo(`Najbliższa stacja: ${nearestStation?.name}`);
+            
             setSelectedStation(nearestStation || allStations.find(s => s.name.toLowerCase() === 'gdańsk'));
         } catch (e) {
+            addDebugInfo(`Błąd inicjalizacji: ${e.message}`);
             console.error("Initialization error:", e);
             setErrorMsg("Nie udało się ustalić lokalizacji. Wybierz stację ręcznie.");
-            setSelectedStation(allStations.find(s => s.name.toLowerCase() === 'gdańsk'));
+            const gdanskStation = allStations.find(s => s.name.toLowerCase() === 'gdańsk');
+            setSelectedStation(gdanskStation);
+            addDebugInfo(`Fallback stacja: ${gdanskStation?.name}`);
         }
     }, [allStations, findNearestStation]);
 
@@ -98,10 +120,17 @@ export default function WeatherScreen() {
     }, [initializeLocationAndStation]);
 
     const fetchAllDataForStation = useCallback(async (station) => {
-        if (!station) return;
+        if (!station) {
+            addDebugInfo('Brak stacji - pomijam pobieranie danych');
+            return;
+        }
+        
         setLoading(true);
         setErrorMsg(null);
+        addDebugInfo(`Pobieranie danych dla stacji: ${station.name} (ID: ${station.id})`);
+        
         try {
+            addDebugInfo('Rozpoczynam zapytania API...');
             const [imgwResponse, meteoResponse, warningsMeteoResponse, warningsHydroResponse] = await Promise.allSettled([
                 fetch(`${IMGW_API_URL}/id/${station.id}`),
                 fetch(`${OPEN_METEO_API_URL}?latitude=${station.lat}&longitude=${station.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FWarsaw`),
@@ -109,34 +138,56 @@ export default function WeatherScreen() {
                 fetch('https://danepubliczne.imgw.pl/api/data/warningshydro')
             ]);
 
+            addDebugInfo('Zapytania zakończone - sprawdzam statusy...');
+
             // Check if main data requests were successful
-            if (imgwResponse.status === 'rejected' || !imgwResponse.value.ok) {
-                throw new Error('Nie udało się pobrać danych z IMGW.');
+            if (imgwResponse.status === 'rejected') {
+                addDebugInfo(`IMGW błąd: ${imgwResponse.reason}`);
+                throw new Error(`Nie udało się pobrać danych z IMGW: ${imgwResponse.reason}`);
             }
-            if (meteoResponse.status === 'rejected' || !meteoResponse.value.ok) {
-                throw new Error('Nie udało się pobrać prognozy z Open-Meteo.');
+            if (!imgwResponse.value.ok) {
+                addDebugInfo(`IMGW HTTP błąd: ${imgwResponse.value.status}`);
+                throw new Error(`IMGW HTTP błąd: ${imgwResponse.value.status}`);
+            }
+            
+            if (meteoResponse.status === 'rejected') {
+                addDebugInfo(`Open-Meteo błąd: ${meteoResponse.reason}`);
+                throw new Error(`Nie udało się pobrać prognozy z Open-Meteo: ${meteoResponse.reason}`);
+            }
+            if (!meteoResponse.value.ok) {
+                addDebugInfo(`Open-Meteo HTTP błąd: ${meteoResponse.value.status}`);
+                throw new Error(`Open-Meteo HTTP błąd: ${meteoResponse.value.status}`);
             }
 
+            addDebugInfo('Parsowanie danych...');
             const imgwData = await imgwResponse.value.json();
             const meteoData = await meteoResponse.value.json();
             const warningsMeteoData = warningsMeteoResponse.status === 'fulfilled' && warningsMeteoResponse.value.ok ? await warningsMeteoResponse.value.json() : [];
             const warningsHydroData = warningsHydroResponse.status === 'fulfilled' && warningsHydroResponse.value.ok ? await warningsHydroResponse.value.json() : [];
             
+            addDebugInfo(`Dane IMGW: ${JSON.stringify(imgwData).substring(0, 100)}...`);
+            addDebugInfo(`Dane Open-Meteo: ${JSON.stringify(meteoData).substring(0, 100)}...`);
+            
             setWeatherData(imgwData);
             setForecastData(meteoData.daily);
             setWarnings({ meteo: warningsMeteoData, hydro: warningsHydroData });
             
+            addDebugInfo('Dane ustawione - animacja...');
             // Animate content fade in
             Animated.timing(fadeAnim, {
                 toValue: 1,
                 duration: 500,
                 useNativeDriver: true,
             }).start();
+            
+            addDebugInfo('Zakończono pomyślnie!');
         } catch (e) {
+            addDebugInfo(`Błąd pobierania: ${e.message}`);
             setErrorMsg(e.message);
             console.error("Combined Fetch Error:", e);
         } finally {
             setLoading(false);
+            addDebugInfo('Loading zakończone');
         }
     }, [fadeAnim]);
     
@@ -218,7 +269,15 @@ export default function WeatherScreen() {
 
     const renderContent = () => {
         if (loading && !weatherData) {
-            return <LoadingSkeleton />;
+            return (
+                <View style={styles.container}>
+                    <LoadingSkeleton />
+                    <View style={styles.debugContainer}>
+                        <Text style={styles.debugTitle}>Debug Info:</Text>
+                        <Text style={styles.debugText}>{debugInfo}</Text>
+                    </View>
+                </View>
+            );
         }
 
         if (errorMsg && !weatherData) {
@@ -229,12 +288,26 @@ export default function WeatherScreen() {
                         <TouchableOpacity onPress={() => setPickerVisible(true)} style={styles.retryButton}>
                             <Text style={styles.retryButtonText}>Wybierz stację ręcznie</Text>
                         </TouchableOpacity>
+                        <View style={styles.debugContainer}>
+                            <Text style={styles.debugTitle}>Debug Info:</Text>
+                            <Text style={styles.debugText}>{debugInfo}</Text>
+                        </View>
                     </View>
                 </View>
             );
         }
         
-        if (!weatherData || !forecastData) return null;
+        if (!weatherData || !forecastData) {
+            return (
+                <View style={styles.centered}>
+                    <Text style={styles.errorText}>Brak danych pogodowych</Text>
+                    <View style={styles.debugContainer}>
+                        <Text style={styles.debugTitle}>Debug Info:</Text>
+                        <Text style={styles.debugText}>{debugInfo}</Text>
+                    </View>
+                </View>
+            );
+        }
 
         const { stacja, temperatura, data_pomiaru, godzina_pomiaru, cisnienie, wilgotnosc_wzgledna, predkosc_wiatru, suma_opadu } = weatherData;
         const currentWmoCode = forecastData?.weathercode?.[0] ?? 0;
@@ -259,63 +332,39 @@ export default function WeatherScreen() {
                     refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
                     showsVerticalScrollIndicator={false}
                 >
-                                    <WeatherWarnings warnings={warnings} />
+                    {/* Simple debug info */}
+                    <View style={styles.debugContainer}>
+                        <Text style={styles.debugTitle}>Debug Info:</Text>
+                        <Text style={styles.debugText}>{debugInfo}</Text>
+                    </View>
 
-                <TouchableOpacity style={styles.headerContainer} onPress={() => setPickerVisible(true)}>
-                    <View style={styles.headerContent}>
-                        <View>
-                            <Text style={styles.stationLabel}>Stacja pomiarowa</Text>
-                            <View style={styles.stationNameContainer}>
-                                <MapPin size={20} color={theme.colors.primary} />
-                                <Text style={styles.stationName}>{stacja}</Text>
-                                <ChevronDown size={24} color={theme.colors.primary} />
+                    {/* Simple weather display */}
+                    <View style={styles.simpleWeatherContainer}>
+                        <Text style={styles.simpleTitle}>Pogoda - {stacja}</Text>
+                        <Text style={styles.simpleTemp}>{parseFloat(temperatura).toFixed(1)}°C</Text>
+                        <Text style={styles.simpleDetails}>
+                            Wilgotność: {parseFloat(wilgotnosc_wzgledna).toFixed(0)}% | 
+                            Wiatr: {parseFloat(predkosc_wiatru).toFixed(1)} m/s | 
+                            Ciśnienie: {parseFloat(cisnienie).toFixed(0)} hPa
+                        </Text>
+                        <Text style={styles.simpleTime}>
+                            Ostatni pomiar: {data_pomiaru} o {godzina_pomiaru}:00
+                        </Text>
+                    </View>
+
+                    {/* Station selector */}
+                    <TouchableOpacity style={styles.headerContainer} onPress={() => setPickerVisible(true)}>
+                        <View style={styles.headerContent}>
+                            <View>
+                                <Text style={styles.stationLabel}>Stacja pomiarowa</Text>
+                                <View style={styles.stationNameContainer}>
+                                    <MapPin size={20} color={theme.colors.primary} />
+                                    <Text style={styles.stationName}>{stacja}</Text>
+                                    <ChevronDown size={24} color={theme.colors.primary} />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </TouchableOpacity>
-
-                <WeatherSummary 
-                    weatherData={weatherData} 
-                    stationName={stacja} 
-                    currentWmoCode={currentWmoCode} 
-                />
-
-                    <WeatherWidget weatherData={weatherData} forecastData={forecastData} />
-
-                    {forecastData?.time && (
-                        <View style={styles.sectionContainer}>
-                            <Text style={styles.sectionTitle}>Prognoza na 7 dni</Text>
-                            <ScrollView 
-                                horizontal 
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.forecastScrollContainer}
-                            >
-                                {forecastData.time.map((day, index) => (
-                                    <View key={day} style={styles.dailyForecastCard}>
-                                        <Text style={styles.dailyForecastDay}>
-                                            {new Date(day).toLocaleDateString('pl-PL', { weekday: 'short' })}
-                                        </Text>
-                                        <WeatherIcon wmoCode={forecastData.weathercode[index]} size={40} />
-                                        <View style={styles.tempContainer}>
-                                            <Text style={styles.dailyForecastTemp}>
-                                                {Math.round(forecastData.temperature_2m_max[index])}°
-                                            </Text>
-                                            <Text style={styles.dailyForecastTempMin}>
-                                                {Math.round(forecastData.temperature_2m_min[index])}°
-                                            </Text>
-                                        </View>
-                                    </View>
-                                ))}
-                            </ScrollView>
-                        </View>
-                    )}
-
-                    {weekendForecast.length > 0 && (
-                         <View style={styles.sectionContainer}>
-                            <Text style={styles.sectionTitle}>Pogoda na Weekend</Text>
-                            <View style={styles.weekendContainer}>
-                                {weekendForecast.map(day => (
-                                    <View key={day.dayName} style={styles.weekendCard}>
+                    </TouchableOpacity>
                                         <Text style={styles.weekendDay}>{day.dayName}</Text>
                                         <WeatherIcon wmoCode={day.weathercode} size={54} />
                                         <Text style={styles.weekendTemp}>
@@ -649,5 +698,62 @@ const getStyles = (theme) => StyleSheet.create({
         fontFamily: theme.fontFamily.regular,
         fontSize: 16,
         color: theme.colors.textSecondary,
+    },
+    debugContainer: {
+        backgroundColor: theme.colors.card,
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 20,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    debugTitle: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 14,
+        color: theme.colors.primary,
+        marginBottom: 8,
+    },
+    debugText: {
+        fontFamily: theme.fontFamily.regular,
+        fontSize: 12,
+        color: theme.colors.textSecondary,
+        lineHeight: 16,
+    },
+    simpleWeatherContainer: {
+        backgroundColor: theme.colors.card,
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 20,
+        alignItems: 'center',
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    simpleTitle: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 18,
+        color: theme.colors.text,
+        marginBottom: 10,
+    },
+    simpleTemp: {
+        fontFamily: theme.fontFamily.bold,
+        fontSize: 48,
+        color: theme.colors.primary,
+        marginBottom: 10,
+    },
+    simpleDetails: {
+        fontFamily: theme.fontFamily.medium,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    simpleTime: {
+        fontFamily: theme.fontFamily.regular,
+        fontSize: 12,
+        color: theme.colors.textSecondary,
+        textAlign: 'center',
     }
 }); 
