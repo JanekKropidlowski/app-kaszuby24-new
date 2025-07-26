@@ -64,23 +64,6 @@ export default function WeatherScreen() {
     const [isPickerVisible, setPickerVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [fadeAnim] = useState(new Animated.Value(0));
-    const [debugInfo, setDebugInfo] = useState('');
-
-    // Debug function
-    const addDebugInfo = (info) => {
-        const timestamp = new Date().toLocaleTimeString();
-        const debugMessage = `${timestamp}: ${info}`;
-        console.log('Weather Debug:', debugMessage);
-        setDebugInfo(prev => {
-            const newDebug = prev + '\n' + debugMessage;
-            // Ogranicz długość debug info do ostatnich 20 linii
-            const lines = newDebug.split('\n');
-            if (lines.length > 20) {
-                return lines.slice(-20).join('\n');
-            }
-            return newDebug;
-        });
-    };
 
     const findNearestStation = useCallback((userLat, userLon, stations) => {
         return stations.reduce((closest, station) => {
@@ -92,36 +75,25 @@ export default function WeatherScreen() {
     const initializeLocationAndStation = useCallback(async () => {
         setLoading(true);
         setErrorMsg(null);
-        addDebugInfo('Inicjalizacja lokalizacji...');
         
         try {
             let { status } = await Location.requestForegroundPermissionsAsync();
-            addDebugInfo(`Status uprawnień: ${status}`);
             
             if (status !== 'granted') {
-                addDebugInfo('Brak zgody na lokalizację - ustawiam Gdańsk');
                 setErrorMsg('Brak zgody na lokalizację. Wybierz stację ręcznie.');
                 const gdanskStation = allStations.find(s => s.name.toLowerCase() === 'gdańsk');
                 setSelectedStation(gdanskStation);
-                addDebugInfo(`Ustawiono stację: ${gdanskStation?.name}`);
                 return;
             }
 
-            addDebugInfo('Pobieranie lokalizacji...');
             const location = await Location.getCurrentPositionAsync({});
-            addDebugInfo(`Lokalizacja: ${location.coords.latitude}, ${location.coords.longitude}`);
-            
             const nearestStation = findNearestStation(location.coords.latitude, location.coords.longitude, allStations);
-            addDebugInfo(`Najbliższa stacja: ${nearestStation?.name}`);
-            
             setSelectedStation(nearestStation || allStations.find(s => s.name.toLowerCase() === 'gdańsk'));
         } catch (e) {
-            addDebugInfo(`Błąd inicjalizacji: ${e.message}`);
             console.error("Initialization error:", e);
             setErrorMsg("Nie udało się ustalić lokalizacji. Wybierz stację ręcznie.");
             const gdanskStation = allStations.find(s => s.name.toLowerCase() === 'gdańsk');
             setSelectedStation(gdanskStation);
-            addDebugInfo(`Fallback stacja: ${gdanskStation?.name}`);
         }
     }, [allStations, findNearestStation]);
 
@@ -131,16 +103,13 @@ export default function WeatherScreen() {
 
     const fetchAllDataForStation = useCallback(async (station) => {
         if (!station) {
-            addDebugInfo('Brak stacji - pomijam pobieranie danych');
             return;
         }
         
         setLoading(true);
         setErrorMsg(null);
-        addDebugInfo(`Pobieranie danych dla stacji: ${station.name} (ID: ${station.id})`);
         
         try {
-            addDebugInfo('Rozpoczynam zapytania API...');
             const [imgwResponse, meteoResponse, warningsMeteoResponse, warningsHydroResponse] = await Promise.allSettled([
                 fetch(`${IMGW_API_URL}/id/${station.id}`),
                 fetch(`${OPEN_METEO_API_URL}?latitude=${station.lat}&longitude=${station.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FWarsaw`),
@@ -148,56 +117,41 @@ export default function WeatherScreen() {
                 fetch('https://danepubliczne.imgw.pl/api/data/warningshydro')
             ]);
 
-            addDebugInfo('Zapytania zakończone - sprawdzam statusy...');
-
             // Check if main data requests were successful
             if (imgwResponse.status === 'rejected') {
-                addDebugInfo(`IMGW błąd: ${imgwResponse.reason}`);
                 throw new Error(`Nie udało się pobrać danych z IMGW: ${imgwResponse.reason}`);
             }
             if (!imgwResponse.value.ok) {
-                addDebugInfo(`IMGW HTTP błąd: ${imgwResponse.value.status}`);
                 throw new Error(`IMGW HTTP błąd: ${imgwResponse.value.status}`);
             }
             
             if (meteoResponse.status === 'rejected') {
-                addDebugInfo(`Open-Meteo błąd: ${meteoResponse.reason}`);
                 throw new Error(`Nie udało się pobrać prognozy z Open-Meteo: ${meteoResponse.reason}`);
             }
             if (!meteoResponse.value.ok) {
-                addDebugInfo(`Open-Meteo HTTP błąd: ${meteoResponse.value.status}`);
                 throw new Error(`Open-Meteo HTTP błąd: ${meteoResponse.value.status}`);
             }
 
-            addDebugInfo('Parsowanie danych...');
             const imgwData = await imgwResponse.value.json();
             const meteoData = await meteoResponse.value.json();
             const warningsMeteoData = warningsMeteoResponse.status === 'fulfilled' && warningsMeteoResponse.value.ok ? await warningsMeteoResponse.value.json() : [];
             const warningsHydroData = warningsHydroResponse.status === 'fulfilled' && warningsHydroResponse.value.ok ? await warningsHydroResponse.value.json() : [];
             
-            addDebugInfo(`Dane IMGW: ${JSON.stringify(imgwData).substring(0, 100)}...`);
-            addDebugInfo(`Dane Open-Meteo: ${JSON.stringify(meteoData).substring(0, 100)}...`);
-            
             setWeatherData(imgwData);
             setForecastData(meteoData.daily);
             setWarnings({ meteo: warningsMeteoData, hydro: warningsHydroData });
             
-            addDebugInfo('Dane ustawione - animacja...');
             // Animate content fade in
             Animated.timing(fadeAnim, {
                 toValue: 1,
                 duration: 500,
                 useNativeDriver: true,
             }).start();
-            
-            addDebugInfo('Zakończono pomyślnie!');
         } catch (e) {
-            addDebugInfo(`Błąd pobierania: ${e.message}`);
             setErrorMsg(e.message);
             console.error("Combined Fetch Error:", e);
         } finally {
             setLoading(false);
-            addDebugInfo('Loading zakończone');
         }
     }, [fadeAnim]);
     
@@ -278,15 +232,11 @@ export default function WeatherScreen() {
     );
 
     const renderContent = () => {
-        addDebugInfo(`renderContent - loading: ${loading}, weatherData: ${!!weatherData}, errorMsg: ${!!errorMsg}`);
-        
         if (loading && !weatherData) {
-            addDebugInfo('Renderowanie: LoadingSkeleton');
             return <LoadingSkeleton />;
         }
 
         if (errorMsg && !weatherData) {
-            addDebugInfo('Renderowanie: Error screen');
             return (
                 <View style={styles.centered}>
                     <View style={styles.errorContainer}>
@@ -294,32 +244,21 @@ export default function WeatherScreen() {
                         <TouchableOpacity onPress={() => setPickerVisible(true)} style={styles.retryButton}>
                             <Text style={styles.retryButtonText}>Wybierz stację ręcznie</Text>
                         </TouchableOpacity>
-                        <View style={styles.debugContainer}>
-                            <Text style={styles.debugTitle}>Debug Info:</Text>
-                            <Text style={styles.debugText}>{debugInfo}</Text>
-                        </View>
                     </View>
                 </View>
             );
         }
         
         if (!weatherData || !forecastData) {
-            addDebugInfo(`Renderowanie: Brak danych - weatherData: ${!!weatherData}, forecastData: ${!!forecastData}`);
             return (
                 <View style={styles.centered}>
                     <Text style={styles.errorText}>Brak danych pogodowych</Text>
-                    <View style={styles.debugContainer}>
-                        <Text style={styles.debugTitle}>Debug Info:</Text>
-                        <Text style={styles.debugText}>{debugInfo}</Text>
-                    </View>
                 </View>
             );
         }
 
         const { stacja, temperatura, data_pomiaru, godzina_pomiaru, cisnienie, wilgotnosc_wzgledna, predkosc_wiatru, suma_opadu } = weatherData;
         const currentWmoCode = forecastData?.weathercode?.[0] ?? 0;
-        
-        addDebugInfo(`Dane pogodowe - stacja: ${stacja}, temperatura: ${temperatura}, currentWmoCode: ${currentWmoCode}`);
 
         const weekendForecast = (forecastData?.time || []).reduce((acc, day, index) => {
             const dayOfWeek = new Date(day).getDay();
@@ -334,8 +273,6 @@ export default function WeatherScreen() {
             return acc;
         }, []);
 
-        addDebugInfo('Renderowanie: Główny widok pogody');
-        
         return (
             <Animated.View style={{ opacity: fadeAnim }}>
                 <ScrollView
@@ -343,114 +280,82 @@ export default function WeatherScreen() {
                     refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Simple debug info */}
                     {/* Weather Warnings */}
-                    {(() => {
-                        addDebugInfo('Renderowanie: WeatherWarnings');
-                        return <WeatherWarnings warnings={warnings} />;
-                    })()}
+                    <WeatherWarnings warnings={warnings} />
 
                     {/* Weather Summary Component */}
-                    {(() => {
-                        addDebugInfo('Renderowanie: WeatherSummary');
-                        return (
-                            <WeatherSummary 
-                                weatherData={weatherData} 
-                                stationName={stacja} 
-                                currentWmoCode={currentWmoCode} 
-                            />
-                        );
-                    })()}
+                    <WeatherSummary 
+                        weatherData={weatherData} 
+                        stationName={stacja} 
+                        currentWmoCode={currentWmoCode} 
+                    />
 
                     {/* Weather Widget Component */}
-                    {(() => {
-                        addDebugInfo('Renderowanie: WeatherWidget');
-                        return <WeatherWidget weatherData={weatherData} forecastData={forecastData} />;
-                    })()}
+                    <WeatherWidget weatherData={weatherData} forecastData={forecastData} />
 
                     {/* 7-Day Forecast */}
-                    {forecastData?.time && (() => {
-                        addDebugInfo('Renderowanie: 7-Day Forecast');
-                        return (
-                            <View style={styles.sectionContainer}>
-                                <Text style={styles.sectionTitle}>Prognoza na 7 dni</Text>
-                                <ScrollView 
-                                    horizontal 
-                                    showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={styles.forecastScrollContainer}
-                                >
-                                    {forecastData.time.map((day, index) => (
-                                        <View key={day} style={styles.dailyForecastCard}>
-                                            <Text style={styles.dailyForecastDay}>
-                                                {new Date(day).toLocaleDateString('pl-PL', { weekday: 'short' })}
+                    {forecastData?.time && (
+                        <View style={styles.sectionContainer}>
+                            <Text style={styles.sectionTitle}>Prognoza na 7 dni</Text>
+                            <ScrollView 
+                                horizontal 
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.forecastScrollContainer}
+                            >
+                                {forecastData.time.map((day, index) => (
+                                    <View key={day} style={styles.dailyForecastCard}>
+                                        <Text style={styles.dailyForecastDay}>
+                                            {new Date(day).toLocaleDateString('pl-PL', { weekday: 'short' })}
+                                        </Text>
+                                        <WeatherIcon wmoCode={forecastData.weathercode[index]} size={40} />
+                                        <View style={styles.tempContainer}>
+                                            <Text style={styles.dailyForecastTemp}>
+                                                {Math.round(forecastData.temperature_2m_max[index])}°
                                             </Text>
-                                            <WeatherIcon wmoCode={forecastData.weathercode[index]} size={40} />
-                                            <View style={styles.tempContainer}>
-                                                <Text style={styles.dailyForecastTemp}>
-                                                    {Math.round(forecastData.temperature_2m_max[index])}°
-                                                </Text>
-                                                <Text style={styles.dailyForecastTempMin}>
-                                                    {Math.round(forecastData.temperature_2m_min[index])}°
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    ))}
-                                </ScrollView>
-                            </View>
-                        );
-                    })()}
-
-                    {/* Weekend Forecast */}
-                    {weekendForecast.length > 0 && (() => {
-                        addDebugInfo(`Renderowanie: Weekend Forecast - ${weekendForecast.length} dni`);
-                        return (
-                            <View style={styles.sectionContainer}>
-                                <Text style={styles.sectionTitle}>Pogoda na Weekend</Text>
-                                <View style={styles.weekendContainer}>
-                                    {weekendForecast.map(day => (
-                                        <View key={day.dayName} style={styles.weekendCard}>
-                                            <Text style={styles.weekendDay}>{day.dayName}</Text>
-                                            <WeatherIcon wmoCode={day.weathercode} size={54} />
-                                            <Text style={styles.weekendTemp}>
-                                                {Math.round(day.temp_max)}° / {Math.round(day.temp_min)}°
+                                            <Text style={styles.dailyForecastTempMin}>
+                                                {Math.round(forecastData.temperature_2m_min[index])}°
                                             </Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        );
-                    })()}
-
-                    {/* Station selector */}
-                    {(() => {
-                        addDebugInfo('Renderowanie: Station Selector');
-                        return (
-                            <TouchableOpacity style={styles.headerContainer} onPress={() => setPickerVisible(true)}>
-                                <View style={styles.headerContent}>
-                                    <View>
-                                        <Text style={styles.stationLabel}>Stacja pomiarowa</Text>
-                                        <View style={styles.stationNameContainer}>
-                                            <MapPin size={20} color={theme.colors.primary} />
-                                            <Text style={styles.stationName}>{stacja}</Text>
-                                            <ChevronDown size={24} color={theme.colors.primary} />
                                         </View>
                                     </View>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
+
+                    {/* Weekend Forecast */}
+                    {weekendForecast.length > 0 && (
+                        <View style={styles.sectionContainer}>
+                            <Text style={styles.sectionTitle}>Pogoda na Weekend</Text>
+                            <View style={styles.weekendContainer}>
+                                {weekendForecast.map(day => (
+                                    <View key={day.dayName} style={styles.weekendCard}>
+                                        <Text style={styles.weekendDay}>{day.dayName}</Text>
+                                        <WeatherIcon wmoCode={day.weathercode} size={54} />
+                                        <Text style={styles.weekendTemp}>
+                                            {Math.round(day.temp_max)}° / {Math.round(day.temp_min)}°
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Station selector */}
+                    <TouchableOpacity style={styles.headerContainer} onPress={() => setPickerVisible(true)}>
+                        <View style={styles.headerContent}>
+                            <View>
+                                <Text style={styles.stationLabel}>Stacja pomiarowa</Text>
+                                <View style={styles.stationNameContainer}>
+                                    <MapPin size={20} color={theme.colors.primary} />
+                                    <Text style={styles.stationName}>{stacja}</Text>
+                                    <ChevronDown size={24} color={theme.colors.primary} />
                                 </View>
-                            </TouchableOpacity>
-                        );
-                    })()}
+                            </View>
+                        </View>
+                    </TouchableOpacity>
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Dane pogodowe dostarczone przez IMGW & Open-Meteo</Text>
-                        <TouchableOpacity 
-                            style={styles.debugButton} 
-                            onPress={() => {
-                                console.log('Debug Info:', debugInfo);
-                                alert('Debug info w konsoli');
-                            }}
-                        >
-                            <Text style={styles.debugButtonText}>Debug Info</Text>
-                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </Animated.View>
@@ -949,18 +854,5 @@ const getStyles = (theme) => StyleSheet.create({
         fontSize: 18,
         color: theme.colors.text,
         flex: 1,
-    },
-    debugButton: {
-        backgroundColor: theme.colors.primary,
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        marginTop: 10,
-        alignSelf: 'center',
-    },
-    debugButtonText: {
-        color: 'white',
-        fontFamily: theme.fontFamily.medium,
-        fontSize: 12,
     }
 }); 
