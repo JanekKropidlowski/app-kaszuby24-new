@@ -105,10 +105,10 @@ const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }) => {
             <ActivityIndicator size="small" color={theme.colors.primary} />
           ) : weatherData ? (
             <View style={styles.weatherSummaryContainer}>
-              <WeatherIcon wmoCode={0} size={32} />
               <Text style={[styles.weatherTemperature, { color: theme.colors.text }]}>
                 {parseFloat(weatherData.temperatura).toFixed(1)}°
               </Text>
+              <WeatherIcon wmoCode={weatherData.weatherCode || 0} size={28} />
             </View>
           ) : (
             <WeatherIcon wmoCode={0} size={40} />
@@ -507,11 +507,23 @@ export default function HomeScreen() {
     
     try {
       setWeatherLoading(true);
-      // Simple weather data for header - using default station (Gdańsk)
-      const response = await fetch('https://danepubliczne.imgw.pl/api/data/synop/id/12160');
-      if (response.ok) {
-        const data = await response.json();
-        setWeatherData(data);
+      // Get weather data and forecast for header
+      const [imgwResponse, meteoResponse] = await Promise.all([
+        fetch('https://danepubliczne.imgw.pl/api/data/synop/id/12160'),
+        fetch('https://api.open-meteo.com/v1/forecast?latitude=54.3521&longitude=18.6464&daily=weathercode&timezone=Europe%2FWarsaw')
+      ]);
+      
+      if (imgwResponse.ok && meteoResponse.ok) {
+        const imgwData = await imgwResponse.json();
+        const meteoData = await meteoResponse.json();
+        
+        // Add weather code to IMGW data
+        const weatherDataWithCode = {
+          ...imgwData,
+          weatherCode: meteoData.daily?.weathercode?.[0] || 0
+        };
+        
+        setWeatherData(weatherDataWithCode);
       }
     } catch (err) {
       if (!isMountedRef.current) return;
@@ -1617,8 +1629,10 @@ const styles = StyleSheet.create({
     height: 60,
   },
   weatherSummaryContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
   },
   weatherTemperature: {
     fontSize: 16,

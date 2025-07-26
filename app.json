@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -54,7 +54,7 @@
         "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
       }
     },
-    "runtimeVersion": "1.0.7",
+    "runtimeVersion": "1.0.8",
     "plugins": [
       [
         "expo-notifications",
