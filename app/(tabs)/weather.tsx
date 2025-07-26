@@ -365,16 +365,6 @@ export default function WeatherScreen() {
                             </View>
                         </View>
                     </TouchableOpacity>
-                                        <Text style={styles.weekendDay}>{day.dayName}</Text>
-                                        <WeatherIcon wmoCode={day.weathercode} size={54} />
-                                        <Text style={styles.weekendTemp}>
-                                            {Math.round(day.temp_max)}° / {Math.round(day.temp_min)}°
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-                    )}
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Dane pogodowe dostarczone przez IMGW & Open-Meteo</Text>
@@ -751,6 +741,16 @@ const getStyles = (theme) => StyleSheet.create({
         marginBottom: 8,
     },
     simpleTime: {
+        fontFamily: theme.fontFamily.regular,
+        fontSize: 12,
+        color: theme.colors.textSecondary,
+        textAlign: 'center',
+    },
+    footer: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    footerText: {
         fontFamily: theme.fontFamily.regular,
         fontSize: 12,
         color: theme.colors.textSecondary,
