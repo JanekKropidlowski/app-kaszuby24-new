@@ -110,6 +110,20 @@ const WarningItem = ({ title, subtitle, content, level, validUntil }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [rotateAnim] = useState(new Animated.Value(0));
     const styles = getWarningStyles(theme, level);
+    
+    const getWarningIcon = (level) => {
+        if (level >= 3) return AlertOctagon;
+        if (level === 2) return AlertTriangle;
+        return AlertCircle;
+    };
+    
+    const IconComponent = getWarningIcon(level);
+    
+    const getWarningColor = (level) => {
+        if (level >= 3) return theme.colors.error;
+        if (level === 2) return '#FF6B35'; // Orange for medium warnings
+        return theme.colors.warning;
+    };
 
     const toggleExpand = () => {
         const toValue = isExpanded ? 0 : 1;
@@ -139,7 +153,7 @@ const WarningItem = ({ title, subtitle, content, level, validUntil }) => {
         <View style={styles.container}>
             <TouchableOpacity onPress={toggleExpand} style={styles.header} activeOpacity={0.7}>
                 <View style={styles.iconContainer}>
-                    <AlertTriangle size={20} color={styles.container.borderColor} />
+                    <IconComponent size={20} color={getWarningColor(level)} />
                 </View>
                 <View style={styles.headerTextContainer}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>

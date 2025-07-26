@@ -269,15 +269,7 @@ export default function WeatherScreen() {
 
     const renderContent = () => {
         if (loading && !weatherData) {
-            return (
-                <View style={styles.container}>
-                    <LoadingSkeleton />
-                    <View style={styles.debugContainer}>
-                        <Text style={styles.debugTitle}>Debug Info:</Text>
-                        <Text style={styles.debugText}>{debugInfo}</Text>
-                    </View>
-                </View>
-            );
+            return <LoadingSkeleton />;
         }
 
         if (errorMsg && !weatherData) {
@@ -409,6 +401,15 @@ export default function WeatherScreen() {
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Dane pogodowe dostarczone przez IMGW & Open-Meteo</Text>
+                        <TouchableOpacity 
+                            style={styles.debugButton} 
+                            onPress={() => {
+                                console.log('Debug Info:', debugInfo);
+                                alert('Debug info w konsoli');
+                            }}
+                        >
+                            <Text style={styles.debugButtonText}>Debug Info</Text>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </Animated.View>
@@ -907,5 +908,18 @@ const getStyles = (theme) => StyleSheet.create({
         fontSize: 18,
         color: theme.colors.text,
         flex: 1,
+    },
+    debugButton: {
+        backgroundColor: theme.colors.primary,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        marginTop: 10,
+        alignSelf: 'center',
+    },
+    debugButtonText: {
+        color: 'white',
+        fontFamily: theme.fontFamily.medium,
+        fontSize: 12,
     }
 }); 
