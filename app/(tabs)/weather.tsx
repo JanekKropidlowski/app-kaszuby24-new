@@ -79,17 +79,17 @@ export default function WeatherScreen() {
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
                 setErrorMsg('Brak zgody na lokalizację. Wybierz stację ręcznie.');
-                setSelectedStation(allStations.find(s => s.name.toLowerCase() === 'hel'));
+                setSelectedStation(allStations.find(s => s.name.toLowerCase() === 'gdańsk'));
                 return;
             }
 
             const location = await Location.getCurrentPositionAsync({});
             const nearestStation = findNearestStation(location.coords.latitude, location.coords.longitude, allStations);
-            setSelectedStation(nearestStation || allStations.find(s => s.name.toLowerCase() === 'hel'));
+            setSelectedStation(nearestStation || allStations.find(s => s.name.toLowerCase() === 'gdańsk'));
         } catch (e) {
             console.error("Initialization error:", e);
             setErrorMsg("Nie udało się ustalić lokalizacji. Wybierz stację ręcznie.");
-            setSelectedStation(allStations.find(s => s.name.toLowerCase() === 'hel'));
+            setSelectedStation(allStations.find(s => s.name.toLowerCase() === 'gdańsk'));
         }
     }, [allStations, findNearestStation]);
 
@@ -102,20 +102,25 @@ export default function WeatherScreen() {
         setLoading(true);
         setErrorMsg(null);
         try {
-            const [imgwResponse, meteoResponse, warningsMeteoResponse, warningsHydroResponse] = await Promise.all([
+            const [imgwResponse, meteoResponse, warningsMeteoResponse, warningsHydroResponse] = await Promise.allSettled([
                 fetch(`${IMGW_API_URL}/id/${station.id}`),
                 fetch(`${OPEN_METEO_API_URL}?latitude=${station.lat}&longitude=${station.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FWarsaw`),
                 fetch('https://danepubliczne.imgw.pl/api/data/warningsmeteo'),
                 fetch('https://danepubliczne.imgw.pl/api/data/warningshydro')
             ]);
 
-            if (!imgwResponse.ok) throw new Error('Nie udało się pobrać danych z IMGW.');
-            if (!meteoResponse.ok) throw new Error('Nie udało się pobrać prognozy z Open-Meteo.');
+            // Check if main data requests were successful
+            if (imgwResponse.status === 'rejected' || !imgwResponse.value.ok) {
+                throw new Error('Nie udało się pobrać danych z IMGW.');
+            }
+            if (meteoResponse.status === 'rejected' || !meteoResponse.value.ok) {
+                throw new Error('Nie udało się pobrać prognozy z Open-Meteo.');
+            }
 
-            const imgwData = await imgwResponse.json();
-            const meteoData = await meteoResponse.json();
-            const warningsMeteoData = warningsMeteoResponse.ok ? await warningsMeteoResponse.json() : [];
-            const warningsHydroData = warningsHydroResponse.ok ? await warningsHydroResponse.json() : [];
+            const imgwData = await imgwResponse.value.json();
+            const meteoData = await meteoResponse.value.json();
+            const warningsMeteoData = warningsMeteoResponse.status === 'fulfilled' && warningsMeteoResponse.value.ok ? await warningsMeteoResponse.value.json() : [];
+            const warningsHydroData = warningsHydroResponse.status === 'fulfilled' && warningsHydroResponse.value.ok ? await warningsHydroResponse.value.json() : [];
             
             setWeatherData(imgwData);
             setForecastData(meteoData.daily);

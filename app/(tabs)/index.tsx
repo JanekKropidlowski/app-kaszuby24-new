@@ -923,7 +923,13 @@ export default function HomeScreen() {
   }, []);
 
   const handleWeatherPress = useCallback(() => {
-    router.push('/(tabs)/weather');
+    try {
+      router.push('/(tabs)/weather');
+    } catch (error) {
+      console.error('Error navigating to weather:', error);
+      // Fallback - try to navigate with replace
+      router.replace('/(tabs)/weather');
+    }
   }, [router]);
 
   // Render category pills with real categories
