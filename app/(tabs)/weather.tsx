@@ -68,8 +68,18 @@ export default function WeatherScreen() {
 
     // Debug function
     const addDebugInfo = (info) => {
-        console.log('Weather Debug:', info);
-        setDebugInfo(prev => prev + '\n' + new Date().toLocaleTimeString() + ': ' + info);
+        const timestamp = new Date().toLocaleTimeString();
+        const debugMessage = `${timestamp}: ${info}`;
+        console.log('Weather Debug:', debugMessage);
+        setDebugInfo(prev => {
+            const newDebug = prev + '\n' + debugMessage;
+            // Ogranicz długość debug info do ostatnich 20 linii
+            const lines = newDebug.split('\n');
+            if (lines.length > 20) {
+                return lines.slice(-20).join('\n');
+            }
+            return newDebug;
+        });
     };
 
     const findNearestStation = useCallback((userLat, userLon, stations) => {
@@ -268,11 +278,15 @@ export default function WeatherScreen() {
     );
 
     const renderContent = () => {
+        addDebugInfo(`renderContent - loading: ${loading}, weatherData: ${!!weatherData}, errorMsg: ${!!errorMsg}`);
+        
         if (loading && !weatherData) {
+            addDebugInfo('Renderowanie: LoadingSkeleton');
             return <LoadingSkeleton />;
         }
 
         if (errorMsg && !weatherData) {
+            addDebugInfo('Renderowanie: Error screen');
             return (
                 <View style={styles.centered}>
                     <View style={styles.errorContainer}>
@@ -290,6 +304,7 @@ export default function WeatherScreen() {
         }
         
         if (!weatherData || !forecastData) {
+            addDebugInfo(`Renderowanie: Brak danych - weatherData: ${!!weatherData}, forecastData: ${!!forecastData}`);
             return (
                 <View style={styles.centered}>
                     <Text style={styles.errorText}>Brak danych pogodowych</Text>
@@ -303,6 +318,8 @@ export default function WeatherScreen() {
 
         const { stacja, temperatura, data_pomiaru, godzina_pomiaru, cisnienie, wilgotnosc_wzgledna, predkosc_wiatru, suma_opadu } = weatherData;
         const currentWmoCode = forecastData?.weathercode?.[0] ?? 0;
+        
+        addDebugInfo(`Dane pogodowe - stacja: ${stacja}, temperatura: ${temperatura}, currentWmoCode: ${currentWmoCode}`);
 
         const weekendForecast = (forecastData?.time || []).reduce((acc, day, index) => {
             const dayOfWeek = new Date(day).getDay();
@@ -317,6 +334,8 @@ export default function WeatherScreen() {
             return acc;
         }, []);
 
+        addDebugInfo('Renderowanie: Główny widok pogody');
+        
         return (
             <Animated.View style={{ opacity: fadeAnim }}>
                 <ScrollView
@@ -326,78 +345,100 @@ export default function WeatherScreen() {
                 >
                     {/* Simple debug info */}
                     {/* Weather Warnings */}
-                    <WeatherWarnings warnings={warnings} />
+                    {(() => {
+                        addDebugInfo('Renderowanie: WeatherWarnings');
+                        return <WeatherWarnings warnings={warnings} />;
+                    })()}
 
                     {/* Weather Summary Component */}
-                    <WeatherSummary 
-                        weatherData={weatherData} 
-                        stationName={stacja} 
-                        currentWmoCode={currentWmoCode} 
-                    />
+                    {(() => {
+                        addDebugInfo('Renderowanie: WeatherSummary');
+                        return (
+                            <WeatherSummary 
+                                weatherData={weatherData} 
+                                stationName={stacja} 
+                                currentWmoCode={currentWmoCode} 
+                            />
+                        );
+                    })()}
 
                     {/* Weather Widget Component */}
-                    <WeatherWidget weatherData={weatherData} forecastData={forecastData} />
+                    {(() => {
+                        addDebugInfo('Renderowanie: WeatherWidget');
+                        return <WeatherWidget weatherData={weatherData} forecastData={forecastData} />;
+                    })()}
 
                     {/* 7-Day Forecast */}
-                    {forecastData?.time && (
-                        <View style={styles.sectionContainer}>
-                            <Text style={styles.sectionTitle}>Prognoza na 7 dni</Text>
-                            <ScrollView 
-                                horizontal 
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.forecastScrollContainer}
-                            >
-                                {forecastData.time.map((day, index) => (
-                                    <View key={day} style={styles.dailyForecastCard}>
-                                        <Text style={styles.dailyForecastDay}>
-                                            {new Date(day).toLocaleDateString('pl-PL', { weekday: 'short' })}
-                                        </Text>
-                                        <WeatherIcon wmoCode={forecastData.weathercode[index]} size={40} />
-                                        <View style={styles.tempContainer}>
-                                            <Text style={styles.dailyForecastTemp}>
-                                                {Math.round(forecastData.temperature_2m_max[index])}°
+                    {forecastData?.time && (() => {
+                        addDebugInfo('Renderowanie: 7-Day Forecast');
+                        return (
+                            <View style={styles.sectionContainer}>
+                                <Text style={styles.sectionTitle}>Prognoza na 7 dni</Text>
+                                <ScrollView 
+                                    horizontal 
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.forecastScrollContainer}
+                                >
+                                    {forecastData.time.map((day, index) => (
+                                        <View key={day} style={styles.dailyForecastCard}>
+                                            <Text style={styles.dailyForecastDay}>
+                                                {new Date(day).toLocaleDateString('pl-PL', { weekday: 'short' })}
                                             </Text>
-                                            <Text style={styles.dailyForecastTempMin}>
-                                                {Math.round(forecastData.temperature_2m_min[index])}°
-                                            </Text>
+                                            <WeatherIcon wmoCode={forecastData.weathercode[index]} size={40} />
+                                            <View style={styles.tempContainer}>
+                                                <Text style={styles.dailyForecastTemp}>
+                                                    {Math.round(forecastData.temperature_2m_max[index])}°
+                                                </Text>
+                                                <Text style={styles.dailyForecastTempMin}>
+                                                    {Math.round(forecastData.temperature_2m_min[index])}°
+                                                </Text>
+                                            </View>
                                         </View>
-                                    </View>
-                                ))}
-                            </ScrollView>
-                        </View>
-                    )}
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        );
+                    })()}
 
                     {/* Weekend Forecast */}
-                    {weekendForecast.length > 0 && (
-                        <View style={styles.sectionContainer}>
-                            <Text style={styles.sectionTitle}>Pogoda na Weekend</Text>
-                            <View style={styles.weekendContainer}>
-                                {weekendForecast.map(day => (
-                                    <View key={day.dayName} style={styles.weekendCard}>
-                                        <Text style={styles.weekendDay}>{day.dayName}</Text>
-                                        <WeatherIcon wmoCode={day.weathercode} size={54} />
-                                        <Text style={styles.weekendTemp}>
-                                            {Math.round(day.temp_max)}° / {Math.round(day.temp_min)}°
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-                    )}
-
-                    {/* Station selector */}
-                    <TouchableOpacity style={styles.headerContainer} onPress={() => setPickerVisible(true)}>
-                        <View style={styles.headerContent}>
-                            <View>
-                                <Text style={styles.stationLabel}>Stacja pomiarowa</Text>
-                                <View style={styles.stationNameContainer}>
-                                    <MapPin size={20} color={theme.colors.primary} />
-                                    <Text style={styles.stationName}>{stacja}</Text>
-                                    <ChevronDown size={24} color={theme.colors.primary} />
+                    {weekendForecast.length > 0 && (() => {
+                        addDebugInfo(`Renderowanie: Weekend Forecast - ${weekendForecast.length} dni`);
+                        return (
+                            <View style={styles.sectionContainer}>
+                                <Text style={styles.sectionTitle}>Pogoda na Weekend</Text>
+                                <View style={styles.weekendContainer}>
+                                    {weekendForecast.map(day => (
+                                        <View key={day.dayName} style={styles.weekendCard}>
+                                            <Text style={styles.weekendDay}>{day.dayName}</Text>
+                                            <WeatherIcon wmoCode={day.weathercode} size={54} />
+                                            <Text style={styles.weekendTemp}>
+                                                {Math.round(day.temp_max)}° / {Math.round(day.temp_min)}°
+                                            </Text>
+                                        </View>
+                                    ))}
                                 </View>
                             </View>
-                        </View>
-                    </TouchableOpacity>
+                        );
+                    })()}
+
+                    {/* Station selector */}
+                    {(() => {
+                        addDebugInfo('Renderowanie: Station Selector');
+                        return (
+                            <TouchableOpacity style={styles.headerContainer} onPress={() => setPickerVisible(true)}>
+                                <View style={styles.headerContent}>
+                                    <View>
+                                        <Text style={styles.stationLabel}>Stacja pomiarowa</Text>
+                                        <View style={styles.stationNameContainer}>
+                                            <MapPin size={20} color={theme.colors.primary} />
+                                            <Text style={styles.stationName}>{stacja}</Text>
+                                            <ChevronDown size={24} color={theme.colors.primary} />
+                                        </View>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })()}
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Dane pogodowe dostarczone przez IMGW & Open-Meteo</Text>
