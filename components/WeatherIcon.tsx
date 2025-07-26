@@ -7,20 +7,42 @@ const Sunny = ({ size }) => (
     <Defs>
       <LinearGradient id="sunGradient" x1="0%" y1="0%" x2="100%" y2="100%">
         <Stop offset="0%" stopColor="#FFD700" />
+        <Stop offset="50%" stopColor="#FFA500" />
+        <Stop offset="100%" stopColor="#FF8C00" />
+      </LinearGradient>
+      <LinearGradient id="sunRays" x1="0%" y1="0%" x2="100%" y2="100%">
+        <Stop offset="0%" stopColor="#FFD700" />
         <Stop offset="100%" stopColor="#FFA500" />
       </LinearGradient>
     </Defs>
-    <G fill="url(#sunGradient)" stroke="#fec534" strokeWidth="2" strokeMiterlimit="10">
-      <Circle cx="32" cy="32" r="12"/>
-      <Path d="M32 48V56" stroke="#fec534" strokeWidth="3" strokeLinecap="round"/>
-      <Path d="M32 8V16" stroke="#fec534" strokeWidth="3" strokeLinecap="round"/>
-      <Path d="M48 32h8" stroke="#fec534" strokeWidth="3" strokeLinecap="round"/>
-      <Path d="M8 32h8" stroke="#fec534" strokeWidth="3" strokeLinecap="round"/>
-      <Path d="M44.4 44.4l5.6-5.6" stroke="#fec534" strokeWidth="3" strokeLinecap="round"/>
-      <Path d="M14 14l5.6-5.6" stroke="#fec534" strokeWidth="3" strokeLinecap="round"/>
-      <Path d="M44.4 19.6l5.6 5.6" stroke="#fec534" strokeWidth="3" strokeLinecap="round"/>
-      <Path d="M14 50l5.6 5.6" stroke="#fec534" strokeWidth="3" strokeLinecap="round"/>
+    {/* Główny okrąg słońca */}
+    <Circle cx="32" cy="32" r="14" fill="url(#sunGradient)" stroke="#FF8C00" strokeWidth="1.5"/>
+    
+    {/* Promienie słoneczne - bardziej nowoczesne i delikatne */}
+    <G stroke="url(#sunRays)" strokeWidth="2" strokeLinecap="round">
+      {/* Promienie pionowe */}
+      <Path d="M32 16V8" opacity="0.8"/>
+      <Path d="M32 56V48" opacity="0.8"/>
+      
+      {/* Promienie poziome */}
+      <Path d="M8 32H16" opacity="0.8"/>
+      <Path d="M48 32H56" opacity="0.8"/>
+      
+      {/* Promienie skośne */}
+      <Path d="M20 20L12 12" opacity="0.7"/>
+      <Path d="M52 52L44 44" opacity="0.7"/>
+      <Path d="M20 44L12 52" opacity="0.7"/>
+      <Path d="M52 12L44 20" opacity="0.7"/>
+      
+      {/* Dodatkowe krótkie promienie */}
+      <Path d="M26 18L22 14" opacity="0.6"/>
+      <Path d="M42 46L38 50" opacity="0.6"/>
+      <Path d="M26 46L22 50" opacity="0.6"/>
+      <Path d="M42 18L38 14" opacity="0.6"/>
     </G>
+    
+    {/* Wewnętrzny blask */}
+    <Circle cx="32" cy="32" r="8" fill="url(#sunGradient)" opacity="0.3"/>
   </Svg>
 );
 

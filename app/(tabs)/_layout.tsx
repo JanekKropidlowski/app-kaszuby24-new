@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Platform, View, Animated, StyleSheet, Text, Dimensions, PanResponder } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Bell, Bookmark, Search, Calendar as CalendarIcon, Settings } from 'lucide-react-native';
+import { Home, Bell, Bookmark, Search, Calendar as CalendarIcon, Settings, CloudRain } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotificationsStore } from '@/store/notificationsStore';
@@ -274,8 +274,23 @@ export default function TabLayout() {
         <Tabs.Screen
           name="weather"
           options={{
-            // This screen is totally hidden from the tab bar.
-            href: null,
+            title: 'Pogoda',
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={{
+                backgroundColor: focused ? theme.colors.primary : 'transparent',
+                borderRadius: focused ? 24 : 0,
+                width: focused ? 48 : 'auto',
+                height: focused ? 48 : 'auto',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <CloudRain
+                  size={focused ? 26 : 24}
+                  color={focused ? '#FFFFFF' : color}
+                  strokeWidth={focused ? 2.5 : 2}
+                />
+              </View>
+            ),
             headerShown: false,
           }}
         />
