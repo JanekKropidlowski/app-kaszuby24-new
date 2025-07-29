@@ -7,18 +7,21 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Platform
+  Platform,
+  SafeAreaView
 } from 'react-native';
 import { Bookmark, ChevronRight, Home, Settings, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import ArticleCard from '@/components/ArticleCard';
 import EmptyState from '@/components/EmptyState';
+import SkeletonLoader from '@/components/SkeletonLoader';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useEventsStore } from '@/store/eventsStore';
 import { useRouter } from 'expo-router';
 import { useThemeStore } from '@/store/themeStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
 import { useScrollStore } from '@/store/scrollStore';
+import GlobalTabBar from '@/components/GlobalTabBar';
 
 
 const { width } = Dimensions.get('window');
@@ -189,7 +192,7 @@ export default function SavedScreen() {
   });
   
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={{ flex: 1 }}>
       {/* Header with logo */}
       <SavedHeader />
       
@@ -341,67 +344,9 @@ export default function SavedScreen() {
         />
       )}
       
-      {/* Enhanced Bottom Navigation Menu - Modern & Comfortable */}
-      <View style={[styles.modernBottomBar, { backgroundColor: theme.colors.tabBarBackground }]}>
-        <TouchableOpacity
-          style={[styles.modernBottomItem, { opacity: 0.7 }]}
-          onPress={handleGoSearch}
-          activeOpacity={0.8}
-        >
-          <View style={styles.modernBottomIconWrapper}>
-            <Search size={24} color={theme.colors.text} strokeWidth={2} />
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Szukaj
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.modernBottomItem, styles.modernBottomItemActive]}
-          onPress={handleGoSaved}
-          activeOpacity={0.8}
-        >
-          <View style={[
-            styles.modernBottomIconWrapper, 
-            styles.modernBottomIconWrapperActive,
-            { backgroundColor: theme.colors.primary }
-          ]}>
-            <Bookmark size={26} color="#FFFFFF" strokeWidth={2.5} />
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.primary, fontFamily: theme.fontFamily.semibold }]}>
-            Zapisane
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.modernBottomItem, { opacity: 0.7 }]}
-          onPress={handleGoHome}
-          activeOpacity={0.8}
-        >
-          <View style={styles.modernBottomIconWrapper}>
-            <Home size={24} color={theme.colors.text} strokeWidth={2} />
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Główna
-          </Text>
-        </TouchableOpacity>
-        
-
-        
-        <TouchableOpacity
-          style={[styles.modernBottomItem, { opacity: 0.7 }]}
-          onPress={handleGoSettings}
-          activeOpacity={0.8}
-        >
-          <View style={styles.modernBottomIconWrapper}>
-            <Settings size={24} color={theme.colors.text} strokeWidth={2} />
-          </View>
-          <Text style={[styles.modernBottomText, { color: theme.colors.text, fontFamily: theme.fontFamily.medium }]}>
-            Ustawienia
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      {/* Global TabBar */}
+      <GlobalTabBar activeTab="saved" />
+    </SafeAreaView>
   );
 }
 
@@ -518,82 +463,7 @@ const styles = StyleSheet.create({
     }),
     resizeMode: 'contain',
   },
-  // Enhanced Modern Bottom Bar Styles
-  modernBottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingBottom: Platform.select({
-      ios: 28,
-      android: 20,
-      default: 20,
-    }),
-    paddingTop: 12,
-    borderTopWidth: 0,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    height: Platform.select({
-      ios: 100,
-      android: 88,
-      default: 88
-    }),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  modernBottomItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-  },
-  modernBottomItemActive: {
-    opacity: 1,
-  },
-  modernBottomIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-    position: 'relative',
-  },
-  modernBottomIconWrapperActive: {
-    shadowColor: '#224996',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  modernBottomText: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.1,
-  },
-  modernBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  modernBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
+
   // New styles for EventCard
   eventCard: {
     flexDirection: 'row',

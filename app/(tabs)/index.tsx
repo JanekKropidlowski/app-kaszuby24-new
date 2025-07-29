@@ -1642,7 +1642,7 @@ const styles = StyleSheet.create({
   },
   weatherTemperature: {
     fontSize: 16,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'Poppins_Bold',
     marginTop: 2,
   },
 

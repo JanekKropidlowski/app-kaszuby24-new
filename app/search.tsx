@@ -105,7 +105,7 @@ export default function SearchScreen() {
         Wpisz słowa kluczowe lub użyj wyszukiwania głosowego
       </Text>
       
-      {Platform.OS === 'web' && 'webkitSpeechRecognition' in window && (
+              {false && (
         <View style={styles.voiceSearchHint}>
           <Mic size={16} color={theme.colors.primary} />
           <Text style={[styles.voiceSearchText, { 

@@ -23,10 +23,6 @@ export class NotificationTester {
   
   static async testPushTokenGeneration(): Promise<string | null> {
     try {
-      if (Platform.OS === 'web') {
-        console.log('🌐 Push tokens not supported on web');
-        return null;
-      }
       
       // Pobierz project ID z konfiguracji EAS
       const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
@@ -52,10 +48,6 @@ export class NotificationTester {
   
   static async sendTestNotification(): Promise<boolean> {
     try {
-      if (Platform.OS === 'web') {
-        console.log('🌐 Local notifications not supported on web');
-        return false;
-      }
       
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {

@@ -9,7 +9,6 @@ export const MemoryOptimizer = {
    * Note: This is a no-op on web
    */
   clearImageCache: async (): Promise<void> => {
-    if (Platform.OS === 'web') return;
     
     try {
       // For expo-image, we can't directly clear the cache
@@ -150,10 +149,6 @@ export const MemoryOptimizer = {
    * Optimized image preloading strategy
    */
   shouldPreloadImages: (context: 'article' | 'list' | 'carousel'): boolean => {
-    if (Platform.OS === 'web') {
-      return context === 'article'; // Only preload for article detail on web
-    }
-    
     // On mobile, be more selective
     return context === 'article' || context === 'carousel';
   },

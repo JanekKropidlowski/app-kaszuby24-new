@@ -38,6 +38,7 @@ import { Article } from '@/types/article';
 import ArticleCard from '@/components/ArticleCard';
 import EmptyState from '@/components/EmptyState';
 import LoadingIndicator from '@/components/LoadingIndicator';
+import SkeletonLoader from '@/components/SkeletonLoader';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
@@ -676,7 +677,7 @@ export default function SearchScreen() {
       
       {/* Results */}
       {loading ? (
-        <LoadingIndicator fullScreen />
+        <SkeletonLoader type="search" count={5} immediate={true} />
       ) : (
         <FlatList
           data={articles}

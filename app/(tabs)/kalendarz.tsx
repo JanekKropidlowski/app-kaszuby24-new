@@ -1,17 +1,48 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, StyleSheet, Platform, Modal, Linking, TextInput, ScrollView, Share, SafeAreaView } from 'react-native';
-import { Calendar, MapPin, Tag, X } from 'lucide-react-native';
-import { useThemeStore } from '@/store/themeStore';
-import { Image } from 'expo-image';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  FlatList, 
+  TouchableOpacity, 
+  Platform, 
+  Dimensions, 
+  Share, 
+  Linking, 
+  TextInput, 
+  ScrollView, 
+  SafeAreaView 
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import he from 'he';
+import { 
+  ArrowLeft, 
+  Calendar as CalendarIcon, 
+  MapPin, 
+  Clock, 
+  Share2, 
+  Search, 
+  Filter, 
+  ChevronRight,
+  Plus,
+  Minus,
+  Home,
+  Settings,
+  Bookmark
+} from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { fetchEvents, fetchEventCategories } from '@/services/api';
+import { Event, EventCategory } from '@/types/event';
+import { useThemeStore } from '@/store/themeStore';
+import { useEventsStore } from '@/store/eventsStore';
+import { useScrollStore } from '@/store/scrollStore';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import SkeletonLoader from '@/components/SkeletonLoader';
+import EmptyState from '@/components/EmptyState';
+import { formatDateTime, formatDate } from '@/utils/dateFormatter';
+import * as Haptics from 'expo-haptics';
 
 const BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2/kalendarz?_embed&per_page=20';
-
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
-}
 
 function formatTime(dateStr: string) {
   const date = new Date(dateStr);
@@ -150,7 +181,7 @@ export default function EventCalendarScreen() {
       <View style={styles.cardContent}>
         <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>{he.decode(item.title.rendered)}</Text>
         <View style={styles.row}>
-          <Calendar size={16} color={theme.colors.primary} />
+          <CalendarIcon size={16} color={theme.colors.primary} />
           <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatDate(item.date)} {formatTime(item.date)}</Text>
         </View>
         {item.meta?.miasto && (
@@ -199,7 +230,7 @@ export default function EventCalendarScreen() {
         </TouchableOpacity>
       </View>
       {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
+        <SkeletonLoader type="home" count={5} immediate={true} />
       ) : error ? (
         <View style={styles.center}><Text style={{ color: theme.colors.error }}>{error}</Text></View>
       ) : (

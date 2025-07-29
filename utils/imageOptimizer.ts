@@ -124,11 +124,6 @@ export const calculateImageDimensions = (
  * Determines if an image should be preloaded based on its importance and device capabilities
  */
 export const shouldPreloadImage = (importance: 'high' | 'medium' | 'low'): boolean => {
-  // More conservative preloading strategy
-  if (Platform.OS === 'web') {
-    return importance === 'high'; // Only preload high importance on web
-  }
-  
   // On mobile, only preload high importance images to save bandwidth and memory
   return importance === 'high';
 };

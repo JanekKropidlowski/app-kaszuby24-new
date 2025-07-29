@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   time: {
     fontSize: Platform.OS === 'android' ? 11 : 13, // Mniejsza czcionka na Android
     color: GRANT,
-    fontFamily: Platform.OS === 'ios' ? 'Poppins-Bold' : 'sans-serif',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins_Bold' : 'sans-serif',
     fontWeight: Platform.OS === 'android' ? 'bold' : 'normal',
   },
   closeBtn: {

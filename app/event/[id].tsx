@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Share, Platform, Dimensions, Linking, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Share, Platform, Dimensions, Linking, Alert, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { ArrowLeft, Share2, Calendar as CalendarIcon, MapPin, Clock, Tag, Home, Search, Bookmark, Settings, CalendarPlus } from 'lucide-react-native';
@@ -7,6 +7,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { useEventsStore, SavedEvent } from '@/store/eventsStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import GlobalTabBar from '@/components/GlobalTabBar';
 
 const { width, height } = Dimensions.get('window');
 const BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2/kalendarz';
@@ -168,7 +169,7 @@ export default function EventDetailScreen() {
     .map((t: any) => t.name) || [];
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}> 
+    <SafeAreaView style={{ flex: 1 }}>
       {/* Header - przezroczysty */}
       <View style={styles.header}> 
         <TouchableOpacity onPress={handleGoBack} style={styles.headerButtonTransparent}>
@@ -227,7 +228,7 @@ export default function EventDetailScreen() {
 
         {/* Content container with rounded corners */}
         <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]}> 
-          <Text style={[styles.title, { color: theme.colors.text, fontFamily: theme.fontFamily?.bold }]}>
+          <Text style={[styles.title, { color: theme.colors.text, fontFamily: 'Poppins_Medium' }]}>
             {event.title.rendered
               .replace(/&#8222;|&#8221;|&#8211;/g, '')
               .replace(/&#038;/g, '&')
@@ -309,47 +310,9 @@ export default function EventDetailScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Tab Bar - identyczny jak w głównych zakładkach */}
-      <View style={[styles.tabBar, { 
-        backgroundColor: theme.colors.tabBarBackground, 
-        borderTopColor: theme.colors.border 
-      }]}>
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/(tabs)/search')}>
-          <View style={styles.tabIconContainer}>
-            <Search size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-          </View>
-          <Text style={[styles.tabLabel, { color: theme.colors.textSecondary }]}>Szukaj</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/(tabs)/saved')}>
-          <View style={styles.tabIconContainer}>
-            <Bookmark size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-          </View>
-          <Text style={[styles.tabLabel, { color: theme.colors.textSecondary }]}>Zapisane</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/(tabs)')}>
-          <View style={styles.tabIconContainer}>
-            <Home size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-          </View>
-          <Text style={[styles.tabLabel, { color: theme.colors.textSecondary }]}>Główna</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/(tabs)/kalendarz')}>
-          <View style={[styles.tabIconContainer, { backgroundColor: theme.colors.primary }]}>
-            <CalendarIcon size={26} color="#FFFFFF" strokeWidth={2.5} />
-          </View>
-          <Text style={[styles.tabLabel, { color: theme.colors.primary }]}>Kalendarz</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.tabItem} onPress={() => router.push('/(tabs)/preferences')}>
-          <View style={styles.tabIconContainer}>
-            <Settings size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-          </View>
-          <Text style={[styles.tabLabel, { color: theme.colors.textSecondary }]}>Ustawienia</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      {/* Global TabBar */}
+      <GlobalTabBar activeTab="kalendarz" />
+    </SafeAreaView>
   );
 }
 
@@ -603,41 +566,5 @@ const styles = StyleSheet.create({
   infoKafelek: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, marginRight: 8, borderWidth: 1, borderColor: '#F0F1F3', shadowColor: 'transparent', elevation: 0 },
   infoIconWrap: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F5F6FA', justifyContent: 'center', alignItems: 'center', marginRight: 7 },
   infoText: { fontSize: 15, fontWeight: '600', color: '#222', marginTop: 1 },
-  tabBar: { 
-    position: 'absolute', 
-    bottom: 0, 
-    left: 0, 
-    right: 0, 
-    height: Platform.OS === 'ios' ? 110 : 98, 
-    flexDirection: 'row', 
-    justifyContent: 'space-around', 
-    alignItems: 'center', 
-    paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 18,
-    borderTopWidth: 1,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-  },
-  tabItem: { 
-    alignItems: 'center',
-    flex: 1,
-  },
-  tabIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  tabLabel: { 
-    fontSize: 12, 
-    fontFamily: 'Poppins-Medium',
-    marginTop: 8,
-  },
+
 }); 

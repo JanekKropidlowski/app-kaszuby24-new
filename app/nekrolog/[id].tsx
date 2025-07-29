@@ -9,12 +9,16 @@ import {
   TouchableOpacity,
   BackHandler,
   Linking,
-  Alert
+  Alert,
+  SafeAreaView
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Share2, MapPin, Download, Heart, Home, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useThemeStore } from '@/store/themeStore';
+import { SafeAreaView as SafeAreaViewContext } from 'react-native-safe-area-context';
+import SkeletonLoader from '@/components/SkeletonLoader';
+import GlobalTabBar from '@/components/GlobalTabBar';
 
 import { fetchNekrologById } from '@/services/api';
 import { Nekrolog } from '@/types/article';
@@ -191,16 +195,18 @@ export default function NekrologDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
-          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <ArrowLeft size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Nekrolog</Text>
-          <View style={styles.placeholder} />
+      <SafeAreaViewContext style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
+            <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+              <ArrowLeft size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Nekrolog</Text>
+            <View style={styles.placeholder} />
+          </View>
+          <SkeletonLoader type="article" immediate={true} />
         </View>
-        <LoadingIndicator fullScreen />
-      </View>
+      </SafeAreaViewContext>
     );
   }
 
@@ -225,7 +231,8 @@ export default function NekrologDetailScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaViewContext style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
         <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
@@ -333,67 +340,10 @@ export default function NekrologDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Custom Tab Bar */}
-      <View style={[styles.tabBar, { backgroundColor: theme.colors.card }]}>
-        <TouchableOpacity 
-          style={styles.tabItem}
-          onPress={() => handleTabNavigation('/(tabs)/search')}
-          activeOpacity={0.7}
-        >
-          <Search size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-          <Text style={[styles.tabLabel, { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.medium 
-          }]}>
-            Szukaj
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.tabItem}
-          onPress={() => handleTabNavigation('/(tabs)/saved')}
-          activeOpacity={0.7}
-        >
-          <Bookmark size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-          <Text style={[styles.tabLabel, { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.medium 
-          }]}>
-            Zapisane
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.tabItem}
-          onPress={() => handleTabNavigation('/(tabs)/')}
-          activeOpacity={0.7}
-        >
-          <Home size={26} color={theme.colors.primary} strokeWidth={2.5} />
-          <Text style={[styles.tabLabel, { 
-            color: theme.colors.primary,
-            fontFamily: theme.fontFamily.medium 
-          }]}>
-            Główna
-          </Text>
-        </TouchableOpacity>
-
-
-
-        <TouchableOpacity 
-          style={styles.tabItem}
-          onPress={() => handleTabNavigation('/(tabs)/preferences')}
-          activeOpacity={0.7}
-        >
-          <Settings size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-          <Text style={[styles.tabLabel, { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.medium 
-          }]}>
-            Ustawienia
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Global TabBar */}
+      <GlobalTabBar activeTab="home" />
     </View>
+    </SafeAreaViewContext>
   );
 }
 
@@ -492,19 +442,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 32,
     paddingVertical: 16,
-    paddingHorizontal: 24,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
     gap: 8,
   },
   downloadText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   footer: {
     alignItems: 'center',
@@ -522,56 +466,5 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     opacity: 0.8,
   },
-  tabBar: {
-    flexDirection: 'row',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    height: Platform.OS === 'ios' ? 85 : 75,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 15,
-    paddingTop: 10,
-    paddingHorizontal: 12,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 4,
-  },
-  tabItemWithBadge: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  tabBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  tabBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+
 }); 

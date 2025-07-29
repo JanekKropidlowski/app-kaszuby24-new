@@ -227,4 +227,4 @@ const getStyles = (theme) => StyleSheet.create({
     },
 });
 
-export default WeatherSummary; 
+export { WeatherSummary }; 

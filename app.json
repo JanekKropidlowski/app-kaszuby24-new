@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.14",
+    "version": "1.0.18",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -14,11 +14,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "app.kaszuby24",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
+        "UIDeviceFamily": [1]
       }
     },
     "android": {
@@ -35,16 +38,18 @@
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "WAKE_LOCK",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
         "com.android.vending.BILLING",
         "com.google.android.c2dm.permission.RECEIVE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK"
-      ]
+      ],
+      "screenOrientation": "portrait",
+      "userInterfaceStyle": "automatic"
     },
-    "web": {
-      "favicon": "./assets/images/favicon.png"
-    },
+
     "updates": {
       "enabled": true,
       "url": "https://u.expo.dev/4aced4e9-da53-4734-83d7-fa5fe9870884"
@@ -54,7 +59,7 @@
         "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
       }
     },
-    "runtimeVersion": "1.0.14",
+    "runtimeVersion": "1.0.18",
     "plugins": [
       [
         "expo-notifications",
@@ -65,7 +70,13 @@
         }
       ],
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy."
+        }
+      ]
     ],
     "notification": {
       "icon": "./assets/images/icon.png",

@@ -15,11 +15,6 @@ class NotificationService {
     if (this.isInitialized || this.initializationFailed) return;
     
     try {
-      if (Platform.OS === 'web') {
-        console.log('Push notifications not fully supported on web');
-        this.initializationFailed = true;
-        return;
-      }
 
       console.log('Initializing Expo Push Notifications...');
       
@@ -97,7 +92,7 @@ class NotificationService {
   
   async requestPermissions(): Promise<boolean> {
     try {
-      if (Platform.OS === 'web' || this.initializationFailed) {
+      if (this.initializationFailed) {
         return false;
       }
       
@@ -129,7 +124,7 @@ class NotificationService {
   
   async requestPermissionsAndRegister() {
     try {
-      if (Platform.OS === 'web' || this.initializationFailed) {
+      if (this.initializationFailed) {
         return;
       }
       
@@ -174,10 +169,6 @@ class NotificationService {
   
   async registerForPushNotifications() {
     try {
-      if (Platform.OS === 'web') {
-        console.log('Push notifications not fully supported on web');
-        return;
-      }
       
       const hasPermission = await this.requestPermissions();
       
@@ -284,10 +275,6 @@ class NotificationService {
   
   async scheduleLocalNotification(title: string, body: string, data?: any) {
     try {
-      if (Platform.OS === 'web') {
-        console.log('Local notifications not supported on web');
-        return;
-      }
       
       // Get notification ID for tracking
       const notificationId = await Notifications.scheduleNotificationAsync({
@@ -320,9 +307,6 @@ class NotificationService {
   
   async clearNotifications() {
     try {
-      if (Platform.OS === 'web') {
-        return;
-      }
       
       await Notifications.dismissAllNotificationsAsync();
     } catch (error) {
@@ -360,7 +344,7 @@ class NotificationService {
 
   cleanup() {
     try {
-      if (Platform.OS === 'web' || this.initializationFailed) {
+      if (this.initializationFailed) {
         return;
       }
       

@@ -579,22 +579,7 @@ export default function ArticleSlugScreen() {
   
   // Memoized content renderer
   const renderContent = useMemo(() => {
-    if (Platform.OS === 'web') {
-      return (
-        <View style={[styles.htmlContainer, { backgroundColor: theme.colors.background }]}>
-          <div 
-            dangerouslySetInnerHTML={{ __html: enhancedHtml }}
-            style={{
-              color: isDarkMode ? '#F1F5F9' : '#1E293B',
-              fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-              fontSize: '13px',
-              lineHeight: '1.6',
-              backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC',
-            }}
-          />
-        </View>
-      );
-    } else if (webViewError) {
+    if (webViewError) {
       // Fallback for Android when WebView fails - now using embedded iframe instead of external link
       const youtubeVideoId = getYouTubeVideoId(article?.link || '');
       if (youtubeVideoId) {

@@ -32,12 +32,7 @@ export const useImagePreloader = (
     setLoaded(0);
     setIsLoading(true);
     
-    // Skip preloading on web to avoid unnecessary network requests
-    if (Platform.OS === 'web') {
-      setIsLoading(false);
-      onComplete?.();
-      return;
-    }
+
     
     let mounted = true;
     let loadedCount = 0;

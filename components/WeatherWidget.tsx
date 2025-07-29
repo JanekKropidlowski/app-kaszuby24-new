@@ -8,7 +8,14 @@ const { width: screenWidth } = Dimensions.get('window');
 
 const WeatherGauge = ({ value, maxValue, title, unit, color, icon: Icon }) => {
     const { theme } = useThemeStore();
-    const percentage = Math.min((value / maxValue) * 100, 100);
+    
+    // Sprawdzanie czy value jest liczbą
+    const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) {
+        return null;
+    }
+    
+    const percentage = Math.min((numericValue / maxValue) * 100, 100);
     const radius = 30;
     const strokeWidth = 6;
     const circumference = 2 * Math.PI * radius;
@@ -57,7 +64,7 @@ const WeatherGauge = ({ value, maxValue, title, unit, color, icon: Icon }) => {
                     </G>
                 </Svg>
                 <View style={styles.gaugeValueContainer}>
-                    <Text style={styles.gaugeValue}>{value}</Text>
+                    <Text style={styles.gaugeValue}>{numericValue.toFixed(1)}</Text>
                     <Text style={styles.gaugeUnit}>{unit}</Text>
                 </View>
             </View>
@@ -70,12 +77,16 @@ const WeatherTrend = ({ data, title, color }) => {
     
     if (!data || data.length < 2) return null;
 
-    const maxValue = Math.max(...data);
-    const minValue = Math.min(...data);
+    // Sprawdzanie czy wszystkie wartości są liczbami
+    const validData = data.filter(value => !isNaN(parseFloat(value))).map(value => parseFloat(value));
+    if (validData.length < 2) return null;
+
+    const maxValue = Math.max(...validData);
+    const minValue = Math.min(...validData);
     const range = maxValue - minValue;
     
-    const points = data.map((value, index) => {
-        const x = (index / (data.length - 1)) * 100;
+    const points = validData.map((value, index) => {
+        const x = (index / (validData.length - 1)) * 100;
         const y = range > 0 ? 100 - ((value - minValue) / range) * 100 : 50;
         return `${x},${y}`;
     }).join(' ');
@@ -116,7 +127,21 @@ export const WeatherWidget = ({ weatherData, forecastData }) => {
 
     if (!weatherData) return null;
 
-    const { temperatura, cisnienie, wilgotnosc_wzgledna, predkosc_wiatru } = weatherData;
+    // Bezpieczne pobieranie danych z sprawdzeniem
+    const temperatura = weatherData.temperatura;
+    const cisnienie = weatherData.cisnienie;
+    const wilgotnosc_wzgledna = weatherData.wilgotnosc_wzgledna;
+    const predkosc_wiatru = weatherData.predkosc_wiatru;
+
+    // Sprawdzanie czy wszystkie wymagane dane są dostępne
+    if (!temperatura || !cisnienie || !wilgotnosc_wzgledna || !predkosc_wiatru) {
+        return (
+            <View style={styles.container}>
+                <Text style={styles.sectionTitle}>Szczegółowe dane</Text>
+                <Text style={styles.errorText}>Brak kompletnych danych pogodowych</Text>
+            </View>
+        );
+    }
 
     // Prepare trend data for the next 7 days
     const temperatureTrend = forecastData?.temperature_2m_max?.slice(0, 7) || [];
@@ -128,7 +153,7 @@ export const WeatherWidget = ({ weatherData, forecastData }) => {
             
             <View style={styles.gaugesContainer}>
                 <WeatherGauge
-                    value={parseFloat(temperatura).toFixed(1)}
+                    value={temperatura}
                     maxValue={40}
                     title="Temperatura"
                     unit="°C"
@@ -136,7 +161,7 @@ export const WeatherWidget = ({ weatherData, forecastData }) => {
                     icon={Thermometer}
                 />
                 <WeatherGauge
-                    value={parseFloat(wilgotnosc_wzgledna).toFixed(0)}
+                    value={wilgotnosc_wzgledna}
                     maxValue={100}
                     title="Wilgotność"
                     unit="%"
@@ -144,7 +169,7 @@ export const WeatherWidget = ({ weatherData, forecastData }) => {
                     icon={Droplets}
                 />
                 <WeatherGauge
-                    value={parseFloat(predkosc_wiatru).toFixed(1)}
+                    value={predkosc_wiatru}
                     maxValue={20}
                     title="Wiatr"
                     unit="m/s"
@@ -152,7 +177,7 @@ export const WeatherWidget = ({ weatherData, forecastData }) => {
                     icon={Wind}
                 />
                 <WeatherGauge
-                    value={parseFloat(cisnienie).toFixed(0)}
+                    value={cisnienie}
                     maxValue={1100}
                     title="Ciśnienie"
                     unit="hPa"
@@ -191,6 +216,13 @@ const getStyles = (theme) => StyleSheet.create({
         fontSize: 20,
         color: theme.colors.text,
         marginBottom: 20,
+    },
+    errorText: {
+        fontFamily: theme.fontFamily.medium,
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
     gaugesContainer: {
         flexDirection: 'row',

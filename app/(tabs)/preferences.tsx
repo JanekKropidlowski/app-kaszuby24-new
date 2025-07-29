@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
-  Platform
+  Platform,
+  SafeAreaView
 } from 'react-native';
 import { 
   Bell, 
@@ -186,19 +187,7 @@ export default function PreferencesScreen() {
   
   const handleShare = async () => {
     try {
-      if (Platform.OS === 'web') {
-        if (navigator.share) {
-          await navigator.share({
-            title: 'Kaszuby24 - Aplikacja',
-            text: 'Sprawdź najnowsze wiadomości z Kaszub!',
-            url: 'https://kaszuby24.pl',
-          });
-        } else {
-          alert('Skopiuj ten link aby udostępnić: https://kaszuby24.pl');
-        }
-      } else {
-        await Linking.openURL('https://kaszuby24.pl');
-      }
+      await Linking.openURL('https://kaszuby24.pl');
     } catch (error) {
       console.error('Error sharing:', error);
     }
@@ -243,466 +232,212 @@ export default function PreferencesScreen() {
   console.log('PreferencesScreen render - debugMode:', debugMode);
   
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: theme.colors.background }]} 
-      contentContainerStyle={styles.content}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
-    >
-      {/* Profile Section */}
-      <View style={[styles.profileSection, { backgroundColor: theme.colors.card }]}>
-        <View style={[
-          styles.profileImageContainer, 
-          { 
-            backgroundColor: theme.isDarkMode ? 'transparent' : '#FFFFFF', // Białe tło dla jasnego motywu
-            marginTop: 20 // Zwiększony odstęp od góry
-          }
-        ]}>
-          <Image 
-            source={{ 
-              uri: theme.isDarkMode 
-                ? 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png' // Logo białe dla ciemnego motywu
-                : 'https://kaszuby24.pl/wp-content/uploads/2022/11/naklejka_30x15-02.png' // Logo kolorowe dla jasnego motywu
-            }}
-            style={styles.profileImage}
-            contentFit="contain" // Zmieniono z cover na contain aby logo nie było przycinane
-          />
-        </View>
-        <Text style={[
-          styles.profileName, 
-          { 
-            color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold
-          }
-        ]}>
-          Kaszuby24
-        </Text>
-        <Text style={[
-          styles.profileEmail, 
-          { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.regular
-          }
-        ]}>
-          Twoje źródło wiadomości z Kaszub
-        </Text>
-        
-        {/* Location info */}
-        {userLocation && (
-          <View style={[styles.locationBadge, { backgroundColor: theme.colors.subtle }]}>
-            <MapPin size={14} color={theme.colors.primary} />
-            <Text style={[
-              styles.locationText,
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              {userLocation.name}
-            </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <ScrollView 
+        style={[styles.container, { backgroundColor: theme.colors.background }]} 
+        contentContainerStyle={styles.content}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {/* Profile Section */}
+        <View style={[styles.profileSection, { backgroundColor: theme.colors.card }]}>
+          <View style={[
+            styles.profileImageContainer, 
+            { 
+              backgroundColor: theme.isDarkMode ? 'transparent' : '#FFFFFF', // Białe tło dla jasnego motywu
+              marginTop: 20 // Zwiększony odstęp od góry
+            }
+          ]}>
+            <Image 
+              source={{ 
+                uri: theme.isDarkMode 
+                  ? 'https://kaszuby24.pl/wp-content/uploads/2023/05/Bez-nazwy-1_Obszar-roboczy-1.png' // Logo białe dla ciemnego motywu
+                  : 'https://kaszuby24.pl/wp-content/uploads/2022/11/naklejka_30x15-02.png' // Logo kolorowe dla jasnego motywu
+              }}
+              style={styles.profileImage}
+              contentFit="contain" // Zmieniono z cover na contain aby logo nie było przycinane
+            />
           </View>
-        )}
-      </View>
-      
-      {/* Location Settings */}
-      <Text style={[
-        styles.sectionTitle, 
-        { 
-          color: theme.colors.text,
-          fontFamily: theme.fontFamily.semibold
-        }
-      ]}>
-        Lokalizacja
-      </Text>
-      
-      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-        <TouchableOpacity 
-          style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-          onPress={handleLocationChange}
-        >
-          <View style={styles.settingLabelContainer}>
-            <Navigation size={20} color={theme.colors.primary} />
-            <View style={styles.settingTextContainer}>
-              <Text style={[
-                styles.settingLabel, 
-                { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium
-                }
-              ]}>
-                Główna lokalizacja
-              </Text>
-              <Text style={[
-                styles.settingSubtitle,
-                { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular
-                }
-              ]}>
-                {userLocation ? userLocation.name : 'Nie wybrano'}
-              </Text>
-            </View>
-          </View>
-          <ChevronRight size={20} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Quick Setup for new users */}
-      {(isFirstTimeUser || !notificationsEnabled) && (
-        <>
           <Text style={[
-            styles.sectionTitle, 
+            styles.profileName, 
             { 
               color: theme.colors.text,
               fontFamily: theme.fontFamily.semibold
             }
           ]}>
-            Szybka konfiguracja
+            Kaszuby24
           </Text>
-          
-          <View style={[styles.quickSetupCard, { backgroundColor: theme.colors.card }]}>
-            <View style={styles.quickSetupHeader}>
-              <View style={[styles.quickSetupIcon, { backgroundColor: theme.colors.subtle }]}>
-                <Zap size={24} color={theme.colors.primary} />
-              </View>
-              <View style={styles.quickSetupText}>
-                <Text style={[
-                  styles.quickSetupTitle,
-                  { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.semibold
-                  }
-                ]}>
-                  Skonfiguruj w 30 sekund
-                </Text>
-                <Text style={[
-                  styles.quickSetupSubtitle,
-                  { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular
-                  }
-                ]}>
-                  Włącz powiadomienia dla popularnych regionów
-                </Text>
-              </View>
-            </View>
-            
-            <View style={styles.quickSetupFeatures}>
-              <View style={styles.quickSetupFeature}>
-                <CheckCircle size={16} color={theme.colors.success} />
-                <Text style={[
-                  styles.quickSetupFeatureText,
-                  { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.regular
-                  }
-                ]}>
-                  Trójmiasto, Kraj, Kartuzy
-                </Text>
-              </View>
-              <View style={styles.quickSetupFeature}>
-                <CheckCircle size={16} color={theme.colors.success} />
-                <Text style={[
-                  styles.quickSetupFeatureText,
-                  { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.regular
-                  }
-                ]}>
-                  Wiadomości i Kultura
-                </Text>
-              </View>
-            </View>
-            
-            <TouchableOpacity 
-              style={[styles.quickSetupButton, { backgroundColor: theme.colors.primary }]}
-              onPress={handleQuickSetup}
-            >
-              <Text style={[
-                styles.quickSetupButtonText,
-                { fontFamily: theme.fontFamily.semibold }
-              ]}>
-                Skonfiguruj automatycznie
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
-      
-      {/* App Settings */}
-      <Text style={[
-        styles.sectionTitle, 
-        { 
-          color: theme.colors.text,
-          fontFamily: theme.fontFamily.semibold
-        }
-      ]}>
-        Ustawienia aplikacji
-      </Text>
-      
-      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-        <View style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}>
-          <View style={styles.settingLabelContainer}>
-            {isDarkMode ? (
-              <Moon size={20} color={theme.colors.primary} />
-            ) : (
-              <Sun size={20} color={theme.colors.primary} />
-            )}
-            <Text style={[
-              styles.settingLabel, 
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              Tryb ciemny
-            </Text>
-          </View>
-          <Switch
-            value={isDarkMode}
-            onValueChange={toggleTheme}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-            thumbColor={theme.colors.card}
-          />
-        </View>
-        
-        <TouchableOpacity 
-          style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-          onPress={clearRecentArticles}
-        >
-          <View style={styles.settingLabelContainer}>
-            <Trash2 size={20} color={theme.colors.primary} />
-            <Text style={[
-              styles.settingLabel, 
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              Wyczyść historię
-            </Text>
-          </View>
-          <ChevronRight size={20} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Notification Settings */}
-      <Text style={[
-        styles.sectionTitle, 
-        { 
-          color: theme.colors.text,
-          fontFamily: theme.fontFamily.semibold
-        }
-      ]}>
-        Powiadomienia
-      </Text>
-      
-      <View style={[styles.summaryCard, { backgroundColor: theme.colors.card }]}>
-        <View style={styles.summaryRow}>
-          <Bell size={20} color={theme.colors.primary} />
           <Text style={[
-            styles.summaryText, 
-            { 
-              color: theme.colors.text,
-              fontFamily: theme.fontFamily.medium
-            }
-          ]}>
-            Powiadomienia {notificationsEnabled ? 'włączone' : 'wyłączone'}
-          </Text>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={handleToggleNotifications}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-            thumbColor={theme.colors.card}
-          />
-        </View>
-        
-        <View style={[styles.summaryStats, { borderTopColor: theme.colors.border }]}>
-          <Text style={[
-            styles.statsText, 
+            styles.profileEmail, 
             { 
               color: theme.colors.textSecondary,
               fontFamily: theme.fontFamily.regular
             }
           ]}>
-            Wybrano {enabledCount} z {preferences.length} sekcji
+            Twoje źródło wiadomości z Kaszub
           </Text>
-        </View>
-      </View>
-      
-      {/* Regions */}
-      {regions.length > 0 && (
-        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-          <View style={[styles.sectionHeader, { backgroundColor: theme.colors.subtle, borderBottomColor: theme.colors.border }]}>
-            <MapPin size={18} color={theme.colors.primary} />
-            <Text style={[
-              styles.sectionHeaderTitle, 
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.semibold
-              }
-            ]}>
-              Regiony
-            </Text>
-          </View>
           
-          {regions.map((region) => (
-            <View 
-              key={region.id} 
-              style={[styles.preferenceRow, { borderBottomColor: theme.colors.border }]}
-            >
+          {/* Location info */}
+          {userLocation && (
+            <View style={[styles.locationBadge, { backgroundColor: theme.colors.subtle }]}>
+              <MapPin size={14} color={theme.colors.primary} />
               <Text style={[
-                styles.preferenceName, 
+                styles.locationText,
                 { 
                   color: theme.colors.text,
                   fontFamily: theme.fontFamily.medium
                 }
               ]}>
-                {region.name}
+                {userLocation.name}
               </Text>
-              <Switch
-                value={region.enabled}
-                onValueChange={(enabled) => updatePreference(region.id, enabled)}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor={theme.colors.card}
-                disabled={!notificationsEnabled}
-              />
             </View>
-          ))}
+          )}
         </View>
-      )}
-      
-      {/* Categories */}
-      {categories.length > 0 && (
+        
+        {/* Location Settings */}
+        <Text style={[
+          styles.sectionTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}>
+          Lokalizacja
+        </Text>
+        
         <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-          <View style={[styles.sectionHeader, { backgroundColor: theme.colors.subtle, borderBottomColor: theme.colors.border }]}>
-            <Tag size={18} color={theme.colors.primary} />
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={handleLocationChange}
+          >
+            <View style={styles.settingLabelContainer}>
+              <Navigation size={20} color={theme.colors.primary} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[
+                  styles.settingLabel, 
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
+                  Główna lokalizacja
+                </Text>
+                <Text style={[
+                  styles.settingSubtitle,
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
+                  {userLocation ? userLocation.name : 'Nie wybrano'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Quick Setup for new users */}
+        {(isFirstTimeUser || !notificationsEnabled) && (
+          <>
             <Text style={[
-              styles.sectionHeaderTitle, 
+              styles.sectionTitle, 
               { 
                 color: theme.colors.text,
                 fontFamily: theme.fontFamily.semibold
               }
             ]}>
-              Działy tematyczne
+              Szybka konfiguracja
             </Text>
-          </View>
-          
-          {categories.map((category) => (
-            <View 
-              key={category.id} 
-              style={[styles.preferenceRow, { borderBottomColor: theme.colors.border }]}
-            >
-              <Text style={[
-                styles.preferenceName, 
-                { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium
-                }
-              ]}>
-                {category.name}
-              </Text>
-              <Switch
-                value={category.enabled}
-                onValueChange={(enabled) => updatePreference(category.id, enabled)}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor={theme.colors.card}
-                disabled={!notificationsEnabled}
-              />
+            
+            <View style={[styles.quickSetupCard, { backgroundColor: theme.colors.card }]}>
+              <View style={styles.quickSetupHeader}>
+                <View style={[styles.quickSetupIcon, { backgroundColor: theme.colors.subtle }]}>
+                  <Zap size={24} color={theme.colors.primary} />
+                </View>
+                <View style={styles.quickSetupText}>
+                  <Text style={[
+                    styles.quickSetupTitle,
+                    { 
+                      color: theme.colors.text,
+                      fontFamily: theme.fontFamily.semibold
+                    }
+                  ]}>
+                    Skonfiguruj w 30 sekund
+                  </Text>
+                  <Text style={[
+                    styles.quickSetupSubtitle,
+                    { 
+                      color: theme.colors.textSecondary,
+                      fontFamily: theme.fontFamily.regular
+                    }
+                  ]}>
+                    Włącz powiadomienia dla popularnych regionów
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.quickSetupFeatures}>
+                <View style={styles.quickSetupFeature}>
+                  <CheckCircle size={16} color={theme.colors.success} />
+                  <Text style={[
+                    styles.quickSetupFeatureText,
+                    { 
+                      color: theme.colors.text,
+                      fontFamily: theme.fontFamily.regular
+                    }
+                  ]}>
+                    Trójmiasto, Kraj, Kartuzy
+                  </Text>
+                </View>
+                <View style={styles.quickSetupFeature}>
+                  <CheckCircle size={16} color={theme.colors.success} />
+                  <Text style={[
+                    styles.quickSetupFeatureText,
+                    { 
+                      color: theme.colors.text,
+                      fontFamily: theme.fontFamily.regular
+                    }
+                  ]}>
+                    Wiadomości i Kultura
+                  </Text>
+                </View>
+              </View>
+              
+              <TouchableOpacity 
+                style={[styles.quickSetupButton, { backgroundColor: theme.colors.primary }]}
+                onPress={handleQuickSetup}
+              >
+                <Text style={[
+                  styles.quickSetupButtonText,
+                  { fontFamily: theme.fontFamily.semibold }
+                ]}>
+                  Skonfiguruj automatycznie
+                </Text>
+              </TouchableOpacity>
             </View>
-          ))}
-        </View>
-      )}
-      
-      {/* About & Contact */}
-      <Text style={[
-        styles.sectionTitle, 
-        { 
-          color: theme.colors.text,
-          fontFamily: theme.fontFamily.semibold
-        }
-      ]}>
-        Informacje
-      </Text>
-      
-      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-        <TouchableOpacity 
-          style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-          onPress={handleOpenWebsite}
-        >
-          <View style={styles.settingLabelContainer}>
-            <Globe size={20} color={theme.colors.primary} />
-            <Text style={[
-              styles.settingLabel, 
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              Odwiedź stronę internetową
-            </Text>
-          </View>
-          <ChevronRight size={20} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
+          </>
+        )}
         
-        <TouchableOpacity 
-          style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-          onPress={handleContact}
-        >
-          <View style={styles.settingLabelContainer}>
-            <Mail size={20} color={theme.colors.primary} />
-            <Text style={[
-              styles.settingLabel, 
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              Kontakt z redakcją
-            </Text>
-          </View>
-          <ChevronRight size={20} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
+        {/* App Settings */}
+        <Text style={[
+          styles.sectionTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}>
+          Ustawienia aplikacji
+        </Text>
         
-        <TouchableOpacity 
-          style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-          onPress={handleShare}
-        >
-          <View style={styles.settingLabelContainer}>
-            <Share2 size={20} color={theme.colors.primary} />
-            <Text style={[
-              styles.settingLabel, 
-              { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.medium
-              }
-            ]}>
-              Udostępnij aplikację
-            </Text>
-          </View>
-          <ChevronRight size={20} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Test Notifications Section */}
-      <Text style={[
-        styles.sectionTitle, 
-        { 
-          color: theme.colors.text,
-          fontFamily: theme.fontFamily.semibold
-        }
-      ]}>
-        Narzędzia testowe
-      </Text>
-      
-      <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-        <TouchableOpacity 
-          style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-          onPress={handleTestNotification}
-        >
-          <View style={styles.settingLabelContainer}>
-            <BellRing size={20} color={theme.colors.primary} />
-            <View style={styles.settingTextContainer}>
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}>
+            <View style={styles.settingLabelContainer}>
+              {isDarkMode ? (
+                <Moon size={20} color={theme.colors.primary} />
+              ) : (
+                <Sun size={20} color={theme.colors.primary} />
+              )}
               <Text style={[
                 styles.settingLabel, 
                 { 
@@ -710,84 +445,340 @@ export default function PreferencesScreen() {
                   fontFamily: theme.fontFamily.medium
                 }
               ]}>
-                Testowe powiadomienie
-              </Text>
-              <Text style={[
-                styles.settingSubtitle,
-                { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular
-                }
-              ]}>
-                Wyślij testowe powiadomienie push
+                Tryb ciemny
               </Text>
             </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleTheme}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.card}
+            />
           </View>
-          <ChevronRight size={20} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Ustawienia debugowania */}
-      <View style={styles.settingRow}>
-        <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Tryb debugowania</Text>
-        <View style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-          <Switch
-            value={debugMode}
-            onValueChange={toggleDebugMode}
-            thumbColor={theme.colors.primary}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primary + '55' }}
-          />
-          <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
-            {debugMode ? 'Włączony' : 'Wyłączony'}
+          
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={clearRecentArticles}
+          >
+            <View style={styles.settingLabelContainer}>
+              <Trash2 size={20} color={theme.colors.primary} />
+              <Text style={[
+                styles.settingLabel, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Wyczyść historię
+              </Text>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Notification Settings */}
+        <Text style={[
+          styles.sectionTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}>
+          Powiadomienia
+        </Text>
+        
+        <View style={[styles.summaryCard, { backgroundColor: theme.colors.card }]}>
+          <View style={styles.summaryRow}>
+            <Bell size={20} color={theme.colors.primary} />
+            <Text style={[
+              styles.summaryText, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              Powiadomienia {notificationsEnabled ? 'włączone' : 'wyłączone'}
+            </Text>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleToggleNotifications}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.card}
+            />
+          </View>
+          
+          <View style={[styles.summaryStats, { borderTopColor: theme.colors.border }]}>
+            <Text style={[
+              styles.statsText, 
+              { 
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fontFamily.regular
+              }
+            ]}>
+              Wybrano {enabledCount} z {preferences.length} sekcji
+            </Text>
+          </View>
+        </View>
+        
+        {/* Regions */}
+        {regions.length > 0 && (
+          <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.sectionHeader, { backgroundColor: theme.colors.subtle, borderBottomColor: theme.colors.border }]}>
+              <MapPin size={18} color={theme.colors.primary} />
+              <Text style={[
+                styles.sectionHeaderTitle, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.semibold
+                }
+              ]}>
+                Regiony
+              </Text>
+            </View>
+            
+            {regions.map((region) => (
+              <View 
+                key={region.id} 
+                style={[styles.preferenceRow, { borderBottomColor: theme.colors.border }]}
+              >
+                <Text style={[
+                  styles.preferenceName, 
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
+                  {region.name}
+                </Text>
+                <Switch
+                  value={region.enabled}
+                  onValueChange={(enabled) => updatePreference(region.id, enabled)}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor={theme.colors.card}
+                  disabled={!notificationsEnabled}
+                />
+              </View>
+            ))}
+          </View>
+        )}
+        
+        {/* Categories */}
+        {categories.length > 0 && (
+          <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.sectionHeader, { backgroundColor: theme.colors.subtle, borderBottomColor: theme.colors.border }]}>
+              <Tag size={18} color={theme.colors.primary} />
+              <Text style={[
+                styles.sectionHeaderTitle, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.semibold
+                }
+              ]}>
+                Działy tematyczne
+              </Text>
+            </View>
+            
+            {categories.map((category) => (
+              <View 
+                key={category.id} 
+                style={[styles.preferenceRow, { borderBottomColor: theme.colors.border }]}
+              >
+                <Text style={[
+                  styles.preferenceName, 
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
+                  {category.name}
+                </Text>
+                <Switch
+                  value={category.enabled}
+                  onValueChange={(enabled) => updatePreference(category.id, enabled)}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor={theme.colors.card}
+                  disabled={!notificationsEnabled}
+                />
+              </View>
+            ))}
+          </View>
+        )}
+        
+        {/* About & Contact */}
+        <Text style={[
+          styles.sectionTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}>
+          Informacje
+        </Text>
+        
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={handleOpenWebsite}
+          >
+            <View style={styles.settingLabelContainer}>
+              <Globe size={20} color={theme.colors.primary} />
+              <Text style={[
+                styles.settingLabel, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Odwiedź stronę internetową
+              </Text>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={handleContact}
+          >
+            <View style={styles.settingLabelContainer}>
+              <Mail size={20} color={theme.colors.primary} />
+              <Text style={[
+                styles.settingLabel, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Kontakt z redakcją
+              </Text>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={handleShare}
+          >
+            <View style={styles.settingLabelContainer}>
+              <Share2 size={20} color={theme.colors.primary} />
+              <Text style={[
+                styles.settingLabel, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Udostępnij aplikację
+              </Text>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Test Notifications Section */}
+        <Text style={[
+          styles.sectionTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}>
+          Narzędzia testowe
+        </Text>
+        
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={handleTestNotification}
+          >
+            <View style={styles.settingLabelContainer}>
+              <BellRing size={20} color={theme.colors.primary} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[
+                  styles.settingLabel, 
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
+                  Testowe powiadomienie
+                </Text>
+                <Text style={[
+                  styles.settingSubtitle,
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
+                  Wyślij testowe powiadomienie push
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Ustawienia debugowania */}
+        <View style={styles.settingRow}>
+          <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Tryb debugowania</Text>
+          <View style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+            <Switch
+              value={debugMode}
+              onValueChange={toggleDebugMode}
+              thumbColor={theme.colors.primary}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary + '55' }}
+            />
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+              {debugMode ? 'Włączony' : 'Wyłączony'}
+            </Text>
+          </View>
+        </View>
+        
+        {/* Logo Section */}
+        <View style={[styles.logoSection, { backgroundColor: theme.colors.card }]}>
+          <Text style={[
+            styles.sponsorText, 
+            { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }
+          ]}>
+            Aplikacja wspierana przez
+          </Text>
+          <View style={styles.logoContainer}>
+            <Image 
+              source={{ 
+                uri: theme.isDarkMode 
+                  ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY_Obszar-roboczy-1-scaled.png' // Wersja biała dla ciemnego motywu
+                  : 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-03-scaled.png' // Pełna wersja kolorowa dla jasnego motywu
+              }}
+              style={styles.sponsorLogo}
+              contentFit="contain"
+            />
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={[
+            styles.footerText, 
+            { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }
+          ]}>
+            Kaszuby24 App v1.0.0
+          </Text>
+          <Text style={[
+            styles.footerText, 
+            { 
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }
+          ]}>
+            © 2025 Kaszuby24.pl
           </Text>
         </View>
-      </View>
-      
-      {/* Logo Section */}
-      <View style={[styles.logoSection, { backgroundColor: theme.colors.card }]}>
-        <Text style={[
-          styles.sponsorText, 
-          { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.regular
-          }
-        ]}>
-          Aplikacja wspierana przez
-        </Text>
-        <View style={styles.logoContainer}>
-          <Image 
-            source={{ 
-              uri: theme.isDarkMode 
-                ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY_Obszar-roboczy-1-scaled.png' // Wersja biała dla ciemnego motywu
-                : 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-03-scaled.png' // Pełna wersja kolorowa dla jasnego motywu
-            }}
-            style={styles.sponsorLogo}
-            contentFit="contain"
-          />
-        </View>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={[
-          styles.footerText, 
-          { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.regular
-          }
-        ]}>
-          Kaszuby24 App v1.0.0
-        </Text>
-        <Text style={[
-          styles.footerText, 
-          { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.regular
-          }
-        ]}>
-          © 2025 Kaszuby24.pl
-        </Text>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

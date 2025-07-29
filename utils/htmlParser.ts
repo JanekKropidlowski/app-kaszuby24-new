@@ -137,6 +137,81 @@ export const cleanHtml = (html: string): string => {
         text-size-adjust: 100%;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        text-align: justify;
+      }
+      
+      p {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 400;
+        line-height: 1.7;
+        margin-bottom: 1rem;
+        text-align: justify;
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        line-height: 1.3;
+        margin-bottom: 0.75rem;
+        color: inherit;
+      }
+      
+      strong, b {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+      }
+      
+      em, i {
+        font-family: 'Poppins', sans-serif;
+        font-style: italic;
+        font-weight: 400;
+      }
+      
+      blockquote {
+        font-family: 'Poppins', sans-serif;
+        font-style: italic;
+        font-weight: 400;
+        border-left: 4px solid #224A96;
+        padding-left: 1rem;
+        margin: 1rem 0;
+        background-color: rgba(34, 74, 150, 0.05);
+        padding: 1rem;
+        border-radius: 8px;
+      }
+      
+      ul, ol {
+        font-family: 'Poppins', sans-serif;
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+      }
+      
+      li {
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.6;
+        margin-bottom: 0.5rem;
+      }
+      
+      a {
+        color: #224A96;
+        text-decoration: underline;
+        font-weight: 500;
+      }
+      
+      code {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        background-color: rgba(0, 0, 0, 0.05);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      
+      pre {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        background-color: rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 1rem 0;
       }
       
       /* Remove any video/iframe elements to prevent conflicts */
@@ -176,20 +251,15 @@ export const cleanHtml = (html: string): string => {
     </style>
   `;
   
-  // Add the styles to the HTML
-  if (Platform.OS === 'web') {
-    cleanedHtml = webStyles + cleanedHtml;
-  } else {
-    // For mobile, we'll inject the styles in the head
-    cleanedHtml = cleanedHtml.replace(
-      /<head>(.*?)<\/head>/s,
-      `<head>$1${webStyles}</head>`
-    );
-    
-    // If there's no head tag, add one
-    if (!cleanedHtml.includes('<head>')) {
-      cleanedHtml = `<head>${webStyles}</head>${cleanedHtml}`;
-    }
+  // For mobile, we'll inject the styles in the head
+  cleanedHtml = cleanedHtml.replace(
+    /<head>(.*?)<\/head>/s,
+    `<head>$1${webStyles}</head>`
+  );
+  
+  // If there's no head tag, add one
+  if (!cleanedHtml.includes('<head>')) {
+    cleanedHtml = `<head>${webStyles}</head>${cleanedHtml}`;
   }
   
   return cleanedHtml;
