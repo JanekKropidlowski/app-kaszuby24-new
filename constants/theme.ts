@@ -14,16 +14,34 @@ const getSystemFontFallback = (weight: string) => {
   if (Platform.OS === 'android') {
     switch (weight) {
       case 'light':
-        return 'sans-serif-light';
+        return 'Roboto-Light';
       case 'medium':
-        return 'sans-serif-medium';
+        return 'Roboto-Medium';
       case 'bold':
-        return 'sans-serif';
+        return 'Roboto-Bold';
       default:
-        return 'sans-serif';
+        return 'Roboto-Regular';
     }
   }
   return 'System';
+};
+
+// Helper function to get optimized font sizes for Android
+const getAndroidOptimizedFontSize = (baseSize: number) => {
+  if (Platform.OS === 'android') {
+    // Android needs slightly larger fonts for better readability
+    return Math.round(baseSize * 1.05);
+  }
+  return baseSize;
+};
+
+// Helper function to get optimized padding for Android
+const getAndroidOptimizedPadding = (basePadding: number) => {
+  if (Platform.OS === 'android') {
+    // Android needs larger touch targets
+    return Math.round(basePadding * 1.1);
+  }
+  return basePadding;
 };
 
 export const lightTheme = {
@@ -80,6 +98,27 @@ export const lightTheme = {
       default: getFontFamily('Poppins_Black'),
       android: 'Poppins_Black',
     }) || getSystemFontFallback('bold'),
+  },
+  // Android-specific optimizations
+  androidOptimizations: {
+    fontSize: {
+      small: getAndroidOptimizedFontSize(12),
+      regular: getAndroidOptimizedFontSize(14),
+      medium: getAndroidOptimizedFontSize(16),
+      large: getAndroidOptimizedFontSize(18),
+      xlarge: getAndroidOptimizedFontSize(20),
+    },
+    padding: {
+      small: getAndroidOptimizedPadding(8),
+      regular: getAndroidOptimizedPadding(12),
+      medium: getAndroidOptimizedPadding(16),
+      large: getAndroidOptimizedPadding(20),
+    },
+    height: {
+      button: Platform.OS === 'android' ? 48 : 44,
+      input: Platform.OS === 'android' ? 48 : 44,
+      touchTarget: Platform.OS === 'android' ? 44 : 40,
+    },
   },
   logo: {
     header: 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png',
@@ -149,6 +188,27 @@ export const darkTheme = {
       android: 'Poppins_Black',
       web: getFontFamily('Poppins_Black'),
     }) || getSystemFontFallback('bold'),
+  },
+  // Android-specific optimizations
+  androidOptimizations: {
+    fontSize: {
+      small: getAndroidOptimizedFontSize(12),
+      regular: getAndroidOptimizedFontSize(14),
+      medium: getAndroidOptimizedFontSize(16),
+      large: getAndroidOptimizedFontSize(18),
+      xlarge: getAndroidOptimizedFontSize(20),
+    },
+    padding: {
+      small: getAndroidOptimizedPadding(8),
+      regular: getAndroidOptimizedPadding(12),
+      medium: getAndroidOptimizedPadding(16),
+      large: getAndroidOptimizedPadding(20),
+    },
+    height: {
+      button: Platform.OS === 'android' ? 48 : 44,
+      input: Platform.OS === 'android' ? 48 : 44,
+      touchTarget: Platform.OS === 'android' ? 44 : 40,
+    },
   },
   logo: {
     header: 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png',

@@ -193,9 +193,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   time: {
-    fontSize: Platform.OS === 'android' ? 11 : 13, // Mniejsza czcionka na Android
+    fontSize: Platform.OS === 'android' ? 12 : 13, // Zwiększona czcionka na Android dla lepszej czytelności
     color: GRANT,
-    fontFamily: Platform.OS === 'ios' ? 'Poppins_Bold' : 'sans-serif',
+    fontFamily: Platform.OS === 'ios' ? 'Poppins_Bold' : 'Poppins_Bold',
     fontWeight: Platform.OS === 'android' ? 'bold' : 'normal',
   },
   closeBtn: {

@@ -15,7 +15,6 @@ class NotificationService {
     if (this.isInitialized || this.initializationFailed) return;
     
     try {
-
       console.log('Initializing Expo Push Notifications...');
       
       // Set up notification channels for Android
@@ -26,6 +25,9 @@ class NotificationService {
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#FF231F7C',
           sound: 'default',
+          // Enable large icon and image support for Android
+          enableVibrate: true,
+          enableLights: true,
         });
       }
       
@@ -54,13 +56,21 @@ class NotificationService {
       console.log('Expo Push notification received in foreground:', notification);
       
       const { addNotification } = useNotificationsStore.getState();
+      
+      // Extract image and icon from notification data
+      const data = notification.request.content.data || {};
+      const image = data.image || notification.request.content.image;
+      const icon = data.icon || notification.request.content.icon;
+      
       addNotification({
         title: notification.request.content.title || 'Nowe powiadomienie',
         body: notification.request.content.body || '',
-        data: notification.request.content.data || {},
+        data: data,
         read: false,
-        articleId: notification.request.content.data?.articleId && typeof notification.request.content.data.articleId === 'string' ? parseInt(notification.request.content.data.articleId) : undefined,
-        categoryId: notification.request.content.data?.categoryId && typeof notification.request.content.data.categoryId === 'string' ? parseInt(notification.request.content.data.categoryId) : undefined,
+        articleId: data.articleId && typeof data.articleId === 'string' ? parseInt(data.articleId) : undefined,
+        categoryId: data.categoryId && typeof data.categoryId === 'string' ? parseInt(data.categoryId) : undefined,
+        image: image,
+        icon: icon,
       });
     } catch (error) {
       console.warn('Error handling notification received:', error);

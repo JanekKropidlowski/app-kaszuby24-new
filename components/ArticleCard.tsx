@@ -314,11 +314,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   title: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'android' ? 17 : 16,
     fontWeight: '600',
-    lineHeight: 22,
+    lineHeight: Platform.OS === 'android' ? 24 : 22,
     marginBottom: 8,
-    letterSpacing: -0.2,
+    letterSpacing: Platform.OS === 'android' ? -0.1 : -0.2,
   },
   footer: {
     flexDirection: 'row',
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   date: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'android' ? 13 : 12,
     marginLeft: 6,
     opacity: 0.7,
     fontWeight: '500',
@@ -370,11 +370,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   compactTitle: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'android' ? 16 : 15,
     fontWeight: '600',
     marginBottom: 8,
-    lineHeight: 20,
-    letterSpacing: -0.2,
+    lineHeight: Platform.OS === 'android' ? 22 : 20,
+    letterSpacing: Platform.OS === 'android' ? -0.1 : -0.2,
   },
   compactFooter: {
     flexDirection: 'row',
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   compactDate: {
-    fontSize: 11,
+    fontSize: Platform.OS === 'android' ? 12 : 11,
     marginLeft: 6,
     opacity: 0.7,
     fontWeight: '500',

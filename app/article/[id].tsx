@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Share, Platform, Dimensions, Modal, StatusBar, Linking, FlatList, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { ArrowLeft, Share2, Home, Search, Bookmark, Calendar as CalendarIcon, Bookmark as BookmarkFilled, Settings, X, ChevronLeft, ChevronRight, ChevronUp, Grid, Play, ExternalLink, Newspaper, Download, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, Share2, Home, Search, Bookmark, CalendarIcon, Bookmark as BookmarkFilled, Settings, X, ChevronLeft, ChevronRight, ChevronUp, Grid, Play, ExternalLink, Newspaper, Download, RefreshCw } from 'lucide-react-native';
 import { fetchArticleById, fetchArticles, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
@@ -46,6 +46,14 @@ const cleanTitle = (title: string): string => {
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'")
     .replace(/&nbsp;/g, ' ');
+};
+
+// Dodaj funkcję do obliczania rozmiaru fontu na podstawie długości tytułu
+const getTitleFontSize = (title: string) => {
+  if (title.length <= 40) return 40;  // Maksymalny rozmiar
+  if (title.length <= 60) return 36;
+  if (title.length <= 80) return 32;
+  return 30;  // Minimalny rozmiar
 };
 
 export default function ArticleScreen() {
@@ -107,7 +115,7 @@ export default function ArticleScreen() {
         console.log('OTA update available:', update);
         setUpdateAvailable(true);
         
-        // Show update notification
+        // Show update notification with more details
         Alert.alert(
           'Dostępna aktualizacja',
           'Znaleziono nową wersję aplikacji. Czy chcesz ją pobrać teraz?',
@@ -122,13 +130,21 @@ export default function ArticleScreen() {
       }
     } catch (error) {
       console.error('Error checking for OTA updates:', error);
+      // Don't show error to user for check failures
     } finally {
       setUpdateChecking(false);
     }
   };
 
   const downloadUpdate = async () => {
-    if (!Updates.isEnabled) return;
+    if (!Updates.isEnabled) {
+      Alert.alert(
+        'Aktualizacje wyłączone',
+        'Aktualizacje OTA są wyłączone w tej wersji aplikacji.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
 
     try {
       setUpdateDownloading(true);
@@ -167,9 +183,21 @@ export default function ArticleScreen() {
       
     } catch (error) {
       console.error('Error downloading OTA update:', error);
+      
+      // More specific error messages
+      let errorMessage = 'Nie udało się pobrać aktualizacji. Spróbuj ponownie później.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('timeout')) {
+          errorMessage = 'Błąd połączenia. Sprawdź połączenie z internetem i spróbuj ponownie.';
+        } else if (error.message.includes('storage') || error.message.includes('disk')) {
+          errorMessage = 'Brak miejsca na urządzeniu. Zwolnij miejsce i spróbuj ponownie.';
+        }
+      }
+      
       Alert.alert(
         'Błąd aktualizacji',
-        'Nie udało się pobrać aktualizacji. Spróbuj ponownie później.',
+        errorMessage,
         [{ text: 'OK' }]
       );
     } finally {
@@ -178,12 +206,12 @@ export default function ArticleScreen() {
     }
   };
 
-  // Check for updates on component mount
+  // Check for updates on component mount with better timing
   useEffect(() => {
-    // Check for updates after a delay to not interfere with initial loading
+    // Check for updates after a longer delay to not interfere with initial loading
     const updateTimer = setTimeout(() => {
       checkForUpdates();
-    }, 3000);
+    }, 5000); // Increased from 3000 to 5000ms
 
     return () => clearTimeout(updateTimer);
   }, []);
@@ -374,6 +402,25 @@ export default function ArticleScreen() {
     loadArticleData();
   }, [id, isArticleSaved]);
 
+  const handleCategoryPress = () => {
+    if (article?.categories && article.categories.length > 0) {
+      // Navigate to search with filtered category
+      router.push({
+        pathname: '/(tabs)/search',
+        params: { 
+          category: article.categories[0].toString(),
+          categoryName: article.categories[0] === 17 ? 'Bezpieczeństwo' :
+                       article.categories[0] === 11 ? 'Biznes' :
+                       article.categories[0] === 24 ? 'Sport' :
+                       article.categories[0] === 22 ? 'Religia' :
+                       article.categories[0] === 2246 ? 'Zdrowie' :
+                       article.categories[0] === 49 ? 'Nauka' :
+                       article.categories[0] === 16 ? 'Kultura' : 'Aktualności'
+        }
+      });
+    }
+  };
+
   const handleGoBack = () => router.back();
   const handleShare = async () => {
     if (article) {
@@ -534,19 +581,25 @@ export default function ArticleScreen() {
 
   return (
     <SafeAreaView style={[styles.rootContainer, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
       {/* WARSTWA 1: UI APLIKACJI (STAŁE) */}
       
       {/* Nagłówek - jest poza animowanym widokiem */}
       <View style={[styles.headerContainer, { zIndex: 10, paddingTop: insets.top + 10 }]}>
         <LinearGradient
-          colors={['rgba(0,0,0,0.8)', 'rgba(0,0,0,0.4)', 'transparent']}
+          colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
           style={styles.headerGradient}
         />
         <TouchableOpacity style={styles.headerButton} onPress={handleGoBack}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
+        
+        {/* Wypełnienie status bara bez logo */}
+        <View style={styles.headerCenter}>
+          {/* Logo zostało usunięte */}
+        </View>
+        
         <View style={styles.headerRightButtons}>
           <TouchableOpacity style={styles.headerButton} onPress={handleToggleSave}>
             {isSaved ? (
@@ -575,42 +628,58 @@ export default function ArticleScreen() {
         >
           {/* Featured image with gradient overlay */}
           <View style={styles.imageContainer}>
-            {/* Główne zdjęcie artykułu */}
-            {allImages.length > 0 && (
-              <TouchableOpacity onPress={() => openImageModal(0)} activeOpacity={0.9}>
-                <Image
-                  source={{ uri: allImages[0].source_url }}
-                  style={styles.featuredImage}
-                  contentFit="cover"
-                />
-                {/* Fot w pionie po prawej */}
-                {article?.meta?.foto && (
-                  <View style={styles.photoCreditOverlay}>
-                    <Text style={styles.photoCreditText}>fot: {article.meta.foto}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
+            <Image
+              source={{ uri: String(article.featured_media_url || article.featured_media) }}
+              style={styles.featuredImage}
+              resizeMode="cover"
+            />
             <LinearGradient
-              colors={['rgba(0,0,0,0.7)', 'transparent', 'transparent']}
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
               style={styles.imageGradient}
             />
           </View>
 
-          {/* Content container with rounded corners */}
+          {/* Content container with improved curved transition */}
           <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]} onLayout={handleContentLayout}> 
-            <Text style={[styles.title, { 
-              color: theme.colors.text, 
-              fontFamily: 'Poppins_Bold'
-            }]}>
+            {/* Tytuł artykułu - przeniesiony nad metadata */}
+            <Text
+              style={[
+                styles.articleTitle,
+                {
+                  color: theme.colors.text,
+                  fontSize: getTitleFontSize(cleanTitle(article.title.rendered)),
+                },
+              ]}
+              numberOfLines={4}
+              ellipsizeMode="tail"
+            >
               {cleanTitle(article.title.rendered)}
             </Text>
-            <Text style={[styles.date, { 
-              color: theme.colors.textSecondary, 
-              fontFamily: 'Poppins_Regular'
-            }]}>
-              {formatDateTime(article.date)}
-            </Text>
+
+            {/* Metadata section - kategoria i data w jednej linii */}
+            <View style={styles.metadataContainer}>
+              <Text style={[styles.date, { 
+                color: theme.colors.textSecondary, 
+                fontFamily: 'Poppins_Regular'
+              }]}>
+                {formatDateTime(article.date)}
+              </Text>
+              
+              {/* Kategoria w jednej linii z datą */}
+              {article?.categories && article.categories.length > 0 && (
+                <TouchableOpacity onPress={handleCategoryPress}>
+                  <Text style={[styles.categoryText, { color: theme.colors.textSecondary }]}>
+                    {article.categories[0] === 17 ? 'Bezpieczeństwo' :
+                     article.categories[0] === 11 ? 'Biznes' :
+                     article.categories[0] === 24 ? 'Sport' :
+                     article.categories[0] === 22 ? 'Religia' :
+                     article.categories[0] === 2246 ? 'Zdrowie' :
+                     article.categories[0] === 49 ? 'Nauka' :
+                     article.categories[0] === 16 ? 'Kultura' : 'Aktualności'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
             
             <RenderHtml
               contentWidth={width - 40}
@@ -620,7 +689,7 @@ export default function ArticleScreen() {
                 fontSize: 18,
                 lineHeight: 30,
                 fontWeight: '400',
-                textAlign: 'justify',
+                textAlign: 'left',
                 fontFamily: 'Poppins_Regular',
               }}
               tagsStyles={{
@@ -629,7 +698,7 @@ export default function ArticleScreen() {
                   fontSize: 18,
                   lineHeight: 30,
                   fontWeight: '400',
-                  textAlign: 'justify',
+                  textAlign: 'left',
                   fontFamily: 'Poppins_Regular',
                   marginBottom: 16,
                 },
@@ -640,6 +709,7 @@ export default function ArticleScreen() {
                   marginBottom: 16,
                   lineHeight: 40,
                   fontFamily: 'Poppins_Bold',
+                  textAlign: 'left',
                 },
                 h2: {
                   color: theme.colors.text,
@@ -648,6 +718,7 @@ export default function ArticleScreen() {
                   marginBottom: 16,
                   lineHeight: 36,
                   fontFamily: 'Poppins_Bold',
+                  textAlign: 'left',
                 },
                 h3: {
                   color: theme.colors.text,
@@ -656,6 +727,7 @@ export default function ArticleScreen() {
                   marginBottom: 16,
                   lineHeight: 32,
                   fontFamily: 'Poppins_Bold',
+                  textAlign: 'left',
                 },
                 h4: {
                   color: theme.colors.text,
@@ -664,6 +736,7 @@ export default function ArticleScreen() {
                   marginBottom: 16,
                   lineHeight: 30,
                   fontFamily: 'Poppins_Bold',
+                  textAlign: 'left',
                 },
                 h5: {
                   color: theme.colors.text,
@@ -672,6 +745,7 @@ export default function ArticleScreen() {
                   marginBottom: 16,
                   lineHeight: 28,
                   fontFamily: 'Poppins_Bold',
+                  textAlign: 'left',
                 },
                 h6: {
                   color: theme.colors.text,
@@ -680,6 +754,7 @@ export default function ArticleScreen() {
                   marginBottom: 16,
                   lineHeight: 26,
                   fontFamily: 'Poppins_Bold',
+                  textAlign: 'left',
                 },
                 strong: {
                   fontWeight: 'bold',
@@ -710,6 +785,7 @@ export default function ArticleScreen() {
                   fontFamily: 'Poppins_Regular',
                   fontSize: 17,
                   lineHeight: 28,
+                  textAlign: 'left',
                 },
                 ul: {
                   marginBottom: 16,
@@ -725,6 +801,7 @@ export default function ArticleScreen() {
                   lineHeight: 30,
                   fontFamily: 'Poppins_Regular',
                   marginBottom: 8,
+                  textAlign: 'left',
                 },
                 code: {
                   backgroundColor: theme.colors.card,
@@ -790,7 +867,7 @@ export default function ArticleScreen() {
             </View>
           )}
 
-          {/* Galeria - Nowy design */}
+          {/* Galeria - Przywrócona */}
           {allImages.length > 1 && (
             <View style={styles.galleryContainer}>
               <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>
@@ -829,7 +906,7 @@ export default function ArticleScreen() {
             </View>
           )}
 
-          {/* Sprawdź również - Sekcja z powiązanymi artykułami */}
+          {/* Sprawdź również - Sekcja z powiązanymi artykułami - Przywrócona */}
           {relatedArticles.length > 0 && (
             <View style={styles.relatedSection}>
               <Text style={[styles.relatedSectionTitle, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>
@@ -926,27 +1003,37 @@ const styles = StyleSheet.create({
   },
   imageContainer: { 
     width: '100%', 
-    height: height * 0.5, 
-    position: 'relative' 
+    height: height * 0.65, // Zwiększone dla lepszego efektu wizualnego
+    position: 'relative',
+    zIndex: 1,           // zdjęcie najniżej
+    elevation: 1,
+    marginTop: -(StatusBar.currentHeight || 0), // Wypełnia status bar
   },
   featuredImage: { 
     width: '100%', 
     height: '100%' 
   },
-  imageGradient: { 
-    position: 'absolute', 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    height: 200 
+  imageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
+    zIndex: 1,
   },
   contentContainer: { 
-    marginTop: -30, 
-    borderTopLeftRadius: 30, 
-    borderTopRightRadius: 30, 
+    marginTop: -40,              // wjeżdża 40px na zdjęcie
+    borderTopLeftRadius: 40,     // zaokrąglenie 40px
+    borderTopRightRadius: 40,
     paddingHorizontal: 20, 
-    paddingTop: 40,
+    paddingTop: 20,
     paddingBottom: 60,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 2,                // nad zdjęciem
+    zIndex: 2,
   },
 
   headerContainer: { 
@@ -961,6 +1048,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'transparent',
+    height: HEADER_HEIGHT,
   },
   headerGradient: { 
     position: 'absolute', 
@@ -969,11 +1057,16 @@ const styles = StyleSheet.create({
     right: 0, 
     bottom: 0,
     zIndex: -1,
-    height: 120,
+    height: HEADER_HEIGHT + 20,
   },
   headerRightButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: { 
     flexDirection: 'row', 
@@ -1000,14 +1093,14 @@ const styles = StyleSheet.create({
   },
   date: { 
     fontSize: 16,
-    marginBottom: 32,
+    marginBottom: 0,
     opacity: 0.8,
   },
  
   photoCreditOverlay: { 
     position: 'absolute', 
-    bottom: 10, 
-    right: 10, 
+    bottom: 20, // Odsunięte od dołu, by nie nachodzić na tytuł
+    right: 20, 
     backgroundColor: 'rgba(0,0,0,0.7)', 
     paddingHorizontal: 8, 
     paddingVertical: 4, 
@@ -1076,30 +1169,40 @@ const styles = StyleSheet.create({
   galleryContainer: {
     marginTop: 40,
     marginBottom: 40,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 24,
+    padding: 24,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   galleryTitle: {
-    fontSize: 22,
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    fontSize: 26,
+    marginBottom: 28,
+    fontFamily: 'Poppins_Bold',
+    textAlign: 'center',
   },
   galleryContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
   },
   galleryRow: {
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   galleryItem: {
-    width: (width - 60) / 2,
-    height: 140,
-    borderRadius: 16,
+    width: (width - 100) / 2,
+    height: 180,
+    borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
   galleryItemImage: {
     width: '100%',
@@ -1143,8 +1246,8 @@ const styles = StyleSheet.create({
     right: 20,
   },
   modalImage: {
-    width: '90%',
-    height: '90%',
+    width: width * 0.9,
+    height: height * 0.9,
     borderRadius: 16,
   },
   modalCaptionContainer: {
@@ -1194,12 +1297,12 @@ const styles = StyleSheet.create({
   videoContainer: {
     marginTop: 40,
     marginBottom: 40,
+    paddingHorizontal: 20,
   },
   videoTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 20,
-    paddingHorizontal: 20,
   },
   morePhotosButton: {
     marginTop: 16,
@@ -1241,17 +1344,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+    height: '100%',
   },
   animatedImageStyle: {
     width: '100%',
     height: '100%',
   },
   homeHintContainer: {
-    position: 'absolute',
-    bottom: 100,
-    left: 20,
-    right: 20,
-    zIndex: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 30,
+    marginTop: 20,
   },
   homeHint: {
     flexDirection: 'row',
@@ -1288,44 +1392,115 @@ const styles = StyleSheet.create({
   relatedSection: {
     marginTop: 40,
     marginBottom: 40,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 24,
+    padding: 24,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   relatedSectionTitle: {
-    fontSize: 22,
-    marginBottom: 20,
-    paddingHorizontal: 20,
+    fontSize: 26,
+    marginBottom: 28,
+    fontFamily: 'Poppins_Bold',
+    textAlign: 'center',
   },
   relatedList: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
   },
   relatedArticleItem: {
     flexDirection: 'row',
-    marginBottom: 16,
-    borderRadius: 16,
+    marginBottom: 24,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
   relatedArticleImage: {
-    width: 80,
-    height: 80,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    width: 120,
+    height: 120,
+    borderTopLeftRadius: 24,
+    borderBottomLeftRadius: 24,
   },
   relatedArticleContent: {
     flex: 1,
-    padding: 12,
+    padding: 20,
   },
   relatedArticleTitle: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '600',
-    marginBottom: 4,
-    lineHeight: 20,
+    marginBottom: 8,
+    lineHeight: 24,
+    fontFamily: 'Poppins_SemiBold',
   },
   relatedArticleDate: {
-    fontSize: 12,
+    fontSize: 14,
     opacity: 0.7,
+    fontFamily: 'Poppins_Regular',
+  },
+  categoryText: {
+    fontSize: 16,
+    fontFamily: 'Poppins_Medium',
+    fontWeight: '600',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    overflow: 'hidden',
+  },
+  titleOverlay: {
+    position: 'absolute',
+    bottom: 45,          // margines od dołu zdjęcia 40px
+    left: 24,
+    right: 24,
+    overflow: 'visible',  // kluczowe, żeby nic nie przycinać
+    paddingTop: 8,        // opcjonalnie podciągnie tytuł niżej
+    zIndex: 3,           // tytuł najwyżej
+    elevation: 3,
+    alignItems: 'flex-start', // Wyrównanie do lewej
+  },
+  titleOnImage: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 40,        // rozmiar fontu 40px
+    lineHeight: 48,      // min. 1.2×40
+    includeFontPadding: false, // usuwa dodatkowe wewnętrzne odstępy
+    fontFamily: 'Poppins_Bold',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    textAlign: 'left',
+    maxWidth: '90%',
+  },
+  articleTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    lineHeight: 40,
+    fontFamily: 'Poppins_Bold',
+    textAlign: 'left',
+    color: '#1a1a1a',
+    letterSpacing: -0.5,
+  },
+  // New styles for metadata container
+  metadataContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16, // Zmniejszone z 30 na 16
+    paddingHorizontal: 0,
+  },
+  metadataLeft: {
+    flex: 1,
+  },
+  categoryContainer: {
+    marginLeft: 16,
   },
 });

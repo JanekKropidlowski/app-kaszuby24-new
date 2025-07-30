@@ -33,7 +33,7 @@ import {
   ChevronDown
 } from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { searchArticles, fetchArticles } from '@/services/api';
+import { searchArticles, fetchArticles, fetchFilteredArticles } from '@/services/api';
 import { Article } from '@/types/article';
 import ArticleCard from '@/components/ArticleCard';
 import EmptyState from '@/components/EmptyState';
@@ -129,20 +129,18 @@ export default function SearchScreen() {
       
       let results;
       
-      // Combine category and region filters
-      let categoryIds: number[] = [];
-      
-      if (selectedCategory && selectedCategory !== '') {
-        categoryIds.push(parseInt(selectedCategory));
-      }
-      
-      if (selectedRegion && selectedRegion !== '') {
-        categoryIds.push(parseInt(selectedRegion));
-      }
-      
-      if (categoryIds.length > 0) {
-        // Use category-based search (includes regions)
-        results = await fetchArticles(1, 20, categoryIds);
+      // Use new API if region or category selected
+      if ((selectedCategory && selectedCategory !== '') || (selectedRegion && selectedRegion !== '')) {
+        // Ensure we have at least one valid filter
+        const regionFilter = selectedRegion && selectedRegion !== '' ? selectedRegion : undefined;
+        const categoryFilter = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
+        
+        if (regionFilter || categoryFilter) {
+          results = await fetchFilteredArticles(1, 20, regionFilter, categoryFilter);
+        } else {
+          // Fallback to general articles if no valid filters
+          results = await fetchArticles(1, 20);
+        }
       } else if (trimmedQuery) {
         // Use text search
         results = await searchArticles(trimmedQuery, 1);
@@ -152,15 +150,6 @@ export default function SearchScreen() {
       }
       
       let filteredResults = filterSponsoredArticles(results.articles || []);
-      
-      // Apply additional region filtering if both category and region are selected
-      if (selectedCategory && selectedCategory !== '' && selectedRegion && selectedRegion !== '') {
-        filteredResults = filteredResults.filter(article => {
-          const categoryIds = article.categories?.map(cat => cat.id) || [];
-          return categoryIds.includes(parseInt(selectedCategory)) && 
-                 categoryIds.includes(parseInt(selectedRegion));
-        });
-      }
       
       // Apply sorting
       filteredResults = applySorting(filteredResults, selectedSort);
@@ -202,19 +191,18 @@ export default function SearchScreen() {
       const nextPage = page + 1;
       let results;
       
-      // Combine category and region filters
-      let categoryIds: number[] = [];
-      
-      if (selectedCategory && selectedCategory !== '') {
-        categoryIds.push(parseInt(selectedCategory));
-      }
-      
-      if (selectedRegion && selectedRegion !== '') {
-        categoryIds.push(parseInt(selectedRegion));
-      }
-      
-      if (categoryIds.length > 0) {
-        results = await fetchArticles(nextPage, 20, categoryIds);
+      // Use new API if region or category selected
+      if ((selectedCategory && selectedCategory !== '') || (selectedRegion && selectedRegion !== '')) {
+        // Ensure we have at least one valid filter
+        const regionFilter = selectedRegion && selectedRegion !== '' ? selectedRegion : undefined;
+        const categoryFilter = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
+        
+        if (regionFilter || categoryFilter) {
+          results = await fetchFilteredArticles(nextPage, 20, regionFilter, categoryFilter);
+        } else {
+          // Fallback to general articles if no valid filters
+          results = await fetchArticles(nextPage, 20);
+        }
       } else if (query.trim()) {
         results = await searchArticles(query.trim(), nextPage);
       } else {
@@ -223,15 +211,7 @@ export default function SearchScreen() {
       
       let filteredResults = filterSponsoredArticles(results.articles || []);
       
-      // Apply additional region filtering if both category and region are selected
-      if (selectedCategory && selectedCategory !== '' && selectedRegion && selectedRegion !== '') {
-        filteredResults = filteredResults.filter(article => {
-          const categoryIds = article.categories?.map(cat => cat.id) || [];
-          return categoryIds.includes(parseInt(selectedCategory)) && 
-                 categoryIds.includes(parseInt(selectedRegion));
-        });
-      }
-      
+      // Apply sorting
       filteredResults = applySorting(filteredResults, selectedSort);
       setArticles((prev) => [...prev, ...filteredResults]);
       setPage(nextPage);
@@ -263,31 +243,23 @@ export default function SearchScreen() {
       setLoading(true);
       
       try {
-        // Combine category and region filters
-        let categoryIds: number[] = [parseInt(categoryId)];
+        // Ensure we have at least one valid filter
+        const regionFilter = selectedRegion && selectedRegion !== '' ? selectedRegion : undefined;
+        const categoryFilter = categoryId && categoryId !== '' ? categoryId : undefined;
         
-        if (selectedRegion && selectedRegion !== '') {
-          categoryIds.push(parseInt(selectedRegion));
+        if (regionFilter || categoryFilter) {
+          const results = await fetchFilteredArticles(1, 20, regionFilter, categoryFilter);
+          let filteredResults = filterSponsoredArticles(results.articles || []);
+          
+          // Apply sorting
+          filteredResults = applySorting(filteredResults, selectedSort);
+          
+          setArticles(filteredResults);
+          setTotalPages(results.totalPages || 1);
+          setPage(1);
+        } else {
+          setArticles([]);
         }
-        
-        // Direct search with category (and region if selected)
-        const results = await fetchArticles(1, 20, categoryIds);
-        let filteredResults = filterSponsoredArticles(results.articles || []);
-        
-        // Apply additional region filtering if both category and region are selected
-        if (selectedRegion && selectedRegion !== '') {
-          filteredResults = filteredResults.filter(article => {
-            const articleCategoryIds = article.categories?.map(cat => cat.id) || [];
-            return articleCategoryIds.includes(parseInt(categoryId)) && 
-                   articleCategoryIds.includes(parseInt(selectedRegion));
-          });
-        }
-        
-        filteredResults = applySorting(filteredResults, selectedSort);
-        
-        setArticles(filteredResults);
-        setTotalPages(results.totalPages || 1);
-        setPage(1);
       } catch (err) {
         console.error('Error searching by category:', err);
         setArticles([]);
@@ -315,43 +287,23 @@ export default function SearchScreen() {
       setLoading(true);
       
       try {
-        // Combine category and region filters
-        let categoryIds: number[] = [];
+        // Ensure we have at least one valid filter
+        const regionFilter = regionId && regionId !== '' ? regionId : undefined;
+        const categoryFilter = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
         
-        if (selectedCategory && selectedCategory !== '') {
-          categoryIds.push(parseInt(selectedCategory));
-        }
-        
-        if (regionId && regionId !== '') {
-          categoryIds.push(parseInt(regionId));
-        }
-        
-        let results;
-        
-        if (categoryIds.length > 0) {
-          results = await fetchArticles(1, 20, categoryIds);
-        } else if (query.trim()) {
-          results = await searchArticles(query.trim(), 1);
+        if (regionFilter || categoryFilter) {
+          const results = await fetchFilteredArticles(1, 20, regionFilter, categoryFilter);
+          let filteredResults = filterSponsoredArticles(results.articles || []);
+          
+          // Apply sorting
+          filteredResults = applySorting(filteredResults, selectedSort);
+          
+          setArticles(filteredResults);
+          setTotalPages(results.totalPages || 1);
+          setPage(1);
         } else {
-          results = await fetchArticles(1, 20);
+          setArticles([]);
         }
-        
-        let filteredResults = filterSponsoredArticles(results.articles || []);
-        
-        // Apply additional filtering if both category and region are selected
-        if (selectedCategory && selectedCategory !== '' && regionId && regionId !== '') {
-          filteredResults = filteredResults.filter(article => {
-            const articleCategoryIds = article.categories?.map(cat => cat.id) || [];
-            return articleCategoryIds.includes(parseInt(selectedCategory)) && 
-                   articleCategoryIds.includes(parseInt(regionId));
-          });
-        }
-        
-        filteredResults = applySorting(filteredResults, selectedSort);
-        
-        setArticles(filteredResults);
-        setTotalPages(results.totalPages || 1);
-        setPage(1);
       } catch (err) {
         console.error('Error searching by region:', err);
         setArticles([]);
@@ -772,7 +724,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: Platform.OS === 'android' ? 14 : 15,
+    fontSize: Platform.OS === 'android' ? 15 : 15,
   },
   
   // Filters
@@ -799,7 +751,7 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === 'ios' ? 36 : 40, // Better touch target on Android
   },
   filterChipText: {
-    fontSize: Platform.OS === 'android' ? 12 : 13,
+    fontSize: Platform.OS === 'android' ? 13 : 13,
     marginLeft: 4,
   },
   clearButton: {
@@ -839,7 +791,7 @@ const styles = StyleSheet.create({
   },
   selectButtonText: {
     flex: 1,
-    fontSize: Platform.OS === 'android' ? 13 : 14,
+    fontSize: Platform.OS === 'android' ? 14 : 14,
     marginLeft: 8,
   },
   dropdown: {

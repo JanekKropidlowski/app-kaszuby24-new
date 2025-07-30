@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -11,7 +11,10 @@ import {
   Linking, 
   TextInput, 
   ScrollView, 
-  SafeAreaView 
+  SafeAreaView,
+  RefreshControl,
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
@@ -27,30 +30,74 @@ import {
   Minus,
   Home,
   Settings,
-  Bookmark
+  Bookmark,
+  X,
+  Tag,
+  Heart,
+  Star,
+  TrendingUp
 } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fetchEvents, fetchEventCategories } from '@/services/api';
-import { Event, EventCategory } from '@/types/event';
+import * as he from 'he';
+
 import { useThemeStore } from '@/store/themeStore';
-import { useEventsStore } from '@/store/eventsStore';
-import { useScrollStore } from '@/store/scrollStore';
+import { useEventsStore, SavedEvent } from '@/store/eventsStore';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import EmptyState from '@/components/EmptyState';
-import { formatDateTime, formatDate } from '@/utils/dateFormatter';
+import InlineCalendar from '@/components/InlineCalendar';
+import EventFilters from '@/components/EventFilters';
+import ModernEventList from '@/components/ModernEventList';
+import { formatDateTime, formatDate, formatTime } from '@/utils/dateFormatter';
 import * as Haptics from 'expo-haptics';
 
-const BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2/kalendarz?_embed&per_page=20';
-
-function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+// Event type definition
+interface Event extends SavedEvent {
+  _embedded?: {
+    'wp:featuredmedia'?: Array<{
+      source_url: string;
+    }>;
+    'wp:term'?: Array<Array<{
+      id: number;
+      name: string;
+      taxonomy: string;
+    }>>;
+  };
+  'kategoria-wydarzenia'?: number[];
 }
+
+// EventCategory type definition
+interface EventCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+const BASE_URL = 'https://kaszuby24.pl/wp-json/kaszuby24/v1/events';
+
+// Safe date conversion function - improved version
+function safeDate(input: string | number): Date {
+  // 1. Try parsing as ISO string first
+  const maybe = new Date(input as any);
+  if (!isNaN(maybe.getTime())) return maybe;
+
+  // 2. Try as seconds timestamp
+  const num = typeof input === 'string' ? parseInt(input, 10) : input;
+  if (!isNaN(num)) {
+    const d = new Date(num * 1000);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // 3. Fallback to current date
+  return new Date();
+}
+
+
 
 export default function EventCalendarScreen() {
   const { theme } = useThemeStore();
+  const { isEventSaved, saveEvent, removeEvent } = useEventsStore();
   const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +111,12 @@ export default function EventCalendarScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [cityModal, setCityModal] = useState(false);
   const [catModal, setCatModal] = useState(false);
+  
+  // Nowe funkcjonalności
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDateRange, setSelectedDateRange] = useState<{start: Date, end: Date} | null>(null);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   // Unikalne miasta i kategorie do filtrów
   const cities = useMemo(() => {
@@ -73,7 +126,12 @@ export default function EventCalendarScreen() {
   const categories = useMemo(() => {
     const all = events.flatMap((e: any) => {
       const terms = e._embedded?.['wp:term']?.flat() || [];
-      return terms.filter((t: any) => t.taxonomy === 'kategoria-wydarzenia').map((t: any) => ({ id: t.id.toString(), name: t.name }));
+      return terms
+        .filter((t: any) => t.taxonomy === 'kategoria-wydarzenia')
+        .map((t: any) => ({
+          id: t.id.toString(),
+          name: he.decode(t.name)      // Dekodujemy nazwy kategorii
+        }));
     });
     const uniq: {id:string,name:string}[] = [];
     const ids = new Set<string>();
@@ -83,19 +141,50 @@ export default function EventCalendarScreen() {
 
   const fetchPage = useCallback(async (pageNum: number, append = false) => {
     try {
-      const res = await fetch(`${BASE_URL}&page=${pageNum}`);
+      // Build URL with filters for server-side filtering
+      const params = new URLSearchParams();
+      params.append('page', pageNum.toString());
+      params.append('per_page', '20');
+      
+      // Add server-side filters
+      if (selectedFilters.length > 0) {
+        // Use the first filter for server-side filtering
+        params.append('filter', selectedFilters[0]);
+      }
+      
+      if (cityFilter) {
+        params.append('city', cityFilter);
+      }
+      
+      if (categoryFilter) {
+        params.append('category', categoryFilter);
+      }
+      
+      if (searchQuery) {
+        params.append('search', searchQuery);
+      }
+      
+      const url = `${BASE_URL}?${params.toString()}`;
+      console.log('🔍 Debug - Fetching URL:', url);
+      
+      const res = await fetch(url);
       const data = await res.json();
+      
       const total = parseInt(res.headers.get('X-WP-TotalPages') || '1', 10);
       setTotalPages(total);
+      
       if (append) {
         setEvents(prev => [...prev, ...(Array.isArray(data) ? data : [])]);
       } else {
         setEvents(Array.isArray(data) ? data : []);
       }
     } catch (e) {
+      console.error('❌ Error fetching events:', e);
       setError('Błąd ładowania wydarzeń.');
+      // Ustaw puste wydarzenia w przypadku błędu
+      setEvents([]);
     }
-  }, []);
+  }, [selectedFilters, cityFilter, categoryFilter, searchQuery]);
 
   const reloadEvents = useCallback(async () => {
     setLoading(true);
@@ -110,14 +199,97 @@ export default function EventCalendarScreen() {
     reloadEvents();
   }, [reloadEvents]);
 
+  // Stan dla liczb wydarzeń
+  const [eventCounts, setEventCounts] = useState<Record<string, number>>({
+    'today': 0,
+    'this-weekend': 0,
+    'this-week': 0,
+    'nearby': 0,
+    'saved': 0
+  });
+
+  // Pobierz dokładne liczby z API
+  const fetchEventCounts = useCallback(async () => {
+    try {
+      const response = await fetch(`${BASE_URL.replace('/events', '/event-counts')}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setEventCounts(prev => ({
+          ...prev,
+          ...data,
+          'saved': prev.saved // Zachowaj lokalną liczbę zapisanych
+        }));
+      }
+    } catch (error) {
+      console.error('❌ Error fetching event counts:', error);
+      // Ustaw domyślne wartości w przypadku błędu
+      setEventCounts(prev => ({
+        ...prev,
+        'today': 0,
+        'this-weekend': 0,
+        'this-week': 0,
+        'nearby': 0
+      }));
+    }
+  }, []);
+
+  // Pobierz liczby przy pierwszym załadowaniu
+  useEffect(() => {
+    fetchEventCounts();
+  }, [fetchEventCounts]);
+
+  // Aktualizuj liczbę zapisanych wydarzeń
+  useEffect(() => {
+    const savedCount = events.filter(event => isEventSaved(event.id) === true).length;
+    setEventCounts(prev => ({
+      ...prev,
+      'saved': savedCount
+    }));
+  }, [events, isEventSaved]);
+
   const filteredEvents = useMemo(() => {
-    return events.filter(e => {
-      const cityOk = !cityFilter || e.meta?.miasto === cityFilter;
-      const catOk = !categoryFilter || (e["kategoria-wydarzenia"] || []).includes(parseInt(categoryFilter));
-      const searchOk = !searchQuery || e.title?.rendered.toLowerCase().includes(searchQuery.toLowerCase());
-      return cityOk && catOk && searchOk;
-    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [events, cityFilter, categoryFilter, searchQuery]);
+    let filtered = events.filter(e => {
+      // Only handle selectedDate, selectedDateRange and saved events client-side
+      // Other filters are handled server-side
+      
+      // Check selected date or date range
+      let dateOk = true;
+      if (selectedDate) {
+        const eventDate = safeDate(e.date); // Convert timestamp to Date
+        const selectedDateStr = selectedDate.toISOString().split('T')[0];
+        const eventDateStr = eventDate.toISOString().split('T')[0];
+        dateOk = selectedDateStr === eventDateStr;
+      } else if (selectedDateRange) {
+        const eventDate = safeDate(e.date);
+        dateOk = eventDate >= selectedDateRange.start && eventDate <= selectedDateRange.end;
+      }
+      
+      // Check saved events (client-side only)
+      let savedOk = true;
+      if (selectedFilters.includes('saved')) {
+        savedOk = isEventSaved(e.id) === true;
+      }
+      
+      return dateOk && savedOk;
+    });
+    
+    console.log('🔍 Debug - Filtered events:', filtered.length, 'from', events.length);
+    return filtered.sort((a, b) => safeDate(a.date).getTime() - safeDate(b.date).getTime());
+  }, [events, selectedDate, selectedDateRange, selectedFilters, isEventSaved]);
+
+  // Weekend events for slider
+  const weekendEvents = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thisWeekend = new Date(today.getTime() + (6 - today.getDay()) * 24 * 60 * 60 * 1000);
+    const nextWeekend = new Date(thisWeekend.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    return events.filter(event => {
+      const eventDate = safeDate(event.date);
+      return eventDate >= thisWeekend && eventDate < nextWeekend;
+    }).slice(0, 10); // Limit to 10 events for slider
+  }, [events]);
 
   const loadMore = async () => {
     if (loadingMore || loading || page >= totalPages) return;
@@ -133,20 +305,82 @@ export default function EventCalendarScreen() {
     reloadEvents();
   };
 
-  const handleClearFilters = () => {
-    setCityFilter(null);
-    setCategoryFilter(null);
+  const handleFilterChange = (filters: string[]) => {
+    console.log('🔍 Debug - Filter change:', filters);
+    setSelectedFilters(filters);
+    // Reload events when filters change since we're using server-side filtering
+    reloadEvents();
   };
 
-  const handleEventPress = (event: any) => {
+  const handleCityFilterChange = (city: string | null) => {
+    setCityFilter(city);
+    // Reload events when city filter changes
+    reloadEvents();
+  };
+
+  const handleCategoryFilterChange = (category: string | null) => {
+    setCategoryFilter(category);
+    // Reload events when category filter changes
+    reloadEvents();
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    // Reload events when search query changes
+    reloadEvents();
+  };
+
+  const handleClearFilters = () => {
+    setSelectedFilters([]);
+    setCityFilter(null);
+    setCategoryFilter(null);
+    setSearchQuery('');
+    setSelectedDate(null);
+    setSelectedDateRange(null);
+    // Reload events when clearing filters
+    reloadEvents();
+  };
+
+  const handleDateSelect = (date: Date | null) => {
+    setSelectedDate(date);
+    setSelectedDateRange(null); // Clear range when single date is selected
+  };
+
+  const handleDateRangeSelect = (startDate: Date, endDate: Date) => {
+    setSelectedDateRange({ start: startDate, end: endDate });
+    setSelectedDate(null); // Clear single date when range is selected
+  };
+
+  // Przygotowanie danych dla kalendarza
+  const calendarEvents = useMemo(() => {
+    const eventCounts: Record<string, number> = {};
+    
+    events.forEach(event => {
+      const eventDate = safeDate(event.date);
+      const dateStr = eventDate.toISOString().split('T')[0];
+      
+      if (!eventCounts[dateStr]) {
+        eventCounts[dateStr] = 0;
+      }
+      eventCounts[dateStr]++;
+    });
+    
+    return Object.entries(eventCounts).map(([date, count]) => ({
+      date,
+      count
+    }));
+  }, [events]);
+
+  const handleEventPress = (event: Event) => {
     router.push(`/event/${event.id}`);
   };
 
-  const handleShare = async (event: any) => {
+  const handleShare = async (event: Event) => {
     try {
+      const eventDate = safeDate(event.date);
       await Share.share({
-        message: `${event.title.rendered}\n\nData: ${formatDate(event.date)} ${formatTime(event.date)}\n${event.meta?.miasto ? `Miasto: ${event.meta.miasto}\n` : ''}${event.meta?.cena ? `Cena: ${event.meta.cena} zł\n` : ''}${event.meta?.['link-do-wydarzenia'] ? `\nSzczegóły: ${event.meta['link-do-wydarzenia']}` : ''}`,
-        title: event.title.rendered,
+        message: `${he.decode(event.title.rendered)}\n\nData: ${formatDate(eventDate.toISOString())} ${formatTime(eventDate.toISOString())}\n${event.meta?.miasto ? `Miasto: ${event.meta.miasto}\n` : ''}${event.meta?.cena ? `Cena: ${event.meta.cena} zł\n` : ''}${event.meta?.['link-do-wydarzenia'] ? `\nSzczegóły: ${event.meta['link-do-wydarzenia']}` : ''}`,
+        title: he.decode(event.title.rendered),
       });
     } catch (error) {
       console.log('Error sharing:', error);
@@ -155,17 +389,17 @@ export default function EventCalendarScreen() {
 
   const handleAddToCalendar = async (event: any) => {
     try {
-      const eventDate = new Date(event.date);
+      const eventDate = safeDate(event.date);
       const endDate = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000); // +2 hours
       
-      const calendarUrl = `calshow://?startDate=${eventDate.toISOString()}&endDate=${endDate.toISOString()}&title=${encodeURIComponent(event.title.rendered)}&location=${encodeURIComponent(event.meta?.miasto || '')}&notes=${encodeURIComponent(event.meta?.['opis-wydarzenia']?.replace(/<[^>]*>/g, '').trim() || '')}`;
+      const calendarUrl = `calshow://?startDate=${eventDate.toISOString()}&endDate=${endDate.toISOString()}&title=${encodeURIComponent(he.decode(event.title.rendered))}&location=${encodeURIComponent(event.meta?.miasto || '')}&notes=${encodeURIComponent(event.meta?.['opis-wydarzenia']?.replace(/<[^>]*>/g, '').trim() || '')}`;
       
       const canOpen = await Linking.canOpenURL(calendarUrl);
       if (canOpen) {
         await Linking.openURL(calendarUrl);
       } else {
         // Fallback to web calendar
-        const webUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title.rendered)}&dates=${eventDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(event.meta?.['opis-wydarzenia']?.replace(/<[^>]*>/g, '').trim() || '')}&location=${encodeURIComponent(event.meta?.miasto || '')}`;
+        const webUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(he.decode(event.title.rendered))}&dates=${eventDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(event.meta?.['opis-wydarzenia']?.replace(/<[^>]*>/g, '').trim() || '')}&location=${encodeURIComponent(event.meta?.miasto || '')}`;
         await Linking.openURL(webUrl);
       }
     } catch (error) {
@@ -173,77 +407,76 @@ export default function EventCalendarScreen() {
     }
   };
 
-  const renderEvent = ({ item }: { item: any }) => (
-    <TouchableOpacity style={[styles.card, { backgroundColor: theme.colors.card }]} onPress={() => handleEventPress(item)} activeOpacity={0.85}>
-      {item._embedded?.["wp:featuredmedia"]?.[0]?.source_url ? (
-        <Image source={{ uri: item._embedded["wp:featuredmedia"][0].source_url }} style={styles.image} contentFit="cover" />
-      ) : null}
-      <View style={styles.cardContent}>
-        <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>{he.decode(item.title.rendered)}</Text>
-        <View style={styles.row}>
-          <CalendarIcon size={16} color={theme.colors.primary} />
-          <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{formatDate(item.date)} {formatTime(item.date)}</Text>
-        </View>
-        {item.meta?.miasto && (
-          <View style={styles.row}>
-            <MapPin size={15} color={theme.colors.textSecondary} />
-            <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{item.meta.miasto}</Text>
-          </View>
-        )}
-        {item["kategoria-wydarzenia"]?.length > 0 && (
-          <View style={styles.row}>
-            <Tag size={15} color={theme.colors.textSecondary} />
-            <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{item["kategoria-wydarzenia"].join(', ')}</Text>
-          </View>
-        )}
-        {item.meta?.cena && (
-          <Text style={[styles.price, { color: theme.colors.primary }]}>Cena: {item.meta.cena} zł</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>  
-      {/* Search Bar */}
+      {/* Header with logo */}
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+        <Image
+          source={{ 
+            uri: theme.isDarkMode 
+              ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+              : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+          }}
+          style={styles.logo}
+          contentFit="contain"
+          transition={200}
+        />
+      </View>
+      
+      {/* Search Bar - nad kalendarzem */}
       <View style={[styles.searchBarWrapper, { backgroundColor: theme.colors.card }]}> 
         <TextInput
           placeholder="Szukaj wydarzenia…"
           placeholderTextColor={theme.colors.textSecondary}
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearchChange}
           style={[styles.searchInput, { color: theme.colors.text }]}
           returnKeyType="search"
         />
       </View>
-      {/* Filtry sticky na górze */}
-      <View style={[styles.filtersBar, { backgroundColor: theme.colors.card }]}> 
-        <TouchableOpacity style={styles.filterBtn} onPress={() => setCityModal(true)}>
-          <Text style={[styles.filterText, { color: theme.colors.text }]}>{cityFilter || 'Miasto'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.filterBtn} onPress={() => setCatModal(true)}>
-          <Text style={[styles.filterText, { color: theme.colors.text }]}>{(categoryFilter && categories.find(c=>c.id===categoryFilter)?.name) || 'Kategoria'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.clearBtn} onPress={handleClearFilters}>
-          <X size={16} color={theme.colors.textSecondary} />
-          <Text style={[styles.clearText, { color: theme.colors.textSecondary }]}>Wyczyść</Text>
-        </TouchableOpacity>
-      </View>
+
+      {/* Kalendarz inline */}
+      <InlineCalendar
+        selectedDate={selectedDate}
+        onDateSelect={handleDateSelect}
+        onDateRangeSelect={handleDateRangeSelect}
+        events={calendarEvents}
+        startDate={new Date()}
+        endDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // +90 dni
+      />
+
+      {/* Rozwijane filtry */}
+      <EventFilters
+        selectedFilters={selectedFilters}
+        onFilterChange={handleFilterChange}
+        eventCounts={eventCounts}
+        cityFilter={cityFilter}
+        categoryFilter={categoryFilter}
+        onCityFilterChange={handleCityFilterChange}
+        onCategoryFilterChange={handleCategoryFilterChange}
+        cities={cities}
+        categories={categories}
+      />
+
+      {/* Modern Events List */}
       {loading ? (
         <SkeletonLoader type="home" count={5} immediate={true} />
       ) : error ? (
         <View style={styles.center}><Text style={{ color: theme.colors.error }}>{error}</Text></View>
       ) : (
-        <FlatList
-          data={filteredEvents}
-          keyExtractor={item => item.id.toString()}
-          renderItem={renderEvent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} />}
-          contentContainerStyle={filteredEvents.length === 0 ? styles.center : undefined}
-          ListEmptyComponent={<Text style={{ color: theme.colors.textSecondary, marginTop: 32 }}>Brak wydarzeń dla wybranych filtrów.</Text>}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={loadingMore ? <ActivityIndicator style={{ marginVertical: 20 }} color={theme.colors.primary} /> : null}
+        <ModernEventList
+          events={filteredEvents}
+          weekendEvents={weekendEvents}
+          loading={loading}
+          refreshing={refreshing}
+          loadingMore={loadingMore}
+          onEventPress={handleEventPress}
+          onShare={handleShare}
+          onAddToCalendar={handleAddToCalendar}
+          onRefresh={handleRefresh}
+          onLoadMore={loadMore}
         />
       )}
       {/* Szczegóły wydarzenia są teraz na osobnej stronie */}
@@ -290,6 +523,20 @@ export default function EventCalendarScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  // Header styles
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 10 : 20, // Increased padding for Android
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  logo: {
+    width: Platform.OS === 'ios' ? 100 : 110, // Slightly larger on Android
+    height: Platform.OS === 'ios' ? 28 : 32, // Slightly taller on Android
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
   filtersBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -300,23 +547,27 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   filterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     backgroundColor: 'rgba(0,0,0,0.04)',
-    marginRight: 10,
+    flex: 1,
+    marginRight: 8,
   },
   filterText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
   },
   clearBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.01)',
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
   clearText: {
     fontSize: 13,
@@ -451,5 +702,61 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  saveButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  filtersContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    zIndex: 10,
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    flex: 1,
+    marginRight: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+  filterButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  clearFilterButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  clearAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.01)',
+  },
+  clearAllText: {
+    fontSize: 13,
+    marginLeft: 4,
   },
 }); 

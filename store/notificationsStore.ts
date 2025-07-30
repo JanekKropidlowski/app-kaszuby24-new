@@ -9,15 +9,17 @@ export interface NotificationPreference {
   enabled: boolean;
 }
 
-export interface NotificationItem {
+export interface Notification {
   id: string;
   title: string;
   body: string;
+  data: any;
+  read: boolean;
+  timestamp: number;
   articleId?: number;
   categoryId?: number;
-  timestamp: number;
-  read: boolean;
-  data?: any;
+  image?: string;
+  icon?: string;
 }
 
 export interface UserLocation {
@@ -42,14 +44,14 @@ interface NotificationsState {
   hasSelectedLocation: boolean;
   
   // Notification history
-  notifications: NotificationItem[];
+  notifications: Notification[];
   
   // Actions
   setExpoPushToken: (token: string) => void;
   setUserLocation: (location: UserLocation) => void;
   toggleNotifications: () => void;
   updatePreference: (id: number, enabled: boolean) => void;
-  addNotification: (notification: Omit<NotificationItem, 'id' | 'timestamp'>) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   clearNotifications: () => void;
@@ -156,25 +158,26 @@ export const useNotificationsStore = create<NotificationsState>()(
           return { preferences: updatedPreferences };
         }),
       
-      addNotification: (notification) =>
+      addNotification: (notification) => {
         set((state) => {
-          // Don't add notifications for sponsored content (category 554)
-          if (notification.categoryId === 554) {
-            return state;
-          }
+          const newNotification: Notification = {
+            id: `notification_${Date.now()}_${Math.random()}`,
+            title: notification.title,
+            body: notification.body,
+            data: notification.data || {},
+            read: false,
+            timestamp: Date.now(),
+            articleId: notification.articleId,
+            categoryId: notification.categoryId,
+            image: notification.image,
+            icon: notification.icon,
+          };
           
           return {
-            notifications: [
-              {
-                ...notification,
-                id: Date.now().toString(),
-                timestamp: Date.now(),
-                read: false,
-              },
-              ...state.notifications
-            ].slice(0, 100) // Keep only last 100 notifications
+            notifications: [newNotification, ...state.notifications].slice(0, 100), // Keep last 100
           };
-        }),
+        });
+      },
       
       markAsRead: (notificationId: string) =>
         set((state) => ({

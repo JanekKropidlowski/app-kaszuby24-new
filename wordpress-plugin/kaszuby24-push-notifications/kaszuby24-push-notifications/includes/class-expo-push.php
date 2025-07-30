@@ -13,7 +13,7 @@ class Kaszuby24_Expo_Push {
         $this->database = new Kaszuby24_Push_Database();
     }
     
-    public function send_notifications($tokens, $title, $body, $article_id = null, $custom_deeplink = null) {
+    public function send_notifications($tokens, $title, $body, $article_id = null, $image = '', $icon = '') {
         if (empty($tokens)) {
             return array('sent' => 0, 'failed' => 0);
         }
@@ -26,7 +26,7 @@ class Kaszuby24_Expo_Push {
         $token_batches = array_chunk($tokens, $batch_size);
         
         foreach ($token_batches as $batch) {
-            $result = $this->send_batch($batch, $title, $body, $article_id, $custom_deeplink);
+            $result = $this->send_batch($batch, $title, $body, $article_id, $image, $icon);
             $sent_count += $result['sent'];
             $failed_count += $result['failed'];
             
@@ -40,7 +40,7 @@ class Kaszuby24_Expo_Push {
         return array('sent' => $sent_count, 'failed' => $failed_count);
     }
     
-    private function send_batch($tokens, $title, $body, $article_id = null, $custom_deeplink = null) {
+    private function send_batch($tokens, $title, $body, $article_id = null, $image = '', $icon = '') {
         $messages = array();
         
         foreach ($tokens as $token_data) {
@@ -54,18 +54,23 @@ class Kaszuby24_Expo_Push {
                 'channelId' => 'default'
             );
             
+            // Add image if provided
+            if (!empty($image)) {
+                $message['image'] = $image;
+            }
+            
+            // Add icon if provided
+            if (!empty($icon)) {
+                $message['icon'] = $icon;
+            }
+            
             // Add data payload
-            if ($article_id || $custom_deeplink) {
-                $data = array();
-                if ($article_id) {
-                    $data['articleId'] = $article_id;
-                    $data['type'] = 'article';
-                    $data['url'] = get_permalink($article_id);
-                }
-                if ($custom_deeplink) {
-                    $data['deeplink'] = $custom_deeplink;
-                }
-                $message['data'] = $data;
+            if ($article_id) {
+                $message['data'] = array(
+                    'articleId' => $article_id,
+                    'type' => 'article',
+                    'url' => get_permalink($article_id)
+                );
             }
             
             // Platform-specific settings
@@ -75,11 +80,26 @@ class Kaszuby24_Expo_Push {
                     'priority' => 'high',
                     'sound' => 'default'
                 );
+                
+                // Add image for Android if provided
+                if (!empty($image)) {
+                    $message['android']['imageUrl'] = $image;
+                }
+                
+                // Add icon for Android if provided
+                if (!empty($icon)) {
+                    $message['android']['icon'] = $icon;
+                }
             } elseif ($token_data->platform === 'ios') {
                 $message['ios'] = array(
                     'sound' => 'default',
                     'badge' => 1
                 );
+                
+                // iOS doesn't support image in push notifications, but we can add it to data
+                if (!empty($image)) {
+                    $message['data']['image'] = $image;
+                }
             }
             
             $messages[] = $message;
@@ -188,9 +208,9 @@ class Kaszuby24_Expo_Push {
         return array('sent' => $sent_count, 'failed' => $failed_count);
     }
     
-    public function send_single_notification($token, $title, $body, $article_id = null) {
+    public function send_single_notification($token, $title, $body, $article_id = null, $image = '', $icon = '') {
         $token_data = (object) array('push_token' => $token, 'platform' => 'unknown');
-        return $this->send_batch(array($token_data), $title, $body, $article_id);
+        return $this->send_batch(array($token_data), $title, $body, $article_id, $image, $icon);
     }
     
     public function test_connection() {

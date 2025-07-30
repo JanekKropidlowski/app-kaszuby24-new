@@ -1194,3 +1194,80 @@ export const fetchNekrologById = async (id: number): Promise<Nekrolog> => {
     }
   });
 };
+
+export const fetchFilteredArticles = async (
+  page = 1,
+  perPage = 20,
+  regionId?: string,
+  dzialId?: string
+): Promise<{ articles: Article[]; totalPages: number }> => {
+  let url = `https://kaszuby24.pl/wp-json/kaszuby24/v1/posts-filtered?page=${page}&per_page=${perPage}`;
+  if (regionId && regionId !== '') url += `&region=${parseInt(regionId)}`;
+  if (dzialId && dzialId !== '') url += `&dzial=${parseInt(dzialId)}`;
+
+  console.log('fetchFilteredArticles - URL:', url);
+  console.log('fetchFilteredArticles - regionId:', regionId, 'dzialId:', dzialId);
+
+  try {
+    const response = await fetchWithTimeout(url);
+    console.log('fetchFilteredArticles - response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('fetchFilteredArticles - error response:', errorText);
+      
+      // Fallback to standard WordPress REST API
+      console.log('fetchFilteredArticles - falling back to standard WordPress API');
+      return await fetchArticlesWithCategories(page, perPage, regionId, dzialId);
+    }
+    
+    const data = await response.json();
+    console.log('fetchFilteredArticles - response data:', data);
+    
+    // API zwraca { posts: [...], total_pages: n }
+    return {
+      articles: Array.isArray(data.posts) ? data.posts : [],
+      totalPages: data.total_pages || 1,
+    };
+  } catch (error) {
+    console.error('fetchFilteredArticles - error:', error);
+    
+    // Fallback to standard WordPress REST API
+    console.log('fetchFilteredArticles - falling back to standard WordPress API due to error');
+    return await fetchArticlesWithCategories(page, perPage, regionId, dzialId);
+  }
+};
+
+// Fallback function using standard WordPress REST API
+const fetchArticlesWithCategories = async (
+  page = 1,
+  perPage = 20,
+  regionId?: string,
+  dzialId?: string
+): Promise<{ articles: Article[]; totalPages: number }> => {
+  let url = `https://kaszuby24.pl/wp-json/wp/v2/posts?page=${page}&per_page=${perPage}&_embed`;
+  
+  // Add category filters
+  const categories: number[] = [];
+  if (regionId && regionId !== '') categories.push(parseInt(regionId));
+  if (dzialId && dzialId !== '') categories.push(parseInt(dzialId));
+  
+  if (categories.length > 0) {
+    url += `&categories=${categories.join(',')}`;
+  }
+  
+  console.log('fetchArticlesWithCategories - URL:', url);
+  
+  const response = await fetchWithTimeout(url);
+  if (!response.ok) {
+    throw new Error('Błąd pobierania artykułów (fallback)');
+  }
+  
+  const articles = await response.json();
+  const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1');
+  
+  return {
+    articles: Array.isArray(articles) ? articles : [],
+    totalPages: totalPages,
+  };
+};

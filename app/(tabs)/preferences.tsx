@@ -972,25 +972,28 @@ const styles = StyleSheet.create({
   logoSection: {
     marginHorizontal: 20,
     borderRadius: 16,
-    padding: 32,
+    padding: 24,
     marginBottom: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)', // Bardziej subtelna kreska
   },
   logoContainer: {
-    width: 200,
-    height: 80,
+    width: 160, // Zmniejszone z 200
+    height: 60, // Zmniejszone z 80
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 12, // Zmniejszone z 16
   },
   sponsorLogo: {
     width: '100%',
     height: '100%',
   },
   sponsorText: {
-    fontSize: 16,
+    fontSize: 14, // Zmniejszone z 16
     textAlign: 'center',
     marginBottom: 8,
+    fontFamily: 'Poppins-Regular',
   },
   footer: {
     alignItems: 'center',

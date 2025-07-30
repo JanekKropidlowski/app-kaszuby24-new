@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.18",
+    "version": "1.0.21",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -46,20 +46,21 @@
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK"
       ],
-      "screenOrientation": "portrait",
       "userInterfaceStyle": "automatic"
     },
 
     "updates": {
       "enabled": true,
-      "url": "https://u.expo.dev/4aced4e9-da53-4734-83d7-fa5fe9870884"
+      "url": "https://u.expo.dev/4aced4e9-da53-4734-83d7-fa5fe9870884",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
     },
     "extra": {
       "eas": {
         "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
       }
     },
-    "runtimeVersion": "1.0.18",
+    "runtimeVersion": "1.0.21",
     "plugins": [
       [
         "expo-notifications",

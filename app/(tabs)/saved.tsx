@@ -10,7 +10,7 @@ import {
   Platform,
   SafeAreaView
 } from 'react-native';
-import { Bookmark, ChevronRight, Home, Settings, Search } from 'lucide-react-native';
+import { Bookmark, ChevronRight, Home, Settings, Search, MapPin, Calendar } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import ArticleCard from '@/components/ArticleCard';
 import EmptyState from '@/components/EmptyState';
@@ -23,23 +23,22 @@ import { filterSponsoredArticles } from '@/utils/contentFilter';
 import { useScrollStore } from '@/store/scrollStore';
 import GlobalTabBar from '@/components/GlobalTabBar';
 
-
 const { width } = Dimensions.get('window');
 const ANIMATION_DURATION = 300;
 
-// Header component with logo
+// Header component with logo - matching other tabs
 const SavedHeader = () => {
   const { theme } = useThemeStore();
 
   return (
-    <View style={[styles.savedHeader, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
       <Image
         source={{ 
           uri: theme.isDarkMode 
             ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
             : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
         }}
-        style={styles.headerLogo}
+        style={styles.logo}
         contentFit="contain"
         transition={200}
       />
@@ -47,12 +46,22 @@ const SavedHeader = () => {
   );
 };
 
-// Event Card Component
+// Event Card Component - improved styling
 const EventCard = ({ event, onPress }: { event: any, onPress: () => void }) => {
   const { theme } = useThemeStore();
   
   return (
-    <TouchableOpacity style={[styles.eventCard, { backgroundColor: theme.colors.card }]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity 
+      style={[
+        styles.eventCard, 
+        { 
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.border
+        }
+      ]} 
+      onPress={onPress} 
+      activeOpacity={0.7}
+    >
       <View style={styles.eventCardContent}>
         {event.image && (
           <Image
@@ -63,7 +72,13 @@ const EventCard = ({ event, onPress }: { event: any, onPress: () => void }) => {
           />
         )}
         <View style={styles.eventInfo}>
-          <Text style={[styles.eventTitle, { color: theme.colors.text }]} numberOfLines={2}>
+          <Text style={[
+            styles.eventTitle, 
+            { 
+              color: theme.colors.text,
+              fontFamily: theme.fontFamily.semibold
+            }
+          ]} numberOfLines={2}>
             {event.title.rendered
               .replace(/&#8222;|&#8221;|&#8211;/g, '')
               .replace(/&#038;/g, '&')
@@ -71,7 +86,14 @@ const EventCard = ({ event, onPress }: { event: any, onPress: () => void }) => {
               .trim()}
           </Text>
           <View style={styles.eventMeta}>
-            <Text style={[styles.eventDate, { color: theme.colors.textSecondary }]}>
+            <Calendar size={12} color={theme.colors.textSecondary} />
+            <Text style={[
+              styles.eventDate, 
+              { 
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fontFamily.regular
+              }
+            ]}>
               {new Date(event.date).toLocaleDateString('pl-PL', { 
                 day: 'numeric', 
                 month: 'long',
@@ -80,9 +102,18 @@ const EventCard = ({ event, onPress }: { event: any, onPress: () => void }) => {
               })}
             </Text>
             {event.meta?.miasto && (
-              <Text style={[styles.eventLocation, { color: theme.colors.textSecondary }]}>
-                {event.meta.miasto}
-              </Text>
+              <>
+                <MapPin size={12} color={theme.colors.textSecondary} />
+                <Text style={[
+                  styles.eventLocation, 
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
+                  {event.meta.miasto}
+                </Text>
+              </>
             )}
           </View>
         </View>
@@ -98,7 +129,6 @@ export default function SavedScreen() {
   const { theme } = useThemeStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
 
-  
   const [showRecent, setShowRecent] = useState(true);
   const recentHeight = useState(new Animated.Value(recentArticles.length > 0 ? 1 : 0))[0];
   const [activeTab, setActiveTab] = useState<'articles' | 'events'>('articles');
@@ -125,14 +155,10 @@ export default function SavedScreen() {
     // Already on saved
   }, []);
 
-
-
   const handleGoSettings = useCallback(() => {
     router.push('/(tabs)/preferences');
   }, [router]);
 
-
-  
   const toggleRecentSection = () => {
     const targetValue = showRecent ? 0 : 1;
     
@@ -192,22 +218,40 @@ export default function SavedScreen() {
   });
   
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header with logo */}
       <SavedHeader />
       
-      {/* Tab Selector */}
-      <View style={[styles.tabSelector, { backgroundColor: theme.colors.card }]}>
+      {/* Tab Selector - improved styling */}
+      <View style={[
+        styles.tabSelector, 
+        { 
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.border
+        }
+      ]}>
         <TouchableOpacity 
           style={[
             styles.tabButton, 
-            activeTab === 'articles' && { backgroundColor: theme.colors.primary }
+            activeTab === 'articles' && { 
+              backgroundColor: theme.colors.primary,
+              shadowColor: theme.colors.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 4,
+            }
           ]} 
           onPress={() => setActiveTab('articles')}
+          activeOpacity={0.8}
         >
+          <Bookmark size={16} color={activeTab === 'articles' ? '#ffffff' : theme.colors.primary} />
           <Text style={[
             styles.tabButtonText, 
-            { color: activeTab === 'articles' ? '#ffffff' : theme.colors.text }
+            { 
+              color: activeTab === 'articles' ? '#ffffff' : theme.colors.text,
+              fontFamily: activeTab === 'articles' ? theme.fontFamily.semibold : theme.fontFamily.medium
+            }
           ]}>
             Artykuły ({filteredSavedArticles.length})
           </Text>
@@ -215,13 +259,25 @@ export default function SavedScreen() {
         <TouchableOpacity 
           style={[
             styles.tabButton, 
-            activeTab === 'events' && { backgroundColor: theme.colors.primary }
+            activeTab === 'events' && { 
+              backgroundColor: theme.colors.primary,
+              shadowColor: theme.colors.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 4,
+            }
           ]} 
           onPress={() => setActiveTab('events')}
+          activeOpacity={0.8}
         >
+          <Calendar size={16} color={activeTab === 'events' ? '#ffffff' : theme.colors.primary} />
           <Text style={[
             styles.tabButtonText, 
-            { color: activeTab === 'events' ? '#ffffff' : theme.colors.text }
+            { 
+              color: activeTab === 'events' ? '#ffffff' : theme.colors.text,
+              fontFamily: activeTab === 'events' ? theme.fontFamily.semibold : theme.fontFamily.medium
+            }
           ]}>
             Wydarzenia ({savedEvents.length})
           </Text>
@@ -258,6 +314,7 @@ export default function SavedScreen() {
                   styles.recentSection, 
                   { 
                     backgroundColor: theme.colors.card,
+                    borderColor: theme.colors.border,
                     height: recentSectionHeight,
                     overflow: 'hidden',
                   }
@@ -269,10 +326,22 @@ export default function SavedScreen() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.recentTitleContainer}>
-                    <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                    <Text style={[
+                      styles.sectionTitle, 
+                      { 
+                        color: theme.colors.text,
+                        fontFamily: theme.fontFamily.semibold
+                      }
+                    ]}>
                       Ostatnio przeglądane
                     </Text>
-                    <Text style={[styles.recentCount, { color: theme.colors.textSecondary }]}>
+                    <Text style={[
+                      styles.recentCount, 
+                      { 
+                        color: theme.colors.textSecondary,
+                        fontFamily: theme.fontFamily.medium
+                      }
+                    ]}>
                       {filteredRecentArticles.length}
                     </Text>
                   </View>
@@ -283,10 +352,20 @@ export default function SavedScreen() {
                         onPress={handleClearRecent}
                         style={[
                           styles.clearButton,
-                          { borderColor: theme.colors.border }
+                          { 
+                            borderColor: theme.colors.border,
+                            backgroundColor: theme.colors.subtle
+                          }
                         ]}
+                        activeOpacity={0.7}
                       >
-                        <Text style={[styles.clearText, { color: theme.colors.textSecondary }]}>
+                        <Text style={[
+                          styles.clearText, 
+                          { 
+                            color: theme.colors.textSecondary,
+                            fontFamily: theme.fontFamily.medium
+                          }
+                        ]}>
                           Wyczyść
                         </Text>
                       </TouchableOpacity>
@@ -337,7 +416,7 @@ export default function SavedScreen() {
               message="Wydarzenia, które zapiszesz, pojawią się tutaj."
               actionLabel="Przeglądaj kalendarz"
               onAction={() => router.push('/(tabs)/kalendarz')}
-              icon={<Bookmark size={48} color={theme.colors.primary} />}
+              icon={<Calendar size={48} color={theme.colors.primary} />}
             />
           }
           ListFooterComponent={<View style={{ height: 120 }} />}
@@ -355,23 +434,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 20,
-    marginBottom: 8,
+    paddingTop: Platform.OS === 'ios' ? 10 : 20,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
+  logo: {
+    width: Platform.OS === 'ios' ? 100 : 110,
+    height: Platform.OS === 'ios' ? 28 : 32,
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   listContent: {
     flexGrow: 1,
     paddingBottom: Platform.select({
-      ios: 120, // Więcej miejsca na iOS przez bottom bar
+      ios: 120,
       android: 108,
       default: 108
     }),
@@ -381,6 +459,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginHorizontal: 20,
     borderRadius: 16,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -400,7 +479,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
   },
   recentCount: {
     fontSize: 14,
@@ -423,7 +501,6 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: 12,
-    fontWeight: '500',
   },
   recentList: {
     paddingHorizontal: 20,
@@ -432,46 +509,16 @@ const styles = StyleSheet.create({
   separator: {
     height: 12,
   },
-  savedHeader: {
-    paddingTop: Platform.select({
-      ios: 60,
-      android: 50, // Zwiększono z 30 na 50 dla lepszej widoczności
-      default: 50
-    }),
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-    backgroundColor: 'rgba(248, 250, 252, 0.95)', // Zwiększono opacity
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  headerLogo: {
-    width: Platform.select({
-      ios: 140,
-      android: 150,
-      default: 150
-    }),
-    height: Platform.select({
-      ios: 38,
-      android: 42,
-      default: 42
-    }),
-    resizeMode: 'contain',
-  },
-
-  // New styles for EventCard
+  // Event Card styles - improved
   eventCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 16,
+    marginHorizontal: 20,
     marginBottom: 12,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -481,6 +528,7 @@ const styles = StyleSheet.create({
   eventCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   eventImage: {
     width: 80,
@@ -493,27 +541,31 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 22,
   },
   eventMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   eventDate: {
     fontSize: 12,
-    marginRight: 12,
+    marginRight: 8,
   },
   eventLocation: {
     fontSize: 12,
   },
+  // Tab Selector - improved styling
   tabSelector: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
+    marginHorizontal: 20,
     marginBottom: 16,
     borderRadius: 16,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -522,12 +574,15 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 12,
+    gap: 8,
   },
   tabButtonText: {
     fontSize: 14,
-    fontWeight: '600',
   },
 });

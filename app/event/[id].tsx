@@ -12,13 +12,65 @@ import GlobalTabBar from '@/components/GlobalTabBar';
 const { width, height } = Dimensions.get('window');
 const BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2/kalendarz';
 
+// Simple HTML entities decoder
+const he = {
+  decode: (text: string) => {
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&#8220;/g, '"')  // Left double quotation mark
+      .replace(/&#8221;/g, '"')  // Right double quotation mark
+      .replace(/&#8216;/g, "'")  // Left single quotation mark
+      .replace(/&#8217;/g, "'")  // Right single quotation mark
+      .replace(/&#8211;/g, '–')  // En dash
+      .replace(/&#8212;/g, '—')  // Em dash
+      .replace(/&#8230;/g, '…')  // Horizontal ellipsis
+      .replace(/&#160;/g, ' ')   // Non-breaking space
+      .replace(/&#xa0;/g, ' ')   // Non-breaking space (hex)
+      .replace(/&ldquo;/g, '"')  // Left double quotation mark
+      .replace(/&rdquo;/g, '"')  // Right double quotation mark
+      .replace(/&lsquo;/g, "'")  // Left single quotation mark
+      .replace(/&rsquo;/g, "'")  // Right single quotation mark
+      .replace(/&ndash;/g, '–')  // En dash
+      .replace(/&mdash;/g, '—')  // Em dash
+      .replace(/&hellip;/g, '…') // Horizontal ellipsis
+      .replace(/&apos;/g, "'")   // Apostrophe
+      .replace(/&#x27;/g, "'")   // Apostrophe (hex)
+      .replace(/&#x22;/g, '"')   // Quotation mark (hex)
+      .replace(/&#x26;/g, '&')   // Ampersand (hex)
+      .replace(/&#x3C;/g, '<')   // Less than (hex)
+      .replace(/&#x3E;/g, '>');  // Greater than (hex)
+  }
+};
+
+// Safe date conversion function
+function safeDate(input: string | number): Date {
+  // 1. Try parsing as ISO string first
+  const maybe = new Date(input as any);
+  if (!isNaN(maybe.getTime())) return maybe;
+
+  // 2. Try as seconds timestamp
+  const num = typeof input === 'string' ? parseInt(input, 10) : input;
+  if (!isNaN(num)) {
+    const d = new Date(num * 1000);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // 3. Fallback to current date
+  return new Date();
+}
+
 function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
+  const date = safeDate(dateStr);
   return date.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
+  const date = safeDate(dateStr);
   return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -61,8 +113,8 @@ export default function EventDetailScreen() {
     if (event) {
       try {
         await Share.share({
-          message: `${event.title.rendered}\n\nData: ${formatDate(event.date)} ${formatTime(event.date)}\n${event.meta?.miasto ? `Miasto: ${event.meta.miasto}\n` : ''}${event.meta?.cena ? `Cena: ${event.meta.cena} zł\n` : ''}${event.meta?.['link-do-wydarzenia'] ? `\nSzczegóły: ${event.meta['link-do-wydarzenia']}` : ''}`,
-          title: event.title.rendered,
+          message: `${he.decode(event.title.rendered)}\n\nData: ${formatDate(event.date)} ${formatTime(event.date)}\n${event.meta?.miasto ? `Miasto: ${event.meta.miasto}\n` : ''}${event.meta?.cena ? `Cena: ${event.meta.cena} zł\n` : ''}${event.meta?.['link-do-wydarzenia'] ? `\nSzczegóły: ${event.meta['link-do-wydarzenia']}` : ''}`,
+          title: he.decode(event.title.rendered),
         });
       } catch (error) {
         console.log('Error sharing:', error);
@@ -75,26 +127,16 @@ export default function EventDetailScreen() {
     
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const eventDate = new Date(event.date);
+      const eventDate = safeDate(event.date);
       const endDate = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000); // +2 hours
       
       // Przygotuj dane wydarzenia
-      const title = event.title.rendered
-        .replace(/&#8222;|&#8221;|&#8211;/g, '')
-        .replace(/&quot;/g, '"')
-        .replace(/&#8217;/g, "'")
-        .replace(/&amp;/g, '&')
-        .replace(/&nbsp;/g, ' ')
-        .trim();
+      const title = he.decode(event.title.rendered);
       
       const location = event.meta?.miasto || '';
       const description = event.meta?.['opis-wydarzenia']
-        ?.replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&quot;/g, '"')
-        .replace(/&#8217;/g, "'")
-        .replace(/&amp;/g, '&')
-        .trim() || '';
+        ? he.decode(event.meta['opis-wydarzenia'].replace(/<[^>]*>/g, ''))
+        : '';
       
       // Format daty dla kalendarza
       const startDate = eventDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -229,14 +271,7 @@ export default function EventDetailScreen() {
         {/* Content container with rounded corners */}
         <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]}> 
           <Text style={[styles.title, { color: theme.colors.text, fontFamily: 'Poppins_Medium' }]}>
-            {event.title.rendered
-              .replace(/&#8222;|&#8221;|&#8211;/g, '')
-              .replace(/&#038;/g, '&')
-              .replace(/&quot;/g, '"')
-              .replace(/&#8217;/g, "'")
-              .replace(/&amp;/g, '&')
-              .replace(/&nbsp;/g, ' ')
-              .trim()}
+            {he.decode(event.title.rendered)}
           </Text>
 
           {/* Event details */}
@@ -273,14 +308,7 @@ export default function EventDetailScreen() {
             <View style={styles.descriptionContainer}>
               <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Opis</Text>
               <Text style={[styles.description, { color: theme.colors.text }]}>
-                {event.meta['opis-wydarzenia']
-                  .replace(/<[^>]*>/g, '')
-                  .replace(/&nbsp;/g, ' ')
-                  .replace(/&quot;/g, '"')
-                  .replace(/&#8217;/g, "'")
-                  .replace(/&#8222;|&#8221;|&#8211;/g, '')
-                  .replace(/&amp;/g, '&')
-                  .trim()}
+                {he.decode(event.meta['opis-wydarzenia'])}
               </Text>
             </View>
           )}
