@@ -25,6 +25,7 @@ require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-api.php';
 require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-expo-push.php';
 require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-admin.php';
 require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-hooks.php';
+require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-events-notifications.php';
 
 class Kaszuby24_Push_Notifications {
     

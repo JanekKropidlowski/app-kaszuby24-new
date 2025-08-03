@@ -44,6 +44,7 @@ interface ModernEventListProps {
   onLoadMore: () => void;
   onScroll?: (event: any) => void;
   scrollEnabled?: boolean;
+  hideSlider?: boolean;
 }
 
 const ModernEventList: React.FC<ModernEventListProps> = ({
@@ -59,6 +60,7 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
   onLoadMore,
   onScroll,
   scrollEnabled = true,
+  hideSlider = false,
 }) => {
   const { theme } = useThemeStore();
 
@@ -186,7 +188,7 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
   };
 
   const renderHeader = () => {
-    if (!weekendEvents || weekendEvents.length === 0) return null;
+    if (hideSlider || !weekendEvents || weekendEvents.length === 0) return null;
     
     return (
       <View style={styles.weekendSection}>

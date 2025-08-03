@@ -8,17 +8,26 @@ class Kaszuby24_Push_Hooks {
     
     private $database;
     private $expo_push;
+    private $events_notifications;
     
     public function __construct() {
         $this->database = new Kaszuby24_Push_Database();
         $this->expo_push = new Kaszuby24_Expo_Push();
+        $this->events_notifications = new Kaszuby24_Events_Notifications();
         
         // Hook into post publication
         add_action('publish_post', array($this, 'on_post_published'), 10, 2);
         add_action('publish_nekrolog', array($this, 'on_nekrolog_published'), 10, 2);
         
+        // Hook into events publication - NOWE
+        add_action('publish_wydarzenie', array($this, 'on_event_published'), 10, 2);
+        
         // Hook into post updates (for republishing)
         add_action('post_updated', array($this, 'on_post_updated'), 10, 3);
+        
+        // Scheduled event reminders - NOWE
+        add_action('init', array($this, 'schedule_event_reminders'));
+        add_action('kaszuby24_event_reminder', array($this, 'send_event_reminder'));
         
         // Add meta box for manual push notifications
         add_action('add_meta_boxes', array($this, 'add_push_meta_box'));
@@ -67,6 +76,74 @@ class Kaszuby24_Push_Hooks {
         }
         
         $this->send_nekrolog_notification($post_id, $post);
+    }
+    
+    /**
+     * Handle event publication - NOWA FUNKCJA
+     */
+    public function on_event_published($post_id, $post) {
+        // Check if auto-send is enabled
+        if (!get_option('kaszuby24_push_auto_send', 1)) {
+            return;
+        }
+        
+        // Skip if this is a revision or auto-draft
+        if (wp_is_post_revision($post_id) || $post->post_status !== 'publish') {
+            return;
+        }
+        
+        // Skip if notification was already sent
+        if (get_post_meta($post_id, '_push_notification_sent', true)) {
+            return;
+        }
+        
+        $this->events_notifications->send_event_notification($post_id, $post);
+    }
+    
+    /**
+     * Schedule event reminders - NOWA FUNKCJA
+     */
+    public function schedule_event_reminders() {
+        if (!wp_next_scheduled('kaszuby24_event_reminder')) {
+            wp_schedule_event(time(), 'hourly', 'kaszuby24_event_reminder');
+        }
+    }
+    
+    /**
+     * Send event reminders - NOWA FUNKCJA
+     */
+    public function send_event_reminder() {
+        global $wpdb;
+        
+        // Get events happening in the next 24 hours that haven't been reminded
+        $tomorrow = date('Y-m-d H:i:s', strtotime('+24 hours'));
+        $now = date('Y-m-d H:i:s');
+        
+        $events = get_posts(array(
+            'post_type' => 'wydarzenie',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'key' => 'data_wydarzenia',
+                    'value' => array($now, $tomorrow),
+                    'compare' => 'BETWEEN',
+                    'type' => 'DATETIME'
+                ),
+                array(
+                    'key' => '_reminder_sent',
+                    'compare' => 'NOT EXISTS'
+                )
+            )
+        ));
+        
+        foreach ($events as $event) {
+            $this->events_notifications->send_event_reminder_notification($event->ID, $event);
+            
+            // Mark as reminded
+            update_post_meta($event->ID, '_reminder_sent', current_time('mysql'));
+        }
     }
     
     public function on_post_updated($post_id, $post_after, $post_before) {

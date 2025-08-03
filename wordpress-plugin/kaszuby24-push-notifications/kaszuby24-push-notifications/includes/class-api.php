@@ -176,6 +176,28 @@ class Kaszuby24_Push_API {
             'permission_callback' => '__return_true'
         ));
         
+        register_rest_route('kaszuby24/v1', '/saved-events', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_saved_events'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'user_id' => array(
+                    'required' => false,
+                    'type' => 'integer'
+                ),
+                'page' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'default' => 1
+                ),
+                'per_page' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'default' => 20
+                )
+            )
+        ));
+        
         // Test endpoint
         register_rest_route('kaszuby24/v1', '/test', array(
             'methods' => 'GET',
@@ -566,6 +588,10 @@ class Kaszuby24_Push_API {
             $page = $request->get_param('page') ?: 1;
             $per_page = $request->get_param('per_page') ?: 20;
             $filter = $request->get_param('filter');
+            // NOWE: obsługa wielu filtrów
+            $filters = is_array($filter) ? $filter : ($filter ? [$filter] : []);
+            error_log("API Debug - Raw filter param: " . print_r($filter, true));
+            error_log("API Debug - Processed filters: " . print_r($filters, true));
             $city = $request->get_param('city');
             $category = $request->get_param('category');
             $search = $request->get_param('search');
@@ -575,99 +601,111 @@ class Kaszuby24_Push_API {
             
             // Base query arguments
             $args = array(
-                'post_type' => 'kalendarz',
+                'post_type' => 'kalendarz', // Poprawione - używamy 'kalendarz' bo taki typ jest w WordPress
                 'post_status' => 'publish',
                 'posts_per_page' => $per_page,
                 'paged' => $page,
                 'orderby' => 'meta_value_num',
-                'meta_key' => 'sama-data',
+                'meta_key' => 'sama-data', // Poprawione - używamy 'sama-data' bo taki klucz jest w WordPress
                 'order' => 'ASC'
             );
             
             // Add meta query for date filtering
             $meta_query = array();
             
-            // Add default filter to only show events from today onwards
+            // Add default filter to only show events from today onwards (tylko jeśli nie ma specjalnego filtru czasowego)
             $today = current_time('timestamp');
-            $meta_query[] = array(
-                'key' => 'sama-data',
-                'value' => $today,
-                'compare' => '>=',
-                'type' => 'NUMERIC'
-            );
+            $timeFilters = ['today', 'this-weekend', 'this-week'];
+            $hasTimeFilter = !empty($filters) && !empty(array_intersect($filters, $timeFilters));
             
-            if ($filter) {
-                switch ($filter) {
-                    case 'today':
-                        $start_of_day = strtotime('today', $today);
-                        $end_of_day = strtotime('tomorrow', $today) - 1;
-                        
-                        $meta_query[] = array(
-                            'key' => 'sama-data',
-                            'value' => array($start_of_day, $end_of_day),
-                            'compare' => 'BETWEEN',
-                            'type' => 'NUMERIC'
-                        );
-                        break;
-                        
-                    case 'this-weekend':
-                        $day_of_week = date('w');
-                        $days_until_saturday = (6 - $day_of_week + 7) % 7;
-                        $days_until_sunday = (7 - $day_of_week + 7) % 7;
-                        $saturday = strtotime("+$days_until_saturday days", $today);
-                        $sunday = strtotime("+$days_until_sunday days", $today);
-                        $end_of_sunday = strtotime('tomorrow', $sunday) - 1;
-                        
-                        $meta_query[] = array(
-                            'key' => 'sama-data',
-                            'value' => array($saturday, $end_of_sunday),
-                            'compare' => 'BETWEEN',
-                            'type' => 'NUMERIC'
-                        );
-                        break;
-                        
-                    case 'this-week':
-                        $week_day_of_week = date('w');
-                        $start_of_week = strtotime("-" . ($week_day_of_week - 1) . " days", $today);
-                        $end_of_week = strtotime("+6 days", $start_of_week);
-                        $end_of_week = strtotime('tomorrow', $end_of_week) - 1;
-                        
-                        $meta_query[] = array(
-                            'key' => 'sama-data',
-                            'value' => array($start_of_week, $end_of_week),
-                            'compare' => 'BETWEEN',
-                            'type' => 'NUMERIC'
-                        );
-                        break;
-                        
-                    case 'free':
-                        $meta_query[] = array(
-                            'relation' => 'OR',
-                            array(
-                                'key' => 'cena',
-                                'value' => array('0', 'darmowe', 'gratis', 'wolny wstęp'),
-                                'compare' => 'IN'
-                            ),
-                            array(
-                                'key' => 'cena',
-                                'compare' => 'NOT EXISTS'
-                            )
-                        );
-                        break;
-                        
-                    case 'popular':
-                        $meta_query[] = array(
-                            'relation' => 'OR',
-                            array(
-                                'key' => '_thumbnail_id',
-                                'compare' => 'EXISTS'
-                            ),
-                            array(
-                                'key' => 'miasto',
-                                'compare' => 'EXISTS'
-                            )
-                        );
-                        break;
+            if (!$hasTimeFilter) {
+                $meta_query[] = array(
+                    'key' => 'sama-data',
+                    'value' => $today,
+                    'compare' => '>=',
+                    'type' => 'NUMERIC'
+                );
+            }
+            
+            // NOWE: obsługa wielu filtrów
+            if (!empty($filters)) {
+                foreach ($filters as $filter) {
+                    switch ($filter) {
+                        case 'today':
+                            // Używaj WordPress timezone - pobierz dzisiaj 00:00:00 i 23:59:59
+                            $today_str = current_time('Y-m-d');
+                            $start_of_day = strtotime($today_str . ' 00:00:00');
+                            $end_of_day = strtotime($today_str . ' 23:59:59');
+                            
+                            error_log("API Debug - Today filter: date=" . $today_str . " start=" . date('Y-m-d H:i:s', $start_of_day) . " end=" . date('Y-m-d H:i:s', $end_of_day));
+                            
+                            $meta_query[] = array(
+                                'key' => 'sama-data',
+                                'value' => array($start_of_day, $end_of_day),
+                                'compare' => 'BETWEEN',
+                                'type' => 'NUMERIC'
+                            );
+                            break;
+                            
+                        case 'this-weekend':
+                            $day_of_week = date('w');
+                            $days_until_saturday = (6 - $day_of_week + 7) % 7;
+                            $days_until_sunday = (7 - $day_of_week + 7) % 7;
+                            $saturday = strtotime("+$days_until_saturday days");
+                            $sunday = strtotime("+$days_until_sunday days");
+                            $end_of_sunday = strtotime('tomorrow', $sunday) - 1;
+                            
+                            $meta_query[] = array(
+                                'key' => 'sama-data',
+                                'value' => array($saturday, $end_of_sunday),
+                                'compare' => 'BETWEEN',
+                                'type' => 'NUMERIC'
+                            );
+                            break;
+                            
+                        case 'this-week':
+                            $week_day_of_week = date('w');
+                            $start_of_week = strtotime("-" . ($week_day_of_week - 1) . " days");
+                            $end_of_week = strtotime("+6 days", $start_of_week);
+                            $end_of_week = strtotime('tomorrow', $end_of_week) - 1;
+                            
+                            $meta_query[] = array(
+                                'key' => 'sama-data',
+                                'value' => array($start_of_week, $end_of_week),
+                                'compare' => 'BETWEEN',
+                                'type' => 'NUMERIC'
+                            );
+                            break;
+                            
+                        case 'free':
+                            $meta_query[] = array(
+                                'relation' => 'OR',
+                                array(
+                                    'key' => 'cena',
+                                    'value' => array('0', 'darmowe', 'gratis', 'wolny wstęp'),
+                                    'compare' => 'IN'
+                                ),
+                                array(
+                                    'key' => 'cena',
+                                    'compare' => 'NOT EXISTS'
+                                )
+                            );
+                            break;
+                            
+                        case 'popular':
+                            $meta_query[] = array(
+                                'relation' => 'OR',
+                                array(
+                                    'key' => '_thumbnail_id',
+                                    'compare' => 'EXISTS'
+                                ),
+                                array(
+                                    'key' => 'miasto',
+                                    'compare' => 'EXISTS'
+                                )
+                            );
+                            break;
+                    }
                 }
             }
             
@@ -709,6 +747,11 @@ class Kaszuby24_Push_API {
             }
             
             $query = new WP_Query($args);
+            
+            // Debug: Log query arguments and results
+            error_log("Events API Debug - Args: " . print_r($args, true));
+            error_log("Events API Debug - Found posts: " . $query->found_posts);
+            error_log("Events API Debug - Max pages: " . $query->max_num_pages);
             
             if ($query->have_posts()) {
                 $events = array();
@@ -922,6 +965,136 @@ class Kaszuby24_Push_API {
         } catch (Exception $e) {
             error_log("Error in get_event_counts: " . $e->getMessage());
             return new WP_Error('counts_error', 'Error fetching event counts', array('status' => 500));
+        }
+    }
+    
+    /**
+     * Get saved events for a user
+     */
+    public function get_saved_events($request) {
+        try {
+            $user_id = $request->get_param('user_id');
+            $page = $request->get_param('page') ?: 1;
+            $per_page = $request->get_param('per_page') ?: 20;
+            
+            // For now, return all events since we don't have user-specific saved events
+            // In the future, this could be connected to a user preferences system
+            $args = array(
+                'post_type' => 'wydarzenie',
+                'post_status' => 'publish',
+                'posts_per_page' => $per_page,
+                'paged' => $page,
+                'orderby' => 'meta_value_num',
+                'meta_key' => 'data_wydarzenia',
+                'order' => 'ASC',
+                'meta_query' => array(
+                    array(
+                        'key' => 'data_wydarzenia',
+                        'value' => current_time('timestamp'),
+                        'compare' => '>=',
+                        'type' => 'NUMERIC'
+                    )
+                )
+            );
+            
+            $query = new WP_Query($args);
+            
+            if ($query->have_posts()) {
+                $events = array();
+                
+                while ($query->have_posts()) {
+                    $query->the_post();
+                    
+                    $event_data = array(
+                        'id' => get_the_ID(),
+                        'title' => array(
+                            'rendered' => get_the_title()
+                        ),
+                        'excerpt' => array(
+                            'rendered' => get_the_excerpt()
+                        ),
+                        'content' => array(
+                            'rendered' => get_the_content()
+                        ),
+                        'date' => get_post_meta(get_the_ID(), 'sama-data', true),
+                        'modified' => get_the_modified_date('c'),
+                        'link' => get_permalink(),
+                        'slug' => get_post_field('post_name'),
+                        'featured_media' => get_post_thumbnail_id(),
+                        'featured_media_url' => get_the_post_thumbnail_url(get_the_ID(), 'full'),
+                        'meta' => array(
+                            'miasto' => get_post_meta(get_the_ID(), 'miasto', true),
+                            'cena' => get_post_meta(get_the_ID(), 'cena', true),
+                            'opis-wydarzenia' => get_post_meta(get_the_ID(), 'opis-wydarzenia', true),
+                            'link-do-wydarzenia' => get_post_meta(get_the_ID(), 'link-do-wydarzenia', true)
+                        )
+                    );
+                    
+                    // Get embedded data
+                    $event_data['_embedded'] = array(
+                        'wp:featuredmedia' => array(),
+                        'wp:term' => array()
+                    );
+                    
+                    // Get featured media
+                    if (has_post_thumbnail()) {
+                        $event_data['_embedded']['wp:featuredmedia'][] = array(
+                            'id' => get_post_thumbnail_id(),
+                            'source_url' => get_the_post_thumbnail_url(get_the_ID(), 'full'),
+                            'media_details' => array(
+                                'sizes' => array(
+                                    'medium' => array(
+                                        'source_url' => get_the_post_thumbnail_url(get_the_ID(), 'medium')
+                                    ),
+                                    'thumbnail' => array(
+                                        'source_url' => get_the_post_thumbnail_url(get_the_ID(), 'thumbnail')
+                                    )
+                                )
+                            )
+                        );
+                    }
+                    
+                    // Get terms (categories)
+                    $categories = get_the_terms(get_the_ID(), 'kategoria-wydarzenia');
+                    if ($categories && !is_wp_error($categories)) {
+                        $event_data['_embedded']['wp:term'][] = array_map(function($term) {
+                            return array(
+                                'id' => $term->term_id,
+                                'name' => $term->name,
+                                'taxonomy' => $term->taxonomy
+                            );
+                        }, $categories);
+                    }
+                    
+                    // Get category IDs for filtering
+                    $category_ids = wp_get_post_terms(get_the_ID(), 'kategoria-wydarzenia', array('fields' => 'ids'));
+                    if (!is_wp_error($category_ids)) {
+                        $event_data['kategoria-wydarzenia'] = $category_ids;
+                    }
+                    
+                    $events[] = $event_data;
+                }
+                
+                wp_reset_postdata();
+                
+                // Set headers for pagination
+                $total_posts = $query->found_posts;
+                $total_pages = ceil($total_posts / $per_page);
+                
+                $response = new WP_REST_Response($events, 200);
+                $response->set_headers(array(
+                    'X-WP-Total' => $total_posts,
+                    'X-WP-TotalPages' => $total_pages
+                ));
+                
+                return $response;
+            } else {
+                return new WP_REST_Response(array(), 200);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error in get_saved_events: " . $e->getMessage());
+            return new WP_Error('saved_events_error', 'Error fetching saved events', array('status' => 500));
         }
     }
 } 

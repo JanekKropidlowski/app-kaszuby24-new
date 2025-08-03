@@ -151,7 +151,13 @@ export default function EventCalendarScreen() {
       // Add server-side filters
       if (selectedFilters.length > 0) {
         // Use the first filter for server-side filtering
-        params.append('filter', selectedFilters[0]);
+        // Send all selected filters for server-side filtering
+        selectedFilters.forEach(filter => {
+          params.append('filter', filter);
+        });
+        
+        // Log which filter is being used
+        console.log('🔍 Debug - Using filter:', selectedFilters[0]);
       }
       
       if (cityFilter) {
@@ -166,9 +172,14 @@ export default function EventCalendarScreen() {
       
       const url = `${BASE_URL}?${params.toString()}`;
       console.log('🔍 Debug - Fetching URL:', url);
+      console.log('🔍 Debug - Request params:', params.toString());
+      console.log('🔍 Debug - Selected filters:', selectedFilters);
       
       const res = await fetch(url);
       const data = await res.json();
+      
+      console.log('🔍 Debug - API Response status:', res.status);
+      console.log('🔍 Debug - API Response data:', data ? data.length : 'null', 'events');
       
       const total = parseInt(res.headers.get('X-WP-TotalPages') || '1', 10);
       setTotalPages(total);
@@ -211,8 +222,11 @@ export default function EventCalendarScreen() {
   // Pobierz dokładne liczby z API
   const fetchEventCounts = useCallback(async () => {
     try {
+      console.log('🔍 Debug - Fetching event counts from:', `${BASE_URL.replace('/events', '/event-counts')}`);
       const response = await fetch(`${BASE_URL.replace('/events', '/event-counts')}`);
       const data = await response.json();
+      
+      console.log('🔍 Debug - Event counts response:', data);
       
       if (response.ok) {
         setEventCounts(prev => ({
@@ -220,6 +234,8 @@ export default function EventCalendarScreen() {
           ...data,
           'saved': prev.saved // Zachowaj lokalną liczbę zapisanych
         }));
+      } else {
+        console.error('❌ Error response from event counts API:', response.status, data);
       }
     } catch (error) {
       console.error('❌ Error fetching event counts:', error);
@@ -248,6 +264,7 @@ export default function EventCalendarScreen() {
     }));
   }, [events, isEventSaved]);
 
+  // Filtruj wydarzenia po stronie klienta
   const filteredEvents = useMemo(() => {
     let filtered = events.filter(e => {
       // Only handle selectedDate, selectedDateRange and saved events client-side
@@ -327,11 +344,39 @@ export default function EventCalendarScreen() {
 
 
   const handleFilterPress = (filterId: string) => {
-    const newFilters = selectedFilters.includes(filterId)
-      ? selectedFilters.filter(id => id !== filterId)
-      : [...selectedFilters, filterId];
+    // Define time-based filters that are mutually exclusive
+    const timeFilters = ['today', 'this-weekend', 'this-week'];
     
-    setSelectedFilters(newFilters);
+    // Special handling for 'saved' filter - it's client-side only
+    if (filterId === 'saved') {
+      const newFilters = selectedFilters.includes(filterId)
+        ? selectedFilters.filter(id => id !== filterId)
+        : [...selectedFilters, filterId];
+      
+      setSelectedFilters(newFilters);
+      // For saved filter, we don't reload from server since it's client-side
+      return;
+    }
+    
+    // For time-based filters, ensure only one is active at a time
+    if (timeFilters.includes(filterId)) {
+      // If clicking on already selected filter, deselect it
+      if (selectedFilters.includes(filterId)) {
+        setSelectedFilters(selectedFilters.filter(id => !timeFilters.includes(id)));
+      } else {
+        // Remove other time filters and add this one
+        const filteredWithoutTime = selectedFilters.filter(id => !timeFilters.includes(id));
+        setSelectedFilters([...filteredWithoutTime, filterId]);
+      }
+    } else {
+      // For other filters, toggle normally
+      const newFilters = selectedFilters.includes(filterId)
+        ? selectedFilters.filter(id => id !== filterId)
+        : [...selectedFilters, filterId];
+      
+      setSelectedFilters(newFilters);
+    }
+    
     // Reload events when filters change
     reloadEvents();
   };
@@ -428,96 +473,176 @@ export default function EventCalendarScreen() {
         endDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // +90 dni
       />
       
-      {/* Filtry */}
+      {/* Wszystkie Filtry w Jednej Linii */}
       <View style={styles.filtersInSection}>
-        <Text style={[styles.filtersLabel, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.medium }]}>
-          Filtry:
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={[styles.filtersLabel, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.medium }]}>
+            Filtry:
+          </Text>
+          {filteredEvents.length > 0 && (
+            <Text style={[styles.filtersLabel, { color: theme.colors.primary, fontFamily: theme.fontFamily.bold }]}>
+              ({filteredEvents.length} {filteredEvents.length === 1 ? 'wydarzenie' : 'wydarzeń'})
+            </Text>
+          )}
+        </View>
+        
+        {/* JEDNA LINIA - Wszystkie filtry równej wielkości */}
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtersScrollContainer}
+          contentContainerStyle={styles.singleLineFiltersContainer}
           style={styles.filtersScroll}
         >
+          {/* Miasto */}
           <TouchableOpacity
             style={[
-              styles.simpleFilterButton,
-              { backgroundColor: selectedFilters.includes('today') ? theme.colors.primary : theme.colors.subtle }
+              styles.uniformFilterButton,
+              { 
+                backgroundColor: cityFilter ? theme.colors.primary : theme.colors.subtle,
+                borderColor: cityFilter ? theme.colors.primary : theme.colors.border,
+              }
+            ]}
+            onPress={() => setCityModal(true)}
+          >
+            <MapPin size={14} color={cityFilter ? '#fff' : theme.colors.text} />
+            <Text style={[
+              styles.uniformFilterText,
+              { 
+                color: cityFilter ? '#fff' : theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              {cityFilter || 'Miasto'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Kategoria */}
+          <TouchableOpacity
+            style={[
+              styles.uniformFilterButton,
+              { 
+                backgroundColor: categoryFilter ? theme.colors.primary : theme.colors.subtle,
+                borderColor: categoryFilter ? theme.colors.primary : theme.colors.border,
+              }
+            ]}
+            onPress={() => setCatModal(true)}
+          >
+            <Tag size={14} color={categoryFilter ? '#fff' : theme.colors.text} />
+            <Text style={[
+              styles.uniformFilterText,
+              { 
+                color: categoryFilter ? '#fff' : theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              {(categoryFilter && categories.find(c=>c.id===categoryFilter)?.name) || 'Kategoria'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Dzisiaj */}
+          <TouchableOpacity
+            style={[
+              styles.uniformFilterButton,
+              { 
+                backgroundColor: selectedFilters.includes('today') ? theme.colors.primary : theme.colors.subtle,
+                borderColor: selectedFilters.includes('today') ? theme.colors.primary : theme.colors.border,
+              }
             ]}
             onPress={() => handleFilterPress('today')}
           >
+            <Clock size={14} color={selectedFilters.includes('today') ? '#fff' : theme.colors.text} />
             <Text style={[
-              styles.simpleFilterText,
+              styles.uniformFilterText,
               { 
                 color: selectedFilters.includes('today') ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
             ]}>
-              Dzisiaj ({eventCounts['today'] || 0})
+              Dzisiaj
             </Text>
+
           </TouchableOpacity>
 
+          {/* Weekend */}
           <TouchableOpacity
             style={[
-              styles.simpleFilterButton,
-              { backgroundColor: selectedFilters.includes('this-weekend') ? theme.colors.primary : theme.colors.subtle }
+              styles.uniformFilterButton,
+              { 
+                backgroundColor: selectedFilters.includes('this-weekend') ? theme.colors.primary : theme.colors.subtle,
+                borderColor: selectedFilters.includes('this-weekend') ? theme.colors.primary : theme.colors.border,
+              }
             ]}
             onPress={() => handleFilterPress('this-weekend')}
           >
+            <CalendarIcon size={14} color={selectedFilters.includes('this-weekend') ? '#fff' : theme.colors.text} />
             <Text style={[
-              styles.simpleFilterText,
+              styles.uniformFilterText,
               { 
                 color: selectedFilters.includes('this-weekend') ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
             ]}>
-              Weekend ({eventCounts['this-weekend'] || 0})
+              Weekend
             </Text>
+
           </TouchableOpacity>
 
+          {/* Tydzień */}
           <TouchableOpacity
             style={[
-              styles.simpleFilterButton,
-              { backgroundColor: selectedFilters.includes('this-week') ? theme.colors.primary : theme.colors.subtle }
+              styles.uniformFilterButton,
+              { 
+                backgroundColor: selectedFilters.includes('this-week') ? theme.colors.primary : theme.colors.subtle,
+                borderColor: selectedFilters.includes('this-week') ? theme.colors.primary : theme.colors.border,
+              }
             ]}
             onPress={() => handleFilterPress('this-week')}
           >
+            <CalendarIcon size={14} color={selectedFilters.includes('this-week') ? '#fff' : theme.colors.text} />
             <Text style={[
-              styles.simpleFilterText,
+              styles.uniformFilterText,
               { 
                 color: selectedFilters.includes('this-week') ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
             ]}>
-              Tydzień ({eventCounts['this-week'] || 0})
+              Tydzień
             </Text>
+
           </TouchableOpacity>
 
+          {/* Zapisane */}
           <TouchableOpacity
             style={[
-              styles.simpleFilterButton,
-              { backgroundColor: selectedFilters.includes('saved') ? theme.colors.primary : theme.colors.subtle }
+              styles.uniformFilterButton,
+              { 
+                backgroundColor: selectedFilters.includes('saved') ? theme.colors.primary : theme.colors.subtle,
+                borderColor: selectedFilters.includes('saved') ? theme.colors.primary : theme.colors.border,
+              }
             ]}
             onPress={() => handleFilterPress('saved')}
           >
+            <Heart size={14} color={selectedFilters.includes('saved') ? '#fff' : theme.colors.text} />
             <Text style={[
-              styles.simpleFilterText,
+              styles.uniformFilterText,
               { 
                 color: selectedFilters.includes('saved') ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
             ]}>
-              Zapisane ({eventCounts['saved'] || 0})
+              Zapisane
             </Text>
+
           </TouchableOpacity>
 
           {/* Wyczyść filtry */}
           {(selectedFilters.length > 0 || cityFilter || categoryFilter) && (
             <TouchableOpacity
-              style={[styles.clearFiltersButton, styles.clearInScroll]}
+              style={[styles.uniformClearButton]}
               onPress={handleClearFilters}
             >
-              <Text style={[styles.clearFiltersText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+              <X size={14} color={theme.colors.error} />
+              <Text style={[styles.uniformFilterText, { color: theme.colors.error, fontFamily: theme.fontFamily.medium }]}>
                 Wyczyść
               </Text>
             </TouchableOpacity>
@@ -570,8 +695,8 @@ export default function EventCalendarScreen() {
           onAddToCalendar={handleAddToCalendar}
           onRefresh={handleRefresh}
           onLoadMore={loadMore}
-
           scrollEnabled={true}
+          hideSlider={selectedFilters.length > 0 || !!selectedDate || !!selectedDateRange || !!cityFilter || !!categoryFilter}
         />
       )}
       
@@ -886,6 +1011,131 @@ const styles = StyleSheet.create({
   clearFiltersText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+
+  // Nowe style dla ulepszonych filtrów
+  enhancedFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    marginRight: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  enhancedFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+    marginRight: 6,
+  },
+  filterBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    minWidth: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  secondaryFiltersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 12,
+    flexWrap: 'wrap',
+  },
+  secondaryFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    maxWidth: 150,
+  },
+  secondaryFilterText: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 6,
+    marginRight: 4,
+    flex: 1,
+  },
+  clearFiltersButtonEnhanced: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,0,0,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,0,0,0.2)',
+  },
+  clearFiltersTextEnhanced: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+
+  // Style dla równych filtrów w jednej linii
+  singleLineFiltersContainer: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 10,
+  },
+  uniformFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    minWidth: 100,
+    height: 44,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  uniformFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+    marginRight: 4,
+    textAlign: 'center',
+    flex: 1,
+  },
+  uniformFilterBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  uniformClearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,0,0,0.3)',
+    backgroundColor: 'rgba(255,0,0,0.1)',
+    minWidth: 100,
+    height: 44,
   },
 
 

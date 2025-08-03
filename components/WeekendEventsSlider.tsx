@@ -18,10 +18,10 @@ import * as he from 'he';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-// Skopiowane ustawienia z głównej strony (index.tsx)
-const CARD_WIDTH = screenWidth * 0.75; // 75% szerokości - tak samo jak na głównej
-const ITEM_SPACING = 20; // Zwiększony spacing między kartami
-const SIDE_PEEK = (screenWidth - CARD_WIDTH) / 2; // Automatyczne obliczenie side peek
+// Ustawienia dla slider na 100% szerokości z większymi odstępami
+const CARD_WIDTH = screenWidth * 0.92; // 92% szerokości - prawie pełna szerokość
+const ITEM_SPACING = 30; // Większy spacing między kartami
+const SIDE_PEEK = 60; // Większe fragmenty po bokach
 
 interface Event {
   id: number;
@@ -70,36 +70,30 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
   const carouselOptions = {
     ref: carouselRef,
     vertical: false,
-    width: CARD_WIDTH + ITEM_SPACING, // Szerokość karty + spacing
-    height: 220, // Zwiększona wysokość
+    width: screenWidth, // Pełna szerokość ekranu dla każdego itemu
+    height: 260,
     style: {
       width: screenWidth,
-      justifyContent: 'center' as const,
-      alignItems: 'center' as const,
     },
     loop: true,
     autoPlay: false,
     scrollAnimationDuration: 500,
-    mode: 'parallax' as const, // Parallax mode dla side preview
+    defaultIndex: 0,
+    mode: 'parallax' as const,
     modeConfig: {
-      parallaxScrollingScale: 0.9, // Skala głównej karty
-      parallaxScrollingOffset: ITEM_SPACING * 2, // Zmniejszony offset dla lepszych odstępów
-      parallaxAdjacentItemScale: 0.8, // Skala sąsiednich kart
+      parallaxScrollingScale: 1.0, // Główna karta w pełnej skali
+      parallaxScrollingOffset: ITEM_SPACING, // Większy offset między kartami
+      parallaxAdjacentItemScale: 0.9, // Fragmenty tylko trochę mniejsze
     },
     data: events,
     onScrollEnd: (index: number) => {
       setActiveIndex(index);
     },
     panGestureHandlerProps: {
-      activeOffsetX: [-15, 15], // Większa tolerancja gestów
+      activeOffsetX: [-15, 15], // Większa tolerancja dla większych kart
     },
-    snapToInterval: CARD_WIDTH + ITEM_SPACING, // Dodane snap do interwału
-    decelerationRate: 'fast', // Szybsze zatrzymanie
-    showsHorizontalScrollIndicator: false, // Ukrycie scroll indicator
-    contentContainerStyle: {
-      paddingHorizontal: ITEM_SPACING, // Dodatkowy padding dla odstępów
-    },
-    keyExtractor: (item: Event) => item.id.toString(), // Dodane keyExtractor
+    showsHorizontalScrollIndicator: false,
+    keyExtractor: (item: Event) => item.id.toString(),
   };
 
   const getEventCategory = (event: Event) => {
@@ -146,14 +140,15 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
     const category = getEventCategory(event);
 
     return (
-      <TouchableOpacity
-        style={[
-          styles.eventCard,
-          { backgroundColor: theme.colors.card }
-        ]}
-        onPress={() => onEventPress(event)}
-        activeOpacity={0.9}
-      >
+      <View style={styles.cardContainer}>
+        <TouchableOpacity
+          style={[
+            styles.eventCard,
+            { backgroundColor: theme.colors.card }
+          ]}
+          onPress={() => onEventPress(event)}
+          activeOpacity={0.9}
+        >
         {/* Event Image - pełna wysokość */}
         <View style={styles.imageContainer}>
           {hasImage ? (
@@ -224,7 +219,8 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
             </View>
           </View>
         </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -253,11 +249,17 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 8,
   },
+  cardContainer: {
+    width: screenWidth, // Pełna szerokość kontenera
+    paddingHorizontal: ITEM_SPACING / 2, // Padding po bokach dla odstępów
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   carouselWrapper: {
-    width: screenWidth,
-    alignItems: 'center', // Wyśrodkowanie carousel
-    justifyContent: 'center', // Dodatkowe wyśrodkowanie
-    paddingHorizontal: ITEM_SPACING, // Dodatkowy padding dla odstępów
+    width: screenWidth, // Pełna szerokość ekranu
+    height: 260,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -276,19 +278,18 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     width: CARD_WIDTH, // Stała szerokość karty
-    borderRadius: 16,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: Platform.OS === 'android' ? 0.15 : 0.08,
-    shadowRadius: 8,
-    elevation: Platform.OS === 'android' ? 6 : 4,
-    marginHorizontal: ITEM_SPACING, // Zwiększony margines dla lepszych odstępów
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: Platform.OS === 'android' ? 0.2 : 0.1,
+    shadowRadius: 10,
+    elevation: Platform.OS === 'android' ? 8 : 6,
     overflow: 'hidden',
-    alignSelf: 'center', // Wyśrodkowanie każdej karty
+    alignSelf: 'center', // Perfekcyjne wyśrodkowanie karty
   },
   imageContainer: {
     position: 'relative',
-    height: 220, // Zwiększona wysokość
+    height: 240, // Zwiększona wysokość dla pełnej szerokości
   },
   eventImage: {
     width: '100%',
