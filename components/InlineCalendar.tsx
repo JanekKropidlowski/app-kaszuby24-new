@@ -4,7 +4,8 @@ import {
   View, 
   Text, 
   TouchableOpacity, 
-  Animated 
+  Animated,
+  Platform
 } from 'react-native';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown, ChevronUp, X } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
@@ -374,6 +375,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 0 : 4, // Bezpieczny margines na Android
   },
   headerLeft: {
     flexDirection: 'row',
@@ -401,6 +403,9 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 6,
     borderRadius: 12,
+    minWidth: 24, // Minimalna szerokość dla lepszej kontroli
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   todayText: {
     fontSize: 12,

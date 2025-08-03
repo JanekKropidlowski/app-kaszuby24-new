@@ -13,6 +13,8 @@ import { Vibration } from 'react-native';
 
 interface ArticleCardProps {
   article: Article;
+
+  
   compact?: boolean;
   onPress?: () => void;
 }

@@ -12,6 +12,8 @@ import {
   Alert,
   SafeAreaView
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Share2, MapPin, Download, Heart, Home, Settings, Bookmark, Search } from 'lucide-react-native';
 import { Image } from 'expo-image';
@@ -138,14 +140,45 @@ export default function NekrologDetailScreen() {
     }
   }, [nekrolog]);
 
-  // Handle download image
-  const handleDownloadImage = useCallback(() => {
-    if (featuredImageUrl) {
-      Linking.openURL(featuredImageUrl).catch(() => {
-        Alert.alert('Błąd', 'Nie można otworzyć obrazu.');
-      });
-    } else {
+  // Handle download image - POPRAWIONA
+  const handleDownloadImage = useCallback(async () => {
+    if (!featuredImageUrl) {
       Alert.alert('Brak obrazu', 'Ten nekrolog nie ma przypisanego obrazu.');
+      return;
+    }
+    
+    try {
+      // Sprawdź uprawnienia do zapisu
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Błąd', 'Brak uprawnień do zapisu zdjęć');
+        return;
+      }
+      
+      // Pokaż loader
+      Alert.alert('Pobieranie...', 'Nekrolog jest pobierany...');
+      
+      // Pobierz zdjęcie
+      const fileName = `nekrolog_${Date.now()}.jpg`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      
+      const downloadResult = await FileSystem.downloadAsync(featuredImageUrl, fileUri);
+      
+      if (downloadResult.status === 200) {
+        // Zapisz do galerii
+        const asset = await MediaLibrary.createAssetAsync(fileUri);
+        await MediaLibrary.createAlbumAsync('Kaszuby24', asset, false);
+        
+        Alert.alert('Sukces!', 'Nekrolog został pobrany do galerii');
+        
+        // Usuń tymczasowy plik
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      } else {
+        throw new Error('Błąd pobierania');
+      }
+    } catch (error) {
+      console.error('Błąd pobierania nekrologu:', error);
+      Alert.alert('Błąd', 'Nie udało się pobrać nekrologu');
     }
   }, [featuredImageUrl]);
 
@@ -197,7 +230,7 @@ export default function NekrologDetailScreen() {
     return (
       <SafeAreaViewContext style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-          <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
             <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
               <ArrowLeft size={24} color={theme.colors.text} />
             </TouchableOpacity>
@@ -357,7 +390,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: Platform.OS === 'ios' ? 44 : 12,
+    paddingTop: 0, // Usunięty niepotrzebny padding dla status bara
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
     shadowColor: '#000',

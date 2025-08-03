@@ -42,6 +42,8 @@ interface ModernEventListProps {
   onAddToCalendar: (event: Event) => void;
   onRefresh: () => void;
   onLoadMore: () => void;
+  onScroll?: (event: any) => void;
+  scrollEnabled?: boolean;
 }
 
 const ModernEventList: React.FC<ModernEventListProps> = ({
@@ -55,6 +57,8 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
   onAddToCalendar,
   onRefresh,
   onLoadMore,
+  onScroll,
+  scrollEnabled = true,
 }) => {
   const { theme } = useThemeStore();
 
@@ -203,12 +207,14 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
       renderItem={renderEventItem}
       contentContainerStyle={styles.container}
       refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={theme.colors.primary}
-          colors={[theme.colors.primary]}
-        />
+        scrollEnabled ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        ) : undefined
       }
       ListHeaderComponent={renderHeader}
       ListEmptyComponent={renderEmptyState}
@@ -216,6 +222,9 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
       onEndReached={onLoadMore}
       onEndReachedThreshold={0.5}
       showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      scrollEnabled={scrollEnabled}
     />
   );
 };
@@ -228,6 +237,7 @@ const styles = StyleSheet.create({
   },
   weekendSection: {
     marginBottom: 16, // Dodany margines pod sliderem weekendowym
+    paddingHorizontal: 0, // Usunięcie paddingu aby slider miał pełną szerokość
   },
   eventItem: {
     borderRadius: 12, // Zmniejszony border radius

@@ -49,8 +49,8 @@ const FloatingLogo = () => {
     >
       <LinearGradient
         colors={theme.isDarkMode 
-          ? ['rgba(30, 41, 59, 0.95)', 'rgba(30, 41, 59, 0.85)']
-          : ['rgba(248, 250, 252, 0.95)', 'rgba(248, 250, 252, 0.85)']
+          ? ['rgba(30, 41, 59, 0.8)', 'rgba(30, 41, 59, 0.7)']
+          : ['rgba(248, 250, 252, 0.8)', 'rgba(248, 250, 252, 0.7)']
         }
         style={styles.logoGradientContainer}
       >
@@ -280,8 +280,8 @@ export default function TabLayout() {
 
       </Tabs>
       
-      {/* Floating Logo */}
-      <FloatingLogo />
+      {/* Floating Logo - tymczasowo wyłączony 
+      <FloatingLogo /> */}
     </>
   );
 }
@@ -289,7 +289,7 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   floatingLogoContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 48, // Increased for Android
+    top: Platform.OS === 'ios' ? 10 : 8, // Zmniejszony margines pod status barem
     left: '50%',
     marginLeft: -75, // Half of logo width
     zIndex: 1000,
@@ -300,9 +300,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 4,
+    backgroundColor: 'transparent',
   },
   floatingLogo: {
     width: 110,

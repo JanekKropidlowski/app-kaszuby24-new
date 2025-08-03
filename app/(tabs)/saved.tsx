@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Platform,
-  SafeAreaView
+  Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bookmark, ChevronRight, Home, Settings, Search, MapPin, Calendar } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import ArticleCard from '@/components/ArticleCard';
@@ -128,6 +128,7 @@ export default function SavedScreen() {
   const { savedEvents } = useEventsStore();
   const { theme } = useThemeStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
+  const insets = useSafeAreaInsets();
 
   const [showRecent, setShowRecent] = useState(true);
   const recentHeight = useState(new Animated.Value(recentArticles.length > 0 ? 1 : 0))[0];
@@ -218,9 +219,11 @@ export default function SavedScreen() {
   });
   
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header with logo */}
-      <SavedHeader />
+      <View style={{ paddingTop: insets.top }}>
+        <SavedHeader />
+      </View>
       
       {/* Tab Selector - improved styling */}
       <View style={[
@@ -425,7 +428,7 @@ export default function SavedScreen() {
       
       {/* Global TabBar */}
       <GlobalTabBar activeTab="saved" />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -434,7 +437,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 10 : 20,
+    paddingTop: 0, // Usunięty niepotrzebny padding dla status bara
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,

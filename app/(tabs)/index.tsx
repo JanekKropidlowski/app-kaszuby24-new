@@ -14,6 +14,7 @@ import {
   AppState,
   SafeAreaView
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { 
   ChevronRight, 
@@ -59,7 +60,8 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { WelcomeGreeting } from '@/components/WelcomeGreeting';
 import { WeatherIcon } from '@/components/WeatherIcon';
-import WeatherSummary from '@/components/WeatherSummary';
+import { WeatherSummary } from '@/components/WeatherSummary';
+import { FeaturedCarousel } from '@/components/FeaturedCarousel';
 import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
@@ -69,20 +71,22 @@ const CAROUSEL_ITEM_WIDTH = width * 0.75; // 75% of screen width for better visi
 const CAROUSEL_ITEM_SPACING = 12; // Better spacing for visual separation
 const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Perfect centering calculation
 
-// Modern header component with enhanced UI
-const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }) => {
-  const { theme } = useThemeStore();
-  const router = useRouter();
+  // Modern header component with enhanced UI
+  const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }: { 
+    weatherData: any; 
+    weatherLoading: boolean; 
+    onWeatherPress: () => void;
+  }) => {
+    const { theme } = useThemeStore();
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.modernHeaderWrapper, { backgroundColor: theme.colors.background }]}>
-      {/* Background gradient */}
-      <LinearGradient
-        colors={theme.isDarkMode 
-          ? ['rgba(34,73,150,0.08)', 'rgba(34,73,150,0)', 'transparent'] 
-          : ['rgba(34,73,150,0.06)', 'rgba(34,73,150,0)', 'transparent']}
-        style={styles.modernHeaderGradient}
-      />
+    <View style={[styles.modernHeaderWrapper, { 
+      backgroundColor: 'transparent',
+      paddingTop: insets.top // Dodany bezpieczny margines od góry
+    }]}>
+      {/* Usunięto gradient - powodował biały blok */}
       
       <View style={styles.modernHeaderContent}>
         {/* Left side - Greeting with waving hand icon */}
@@ -120,7 +124,12 @@ const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }) => {
 };
 
 // New Reanimated carousel component
-const AnimatedWeeklyPopularCarousel = ({ item, index, scrollX, onPress }) => {
+const AnimatedWeeklyPopularCarousel = ({ item, index, scrollX, onPress }: { 
+  item: Article; 
+  index: number; 
+  scrollX: Animated.SharedValue<number>; 
+  onPress: (article: Article) => void;
+}) => {
   const { theme } = useThemeStore();
   const itemOffset = index * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING);
 
@@ -238,6 +247,7 @@ export default function HomeScreen() {
   const { addRecentArticle } = useArticlesStore();
   const { theme } = useThemeStore();
   const { setScrollDirection } = useScrollStore();
+  const insets = useSafeAreaInsets();
   const { 
     shouldShowWelcome, 
     shouldShowBanner,
@@ -266,57 +276,55 @@ export default function HomeScreen() {
   const [hasMoreArticles, setHasMoreArticles] = useState(true);
   
   // Carousel and modal states
-  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
 
   const [isOffline, setIsOffline] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
-  const carouselFlatListRef = useRef<FlatList>(null);
   const isMountedRef = useRef(true);
-  const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isScreenFocused = useRef(true);
   const loadingRef = useRef(false); // Prevent duplicate requests
-  const scrollX = useSharedValue(0);
-
-  // Enhanced carousel state with user interaction tracking
-  const [userInteracting, setUserInteracting] = useState(false);
-
-  // New state for infinite scroll carousel
+  
+  // Carousel state (kept for compatibility)
   const [carouselData, setCarouselData] = useState<Article[]>([]);
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+  const [userInteracting, setUserInteracting] = useState(false);
+  const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const carouselFlatListRef = useRef<FlatList>(null);
   const [weatherData, setWeatherData] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const PEEK_COUNT = 2; // Number of items to clone for infinite scroll
   const currentRawIndexRef = useRef(PEEK_COUNT);
 
   // Prepare data for infinite scroll
-  useEffect(() => {
-    if (featuredArticles.length > PEEK_COUNT) {
-      const loopedData = [
-        ...featuredArticles.slice(-PEEK_COUNT),
-        ...featuredArticles,
-        ...featuredArticles.slice(0, PEEK_COUNT),
-      ];
-      setCarouselData(loopedData);
-    } else {
-      setCarouselData(featuredArticles);
-    }
-  }, [featuredArticles]);
+  // Carousel effects commented out - using FeaturedCarousel component instead
+  // useEffect(() => {
+  //   if (featuredArticles.length > PEEK_COUNT) {
+  //     const loopedData = [
+  //       ...featuredArticles.slice(-PEEK_COUNT),
+  //       ...featuredArticles,
+  //       ...featuredArticles.slice(0, PEEK_COUNT),
+  //     ];
+  //     setCarouselData(loopedData);
+  //   } else {
+  //     setCarouselData(featuredArticles);
+  //   }
+  // }, [featuredArticles]);
   
-  // Set initial scroll position for the carousel
-  useEffect(() => {
-    if (carouselData.length > 0 && featuredArticles.length > PEEK_COUNT && carouselFlatListRef.current) {
-      setTimeout(() => {
-         carouselFlatListRef.current?.scrollToIndex({
-          index: PEEK_COUNT,
-          animated: false,
-          viewPosition: 0.5,
-        });
-        setActiveCarouselIndex(0);
-      }, 200);
-    }
-  }, [carouselData, featuredArticles.length]);
+  // useEffect(() => {
+  //   if (carouselData.length > 0 && featuredArticles.length > PEEK_COUNT && carouselFlatListRef.current) {
+  //     setTimeout(() => {
+  //        carouselFlatListRef.current?.scrollToIndex({
+  //         index: PEEK_COUNT,
+  //         animated: false,
+  //         viewPosition: 0.5,
+  //       });
+  //       setActiveCarouselIndex(0);
+  //     }, 200);
+  //   }
+  // }, [carouselData, featuredArticles.length]);
   
   // Initialize and check for first time user
   useEffect(() => {
@@ -644,29 +652,29 @@ export default function HomeScreen() {
     return () => clearTimeout(timeoutId);
   }, [selectedCategory, loadArticles]);
   
-  // Carousel auto-scroll logic
-  useEffect(() => {
-    const startAutoScroll = () => {
-      if (carouselIntervalRef.current) clearInterval(carouselIntervalRef.current);
-      if (featuredArticles.length > PEEK_COUNT && isScreenFocused.current && !userInteracting) {
-        carouselIntervalRef.current = setInterval(() => {
-          if (!isScreenFocused.current || userInteracting || !carouselFlatListRef.current) return;
+  // Carousel auto-scroll logic commented out - using FeaturedCarousel component instead
+  // useEffect(() => {
+  //   const startAutoScroll = () => {
+  //     if (carouselIntervalRef.current) clearInterval(carouselIntervalRef.current);
+  //     if (featuredArticles.length > PEEK_COUNT && isScreenFocused.current && !userInteracting) {
+  //       carouselIntervalRef.current = setInterval(() => {
+  //         if (!isScreenFocused.current || userInteracting || !carouselFlatListRef.current) return;
           
-          carouselFlatListRef.current.scrollToIndex({
-            index: currentRawIndexRef.current + 1,
-            animated: true,
-            viewPosition: 0.5,
-          });
-        }, 4000);
-      }
-    };
+  //         carouselFlatListRef.current.scrollToIndex({
+  //           index: currentRawIndexRef.current + 1,
+  //           animated: true,
+  //           viewPosition: 0.5,
+  //         });
+  //       }, 4000);
+  //     }
+  //   };
 
-    startAutoScroll();
+  //   startAutoScroll();
 
-    return () => {
-      if (carouselIntervalRef.current) clearInterval(carouselIntervalRef.current);
-    };
-  }, [featuredArticles.length, userInteracting]);
+  //   return () => {
+  //     if (carouselIntervalRef.current) clearInterval(carouselIntervalRef.current);
+  //   };
+  // }, [featuredArticles.length, userInteracting]);
 
   // Handle screen focus/blur for auto-scroll
   useEffect(() => {
@@ -713,21 +721,7 @@ export default function HomeScreen() {
     }, 100);
   }, [addRecentArticle, router]);
 
-  // New carousel render function with center mode
-  const renderCarouselItem = useCallback(({ item, index }: { item: Article; index: number }) => {
-    // Calculate if this item is active (centered)
-    const isActive = index === activeCarouselIndex;
-    
-    return (
-      <WeeklyPopularCarousel
-        item={item}
-        index={index}
-        totalItems={featuredArticles.length}
-        onPress={handleArticlePress}
-        isActive={isActive}
-      />
-    );
-  }, [featuredArticles.length, handleArticlePress, activeCarouselIndex]);
+  // Carousel render function removed - using FeaturedCarousel component instead
 
   // Article render function
   const renderArticle = useCallback(({ item }: { item: Article }) => (
@@ -835,78 +829,26 @@ export default function HomeScreen() {
     dismissBanner();
   }, [dismissBanner]);
 
-  const handleScrollToIndexFailed = useCallback((info: any) => {
-    console.warn('Scroll to index failed:', info);
-    setTimeout(() => {
-      if (carouselFlatListRef.current && featuredArticles.length > 0) {
-        try {
-          const safeIndex = Math.min(info.index, featuredArticles.length - 1);
-          carouselFlatListRef.current.scrollToIndex({
-            index: safeIndex,
-            animated: false,
-            viewPosition: 0.5,
-          });
-        } catch (error) {
-          console.warn('Fallback scroll failed:', error);
-        }
-      }
-    }, 100);
-  }, [featuredArticles.length]);
+  // handleScrollToIndexFailed commented out - using FeaturedCarousel component instead
+  // const handleScrollToIndexFailed = useCallback((info: any) => {
+  //   console.warn('Scroll to index failed:', info);
+  //   setTimeout(() => {
+  //     if (carouselFlatListRef.current && featuredArticles.length > 0) {
+  //       try {
+  //         const safeIndex = Math.min(info.index, featuredArticles.length - 1);
+  //         carouselFlatListRef.current.scrollToIndex({
+  //           index: safeIndex,
+  //           animated: false,
+  //           viewPosition: 0.5,
+  //         });
+  //       } catch (error) {
+  //         console.warn('Fallback scroll failed:', error);
+  //       }
+  //     }
+  //   }, 100);
+  // }, [featuredArticles.length]);
 
-  // Enhanced scroll handling with user interaction detection
-  const handleCarouselScrollBegin = useCallback(() => {
-    setUserInteracting(true);
-  }, []);
-
-  const handleCarouselScrollEnd = useCallback(() => {
-    setTimeout(() => setUserInteracting(false), 500);
-  }, []);
-
-  // Simple momentum scroll end handler
-  const handleCarouselMomentumScrollEnd = useCallback((event: any) => {
-    if (featuredArticles.length <= PEEK_COUNT) return;
-
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const newRawIndex = Math.round(contentOffsetX / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING));
-    
-    const originalLength = featuredArticles.length;
-    let newActiveIndex = newRawIndex - PEEK_COUNT;
-
-    if (newRawIndex < PEEK_COUNT) {
-      const targetIndex = newRawIndex + originalLength;
-      carouselFlatListRef.current?.scrollToOffset({
-        offset: targetIndex * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
-        animated: false,
-      });
-      newActiveIndex = targetIndex - PEEK_COUNT;
-    } else if (newRawIndex >= originalLength + PEEK_COUNT) {
-      const targetIndex = newRawIndex - originalLength;
-      carouselFlatListRef.current?.scrollToOffset({
-        offset: targetIndex * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING),
-        animated: false,
-      });
-      newActiveIndex = targetIndex - PEEK_COUNT;
-    }
-    
-    // Ensure active index is within bounds of original array
-    const finalActiveIndex = (newActiveIndex % originalLength + originalLength) % originalLength;
-    setActiveCarouselIndex(finalActiveIndex);
-    
-    // Update the raw index ref to avoid jumps
-    const newOffset = (finalActiveIndex + PEEK_COUNT) * (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING);
-    currentRawIndexRef.current = Math.round(newOffset / (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING));
-    
-    setTimeout(() => setUserInteracting(false), 500);
-
-    if (Platform.OS !== 'web' && userInteracting) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [featuredArticles.length, userInteracting]);
-  
-  const scrollHandler = useAnimatedScrollHandler(event => {
-    scrollX.value = event.contentOffset.x;
-    // We can't set a ref value inside a worklet, so we handle raw index tracking in onScroll if needed
-  });
+  // Carousel handlers removed - using FeaturedCarousel component instead
 
   const navigateToSearch = useCallback(() => {
     router.push('/(tabs)/search');
@@ -1061,12 +1003,14 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>  
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>  
       <FlatList
         data={mixedContent}
         keyExtractor={keyExtractor}
         renderItem={renderMixedItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { 
+          paddingTop: Platform.OS === 'ios' ? 0 : 0  // Usunięto dodatkowy padding na Android
+        }]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         ListHeaderComponent={
@@ -1087,48 +1031,11 @@ export default function HomeScreen() {
             )}
             
             {/* Enhanced Latest Articles Carousel */}
-            {carouselData.length > 0 && (
-              <View style={styles.carouselContainer}>
-                <Animated.FlatList
-                  ref={carouselFlatListRef}
-                  data={carouselData}
-                  keyExtractor={(item, index) => `carousel-${item.id}-${index}`}
-                  renderItem={({ item, index }) => (
-                    <AnimatedWeeklyPopularCarousel
-                      item={item}
-                      index={index}
-                      scrollX={scrollX}
-                      onPress={handleArticlePress}
-                    />
-                  )}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  snapToInterval={CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING}
-                  snapToAlignment="center"
-                  decelerationRate={0.92}
-                  contentContainerStyle={styles.carouselListContent}
-                  scrollEventThrottle={16}
-                  onScroll={scrollHandler}
-                  onScrollBeginDrag={() => {
-                    setUserInteracting(true);
-                    if (carouselIntervalRef.current) {
-                      clearInterval(carouselIntervalRef.current);
-                    }
-                  }}
-                  onMomentumScrollEnd={handleCarouselMomentumScrollEnd}
-                  removeClippedSubviews={listConfig.removeClippedSubviews}
-                  initialNumToRender={5}
-                  maxToRenderPerBatch={3}
-                  windowSize={7}
-                  updateCellsBatchingPeriod={listConfig.updateCellsBatchingPeriod}
-                  legacyImplementation={false}
-                  getItemLayout={(data, index) => ({
-                    length: CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING,
-                    offset: (CAROUSEL_ITEM_WIDTH + CAROUSEL_ITEM_SPACING) * index,
-                    index,
-                  })}
-                />
-              </View>
+            {featuredArticles.length > 0 && (
+              <FeaturedCarousel
+                articles={featuredArticles}
+                onArticlePress={handleArticlePress}
+              />
             )}
             
             <View style={styles.sectionHeader}>
@@ -1199,13 +1106,14 @@ export default function HomeScreen() {
       />
 
 
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    // backgroundColor będzie ustawiony dynamicznie przez theme.colors.background
   },
   listContent: {
     paddingBottom: 150, // Increased to accommodate bigger modern bottom menu
@@ -1427,11 +1335,13 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     marginBottom: 24,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   categoriesContent: {
     paddingHorizontal: 16,
     paddingVertical: 6,
     alignItems: 'center',
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   categoryPill: {
     flexDirection: 'row',
@@ -1446,13 +1356,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   categoryEmoji: {
     fontSize: 16,
     marginRight: 8,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   categoryText: {
     fontSize: 14,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1461,9 +1374,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     marginTop: 8,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionTitle: {
     fontSize: 22,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionMoreButton: {
     flexDirection: 'row',
@@ -1471,10 +1386,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 18,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionMoreText: {
     fontSize: 14,
     marginRight: 4,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   // New improved footer styles
   loadingFooter: {
@@ -1483,25 +1400,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 24,
     gap: 12,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   loadingText: {
     fontSize: 16,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   endFooter: {
     paddingVertical: 40,
     alignItems: 'center',
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   endDivider: {
     width: '30%',
     height: 1,
     marginBottom: 20,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   endText: {
     fontSize: 18,
     marginBottom: 4,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   endSubtext: {
     fontSize: 14,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   nekrologCard: {
     marginHorizontal: 16,
@@ -1514,10 +1437,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   nekrologContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   nekrologImageContainer: {
     width: 60,
@@ -1527,6 +1452,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   memorialRibbonList: {
     width: '100%',
@@ -1558,10 +1484,12 @@ const styles = StyleSheet.create({
 
   // Modern header styles
   modernHeaderWrapper: {
-    paddingVertical: 20, // Increased from 16
-    paddingHorizontal: 0, // Full width
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+    // paddingTop będzie ustawiony dynamicznie przez insets.top
     width: '100%',
-    minHeight: 100, // Added minimum height
+    minHeight: Platform.OS === 'ios' ? 60 : 80,
+    // backgroundColor automatycznie dziedziczy z rodzica
   },
   modernHeaderGradient: {
     position: 'absolute',
@@ -1569,7 +1497,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0.5,
+    opacity: 0, // Całkowicie przezroczysty
   },
   modernHeaderContent: {
     flexDirection: 'row',
@@ -1579,11 +1507,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, // Move padding here
     width: '100%',
     minHeight: 60, // Added minimum height for content
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   headerLeftSection: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   logoContainer: {
     width: 60, // Increased from 50
@@ -1591,59 +1521,69 @@ const styles = StyleSheet.create({
     borderRadius: 30, // Adjusted for new size
     overflow: 'hidden',
     marginRight: 20, // Increased from 16
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'transparent', // Zmienione na przezroczyste
     padding: 3, // Increased from 2
   },
   headerLogo: {
     width: '100%',
     height: '100%',
     borderRadius: 27, // Adjusted for new padding
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   greetingSection: {
     flexDirection: 'column',
     flex: 1,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   greetingWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   wavingHandIcon: {
     marginRight: 12,
     transform: [{ rotate: '15deg' }],
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   // Region Filter Header Styles
   regionFilterHeader: {
     paddingHorizontal: 24,
     marginBottom: 16,
     marginTop: 8,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   regionFilterTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   regionFilterTitle: {
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.3,
     marginLeft: 8,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   weatherIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 80,
     height: 60,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   weatherSummaryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   weatherTemperature: {
     fontSize: 16,
     fontFamily: 'Poppins_Bold',
     marginTop: 2,
+    backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
 
 });

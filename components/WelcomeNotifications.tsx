@@ -411,16 +411,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: Platform.OS === 'ios' ? 16 : 20, // Bezpieczny padding dla różnych urządzeń
     paddingHorizontal: 20,
     paddingBottom: 20,
     alignItems: 'center',
   },
   closeButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
+    top: Platform.OS === 'ios' ? 16 : 20, // Bezpieczne pozycjonowanie
     right: 20,
     padding: 8,
+    zIndex: 10, // Upewnienie się że jest na wierzchu
   },
   progressContainer: {
     flexDirection: 'row',

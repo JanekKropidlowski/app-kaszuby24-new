@@ -11,11 +11,11 @@ import {
   Linking, 
   TextInput, 
   ScrollView, 
-  SafeAreaView,
   RefreshControl,
   ActivityIndicator,
   Modal
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { 
   ArrowLeft, 
@@ -47,7 +47,6 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import EmptyState from '@/components/EmptyState';
 import InlineCalendar from '@/components/InlineCalendar';
-import EventFilters from '@/components/EventFilters';
 import ModernEventList from '@/components/ModernEventList';
 import { formatDateTime, formatDate, formatTime } from '@/utils/dateFormatter';
 import * as Haptics from 'expo-haptics';
@@ -99,6 +98,7 @@ export default function EventCalendarScreen() {
   const { theme } = useThemeStore();
   const { isEventSaved, saveEvent, removeEvent } = useEventsStore();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,7 +108,7 @@ export default function EventCalendarScreen() {
   const [error, setError] = useState<string | null>(null);
   const [cityFilter, setCityFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+
   const [cityModal, setCityModal] = useState(false);
   const [catModal, setCatModal] = useState(false);
   
@@ -117,6 +117,8 @@ export default function EventCalendarScreen() {
   const [selectedDateRange, setSelectedDateRange] = useState<{start: Date, end: Date} | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
+  
+
 
   // Unikalne miasta i kategorie do filtrów
   const cities = useMemo(() => {
@@ -160,9 +162,7 @@ export default function EventCalendarScreen() {
         params.append('category', categoryFilter);
       }
       
-      if (searchQuery) {
-        params.append('search', searchQuery);
-      }
+
       
       const url = `${BASE_URL}?${params.toString()}`;
       console.log('🔍 Debug - Fetching URL:', url);
@@ -184,7 +184,7 @@ export default function EventCalendarScreen() {
       // Ustaw puste wydarzenia w przypadku błędu
       setEvents([]);
     }
-  }, [selectedFilters, cityFilter, categoryFilter, searchQuery]);
+  }, [selectedFilters, cityFilter, categoryFilter]);
 
   const reloadEvents = useCallback(async () => {
     setLoading(true);
@@ -324,9 +324,15 @@ export default function EventCalendarScreen() {
     reloadEvents();
   };
 
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-    // Reload events when search query changes
+
+
+  const handleFilterPress = (filterId: string) => {
+    const newFilters = selectedFilters.includes(filterId)
+      ? selectedFilters.filter(id => id !== filterId)
+      : [...selectedFilters, filterId];
+    
+    setSelectedFilters(newFilters);
+    // Reload events when filters change
     reloadEvents();
   };
 
@@ -334,7 +340,7 @@ export default function EventCalendarScreen() {
     setSelectedFilters([]);
     setCityFilter(null);
     setCategoryFilter(null);
-    setSearchQuery('');
+
     setSelectedDate(null);
     setSelectedDateRange(null);
     // Reload events when clearing filters
@@ -409,10 +415,127 @@ export default function EventCalendarScreen() {
 
 
 
+  // Render calendar and filters component
+  const renderCalendarAndFilters = () => (
+    <View style={[styles.calendarFiltersSection, { backgroundColor: theme.colors.background }]}>
+      {/* Kalendarz */}
+      <InlineCalendar
+        selectedDate={selectedDate}
+        onDateSelect={handleDateSelect}
+        onDateRangeSelect={handleDateRangeSelect}
+        events={calendarEvents}
+        startDate={new Date()}
+        endDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // +90 dni
+      />
+      
+      {/* Filtry */}
+      <View style={styles.filtersInSection}>
+        <Text style={[styles.filtersLabel, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.medium }]}>
+          Filtry:
+        </Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersScrollContainer}
+          style={styles.filtersScroll}
+        >
+          <TouchableOpacity
+            style={[
+              styles.simpleFilterButton,
+              { backgroundColor: selectedFilters.includes('today') ? theme.colors.primary : theme.colors.subtle }
+            ]}
+            onPress={() => handleFilterPress('today')}
+          >
+            <Text style={[
+              styles.simpleFilterText,
+              { 
+                color: selectedFilters.includes('today') ? '#fff' : theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              Dzisiaj ({eventCounts['today'] || 0})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.simpleFilterButton,
+              { backgroundColor: selectedFilters.includes('this-weekend') ? theme.colors.primary : theme.colors.subtle }
+            ]}
+            onPress={() => handleFilterPress('this-weekend')}
+          >
+            <Text style={[
+              styles.simpleFilterText,
+              { 
+                color: selectedFilters.includes('this-weekend') ? '#fff' : theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              Weekend ({eventCounts['this-weekend'] || 0})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.simpleFilterButton,
+              { backgroundColor: selectedFilters.includes('this-week') ? theme.colors.primary : theme.colors.subtle }
+            ]}
+            onPress={() => handleFilterPress('this-week')}
+          >
+            <Text style={[
+              styles.simpleFilterText,
+              { 
+                color: selectedFilters.includes('this-week') ? '#fff' : theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              Tydzień ({eventCounts['this-week'] || 0})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.simpleFilterButton,
+              { backgroundColor: selectedFilters.includes('saved') ? theme.colors.primary : theme.colors.subtle }
+            ]}
+            onPress={() => handleFilterPress('saved')}
+          >
+            <Text style={[
+              styles.simpleFilterText,
+              { 
+                color: selectedFilters.includes('saved') ? '#fff' : theme.colors.text,
+                fontFamily: theme.fontFamily.medium
+              }
+            ]}>
+              Zapisane ({eventCounts['saved'] || 0})
+            </Text>
+          </TouchableOpacity>
+
+          {/* Wyczyść filtry */}
+          {(selectedFilters.length > 0 || cityFilter || categoryFilter) && (
+            <TouchableOpacity
+              style={[styles.clearFiltersButton, styles.clearInScroll]}
+              onPress={handleClearFilters}
+            >
+              <Text style={[styles.clearFiltersText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+                Wyczyść
+              </Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>  
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>  
       {/* Header with logo */}
-      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { 
+        backgroundColor: theme.colors.background,
+        paddingTop: insets.top // Dodany bezpieczny margines od góry
+      }]}>
         <Image
           source={{ 
             uri: theme.isDarkMode 
@@ -424,43 +547,13 @@ export default function EventCalendarScreen() {
           transition={200}
         />
       </View>
+
+
       
-      {/* Search Bar - nad kalendarzem */}
-      <View style={[styles.searchBarWrapper, { backgroundColor: theme.colors.card }]}> 
-        <TextInput
-          placeholder="Szukaj wydarzenia…"
-          placeholderTextColor={theme.colors.textSecondary}
-          value={searchQuery}
-          onChangeText={handleSearchChange}
-          style={[styles.searchInput, { color: theme.colors.text }]}
-          returnKeyType="search"
-        />
-      </View>
+      {/* Combined Calendar and Filters Section */}
+      {renderCalendarAndFilters()}
 
-      {/* Kalendarz inline */}
-      <InlineCalendar
-        selectedDate={selectedDate}
-        onDateSelect={handleDateSelect}
-        onDateRangeSelect={handleDateRangeSelect}
-        events={calendarEvents}
-        startDate={new Date()}
-        endDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // +90 dni
-      />
-
-      {/* Rozwijane filtry */}
-      <EventFilters
-        selectedFilters={selectedFilters}
-        onFilterChange={handleFilterChange}
-        eventCounts={eventCounts}
-        cityFilter={cityFilter}
-        categoryFilter={categoryFilter}
-        onCityFilterChange={handleCityFilterChange}
-        onCategoryFilterChange={handleCategoryFilterChange}
-        cities={cities}
-        categories={categories}
-      />
-
-      {/* Modern Events List */}
+      {/* Modern Events List - z własnym scrolling */}
       {loading ? (
         <SkeletonLoader type="home" count={5} immediate={true} />
       ) : error ? (
@@ -477,9 +570,11 @@ export default function EventCalendarScreen() {
           onAddToCalendar={handleAddToCalendar}
           onRefresh={handleRefresh}
           onLoadMore={loadMore}
+
+          scrollEnabled={true}
         />
       )}
-      {/* Szczegóły wydarzenia są teraz na osobnej stronie */}
+      
       {/* City Picker Modal */}
       <Modal visible={cityModal} transparent animationType="slide" onRequestClose={()=>setCityModal(false)}>
         <View style={styles.modalOverlay}>
@@ -517,7 +612,7 @@ export default function EventCalendarScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -525,7 +620,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   // Header styles
   header: {
-    paddingTop: Platform.OS === 'ios' ? 10 : 20, // Increased padding for Android
+    paddingTop: 0, // Usunięty niepotrzebny padding dla status bara
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
@@ -657,18 +752,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  searchBarWrapper: {
-    paddingHorizontal: 12,
-    paddingTop: 12,
-  },
-  searchInput: {
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
-    fontSize: 15,
-    fontWeight: '500',
-  },
+
   pickerModal: {
     width: '90%',
     borderRadius: 20,
@@ -720,11 +804,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
     zIndex: 10,
   },
-  filtersRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -759,4 +838,55 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 4,
   },
+  // Combined Calendar and Filters Section
+  calendarFiltersSection: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+
+  filtersInSection: {
+    paddingVertical: 12,
+  },
+  filtersLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+  },
+  filtersScroll: {
+    flexGrow: 0,
+  },
+  filtersScrollContainer: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  simpleFilterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  simpleFilterText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  clearFiltersButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearInScroll: {
+    backgroundColor: 'rgba(255,0,0,0.1)',
+    borderRadius: 20,
+    minWidth: 60,
+  },
+  clearFiltersText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+
 }); 

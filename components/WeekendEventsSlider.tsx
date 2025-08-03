@@ -1,23 +1,27 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
-  Image,
   StyleSheet,
   Dimensions,
   Platform,
 } from 'react-native';
+import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Calendar, MapPin, Clock, Heart, Share2 } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { useThemeStore } from '@/store/themeStore';
 import { safeFormatDate, safeFormatTime } from '@/utils/dateFormatter';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as he from 'he';
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.9; // Zwiększony na 90% szerokości
-const CARD_SPACING = 16; // Zwiększony spacing
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Skopiowane ustawienia z głównej strony (index.tsx)
+const CARD_WIDTH = screenWidth * 0.75; // 75% szerokości - tak samo jak na głównej
+const ITEM_SPACING = 20; // Zwiększony spacing między kartami
+const SIDE_PEEK = (screenWidth - CARD_WIDTH) / 2; // Automatyczne obliczenie side peek
 
 interface Event {
   id: number;
@@ -45,6 +49,8 @@ interface WeekendEventsSliderProps {
   onAddToCalendar: (event: Event) => void;
 }
 
+
+
 const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
   events,
   onEventPress,
@@ -52,10 +58,49 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
   onAddToCalendar,
 }) => {
   const { theme } = useThemeStore();
+  const carouselRef = useRef<ICarouselInstance>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   if (events.length === 0) {
     return null;
   }
+
+
+
+  const carouselOptions = {
+    ref: carouselRef,
+    vertical: false,
+    width: CARD_WIDTH + ITEM_SPACING, // Szerokość karty + spacing
+    height: 220, // Zwiększona wysokość
+    style: {
+      width: screenWidth,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    loop: true,
+    autoPlay: false,
+    scrollAnimationDuration: 500,
+    mode: 'parallax' as const, // Parallax mode dla side preview
+    modeConfig: {
+      parallaxScrollingScale: 0.9, // Skala głównej karty
+      parallaxScrollingOffset: ITEM_SPACING * 2, // Zmniejszony offset dla lepszych odstępów
+      parallaxAdjacentItemScale: 0.8, // Skala sąsiednich kart
+    },
+    data: events,
+    onScrollEnd: (index: number) => {
+      setActiveIndex(index);
+    },
+    panGestureHandlerProps: {
+      activeOffsetX: [-15, 15], // Większa tolerancja gestów
+    },
+    snapToInterval: CARD_WIDTH + ITEM_SPACING, // Dodane snap do interwału
+    decelerationRate: 'fast', // Szybsze zatrzymanie
+    showsHorizontalScrollIndicator: false, // Ukrycie scroll indicator
+    contentContainerStyle: {
+      paddingHorizontal: ITEM_SPACING, // Dodatkowy padding dla odstępów
+    },
+    keyExtractor: (item: Event) => item.id.toString(), // Dodane keyExtractor
+  };
 
   const getEventCategory = (event: Event) => {
     // Sprawdź czy wydarzenie ma kategorie w _embedded
@@ -92,7 +137,7 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
     return 'Wydarzenie';
   };
 
-  const renderEventCard = (event: Event, index: number) => {
+  const renderEventCard = ({ item: event, index }: { item: Event; index: number }) => {
     // Bezpieczne parsowanie daty
     const formattedDate = safeFormatDate(event.date);
     const formattedTime = safeFormatTime(event.date);
@@ -102,11 +147,9 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
 
     return (
       <TouchableOpacity
-        key={event.id}
         style={[
           styles.eventCard,
-          { backgroundColor: theme.colors.card },
-          { marginLeft: index === 0 ? 0 : 0 } // Usunięty margines dla pierwszego elementu
+          { backgroundColor: theme.colors.card }
         ]}
         onPress={() => onEventPress(event)}
         activeOpacity={0.9}
@@ -196,31 +239,32 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
         </Text>
       </View>
       
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        decelerationRate="fast"
-        snapToInterval={CARD_WIDTH + CARD_SPACING}
-        snapToAlignment="start"
-      >
-        {events.map((event, index) => renderEventCard(event, index))}
-      </ScrollView>
+      <GestureHandlerRootView style={styles.carouselWrapper}>
+        <Carousel
+          {...carouselOptions}
+          renderItem={renderEventCard}
+        />
+      </GestureHandlerRootView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8, // Zmniejszony margines
-    marginHorizontal: 0, // Brak marginesów poziomych - pełna szerokość
+    marginVertical: 8,
+  },
+  carouselWrapper: {
+    width: screenWidth,
+    alignItems: 'center', // Wyśrodkowanie carousel
+    justifyContent: 'center', // Dodatkowe wyśrodkowanie
+    paddingHorizontal: ITEM_SPACING, // Dodatkowy padding dla odstępów
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16, // Padding tylko w nagłówku
-    marginBottom: 12, // Zmniejszony margines
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18, // Zmniejszony font
@@ -230,23 +274,21 @@ const styles = StyleSheet.create({
     fontSize: 13, // Zmniejszony font
     fontWeight: '500',
   },
-  scrollContent: {
-    paddingRight: 0, // Usunięty padding na końcu
-  },
   eventCard: {
-    width: CARD_WIDTH,
-    borderRadius: 16, // Zmniejszony border radius
+    width: CARD_WIDTH, // Stała szerokość karty
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, // Zmniejszony shadow
-    shadowOpacity: Platform.OS === 'android' ? 0.15 : 0.08, // Większa przezroczystość na Android
-    shadowRadius: 8, // Zmniejszony radius
-    elevation: Platform.OS === 'android' ? 6 : 4, // Większy elevation na Android
-    marginRight: CARD_SPACING,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: Platform.OS === 'android' ? 0.15 : 0.08,
+    shadowRadius: 8,
+    elevation: Platform.OS === 'android' ? 6 : 4,
+    marginHorizontal: ITEM_SPACING, // Zwiększony margines dla lepszych odstępów
     overflow: 'hidden',
+    alignSelf: 'center', // Wyśrodkowanie każdej karty
   },
   imageContainer: {
     position: 'relative',
-    height: 200, // Zwiększona wysokość dla lepszego wyglądu
+    height: 220, // Zwiększona wysokość
   },
   eventImage: {
     width: '100%',

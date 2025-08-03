@@ -167,8 +167,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar 
           style={isDarkMode ? "light" : "dark"} 
-          backgroundColor={theme.colors.background}
-          translucent={Platform.OS === 'android'}
+          backgroundColor="transparent"
+          translucent={true}
         />
         <Stack
           screenOptions={{

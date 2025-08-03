@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
-  Platform,
-  SafeAreaView
+  Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   Bell, 
   Settings, 
@@ -52,6 +52,7 @@ export default function PreferencesScreen() {
     expoPushToken,
     getUnreadCount
   } = useNotificationsStore();
+  const insets = useSafeAreaInsets();
   
   const { isDarkMode, toggleTheme, theme, debugMode, toggleDebugMode } = useThemeStore();
   const { clearRecentArticles } = useArticlesStore();
@@ -232,10 +233,10 @@ export default function PreferencesScreen() {
   console.log('PreferencesScreen render - debugMode:', debugMode);
   
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScrollView 
         style={[styles.container, { backgroundColor: theme.colors.background }]} 
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top }]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
@@ -777,10 +778,10 @@ export default function PreferencesScreen() {
             © 2025 Kaszuby24.pl
           </Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+              </ScrollView>
+      </View>
+    );
+  }
 
 const styles = StyleSheet.create({
   container: {

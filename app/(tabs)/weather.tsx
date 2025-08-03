@@ -154,7 +154,7 @@ export default function WeatherScreen() {
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setLocationData(location.coords);
       
       // Znajdź najbliższą stację

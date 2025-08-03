@@ -346,7 +346,7 @@ class NotificationService {
   // Helper to properly remove notification subscriptions
   removeNotificationSubscription(subscription: Notifications.Subscription): void {
     try {
-      Notifications.removeNotificationSubscription(subscription);
+      subscription.remove();
     } catch (error) {
       console.warn('Error removing notification subscription:', error);
     }
@@ -360,10 +360,10 @@ class NotificationService {
       
       // Remove event listeners
       if (this.notificationListener) {
-        Notifications.removeNotificationSubscription(this.notificationListener);
+        this.notificationListener.remove();
       }
       if (this.responseListener) {
-        Notifications.removeNotificationSubscription(this.responseListener);
+        this.responseListener.remove();
       }
       
       this.isInitialized = false;

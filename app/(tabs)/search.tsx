@@ -9,28 +9,28 @@ import {
   Platform,
   ScrollView,
   TextInput,
-  SafeAreaView,
   TouchableWithoutFeedback,
   Pressable
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { 
-  Search as SearchIcon, 
-  MapPin, 
+  ChevronRight, 
+  RefreshCw, 
+  WifiOff, 
+  ArrowRight, 
   Heart, 
-  TrendingUp, 
-  Clock, 
-  Star,
-  X,
-  Zap,
-  Shield,
-  Briefcase,
-  Trophy,
-  Church,
-  HeartPulse,
-  GraduationCap,
-  Palette,
-  ChevronDown
+  Home, 
+  Bell, 
+  Search as SearchIcon, 
+  Bookmark, 
+  Settings,
+  Eye,
+  TrendingUp,
+  Clock,
+  Calendar,
+  MapPin,
+  XCircle
 } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { searchArticles, fetchArticles, fetchFilteredArticles } from '@/services/api';
@@ -45,14 +45,14 @@ import { filterSponsoredArticles } from '@/utils/contentFilter';
 
 // Real categories from your system
 const CATEGORIES = [
-  { id: '', name: 'Wszystkie', icon: Star },
-  { id: '17', name: 'Bezpieczeństwo', icon: Shield },
-  { id: '11', name: 'Biznes', icon: Briefcase },
-  { id: '24', name: 'Sport', icon: Trophy },
-  { id: '22', name: 'Religia', icon: Church },
-  { id: '2246', name: 'Zdrowie', icon: HeartPulse },
-  { id: '49', name: 'Nauka', icon: GraduationCap },
-  { id: '16', name: 'Kultura', icon: Palette },
+  { id: '', name: 'Wszystkie', icon: Heart },
+  { id: '17', name: 'Bezpieczeństwo', icon: Eye },
+  { id: '11', name: 'Biznes', icon: Home },
+  { id: '24', name: 'Sport', icon: TrendingUp },
+  { id: '22', name: 'Religia', icon: Bell },
+  { id: '2246', name: 'Zdrowie', icon: RefreshCw },
+  { id: '49', name: 'Nauka', icon: Calendar },
+  { id: '16', name: 'Kultura', icon: ArrowRight },
 ];
 
 // Real regions from your system
@@ -73,7 +73,7 @@ const REGIONS = [
 // Sort options
 const SORT_OPTIONS = [
   { id: 'date', name: 'Najnowsze', icon: Clock },
-  { id: 'relevance', name: 'Trafność', icon: Star },
+  { id: 'relevance', name: 'Trafność', icon: Heart },
   { id: 'popularity', name: 'Popularne', icon: TrendingUp },
 ];
 
@@ -82,6 +82,7 @@ export default function SearchScreen() {
   const { regionId } = useLocalSearchParams();
   const { theme } = useThemeStore();
   const { addRecentArticle } = useArticlesStore();
+  const insets = useSafeAreaInsets();
   
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
@@ -370,9 +371,12 @@ export default function SearchScreen() {
   const selectedSortName = SORT_OPTIONS.find(s => s.id === selectedSort)?.name || 'Najnowsze';
   
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Compact Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { 
+        backgroundColor: theme.colors.background,
+        paddingTop: insets.top // Dodany bezpieczny margines od góry
+      }]}>
         <Image
           source={{ 
             uri: theme.isDarkMode 
@@ -407,21 +411,7 @@ export default function SearchScreen() {
             onSubmitEditing={() => handleSearch()}
             returnKeyType="search"
           />
-          {query.length > 0 && (
-            <TouchableOpacity 
-              activeOpacity={0.7}
-              onPress={() => {
-                setQuery('');
-                setArticles([]);
-                if (searchTimeout) {
-                  clearTimeout(searchTimeout);
-                  setSearchTimeout(null);
-                }
-              }}
-            >
-              <X size={16} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          )}
+          {/* Usunięto przycisk X - użytkownik może wyczyścić pole przez usunięcie tekstu */}
         </View>
       </View>
       
@@ -468,7 +458,7 @@ export default function SearchScreen() {
               activeOpacity={0.8}
               onPress={clearFilters}
             >
-              <X size={14} color="#FFFFFF" />
+              <XCircle size={14} color="#FFFFFF" />
               <Text style={[styles.clearButtonText, { fontFamily: theme.fontFamily.medium }]}>
                 Wyczyść
               </Text>
@@ -506,7 +496,7 @@ export default function SearchScreen() {
               ]}>
                 {selectedRegionName}
               </Text>
-              <ChevronDown size={16} color={theme.colors.textSecondary} />
+              <ChevronRight size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
             
             {showRegionSelect && (
@@ -579,7 +569,7 @@ export default function SearchScreen() {
               ]}>
                 {selectedSortName}
               </Text>
-              <ChevronDown size={16} color={theme.colors.textSecondary} />
+              <ChevronRight size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
             
             {showSortSelect && (
@@ -690,7 +680,7 @@ export default function SearchScreen() {
           onScrollBeginDrag={closeAllDropdowns}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -701,7 +691,7 @@ const styles = StyleSheet.create({
   
   // Compact Header
   header: {
-    paddingTop: Platform.OS === 'ios' ? 10 : 20, // Increased padding for Android
+    paddingTop: 0, // Usunięty niepotrzebny padding dla status bara
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,

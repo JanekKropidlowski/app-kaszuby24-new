@@ -1,34 +1,70 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Share, Platform, Dimensions, Modal, StatusBar, Linking, FlatList, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity, 
+  Share, 
+  Platform, 
+  Dimensions, 
+  StatusBar,
+  Alert,
+  Modal,
+  FlatList,
+  Linking
+} from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { 
+  ArrowLeft, 
+  Share2, 
+  Bookmark, 
+  BookMarked,
+  Calendar, 
+  Eye, 
+  Clock, 
+  MapPin, 
+  ChevronLeft, 
+  ChevronRight, 
+  X, 
+  Download,
+  Home,
+  ChevronUp
+} from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { ArrowLeft, Share2, Home, Search, Bookmark, CalendarIcon, Bookmark as BookmarkFilled, Settings, X, ChevronLeft, ChevronRight, ChevronUp, Grid, Play, ExternalLink, Newspaper, Download, RefreshCw } from 'lucide-react-native';
-import { fetchArticleById, fetchArticles, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
+import { Image as RNImage } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedScrollHandler,
+  useAnimatedGestureHandler,
+  interpolate,
+  Extrapolate,
+  withTiming,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
+import { PanGestureHandler, PinchGestureHandler, State, GestureHandlerRootView } from 'react-native-gesture-handler';
+// import ImageViewing from 'react-native-image-viewing';
+import { OptimizedLightbox } from '@/components/OptimizedLightbox';
+import * as Haptics from 'expo-haptics';
+import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
-import { cleanHtml, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlParser';
-import { formatDateTime } from '@/utils/dateFormatter';
-import RenderHtml from 'react-native-render-html';
 import { useArticlesStore } from '@/store/articlesStore';
-import { LinearGradient } from 'expo-linear-gradient';
-import VideoPlayer from '@/components/VideoPlayer';
-import { Tabs } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { formatDateTime } from '@/utils/dateFormatter';
+import { cleanHtml, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlParser';
 import SkeletonLoader from '@/components/SkeletonLoader';
-import GlobalTabBar from '@/components/GlobalTabBar';
+import LoadingIndicator from '@/components/LoadingIndicator';
+import EmptyState from '@/components/EmptyState';
 import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
-import { PanGestureHandler, PinchGestureHandler, State } from 'react-native-gesture-handler';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  useAnimatedGestureHandler,
-  runOnJS,
-  withSpring,
-  withTiming,
-  interpolate,
-  Extrapolate
-} from 'react-native-reanimated';
-import * as Updates from 'expo-updates';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import GlobalTabBar from '@/components/GlobalTabBar';
+import VideoPlayer from '@/components/VideoPlayer';
+import RenderHtml from 'react-native-render-html';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 94 : 82;
@@ -50,10 +86,10 @@ const cleanTitle = (title: string): string => {
 
 // Dodaj funkcję do obliczania rozmiaru fontu na podstawie długości tytułu
 const getTitleFontSize = (title: string) => {
-  if (title.length <= 40) return 40;  // Maksymalny rozmiar
-  if (title.length <= 60) return 36;
-  if (title.length <= 80) return 32;
-  return 30;  // Minimalny rozmiar
+  if (title.length <= 40) return 28;  // Maksymalny rozmiar
+  if (title.length <= 60) return 26;
+  if (title.length <= 80) return 24;
+  return 22;  // Minimalny rozmiar
 };
 
 export default function ArticleScreen() {
@@ -76,12 +112,48 @@ export default function ArticleScreen() {
   const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
   const [flickrUrl, setFlickrUrl] = useState<string | null>(null);
   const [allImages, setAllImages] = useState<MediaItem[]>([]);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [isLightboxVisible, setIsLightboxVisible] = useState(false);
+  const [isLightboxReady, setIsLightboxReady] = useState(false);
 
-  // OTA Update states
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [updateChecking, setUpdateChecking] = useState(false);
-  const [updateDownloading, setUpdateDownloading] = useState(false);
-  const [updateProgress, setUpdateProgress] = useState(0);
+  // Stabilne referencje dla lightboxa - zapobiegają przeładowaniu
+  const lightboxImages = useMemo(() => 
+    allImages.map(img => ({ 
+      uri: img.media_details?.sizes?.large?.source_url || img.source_url 
+    })), [allImages]
+  );
+
+  // Preloadowanie zdjęć dla lightboxa - poprawia płynność
+  useEffect(() => {
+    if (lightboxImages.length > 0) {
+      // Preloaduj tylko pierwsze 3 zdjęcia dla lepszej wydajności
+      const imagesToPreload = lightboxImages.slice(0, 3);
+      imagesToPreload.forEach(img => {
+        if (img.uri) {
+          RNImage.prefetch(img.uri).catch(() => {
+            // Ignoruj błędy preloadowania
+          });
+        }
+      });
+    }
+  }, [lightboxImages]);
+
+  // Stabilna referencja dla onImageIndexChange - zapobiega niepotrzebnym re-renderom
+  const handleImageIndexChange = useCallback((index: number) => {
+    setSelectedImageIndex(index);
+  }, []);
+
+  // Optymalizacja: nie resetuj selectedImageIndex przy ładowaniu danych
+  // DEBUG: Szczegółowe logi dla selectedImageIndex
+  useEffect(() => {
+    console.log('[LIGHTBOX DEBUG] selectedImageIndex changed to:', selectedImageIndex);
+    if (selectedImageIndex !== null) {
+      console.log('[LIGHTBOX DEBUG] Lightbox opening automatically! Stack trace:');
+      console.trace('[LIGHTBOX DEBUG] Automatic lightbox open');
+      console.log('[LIGHTBOX DEBUG] Current allImages length:', allImages.length);
+      console.log('[LIGHTBOX DEBUG] Current galleryImages length:', galleryImages.length);
+    }
+  }, [selectedImageIndex, allImages.length, galleryImages.length]);
 
   // Pinch-to-zoom shared values
   const scale = useSharedValue(1);
@@ -98,123 +170,113 @@ export default function ArticleScreen() {
   const [scrollContentHeight, setScrollContentHeight] = useState(0);
   const [scrollViewHeight, setScrollViewHeight] = useState(0);
 
-  // OTA Update functions
-  const checkForUpdates = async () => {
-    if (!Updates.isEnabled) {
-      console.log('OTA updates are not enabled');
-      return;
-    }
-
-    try {
-      setUpdateChecking(true);
-      console.log('Checking for OTA updates...');
-      
-      const update = await Updates.checkForUpdateAsync();
-      
-      if (update.isAvailable) {
-        console.log('OTA update available:', update);
-        setUpdateAvailable(true);
-        
-        // Show update notification with more details
-        Alert.alert(
-          'Dostępna aktualizacja',
-          'Znaleziono nową wersję aplikacji. Czy chcesz ją pobrać teraz?',
-          [
-            { text: 'Później', style: 'cancel' },
-            { text: 'Pobierz', onPress: downloadUpdate }
-          ]
-        );
-      } else {
-        console.log('No OTA update available');
-        setUpdateAvailable(false);
-      }
-    } catch (error) {
-      console.error('Error checking for OTA updates:', error);
-      // Don't show error to user for check failures
-    } finally {
-      setUpdateChecking(false);
-    }
-  };
-
-  const downloadUpdate = async () => {
-    if (!Updates.isEnabled) {
-      Alert.alert(
-        'Aktualizacje wyłączone',
-        'Aktualizacje OTA są wyłączone w tej wersji aplikacji.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    try {
-      setUpdateDownloading(true);
-      setUpdateProgress(0);
-      
-      console.log('Downloading OTA update...');
-      
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setUpdateProgress(prev => {
-          const newProgress = prev + Math.random() * 10;
-          return newProgress > 90 ? 90 : newProgress;
-        });
-      }, 500);
-
-      const result = await Updates.fetchUpdateAsync();
-      
-      clearInterval(progressInterval);
-      setUpdateProgress(100);
-      
-      console.log('OTA update downloaded successfully:', result);
-      
-      // Show success message and reload
-      Alert.alert(
-        'Aktualizacja pobrana',
-        'Aplikacja zostanie zrestartowana, aby zastosować zmiany.',
-        [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              Updates.reloadAsync();
-            }
-          }
-        ]
-      );
-      
-    } catch (error) {
-      console.error('Error downloading OTA update:', error);
-      
-      // More specific error messages
-      let errorMessage = 'Nie udało się pobrać aktualizacji. Spróbuj ponownie później.';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('network') || error.message.includes('timeout')) {
-          errorMessage = 'Błąd połączenia. Sprawdź połączenie z internetem i spróbuj ponownie.';
-        } else if (error.message.includes('storage') || error.message.includes('disk')) {
-          errorMessage = 'Brak miejsca na urządzeniu. Zwolnij miejsce i spróbuj ponownie.';
-        }
-      }
-      
-      Alert.alert(
-        'Błąd aktualizacji',
-        errorMessage,
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setUpdateDownloading(false);
-      setUpdateProgress(0);
-    }
-  };
-
-  // Check for updates on component mount with better timing
+  // Load article data - optimized
   useEffect(() => {
-    // Check for updates after a longer delay to not interfere with initial loading
-    const updateTimer = setTimeout(() => {
-      checkForUpdates();
-    }, 5000); // Increased from 3000 to 5000ms
+    const loadArticleData = async () => {
+      if (!id || Array.isArray(id)) {
+        setError('Nieprawidłowy identyfikator artykułu');
+        setLoading(false);
+        return;
+      }
 
-    return () => clearTimeout(updateTimer);
-  }, []);
+      const articleId = parseInt(id, 10);
+      if (isNaN(articleId)) {
+        setError('Nieprawidłowy identyfikator artykułu');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Load article data first
+        const articleData = await fetchArticleById(articleId);
+        
+        if (!articleData) {
+          setError('Nie znaleziono artykułu');
+          setLoading(false);
+          return;
+        }
+
+        setArticle(articleData);
+        setIsSaved(isArticleSaved(articleId));
+        
+        // NIE resetuj selectedImageIndex tutaj - pozwól na płynne przejścia
+
+        // Load gallery images in background (non-blocking)
+        const galleryIds = articleData.meta?.galeria ? processGalleryIds(articleData.meta.galeria) : [];
+        if (galleryIds.length > 0) {
+          fetchMediaByIds(galleryIds)
+            .then(galleryData => {
+              setGalleryImages(galleryData);
+              
+              // Featured image as MediaItem
+              let featuredMedia: MediaItem | null = null;
+              if (articleData.featured_media_url) {
+                featuredMedia = {
+                  id: 0,
+                  source_url: articleData.featured_media_url,
+                  media_details: { width: 800, height: 600 },
+                  caption: { rendered: '' },
+                  alt_text: '',
+                };
+              }
+              
+              // Combine featured + gallery
+              let allImgs: MediaItem[] = [];
+              if (featuredMedia) {
+                const isInGallery = galleryData.some(img => img.source_url === featuredMedia!.source_url);
+                allImgs = isInGallery ? galleryData : [featuredMedia, ...galleryData];
+              } else {
+                allImgs = galleryData;
+              }
+              
+              console.log('[LIGHTBOX DEBUG] Setting allImages with length:', allImgs.length);
+              // NIE resetuj selectedImageIndex - pozwól na płynne przejścia w lightboxie
+              setAllImages(allImgs);
+            })
+            .catch(err => {
+              console.warn('Failed to load gallery images:', err);
+            });
+        }
+
+        // Extract YouTube URL if available
+        if (articleData.meta?.youtube) {
+          const ytUrl = extractYouTubeUrl(articleData.meta.youtube);
+          if (ytUrl) {
+            setYoutubeUrl(ytUrl);
+          }
+        }
+        
+        // Extract Flickr URL if available
+        if (articleData.meta?.flickr) {
+          setFlickrUrl(articleData.meta.flickr);
+        }
+
+        // Load related articles in background
+        if (articleData.categories && articleData.categories.length > 0) {
+          fetchRelatedArticles(articleId, articleData.categories, 6)
+            .then(relatedData => {
+              const allRelated = [...relatedData.sliderArticles, ...relatedData.listArticles];
+              setRelatedArticles(allRelated);
+            })
+            .catch(err => {
+              console.warn('Failed to load related articles:', err);
+            });
+        }
+
+        setLoading(false);
+        
+      } catch (err) {
+        console.error('Error loading article data:', err);
+        setError('Nie udało się załadować artykułu');
+        setLoading(false);
+      }
+    };
+
+    loadArticleData();
+  }, [id, isArticleSaved]);
 
   // Funkcja do określania aktywnego stanu tabów
   const getActiveTab = () => {
@@ -249,8 +311,40 @@ export default function ArticleScreen() {
     onEnd: () => {
       if (scale.value < 1) {
         scale.value = withSpring(1);
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
       } else if (scale.value > 3) {
         scale.value = withSpring(3);
+      }
+    },
+  });
+
+  // Pan gesture handler
+  const panGestureHandler = useAnimatedGestureHandler({
+    onStart: (_, context: any) => {
+      context.startX = translateX.value;
+      context.startY = translateY.value;
+    },
+    onActive: (event: any, context: any) => {
+      if (scale.value > 1) {
+        translateX.value = context.startX + event.translationX;
+        translateY.value = context.startY + event.translationY;
+      }
+    },
+    onEnd: () => {
+      const maxTranslateX = (width * (scale.value - 1)) / 2;
+      const maxTranslateY = (height * (scale.value - 1)) / 2;
+
+      if (translateX.value > maxTranslateX) {
+        translateX.value = withSpring(maxTranslateX);
+      } else if (translateX.value < -maxTranslateX) {
+        translateX.value = withSpring(-maxTranslateX);
+      }
+
+      if (translateY.value > maxTranslateY) {
+        translateY.value = withSpring(maxTranslateY);
+      } else if (translateY.value < -maxTranslateY) {
+        translateY.value = withSpring(-maxTranslateY);
       }
     },
   });
@@ -306,101 +400,7 @@ export default function ArticleScreen() {
     }
   }, [selectedImageIndex]);
 
-  useEffect(() => {
-    const loadArticleData = async () => {
-      try {
-        setLoading(true);
-        const articleId = parseInt(id as string, 10);
 
-        // Krok 1: Pobierz główny artykuł, aby uzyskać meta-dane
-        const articleData = await fetchArticleById(articleId);
-        setArticle(articleData);
-        setIsSaved(isArticleSaved(articleData.id));
-
-        // Krok 2: Przygotuj pozostałe zapytania
-        const galleryIds = articleData.meta?.galeria ? processGalleryIds(articleData.meta.galeria) : [];
-        const mediaPromise = galleryIds.length > 0 ? fetchMediaByIds(galleryIds) : Promise.resolve([]);
-        const relatedPromise = fetchArticles(1, 10); // Pobierz więcej, by mieć z czego filtrować
-
-        // Krok 3: Uruchom je równolegle i poczekaj na wszystkie
-        const [galleryData, relatedData] = await Promise.all([
-          mediaPromise.catch(err => {
-            console.warn('Failed to load gallery images:', err);
-            return [];
-          }),
-          relatedPromise.catch(err => {
-            console.warn('Failed to load related articles:', err);
-            return { articles: [] };
-          })
-        ]);
-
-        // Krok 4: Przetwórz wyniki
-        setGalleryImages(galleryData);
-        setRelated(relatedData.articles.filter(a => a.id !== articleId).slice(0, 2));
-
-        // Extract YouTube URL if available
-        if (articleData.meta?.youtube) {
-          const ytUrl = extractYouTubeUrl(articleData.meta.youtube);
-          if (ytUrl) {
-            setYoutubeUrl(ytUrl);
-          }
-        }
-        
-        // Extract Flickr URL if available
-        if (articleData.meta?.flickr) {
-          setFlickrUrl(articleData.meta.flickr);
-        }
-        
-        // Featured image as MediaItem
-        let featuredMedia: MediaItem | null = null;
-        if (articleData.featured_media_url) {
-          featuredMedia = {
-            id: 0, // Use 0 as featured media ID
-            source_url: articleData.featured_media_url,
-            media_details: {
-              width: 800,
-              height: 600,
-            },
-            caption: { rendered: '' },
-            alt_text: '',
-          };
-        }
-        
-        // Combine featured + gallery
-        let allImgs: MediaItem[] = [];
-        if (featuredMedia) {
-          // Dodaj featured tylko jeśli nie ma go w galerii
-          const isInGallery = galleryData.some(img => img.source_url === featuredMedia!.source_url);
-          allImgs = isInGallery ? galleryData : [featuredMedia, ...galleryData];
-        } else {
-          allImgs = galleryData;
-        }
-        setAllImages(allImgs);
-
-        // Krok 5: Pobierz powiązane artykuły z tej samej kategorii
-        if (articleData.categories && articleData.categories.length > 0) {
-          setLoadingRelated(true);
-          try {
-            const relatedData = await fetchRelatedArticles(articleId, articleData.categories, 6);
-            const allRelated = [...relatedData.sliderArticles, ...relatedData.listArticles];
-            setRelatedArticles(allRelated);
-          } catch (err) {
-            console.warn('Failed to load related articles:', err);
-          } finally {
-            setLoadingRelated(false);
-          }
-        }
-
-      } catch (err) {
-        console.error('Error loading article data:', err);
-        setError('Nie udało się załadować artykułu');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadArticleData();
-  }, [id, isArticleSaved]);
 
   const handleCategoryPress = () => {
     if (article?.categories && article.categories.length > 0) {
@@ -444,26 +444,114 @@ export default function ArticleScreen() {
     }
   };
 
-  // Function to navigate between images in the modal
+  // Function to navigate between images in the modal - zoptymalizowana
   const navigateImage = (direction: 'prev' | 'next') => {
     if (selectedImageIndex === null || !allImages.length) return;
     
     if (direction === 'prev' && selectedImageIndex > 0) {
+      // Płynne przejście do poprzedniego zdjęcia
       setSelectedImageIndex(selectedImageIndex - 1);
+      // Preloaduj poprzednie zdjęcie jeśli istnieje
+      const prevIndex = selectedImageIndex - 2;
+      if (prevIndex >= 0 && allImages[prevIndex]) {
+        const prevImageUrl = allImages[prevIndex].media_details?.sizes?.large?.source_url || allImages[prevIndex].source_url;
+        RNImage.prefetch(prevImageUrl).catch(() => {});
+      }
     } else if (direction === 'next' && selectedImageIndex < allImages.length - 1) {
+      // Płynne przejście do następnego zdjęcia
       setSelectedImageIndex(selectedImageIndex + 1);
+      // Preloaduj następne zdjęcie jeśli istnieje
+      const nextIndex = selectedImageIndex + 2;
+      if (nextIndex < allImages.length && allImages[nextIndex]) {
+        const nextImageUrl = allImages[nextIndex].media_details?.sizes?.large?.source_url || allImages[nextIndex].source_url;
+        RNImage.prefetch(nextImageUrl).catch(() => {});
+      }
     }
   };
 
-  // Function to open image modal with correct index
-  const openImageModal = (index: number) => {
-    setSelectedImageIndex(index);
+  // Function to open image modal with haptic feedback - zoptymalizowana
+  const openImageModal = useCallback((index: number) => {
+    if (allImages.length === 0) return;
+    
+    if (index >= 0 && index < allImages.length) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      // Ustaw wszystko jednocześnie dla natychmiastowego otwarcia
+      setSelectedImageIndex(index);
+      setIsLightboxReady(true);
+      setIsLightboxVisible(true);
+    }
+  }, [allImages.length]);
+
+  // Function to close image modal - zoptymalizowana
+  const closeImageModal = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Najpierw zamknij lightbox, potem zresetuj index
+    setIsLightboxVisible(false);
+    setZoomLevel(1);
+    setIsLightboxReady(false);
+    // Krótkie opóźnienie przed resetowaniem indexu
+    setTimeout(() => setSelectedImageIndex(null), 300);
+  }, []);
+
+  // Function to download image - POPRAWIONA
+  const downloadImage = async () => {
+    if (selectedImageIndex === null || !allImages[selectedImageIndex]) return;
+    
+    try {
+      const imageUrl = allImages[selectedImageIndex].source_url;
+      
+      // Sprawdź uprawnienia do zapisu
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Błąd', 'Brak uprawnień do zapisu zdjęć');
+        return;
+      }
+      
+      // Pokaż loader
+      Alert.alert('Pobieranie...', 'Zdjęcie jest pobierane...');
+      
+      // Pobierz zdjęcie
+      const fileName = `kaszuby24_${Date.now()}.jpg`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      
+      const downloadResult = await FileSystem.downloadAsync(imageUrl, fileUri);
+      
+      if (downloadResult.status === 200) {
+        // Zapisz do galerii
+        const asset = await MediaLibrary.createAssetAsync(fileUri);
+        await MediaLibrary.createAlbumAsync('Kaszuby24', asset, false);
+        
+        Alert.alert('Sukces!', 'Zdjęcie zostało pobrane do galerii');
+        
+        // Usuń tymczasowy plik
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      } else {
+        throw new Error('Błąd pobierania');
+      }
+    } catch (error) {
+      console.error('Błąd pobierania zdjęcia:', error);
+      Alert.alert('Błąd', 'Nie udało się pobrać zdjęcia');
+    }
   };
 
-  // Function to close image modal
-  const closeImageModal = () => {
-    setSelectedImageIndex(null);
-  };
+  // Swipe gesture handlers
+  const swipeGestureHandler = useAnimatedGestureHandler({
+    onStart: (_, context: any) => {
+      context.startX = 0;
+    },
+    onActive: (event, context) => {
+      context.startX = event.translationX;
+    },
+    onEnd: (event) => {
+      if (Math.abs(event.translationX) > 100) {
+        if (event.translationX > 0) {
+          runOnJS(navigateImage)('prev');
+        } else {
+          runOnJS(navigateImage)('next');
+        }
+      }
+    },
+  });
 
   // Auto-powrót na główną po scrollu do końca
   const handleScroll = (event: any) => {
@@ -521,20 +609,31 @@ export default function ArticleScreen() {
   };
 
   // Render gallery item
-  const renderGalleryItem = ({ item, index }: { item: MediaItem; index: number }) => (
-    <TouchableOpacity
-      style={styles.galleryItem}
-      onPress={() => openImageModal(index)}
-      activeOpacity={0.9}
-    >
-      <Image
-        source={{ uri: item.source_url }}
-        style={styles.galleryItemImage}
-        contentFit="cover"
-        priority="high"
-      />
-    </TouchableOpacity>
-  );
+  const renderGalleryItem = ({ item, index }: { item: MediaItem; index: number }) => {
+    // Calculate correct index for allImages array
+    // Since we're showing allImages.slice(1), the actual index is index + 1
+    const actualIndex = index + 1;
+    
+    return (
+      <TouchableOpacity
+        style={styles.galleryItem}
+        onPress={() => {
+          console.log('[LIGHTBOX DEBUG] Gallery item clicked:', index, 'actual index:', actualIndex);
+          openImageModal(actualIndex);
+        }}
+        activeOpacity={0.9}
+      >
+        <Image
+          source={{ uri: item.media_details?.sizes?.medium?.source_url || item.source_url }}
+          style={styles.galleryItemImage}
+          contentFit="cover"
+          priority="high"
+          cachePolicy="memory-disk"
+          transition={200}
+        />
+      </TouchableOpacity>
+    );
+  };
 
   // Render related article item
   const renderRelatedArticle = ({ item }: { item: Article }) => (
@@ -563,9 +662,9 @@ export default function ArticleScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <SkeletonLoader type="article" immediate={true} />
-      </SafeAreaView>
+      </View>
     );
   }
   if (error || !article) {
@@ -580,13 +679,13 @@ export default function ArticleScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.rootContainer, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+    <View style={[styles.rootContainer, { backgroundColor: theme.colors.background }]}>
+      {/* StatusBar usunięty - dziedziczony z głównego _layout.tsx */}
       
       {/* WARSTWA 1: UI APLIKACJI (STAŁE) */}
       
       {/* Nagłówek - jest poza animowanym widokiem */}
-      <View style={[styles.headerContainer, { zIndex: 10, paddingTop: insets.top + 10 }]}>
+      <View style={[styles.headerContainer, { zIndex: 10, paddingTop: insets.top }]}>
         <LinearGradient
           colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
           style={styles.headerGradient}
@@ -603,7 +702,7 @@ export default function ArticleScreen() {
         <View style={styles.headerRightButtons}>
           <TouchableOpacity style={styles.headerButton} onPress={handleToggleSave}>
             {isSaved ? (
-              <BookmarkFilled size={24} color="#FFFFFF" />
+              <BookMarked size={24} color="#FFFFFF" />
             ) : (
               <Bookmark size={24} color="#FFFFFF" />
             )}
@@ -627,7 +726,11 @@ export default function ArticleScreen() {
           onLayout={handleScrollViewLayout}
         >
           {/* Featured image with gradient overlay */}
-          <View style={styles.imageContainer}>
+          <TouchableOpacity 
+            style={styles.imageContainer}
+            onPress={() => openImageModal(0)}
+            activeOpacity={0.95}
+          >
             <Image
               source={{ uri: String(article.featured_media_url || article.featured_media) }}
               style={styles.featuredImage}
@@ -637,7 +740,7 @@ export default function ArticleScreen() {
               colors={['transparent', 'rgba(0,0,0,0.7)']}
               style={styles.imageGradient}
             />
-          </View>
+          </TouchableOpacity>
 
           {/* Content container with improved curved transition */}
           <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]} onLayout={handleContentLayout}> 
@@ -686,8 +789,8 @@ export default function ArticleScreen() {
               source={{ html: cleanHtml(article.content.rendered) }}
               baseStyle={{
                 color: theme.colors.text,
-                fontSize: 18,
-                lineHeight: 30,
+                fontSize: 16,
+                lineHeight: 26,
                 fontWeight: '400',
                 textAlign: 'left',
                 fontFamily: 'Poppins_Regular',
@@ -695,8 +798,8 @@ export default function ArticleScreen() {
               tagsStyles={{
                 p: {
                   color: theme.colors.text,
-                  fontSize: 18,
-                  lineHeight: 30,
+                  fontSize: 16,
+                  lineHeight: 26,
                   fontWeight: '400',
                   textAlign: 'left',
                   fontFamily: 'Poppins_Regular',
@@ -783,8 +886,8 @@ export default function ArticleScreen() {
                   fontStyle: 'italic',
                   color: theme.colors.textSecondary,
                   fontFamily: 'Poppins_Regular',
-                  fontSize: 17,
-                  lineHeight: 28,
+                  fontSize: 15,
+                  lineHeight: 24,
                   textAlign: 'left',
                 },
                 ul: {
@@ -797,8 +900,8 @@ export default function ArticleScreen() {
                 },
                 li: {
                   color: theme.colors.text,
-                  fontSize: 18,
-                  lineHeight: 30,
+                  fontSize: 16,
+                  lineHeight: 26,
                   fontFamily: 'Poppins_Regular',
                   marginBottom: 8,
                   textAlign: 'left',
@@ -871,7 +974,7 @@ export default function ArticleScreen() {
           {allImages.length > 1 && (
             <View style={styles.galleryContainer}>
               <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>
-                Galeria ({allImages.length})
+                Galeria
               </Text>
               
               <FlatList
@@ -939,49 +1042,19 @@ export default function ArticleScreen() {
       {/* Global TabBar */}
       <GlobalTabBar activeTab="home" />
 
-      {/* Image Modal */}
-      <Modal
-        visible={selectedImageIndex !== null}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeImageModal}
-      >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity style={styles.modalCloseButton} onPress={closeImageModal}>
-            <X size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          
-          {selectedImageIndex !== null && allImages[selectedImageIndex] && (
-            <PinchGestureHandler onGestureEvent={pinchGestureHandler}>
-              <Animated.View style={styles.modalImageContainer}>
-                <Image
-                  source={{ uri: allImages[selectedImageIndex].source_url }}
-                  style={[styles.modalImage, animatedImageStyle]}
-                  contentFit="contain"
-                />
-              </Animated.View>
-            </PinchGestureHandler>
-          )}
-          
-          {allImages.length > 1 && (
-            <>
-              <TouchableOpacity 
-                style={[styles.modalNavButton, styles.modalNavButtonLeft]} 
-                onPress={() => navigateImage('prev')}
-              >
-                <ChevronLeft size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalNavButton, styles.modalNavButtonRight]} 
-                onPress={() => navigateImage('next')}
-              >
-                <ChevronRight size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </Modal>
-    </SafeAreaView>
+      {/* Zoptymalizowany Lightbox - bez przeładowań */}
+      {selectedImageIndex !== null && lightboxImages.length > 0 && isLightboxReady && (
+        <OptimizedLightbox
+          images={lightboxImages}
+          initialIndex={selectedImageIndex}
+          visible={isLightboxVisible}
+          onClose={closeImageModal}
+          onIndexChange={handleImageIndexChange}
+          onDownload={downloadImage}
+        />
+      )}
+
+    </View>
   );
 }
 
@@ -1003,11 +1076,11 @@ const styles = StyleSheet.create({
   },
   imageContainer: { 
     width: '100%', 
-    height: height * 0.65, // Zwiększone dla lepszego efektu wizualnego
+    height: height * 0.45,
     position: 'relative',
-    zIndex: 1,           // zdjęcie najniżej
+    zIndex: 1,
     elevation: 1,
-    marginTop: -(StatusBar.currentHeight || 0), // Wypełnia status bar
+    marginTop: 0, // Usunięty zbędny margines
   },
   featuredImage: { 
     width: '100%', 
@@ -1049,6 +1122,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
     height: HEADER_HEIGHT,
+    paddingTop: 0, // Usunięty niepotrzebny padding dla status bara
   },
   headerGradient: { 
     position: 'absolute', 
@@ -1092,7 +1166,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   date: { 
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 0,
     opacity: 0.8,
   },
@@ -1167,42 +1241,34 @@ const styles = StyleSheet.create({
   
   // Nowe style dla galerii
   galleryContainer: {
-    marginTop: 40,
-    marginBottom: 40,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    borderRadius: 24,
-    padding: 24,
-    marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    marginTop: 32,
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
   galleryTitle: {
-    fontSize: 26,
-    marginBottom: 28,
+    fontSize: 22,
+    marginBottom: 20,
     fontFamily: 'Poppins_Bold',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   galleryContent: {
     paddingHorizontal: 0,
   },
   galleryRow: {
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   galleryItem: {
-    width: (width - 100) / 2,
-    height: 180,
-    borderRadius: 24,
+    width: (width - 52) / 2,
+    height: 160,
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   galleryItemImage: {
     width: '100%',
@@ -1212,59 +1278,11 @@ const styles = StyleSheet.create({
   // Ulepszone style dla modala
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
+    backgroundColor: 'rgba(0,0,0,0.85)', // Mniej nieprzezroczyste tło
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalCloseButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 10,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalNavButton: {
-    position: 'absolute',
-    top: '50%',
-    zIndex: 10,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalNavButtonLeft: {
-    left: 20,
-  },
-  modalNavButtonRight: {
-    right: 20,
-  },
-  modalImage: {
-    width: width * 0.9,
-    height: height * 0.9,
-    borderRadius: 16,
-  },
-  modalCaptionContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 10,
-    borderRadius: 10,
-  },
-  modalCaption: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    textAlign: 'center',
-  },
+
   photoCreditsText: {
     fontSize: 13,
     marginTop: 8,
@@ -1302,7 +1320,7 @@ const styles = StyleSheet.create({
   videoTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   morePhotosButton: {
     marginTop: 16,
@@ -1390,70 +1408,64 @@ const styles = StyleSheet.create({
   
   // Nowe style dla sekcji powiązanych artykułów
   relatedSection: {
-    marginTop: 40,
-    marginBottom: 40,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    borderRadius: 24,
-    padding: 24,
-    marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    marginTop: 32,
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
   relatedSectionTitle: {
-    fontSize: 26,
-    marginBottom: 28,
+    fontSize: 22,
+    marginBottom: 20,
     fontFamily: 'Poppins_Bold',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   relatedList: {
     paddingHorizontal: 0,
   },
   relatedArticleItem: {
     flexDirection: 'row',
-    marginBottom: 24,
-    borderRadius: 24,
+    marginBottom: 16,
+    borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
     backgroundColor: 'rgba(255,255,255,0.9)',
   },
   relatedArticleImage: {
-    width: 120,
-    height: 120,
-    borderTopLeftRadius: 24,
-    borderBottomLeftRadius: 24,
+    width: 100,
+    height: 100,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   },
   relatedArticleContent: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   relatedArticleTitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 8,
-    lineHeight: 24,
+    marginBottom: 6,
+    lineHeight: 20,
     fontFamily: 'Poppins_SemiBold',
   },
   relatedArticleDate: {
-    fontSize: 14,
+    fontSize: 13,
     opacity: 0.7,
     fontFamily: 'Poppins_Regular',
   },
   categoryText: {
-    fontSize: 16,
+    fontSize: 12, // Mniejszy font
     fontFamily: 'Poppins_Medium',
     fontWeight: '600',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingVertical: 8, // Więcej paddingu pionowego
+    paddingHorizontal: 16, // Więcej paddingu poziomego
+    borderRadius: 20, // Większy border radius
+    backgroundColor: '#224996', // Granatowy kolor
+    color: '#FFFFFF',
     overflow: 'hidden',
+    minWidth: 80, // Minimalna szerokość
   },
   titleOverlay: {
     position: 'absolute',
@@ -1480,10 +1492,10 @@ const styles = StyleSheet.create({
     maxWidth: '90%',
   },
   articleTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    lineHeight: 40,
+    marginBottom: 16,
+    lineHeight: 32,
     fontFamily: 'Poppins_Bold',
     textAlign: 'left',
     color: '#1a1a1a',
@@ -1502,5 +1514,91 @@ const styles = StyleSheet.create({
   },
   categoryContainer: {
     marginLeft: 16,
+  },
+  modalHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 10,
+    zIndex: 1000,
+    backgroundColor: 'transparent',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCloseButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  modalDownloadButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  modalFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: Platform.OS === 'ios' ? 50 : 30,
+    paddingTop: 20,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+  },
+  modalCounter: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  modalCounterText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Poppins_SemiBold',
+  },
+  zoomIndicator: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  zoomText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: 'Poppins_Medium',
   },
 });
