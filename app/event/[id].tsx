@@ -8,14 +8,15 @@ import { useEventsStore, SavedEvent } from '@/store/eventsStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import GlobalTabBar from '@/components/GlobalTabBar';
+import calendarService from '@/services/calendarService';
+import { fetchRelatedEvents } from '@/services/api';
 
 const { width, height } = Dimensions.get('window');
 const BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2/kalendarz';
 
-// Enhanced HTML parser and decoder
-const htmlParser = {
-  // Decode HTML entities
-  decodeEntities: (text: string) => {
+// Simple HTML entities decoder
+const he = {
+  decode: (text: string) => {
     return text
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
@@ -45,55 +46,7 @@ const htmlParser = {
       .replace(/&#x26;/g, '&')   // Ampersand (hex)
       .replace(/&#x3C;/g, '<')   // Less than (hex)
       .replace(/&#x3E;/g, '>');  // Greater than (hex)
-  },
-  
-  // Parse HTML and convert to formatted plain text with basic formatting preserved
-  parseHtml: (html: string) => {
-    if (!html) return '';
-    
-    let text = html
-      // Convert line breaks and paragraphs to newlines
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/p>/gi, '\n\n')
-      .replace(/<p[^>]*>/gi, '')
-      .replace(/<\/div>/gi, '\n')
-      .replace(/<div[^>]*>/gi, '')
-      
-      // Preserve formatting tags temporarily
-      .replace(/<strong[^>]*>/gi, '**')
-      .replace(/<\/strong>/gi, '**')
-      .replace(/<b[^>]*>/gi, '**')
-      .replace(/<\/b>/gi, '**')
-      .replace(/<em[^>]*>/gi, '*')
-      .replace(/<\/em>/gi, '*')
-      .replace(/<i[^>]*>/gi, '*')
-      .replace(/<\/i>/gi, '*')
-      
-      // Convert lists to formatted text
-      .replace(/<li[^>]*>/gi, '• ')
-      .replace(/<\/li>/gi, '\n')
-      .replace(/<\/?[uo]l[^>]*>/gi, '\n')
-      
-      // Convert headers to emphasized text with formatting
-      .replace(/<h[1-6][^>]*>/gi, '\n**')
-      .replace(/<\/h[1-6]>/gi, '**\n\n')
-      
-      // Remove all other HTML tags
-      .replace(/<[^>]*>/g, '')
-      
-      // Clean up extra whitespace and newlines
-      .replace(/\n\s*\n\s*\n/g, '\n\n')
-      .replace(/^\s+|\s+$/g, '')
-      .trim();
-    
-    // Decode HTML entities
-    return htmlParser.decodeEntities(text);
   }
-};
-
-// Backward compatibility
-const he = {
-  decode: htmlParser.decodeEntities
 };
 
 // Safe date conversion function
@@ -123,62 +76,6 @@ function formatTime(dateStr: string) {
   return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
-// Component to render formatted text with bold and italic
-function renderFormattedText(text: string, baseStyle: any) {
-  if (!text) return null;
-  
-  // Split by bold markers first
-  const boldParts = text.split('**');
-  const elements: any[] = [];
-  
-  boldParts.forEach((part, boldIndex) => {
-    if (boldIndex % 2 === 1) {
-      // This is bold text - now check for italic within it
-      const italicParts = part.split('*');
-      const boldElements: any[] = [];
-      
-      italicParts.forEach((italicPart, italicIndex) => {
-        if (italicIndex % 2 === 1) {
-          boldElements.push(
-            <Text key={`bold-italic-${boldIndex}-${italicIndex}`} style={[baseStyle, { fontWeight: 'bold', fontStyle: 'italic' }]}>
-              {italicPart}
-            </Text>
-          );
-        } else if (italicPart) {
-          boldElements.push(
-            <Text key={`bold-${boldIndex}-${italicIndex}`} style={[baseStyle, { fontWeight: 'bold' }]}>
-              {italicPart}
-            </Text>
-          );
-        }
-      });
-      
-      elements.push(...boldElements);
-    } else {
-      // This is normal text - check for italic
-      const italicParts = part.split('*');
-      
-      italicParts.forEach((italicPart, italicIndex) => {
-        if (italicIndex % 2 === 1) {
-          elements.push(
-            <Text key={`italic-${boldIndex}-${italicIndex}`} style={[baseStyle, { fontStyle: 'italic' }]}>
-              {italicPart}
-            </Text>
-          );
-        } else if (italicPart) {
-          elements.push(
-            <Text key={`normal-${boldIndex}-${italicIndex}`} style={baseStyle}>
-              {italicPart}
-            </Text>
-          );
-        }
-      });
-    }
-  });
-  
-  return elements;
-}
-
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -188,8 +85,26 @@ export default function EventDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
-  const [similarEvents, setSimilarEvents] = useState<any[]>([]);
-  const [sameLocationEvents, setSameLocationEvents] = useState<any[]>([]);
+  const [relatedEvents, setRelatedEvents] = useState<any[]>([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
+  
+  // Test data for debugging
+  const testRelatedEvents = [
+    {
+      id: 999,
+      title: { rendered: 'Test wydarzenie 1' },
+      date: '2024-12-25T18:00:00',
+      meta: { miasto: 'Gdańsk' },
+      _embedded: { 'wp:featuredmedia': [{ source_url: 'https://via.placeholder.com/200x120' }] }
+    },
+    {
+      id: 998,
+      title: { rendered: 'Test wydarzenie 2' },
+      date: '2024-12-26T19:00:00',
+      meta: { miasto: 'Sopot' },
+      _embedded: { 'wp:featuredmedia': [{ source_url: 'https://via.placeholder.com/200x120' }] }
+    }
+  ];
 
   useEffect(() => {
     const loadEvent = async () => {
@@ -202,10 +117,8 @@ export default function EventDetailScreen() {
         const data = await response.json();
         setEvent(data);
         
-        // Load similar events based on categories
-        await loadSimilarEvents(data);
-        // Load events from same location
-        await loadSameLocationEvents(data);
+        // Load related events after main event is loaded
+        await loadRelatedEvents(data);
       } catch (err) {
         setError('Nie udało się załadować wydarzenia');
       } finally {
@@ -219,72 +132,48 @@ export default function EventDetailScreen() {
     }
   }, [id]);
 
-  const loadSimilarEvents = async (currentEvent: any) => {
+  const loadRelatedEvents = async (eventData: any) => {
+    if (!eventData) return;
+    
     try {
-      // Get categories of current event
-      const currentCategories = currentEvent._embedded?.['wp:term']?.flat()
+      setLoadingRelated(true);
+      
+      // Get categories from event
+      const categories = eventData._embedded?.['wp:term']?.flat()
         .filter((t: any) => t.taxonomy === 'kategoria-wydarzenia')
-        .map((t: any) => t.name) || [];
+        .map((t: any) => t.id) || [];
       
-      if (currentCategories.length === 0) return;
+      // Get location from event
+      const location = eventData.meta?.miasto;
       
-      // Fetch events with similar categories
-      const categoryQuery = currentCategories.map(cat => `kategoria-wydarzenia=${encodeURIComponent(cat)}`).join('&');
-      const response = await fetch(`${BASE_URL}?${categoryQuery}&per_page=10&_embed`);
+      console.log('Loading related events for:', {
+        eventId: eventData.id,
+        categories,
+        location
+      });
       
-      if (response.ok) {
-        const events = await response.json();
-        
-        // Filter out current event and sort by date
-        const filteredEvents = events
-          .filter((e: any) => e.id !== currentEvent.id)
-          .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
-          .slice(0, 5); // Limit to 5 similar events
-        
-        setSimilarEvents(filteredEvents);
-      }
+      // Fetch related events
+      const related = await fetchRelatedEvents(
+        eventData.id,
+        categories,
+        location,
+        6
+      );
+      
+      console.log('Related events loaded:', related.length);
+      setRelatedEvents(related);
     } catch (error) {
-      console.log('Error loading similar events:', error);
+      console.error('Error loading related events:', error);
+    } finally {
+      setLoadingRelated(false);
     }
   };
 
-  const loadSameLocationEvents = async (currentEvent: any) => {
-    try {
-      const currentLocation = currentEvent.meta?.miasto;
-      
-      if (!currentLocation) return;
-      
-      // Fetch events from same location
-      const response = await fetch(`${BASE_URL}?per_page=20&_embed`);
-      
-      if (response.ok) {
-        const events = await response.json();
-        
-        // Filter events from same location, exclude current event, and sort by date
-        const filteredEvents = events
-          .filter((e: any) => 
-            e.id !== currentEvent.id && 
-            e.meta?.miasto === currentLocation
-          )
-          .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
-          .slice(0, 8); // Limit to 8 events from same location
-        
-        setSameLocationEvents(filteredEvents);
-      }
-    } catch (error) {
-      console.log('Error loading same location events:', error);
-    }
-  };
-
-  const handleGoBack = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.back();
-  };
+  const handleGoBack = () => router.back();
   
   const handleShare = async () => {
     if (event) {
       try {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         await Share.share({
           message: `${he.decode(event.title.rendered)}\n\nData: ${formatDate(event.date)} ${formatTime(event.date)}\n${event.meta?.miasto ? `Miasto: ${event.meta.miasto}\n` : ''}${event.meta?.cena ? `Cena: ${event.meta.cena} zł\n` : ''}${event.meta?.['link-do-wydarzenia'] ? `\nSzczegóły: ${event.meta['link-do-wydarzenia']}` : ''}`,
           title: he.decode(event.title.rendered),
@@ -295,52 +184,33 @@ export default function EventDetailScreen() {
     }
   };
 
-  const handleAddToSystemCalendar = async () => {
+  const handleAddToCalendar = async () => {
     if (!event) return;
     
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const eventDate = safeDate(event.date);
-      const endDate = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000); // +2 hours
       
-      // Przygotuj dane wydarzenia
-      const title = he.decode(event.title.rendered);
-      const location = event.meta?.miasto || '';
-      const description = event.meta?.['opis-wydarzenia']
-        ? htmlParser.parseHtml(event.meta['opis-wydarzenia'])
-        : '';
+      // Use the calendar service to add event
+      const calendarEvent = calendarService.createEventFromEventData(event);
+      const success = await calendarService.addEventToCalendar(calendarEvent);
       
-      // Format daty dla systemowego kalendarza
-      const startDate = eventDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      const endDateStr = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      
-      // Link do systemowego kalendarza (działa na iOS i Android)
-      const systemUrl = Platform.OS === 'ios' 
-        ? `calshow://?text=${encodeURIComponent(title)}&start=${startDate}&end=${endDateStr}&location=${encodeURIComponent(location)}&notes=${encodeURIComponent(description)}`
-        : `content://com.android.calendar/time/${eventDate.getTime()}`;
-      
-      await Linking.openURL(systemUrl);
-      
-      // Pokaż potwierdzenie po krótkim opóźnieniu
-      setTimeout(() => {
-        Alert.alert('Sukces', 'Wydarzenie zostało dodane do kalendarza');
-      }, 1000);
+      if (!success) {
+        Alert.alert('Błąd', 'Nie udało się dodać wydarzenia do kalendarza');
+      }
     } catch (error) {
+      console.error('Error adding to calendar:', error);
       Alert.alert('Błąd', 'Nie udało się dodać wydarzenia do kalendarza');
     }
   };
 
   const handleOpenLink = () => {
     if (event?.meta?.['link-do-wydarzenia']) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       Linking.openURL(event.meta['link-do-wydarzenia']);
     }
   };
 
   const handleToggleSave = () => {
     if (!event) return;
-    
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
     const savedEvent: SavedEvent = {
       id: event.id,
@@ -363,49 +233,25 @@ export default function EventDetailScreen() {
     }
   };
 
+  const handleRelatedEventPress = (relatedEvent: any) => {
+    router.push(`/event/${relatedEvent.id}`);
+  };
+
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        {/* StatusBar usunięty - dziedziczony z głównego _layout.tsx */}
-        <View style={styles.header}> 
-          <TouchableOpacity onPress={handleGoBack} style={styles.headerButtonTransparent}>
-            <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
-          <Text style={{ color: theme.colors.text, fontSize: 16, marginBottom: 10 }}>Ładowanie wydarzenia...</Text>
-          <View style={styles.loadingDots}>
-            <View style={[styles.dot, { backgroundColor: theme.colors.primary }]} />
-            <View style={[styles.dot, { backgroundColor: theme.colors.primary }]} />
-            <View style={[styles.dot, { backgroundColor: theme.colors.primary }]} />
-          </View>
-        </View>
-        <GlobalTabBar activeTab="kalendarz" />
+      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}> 
+        <Text style={{ color: theme.colors.text, fontSize: 18 }}>Ładowanie wydarzenia...</Text>
       </View>
     );
   }
 
   if (error || !event) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        {/* StatusBar usunięty - dziedziczony z głównego _layout.tsx */}
-        <View style={styles.header}> 
-          <TouchableOpacity onPress={handleGoBack} style={styles.headerButtonTransparent}>
-            <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
-          <Text style={{ color: theme.colors.error, fontSize: 16, textAlign: 'center', marginHorizontal: 20 }}>
-            {error || 'Nie znaleziono wydarzenia'}
-          </Text>
-          <TouchableOpacity 
-            onPress={handleGoBack} 
-            style={[styles.errorButton, { backgroundColor: theme.colors.primary, marginTop: 20 }]}
-          >
-            <Text style={styles.errorButtonText}>Wróć</Text>
-          </TouchableOpacity>
-        </View>
-        <GlobalTabBar activeTab="kalendarz" />
+      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}> 
+        <Text style={{ color: theme.colors.error, fontSize: 18 }}>{error || 'Nie znaleziono wydarzenia'}</Text>
+        <TouchableOpacity onPress={handleGoBack} style={styles.headerButton}>
+          <ArrowLeft size={24} color={theme.colors.text} />
+        </TouchableOpacity>
       </View>
     );
   }
@@ -416,21 +262,21 @@ export default function EventDetailScreen() {
     .map((t: any) => t.name) || [];
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* StatusBar usunięty - dziedziczony z głównego _layout.tsx */}
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       {/* Header - przezroczysty */}
       <View style={styles.header}> 
         <TouchableOpacity onPress={handleGoBack} style={styles.headerButtonTransparent}>
           <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
         </TouchableOpacity>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
           <TouchableOpacity onPress={handleToggleSave} style={styles.headerButtonTransparent}>
             <Bookmark size={24} color="#ffffff" strokeWidth={2.5} fill={isSaved ? '#ffffff' : 'transparent'} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleShare} style={styles.headerButtonTransparent}>
             <Share2 size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleAddToSystemCalendar} style={styles.headerButtonTransparent}>
+          <TouchableOpacity onPress={handleAddToCalendar} style={styles.headerButtonTransparent}>
             <CalendarIcon size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
@@ -465,7 +311,7 @@ export default function EventDetailScreen() {
           {/* Kategorie na dole zdjęcia - wyżej i do lewej */}
           {categories.length > 0 && (
             <View style={styles.categoriesOverlay}>
-              {categories.map((category, index) => (
+              {categories.map((category: string, index: number) => (
                 <View key={index} style={styles.categoryTag}>
                   <Text style={styles.categoryText}>{category}</Text>
                 </View>
@@ -476,7 +322,7 @@ export default function EventDetailScreen() {
 
         {/* Content container with rounded corners */}
         <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]}> 
-          <Text style={[styles.title, { color: theme.colors.text, fontFamily: 'Poppins_Medium' }]}>
+          <Text style={[styles.title, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>
             {he.decode(event.title.rendered)}
           </Text>
 
@@ -486,22 +332,22 @@ export default function EventDetailScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.infoScroll} contentContainerStyle={styles.infoScrollContent}>
               <View style={styles.infoKafelek}>
                 <View style={styles.infoIconWrap}><CalendarIcon size={22} color={theme.colors.primary} /></View>
-                <Text style={styles.infoText}>{formatDate(event.date)}</Text>
+                <Text style={styles.infoTextSmall}>{formatDate(event.date)}</Text>
               </View>
               <View style={styles.infoKafelek}>
                 <View style={styles.infoIconWrap}><Clock size={22} color={theme.colors.primary} /></View>
-                <Text style={styles.infoText}>{formatTime(event.date)}</Text>
+                <Text style={styles.infoTextSmall}>{formatTime(event.date)}</Text>
               </View>
               {event.meta?.miasto && (
                 <View style={styles.infoKafelek}>
                   <View style={styles.infoIconWrap}><MapPin size={22} color={theme.colors.primary} /></View>
-                  <Text style={styles.infoText}>{event.meta.miasto}</Text>
+                  <Text style={styles.infoTextSmall}>{event.meta.miasto}</Text>
                 </View>
               )}
               {event.meta?.cena && (
                 <View style={styles.infoKafelek}>
                   <View style={styles.infoIconWrap}><Tag size={22} color={theme.colors.primary} /></View>
-                  <Text style={styles.infoText}>{event.meta.cena} zł</Text>
+                  <Text style={styles.infoTextSmall}>{event.meta.cena} zł</Text>
                 </View>
               )}
             </ScrollView>
@@ -512,9 +358,9 @@ export default function EventDetailScreen() {
           {/* Description */}
           {event.meta?.['opis-wydarzenia'] && (
             <View style={styles.descriptionContainer}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Opis</Text>
-              <Text style={[styles.description, { color: theme.colors.text }]}>
-                {renderFormattedText(htmlParser.parseHtml(event.meta['opis-wydarzenia']), [styles.description, { color: theme.colors.text }])}
+              <Text style={[styles.sectionTitle, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>Opis</Text>
+              <Text style={[styles.description, { color: theme.colors.text, fontFamily: 'Poppins_Regular' }]}>
+                {he.decode(event.meta['opis-wydarzenia'].replace(/<[^>]*>/g, ''))}
               </Text>
             </View>
           )}
@@ -531,113 +377,103 @@ export default function EventDetailScreen() {
 
           {/* Calendar button */}
           <TouchableOpacity 
-            style={[styles.calendarButton, { backgroundColor: theme.colors.primary }]} 
-            onPress={handleAddToSystemCalendar}
+            style={[styles.calendarButton, { backgroundColor: theme.colors.card }]} 
+            onPress={handleAddToCalendar}
           >
-            <CalendarIcon size={20} color="white" />
-            <Text style={[styles.calendarButtonText, { color: 'white' }]}>
-              Dodaj do kalendarza
+            <CalendarIcon size={20} color={theme.colors.primary} />
+            <Text style={[styles.calendarButtonText, { color: theme.colors.primary }]}>
+              Zapisz w kalendarzu
             </Text>
           </TouchableOpacity>
-        </View>
-        
-        {/* Polecane wydarzenia */}
-        {similarEvents.length > 0 && (
-          <View style={styles.recommendedSection}>
-            <Text style={[styles.recommendedTitle, { color: theme.colors.text }]}>
-              Podobne wydarzenia
-            </Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              style={styles.recommendedScroll}
-              contentContainerStyle={styles.recommendedScrollContent}
-            >
-              {similarEvents.map((similarEvent, index) => (
-                <TouchableOpacity 
-                  key={similarEvent.id} 
-                  style={[styles.recommendedCard, { backgroundColor: theme.colors.card }]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push(`/event/${similarEvent.id}`);
-                  }}
-                >
-                  <View style={styles.recommendedImage}>
-                    {similarEvent._embedded?.["wp:featuredmedia"]?.[0]?.source_url ? (
-                      <Image
-                        source={{ uri: similarEvent._embedded["wp:featuredmedia"][0].source_url }}
-                        style={styles.recommendedImageInner}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <View style={[styles.recommendedImagePlaceholder, { backgroundColor: theme.colors.primary + '20' }]}>
-                        <CalendarIcon size={24} color={theme.colors.primary} />
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.recommendedContent}>
-                    <Text style={[styles.recommendedEventTitle, { color: theme.colors.text }]} numberOfLines={2}>
-                      {he.decode(similarEvent.title.rendered)}
-                    </Text>
-                    <Text style={[styles.recommendedEventDate, { color: theme.colors.textSecondary }]}>
-                      {formatDate(similarEvent.date)}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
-        {/* Wydarzenia z tego samego miejsca */}
-        {sameLocationEvents.length > 0 && (
-          <View style={styles.sameLocationSection}>
-            <Text style={[styles.sameLocationTitle, { color: theme.colors.text }]}>
-              Inne wydarzenia w {event.meta?.miasto}
-            </Text>
-            <View style={styles.sameLocationList}>
-              {sameLocationEvents.map((locationEvent, index) => (
-                <TouchableOpacity 
-                  key={locationEvent.id} 
-                  style={[styles.sameLocationCard, { backgroundColor: theme.colors.card }]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push(`/event/${locationEvent.id}`);
-                  }}
-                >
-                  <View style={styles.sameLocationImage}>
-                    {locationEvent._embedded?.["wp:featuredmedia"]?.[0]?.source_url ? (
-                      <Image
-                        source={{ uri: locationEvent._embedded["wp:featuredmedia"][0].source_url }}
-                        style={styles.sameLocationImageInner}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <View style={[styles.sameLocationImagePlaceholder, { backgroundColor: theme.colors.primary + '20' }]}>
-                        <CalendarIcon size={20} color={theme.colors.primary} />
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.sameLocationContent}>
-                    <Text style={[styles.sameLocationEventTitle, { color: theme.colors.text }]} numberOfLines={2}>
-                      {he.decode(locationEvent.title.rendered)}
-                    </Text>
-                    <View style={styles.sameLocationEventDetails}>
-                      <Text style={[styles.sameLocationEventDate, { color: theme.colors.textSecondary }]}>
-                        {formatDate(locationEvent.date)}
-                      </Text>
-                      {locationEvent.meta?.cena && (
-                        <Text style={[styles.sameLocationEventPrice, { color: theme.colors.primary }]}>
-                          {locationEvent.meta.cena} zł
-                        </Text>
+          {/* Sprawdź również - Sekcja z powiązanymi wydarzeniami */}
+          <View style={styles.relatedSection}>
+            <View style={styles.relatedSectionHeader}>
+              <View style={styles.relatedSectionTitleContainer}>
+                <Text style={[styles.relatedSectionTitle, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>
+                  Sprawdź również
+                </Text>
+                <View style={[styles.relatedSectionIcon, { backgroundColor: theme.colors.primary }]}>
+                  <CalendarIcon size={16} color="#FFFFFF" />
+                </View>
+              </View>
+              <View style={[styles.relatedSectionDivider, { backgroundColor: theme.colors.border }]} />
+            </View>
+            
+            {loadingRelated ? (
+              <View style={styles.relatedLoadingContainer}>
+                <Text style={[styles.relatedLoadingText, { color: theme.colors.textSecondary }]}>
+                  Ładowanie powiązanych wydarzeń...
+                </Text>
+              </View>
+            ) : (relatedEvents.length > 0 || testRelatedEvents.length > 0) ? (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.relatedEventsContainer}
+                              >
+                  {(relatedEvents.length > 0 ? relatedEvents : testRelatedEvents).map((relatedEvent, index) => (
+                  <TouchableOpacity
+                    key={relatedEvent.id || index}
+                    style={[styles.relatedEventCard, { backgroundColor: theme.colors.card }]}
+                    onPress={() => handleRelatedEventPress(relatedEvent)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.relatedEventImageContainer}>
+                      {relatedEvent._embedded?.['wp:featuredmedia']?.[0]?.source_url ? (
+                        <Image
+                          source={{ uri: relatedEvent._embedded['wp:featuredmedia'][0].source_url }}
+                          style={styles.relatedEventImage}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View style={[styles.relatedEventPlaceholder, { backgroundColor: theme.colors.primary }]}>
+                          <CalendarIcon size={24} color="#FFFFFF" />
+                        </View>
                       )}
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    
+                    <View style={styles.relatedEventContent}>
+                      <Text 
+                        style={[styles.relatedEventTitle, { color: theme.colors.text }]} 
+                        numberOfLines={2}
+                      >
+                        {he.decode(relatedEvent.title.rendered)}
+                      </Text>
+                      
+                      <View style={styles.relatedEventMeta}>
+                        <View style={styles.relatedEventMetaRow}>
+                          <Clock size={12} color={theme.colors.primary} />
+                          <Text style={[styles.relatedEventMetaText, { color: theme.colors.textSecondary }]}>
+                            {formatDate(relatedEvent.date)}
+                          </Text>
+                        </View>
+                        
+                        {relatedEvent.meta?.miasto && (
+                          <View style={styles.relatedEventMetaRow}>
+                            <MapPin size={12} color={theme.colors.textSecondary} />
+                            <Text style={[styles.relatedEventMetaText, { color: theme.colors.textSecondary }]}>
+                              {relatedEvent.meta.miasto}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.relatedLoadingContainer}>
+                <Text style={[styles.relatedLoadingText, { color: theme.colors.textSecondary }]}>
+                  Brak powiązanych wydarzeń
+                </Text>
+                <Text style={[styles.relatedLoadingText, { color: theme.colors.textSecondary, fontSize: 12, marginTop: 8 }]}>
+                  (Sprawdzanie wydarzeń z tej samej kategorii i miasta...)
+                </Text>
+              </View>
+            )}
           </View>
-        )}
+        </View>
         
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -681,10 +517,10 @@ const styles = StyleSheet.create({
   },
   dateOverlay: {
     position: 'absolute',
-    top: 100,
+    top: 110,
     right: 20,
-    width: 75,
-    height: 75,
+    width: 80,
+    height: 80,
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 16,
     justifyContent: 'center',
@@ -698,13 +534,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.8)',
   },
   dateOverlayDay: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontFamily: 'Poppins_Bold',
     color: '#000',
   },
   dateOverlayMonth: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 16,
+    fontFamily: 'Poppins_SemiBold',
     color: '#000',
     textTransform: 'uppercase',
   },
@@ -713,14 +549,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30, 
     borderTopRightRadius: 30, 
     paddingHorizontal: 20, 
-    paddingTop: 24, 
+    paddingTop: 40, 
     paddingBottom: 40 
   },
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    paddingTop: Platform.OS === 'ios' ? 50 : 25,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50, 
     paddingHorizontal: 20, 
     paddingBottom: 10,
     position: 'absolute',
@@ -745,13 +581,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.2)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 4,
-    backdropFilter: 'blur(10px)'
+    elevation: 4
   },
   categoriesOverlay: {
     position: 'absolute',
@@ -779,8 +614,8 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: 'Poppins_Bold',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2
@@ -803,20 +638,19 @@ const styles = StyleSheet.create({
   },
   priceOverlayText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: 'Poppins_Bold',
     color: '#ffffff',
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2
   },
   title: { 
-    fontSize: 22, 
-    fontWeight: '600', 
-    marginBottom: 16, 
-    lineHeight: 28 
+    fontSize: 28, 
+    marginBottom: 24, 
+    lineHeight: 36 
   },
   detailsContainer: {
-    marginBottom: 24
+    marginBottom: 40
   },
   infoContainer: {
     marginTop: 5,
@@ -836,7 +670,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
   },
   priceTag: {
@@ -847,32 +681,37 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   priceText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold'
   },
   descriptionContainer: {
     marginBottom: 24
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
     marginBottom: 12
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'left'
   },
   linkButton: {
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4
   },
   linkButtonText: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold'
+    fontSize: 16,
+    fontFamily: 'Poppins_Medium'
   },
   calendarButton: {
     flexDirection: 'row',
@@ -881,14 +720,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: 16
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
   },
   calendarButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold'
+    fontSize: 16,
+    fontFamily: 'Poppins_Medium'
   },
 
-  infoScroll: { marginTop: 0, marginBottom: 20 },
+  infoScroll: { marginTop: 5, marginBottom: 25 },
   infoScrollContent: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -896,163 +739,102 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   infoRowHorizontal: { flexDirection: 'row', alignItems: 'center', marginRight: 18 },
-  infoKafelek: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, marginRight: 8, borderWidth: 1, borderColor: '#F0F1F3', shadowColor: 'transparent', elevation: 0 },
+  infoKafelek: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, marginRight: 8, borderWidth: 1, borderColor: '#F0F1F3', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
   infoIconWrap: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F5F6FA', justifyContent: 'center', alignItems: 'center', marginRight: 7 },
-  infoText: { fontSize: 13, fontWeight: '600', color: '#222', marginTop: 1 },
+  infoTextSmall: { fontSize: 15, fontFamily: 'Poppins_Medium', color: '#222', marginTop: 1 },
 
-  // Loading animation styles
-  loadingDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.7,
-  },
-
-  // Error state styles
-  errorButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-
-  // Recommended events styles
-  recommendedSection: {
+  // Style dla sekcji "Sprawdź również"
+  relatedSection: {
     marginTop: 32,
-    marginBottom: 24,
-  },
-  recommendedTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
     marginBottom: 16,
-    paddingHorizontal: 20,
   },
-  recommendedScroll: {
+  relatedSectionHeader: {
+    marginBottom: 16,
+  },
+  relatedSectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  recommendedScrollContent: {
-    paddingHorizontal: 20,
+  relatedSectionTitle: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  relatedSectionIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  relatedSectionDivider: {
+    height: 1,
+    marginTop: 8,
+  },
+  relatedSectionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.8,
+  },
+
+  // Style dla powiązanych wydarzeń
+  relatedLoadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  relatedLoadingText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_Regular',
+  },
+  relatedEventsContainer: {
+    paddingHorizontal: 0,
     gap: 12,
   },
-  recommendedCard: {
+  relatedEventCard: {
     width: 200,
     borderRadius: 16,
-    padding: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  recommendedImage: {
+  relatedEventImageContainer: {
     width: '100%',
-    height: 80,
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
+    height: 120,
+    position: 'relative',
   },
-  recommendedImageInner: {
+  relatedEventImage: {
     width: '100%',
     height: '100%',
   },
-  recommendedImagePlaceholder: {
+  relatedEventPlaceholder: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  recommendedContent: {
-    flex: 1,
+  relatedEventContent: {
+    padding: 12,
   },
-  recommendedEventTitle: {
+  relatedEventTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  recommendedEventDate: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-
-  // Same location events styles
-  sameLocationSection: {
-    marginTop: 32,
-    marginBottom: 24,
-  },
-  sameLocationTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    paddingHorizontal: 20,
-  },
-  sameLocationList: {
-    paddingHorizontal: 20,
-  },
-  sameLocationCard: {
-    flexDirection: 'row',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sameLocationImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    marginRight: 16,
-    overflow: 'hidden',
-  },
-  sameLocationImageInner: {
-    width: '100%',
-    height: '100%',
-  },
-  sameLocationImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sameLocationContent: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  sameLocationEventTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    lineHeight: 20,
+    fontFamily: 'Poppins_Medium',
     marginBottom: 8,
+    lineHeight: 18,
   },
-  sameLocationEventDetails: {
+  relatedEventMeta: {
+    gap: 4,
+  },
+  relatedEventMetaRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 4,
   },
-  sameLocationEventDate: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  sameLocationEventPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  relatedEventMetaText: {
+    fontSize: 12,
+    fontFamily: 'Poppins_Regular',
   },
 
 }); 

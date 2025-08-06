@@ -65,6 +65,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GlobalTabBar from '@/components/GlobalTabBar';
 import VideoPlayer from '@/components/VideoPlayer';
 import RenderHtml from 'react-native-render-html';
+import CoffeeSupportCard from '@/components/CoffeeSupportCard';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 94 : 82;
@@ -82,6 +83,15 @@ const cleanTitle = (title: string): string => {
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'")
     .replace(/&nbsp;/g, ' ');
+};
+
+// Funkcja do skracania tytułów w sekcji "Sprawdź też"
+const truncateRelatedTitle = (title: string, maxLength: number = 50): string => {
+  const cleanedTitle = cleanTitle(title);
+  if (cleanedTitle.length <= maxLength) {
+    return cleanedTitle;
+  }
+  return cleanedTitle.substring(0, maxLength).trim() + '...';
 };
 
 // Dodaj funkcję do obliczania rozmiaru fontu na podstawie długości tytułu
@@ -298,7 +308,14 @@ export default function ArticleScreen() {
       console.log('Android font check - Regular:', theme.fontFamily.regular);
       console.log('Android font check - Bold:', theme.fontFamily.bold);
     }
-  }, [theme.fontFamily]);
+    
+    // Sprawdź czy RenderHtml otrzymuje poprawne style
+    console.log('RenderHtml tagsStyles - strong:', {
+      fontFamily: theme.fontFamily.bold,
+      fontWeight: '700',
+      color: theme.colors.text,
+    });
+  }, [theme.fontFamily, theme.colors.text]);
 
   // Pinch gesture handler
   const pinchGestureHandler = useAnimatedGestureHandler({
@@ -442,6 +459,16 @@ export default function ArticleScreen() {
       saveArticle(article);
       setIsSaved(true);
     }
+  };
+
+  const handleCoffeeSupport = () => {
+    // Tutaj można dodać logikę obsługi wsparcia
+    // Na razie pokazujemy prosty alert
+    Alert.alert(
+      'Dziękujemy! ☕',
+      'Dziękujemy za wsparcie! Twoja kawa motywuje nas do tworzenia jeszcze lepszych treści dla Kaszub.',
+      [{ text: 'OK', style: 'default' }]
+    );
   };
 
   // Function to navigate between images in the modal - zoptymalizowana
@@ -640,22 +667,31 @@ export default function ArticleScreen() {
     <TouchableOpacity
       style={[styles.relatedArticleItem, { backgroundColor: theme.colors.card }]}
       onPress={() => router.push(`/article/${item.id}`)}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
     >
       {item.featured_media_url && (
-        <Image
-          source={{ uri: item.featured_media_url }}
-          style={styles.relatedArticleImage}
-          contentFit="cover"
-        />
+        <View style={styles.relatedArticleImageContainer}>
+          <Image
+            source={{ uri: item.featured_media_url }}
+            style={styles.relatedArticleImage}
+            contentFit="cover"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.3)']}
+            style={styles.relatedArticleImageGradient}
+          />
+        </View>
       )}
       <View style={styles.relatedArticleContent}>
-        <Text style={[styles.relatedArticleTitle, { color: theme.colors.text, fontFamily: 'Poppins_SemiBold' }]}>
-          {cleanTitle(item.title.rendered)}
+        <Text style={[styles.relatedArticleTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
+          {truncateRelatedTitle(item.title.rendered)}
         </Text>
-        <Text style={[styles.relatedArticleDate, { color: theme.colors.textSecondary, fontFamily: 'Poppins_Regular' }]}>
-          {formatDateTime(item.date)}
-        </Text>
+        <View style={styles.relatedArticleMeta}>
+          <Text style={[styles.relatedArticleDate, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.medium }]}>
+            {formatDateTime(item.date)}
+          </Text>
+          <View style={[styles.relatedArticleIndicator, { backgroundColor: '#fecc00' }]} />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -687,7 +723,7 @@ export default function ArticleScreen() {
       {/* Nagłówek - jest poza animowanym widokiem */}
       <View style={[styles.headerContainer, { zIndex: 10, paddingTop: insets.top }]}>
         <LinearGradient
-          colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
+          colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0)']}
           style={styles.headerGradient}
         />
         <TouchableOpacity style={styles.headerButton} onPress={handleGoBack}>
@@ -701,11 +737,11 @@ export default function ArticleScreen() {
         
         <View style={styles.headerRightButtons}>
           <TouchableOpacity style={styles.headerButton} onPress={handleToggleSave}>
-            {isSaved ? (
-              <BookMarked size={24} color="#FFFFFF" />
-            ) : (
-              <Bookmark size={24} color="#FFFFFF" />
-            )}
+            <Bookmark 
+              size={24} 
+              color="#FFFFFF" 
+              fill={isSaved ? "#FFFFFF" : "transparent"} 
+            />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
             <Share2 size={24} color="#FFFFFF" />
@@ -751,6 +787,7 @@ export default function ArticleScreen() {
                 {
                   color: theme.colors.text,
                   fontSize: getTitleFontSize(cleanTitle(article.title.rendered)),
+                  fontFamily: theme.fontFamily.bold,
                 },
               ]}
               numberOfLines={4}
@@ -763,7 +800,7 @@ export default function ArticleScreen() {
             <View style={styles.metadataContainer}>
               <Text style={[styles.date, { 
                 color: theme.colors.textSecondary, 
-                fontFamily: 'Poppins_Regular'
+                fontFamily: theme.fontFamily.regular
               }]}>
                 {formatDateTime(article.date)}
               </Text>
@@ -771,7 +808,7 @@ export default function ArticleScreen() {
               {/* Kategoria w jednej linii z datą */}
               {article?.categories && article.categories.length > 0 && (
                 <TouchableOpacity onPress={handleCategoryPress}>
-                  <Text style={[styles.categoryText, { color: theme.colors.textSecondary }]}>
+                  <Text style={[styles.categoryText, { color: '#FFFFFF', fontFamily: theme.fontFamily.medium }]}>
                     {article.categories[0] === 17 ? 'Bezpieczeństwo' :
                      article.categories[0] === 11 ? 'Biznes' :
                      article.categories[0] === 24 ? 'Sport' :
@@ -784,88 +821,163 @@ export default function ArticleScreen() {
               )}
             </View>
             
+
+            
             <RenderHtml
               contentWidth={width - 40}
-              source={{ html: cleanHtml(article.content.rendered) }}
+              source={{ html: cleanHtml(article.content.rendered, theme.isDarkMode) }}
+              onHTMLLoaded={(html) => {
+                console.log('[RENDER_HTML_DEBUG] HTML loaded successfully');
+                console.log('[RENDER_HTML_DEBUG] Content length:', html.length);
+                // Sprawdź czy są tagi strong/b w HTML
+                const hasStrongTags = html.includes('<strong>') || html.includes('<b>');
+                console.log('[RENDER_HTML_DEBUG] Has strong/b tags:', hasStrongTags);
+              }}
+
               baseStyle={{
                 color: theme.colors.text,
-                fontSize: 16,
-                lineHeight: 26,
-                fontWeight: '400',
+                fontSize: 15,
+                lineHeight: 24,
                 textAlign: 'left',
-                fontFamily: 'Poppins_Regular',
+                fontFamily: theme.fontFamily.regular,
+                // Usunięto fontWeight z baseStyle, aby nie nadpisywało tagów
               }}
+              systemFonts={[
+                theme.fontFamily.regular,
+                theme.fontFamily.medium,
+                theme.fontFamily.semibold,
+                theme.fontFamily.bold,
+                theme.fontFamily.light,
+                theme.fontFamily.extralight,
+                theme.fontFamily.thin,
+                theme.fontFamily.extrabold,
+                theme.fontFamily.black,
+                'Poppins_Regular',
+                'Poppins_Medium',
+                'Poppins_SemiBold',
+                'Poppins_Bold',
+                'Poppins_Light',
+                'Poppins_ExtraLight',
+                'Poppins_Thin',
+                'Poppins_ExtraBold',
+                'Poppins_Black',
+              ]}
+              enableExperimentalBRCollapsing={true}
+              enableExperimentalGhostLinesPrevention={true}
+              enableUserAgentStyles={true}
+              defaultTextProps={{
+                style: {
+                  fontFamily: theme.fontFamily.regular,
+                  color: theme.colors.text,
+                  // Usunięto fontWeight, aby nie nadpisywało tagów
+                }
+              }}
+
+
+
               tagsStyles={{
                 p: {
                   color: theme.colors.text,
-                  fontSize: 16,
-                  lineHeight: 26,
+                  fontSize: 15, // Zmniejszone dla lepszej czytelności
+                  lineHeight: 24, // Zmniejszone proporcjonalnie
                   fontWeight: '400',
                   textAlign: 'left',
-                  fontFamily: 'Poppins_Regular',
+                  fontFamily: theme.fontFamily.regular,
                   marginBottom: 16,
                 },
                 h1: {
                   color: theme.colors.text,
                   fontSize: 32,
-                  fontWeight: 'bold',
-                  marginBottom: 16,
+                  fontWeight: '700',
+                  marginBottom: 20,
+                  marginTop: 32,
                   lineHeight: 40,
-                  fontFamily: 'Poppins_Bold',
+                  fontFamily: theme.fontFamily.bold,
                   textAlign: 'left',
+                  includeFontPadding: false,
                 },
                 h2: {
                   color: theme.colors.text,
-                  fontSize: 28,
-                  fontWeight: 'bold',
+                  fontSize: 22,
+                  fontWeight: '600',
                   marginBottom: 16,
-                  lineHeight: 36,
-                  fontFamily: 'Poppins_Bold',
+                  marginTop: 20,
+                  lineHeight: 28,
+                  fontFamily: theme.fontFamily.semibold,
                   textAlign: 'left',
+                  includeFontPadding: false,
                 },
                 h3: {
                   color: theme.colors.text,
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  marginBottom: 16,
-                  lineHeight: 32,
-                  fontFamily: 'Poppins_Bold',
+                  fontSize: 19,
+                  fontWeight: '600',
+                  marginBottom: 14,
+                  marginTop: 16,
+                  lineHeight: 26,
+                  fontFamily: theme.fontFamily.semibold,
                   textAlign: 'left',
+                  includeFontPadding: false,
                 },
                 h4: {
                   color: theme.colors.text,
-                  fontSize: 22,
-                  fontWeight: 'bold',
-                  marginBottom: 16,
-                  lineHeight: 30,
-                  fontFamily: 'Poppins_Bold',
+                  fontSize: 20,
+                  fontWeight: '700',
+                  marginBottom: 14,
+                  marginTop: 18,
+                  lineHeight: 28,
+                  fontFamily: theme.fontFamily.bold,
                   textAlign: 'left',
+                  includeFontPadding: false,
                 },
                 h5: {
                   color: theme.colors.text,
-                  fontSize: 20,
-                  fontWeight: 'bold',
-                  marginBottom: 16,
-                  lineHeight: 28,
-                  fontFamily: 'Poppins_Bold',
+                  fontSize: 18,
+                  fontWeight: '700',
+                  marginBottom: 12,
+                  marginTop: 16,
+                  lineHeight: 26,
+                  fontFamily: theme.fontFamily.bold,
                   textAlign: 'left',
+                  includeFontPadding: false,
                 },
                 h6: {
                   color: theme.colors.text,
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  marginBottom: 16,
-                  lineHeight: 26,
-                  fontFamily: 'Poppins_Bold',
+                  fontSize: 16,
+                  fontWeight: '700',
+                  marginBottom: 12,
+                  marginTop: 14,
+                  lineHeight: 24,
+                  fontFamily: theme.fontFamily.bold,
                   textAlign: 'left',
+                  includeFontPadding: false,
                 },
                 strong: {
-                  fontWeight: 'bold',
-                  fontFamily: 'Poppins_Bold',
+                  fontFamily: theme.fontFamily.bold,
+                  fontWeight: '700',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                  fontSize: 15,
+                  lineHeight: 24,
+                },
+                b: {
+                  fontFamily: theme.fontFamily.bold,
+                  fontWeight: '700',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                  fontSize: 15,
+                  lineHeight: 24,
                 },
                 em: {
                   fontStyle: 'italic',
-                  fontFamily: 'Poppins_Regular',
+                  fontFamily: theme.fontFamily.regular,
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
+                i: {
+                  fontStyle: 'italic',
+                  fontFamily: theme.fontFamily.regular,
+                  color: theme.colors.text,
+                  includeFontPadding: false,
                 },
                 u: {
                   textDecorationLine: 'underline',
@@ -876,7 +988,7 @@ export default function ArticleScreen() {
                 a: {
                   color: theme.colors.primary,
                   textDecorationLine: 'underline',
-                  fontFamily: 'Poppins_Medium',
+                  fontFamily: theme.fontFamily.medium,
                 },
                 blockquote: {
                   borderLeftWidth: 4,
@@ -885,7 +997,7 @@ export default function ArticleScreen() {
                   marginBottom: 16,
                   fontStyle: 'italic',
                   color: theme.colors.textSecondary,
-                  fontFamily: 'Poppins_Regular',
+                  fontFamily: theme.fontFamily.regular,
                   fontSize: 15,
                   lineHeight: 24,
                   textAlign: 'left',
@@ -900,9 +1012,9 @@ export default function ArticleScreen() {
                 },
                 li: {
                   color: theme.colors.text,
-                  fontSize: 16,
-                  lineHeight: 26,
-                  fontFamily: 'Poppins_Regular',
+                  fontSize: 15, // Zmniejszone dla lepszej czytelności
+                  lineHeight: 24, // Zmniejszone proporcjonalnie
+                  fontFamily: theme.fontFamily.regular,
                   marginBottom: 8,
                   textAlign: 'left',
                 },
@@ -927,23 +1039,109 @@ export default function ArticleScreen() {
                   borderBottomColor: theme.colors.border,
                   marginVertical: 16,
                 },
+                // Dodatkowe style dla span z różnymi font-weight
+                span: {
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.regular,
+                  includeFontPadding: false,
+                },
+                // Dodatkowe wsparcie dla różnych formatów pogrubienia
+                'span[style*="font-weight: bold"]': {
+                  fontFamily: theme.fontFamily.bold,
+                  fontWeight: '700',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
+                'span[style*="font-weight: 700"]': {
+                  fontFamily: theme.fontFamily.bold,
+                  fontWeight: '700',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
+                'span[style*="font-weight: 600"]': {
+                  fontFamily: theme.fontFamily.semibold,
+                  fontWeight: '600',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
+                'span[style*="font-weight: 800"]': {
+                  fontFamily: theme.fontFamily.extrabold,
+                  fontWeight: '800',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
+                'span[style*="font-weight: 900"]': {
+                  fontFamily: theme.fontFamily.black,
+                  fontWeight: '900',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
+                // Dodatkowe selektory dla różnych formatów
+                '[style*="font-weight: bold"]': {
+                  fontFamily: theme.fontFamily.bold,
+                  fontWeight: '700',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
+                '[style*="font-weight: 700"]': {
+                  fontFamily: theme.fontFamily.bold,
+                  fontWeight: '700',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
+                '[style*="font-weight: 600"]': {
+                  fontFamily: theme.fontFamily.semibold,
+                  fontWeight: '600',
+                  color: theme.colors.text,
+                  includeFontPadding: false,
+                },
                 table: {
-                  marginBottom: 16,
+                  marginBottom: 24,
+                  marginTop: 24,
                   width: '100%',
+                  borderWidth: 2,
+                  borderColor: theme.colors.border,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: theme.colors.card,
+                  elevation: 2,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                },
+                thead: {
+                  backgroundColor: theme.colors.primary,
+                },
+                tbody: {
+                  backgroundColor: theme.colors.card,
                 },
                 th: {
-                  padding: 12,
+                  padding: 16,
                   textAlign: 'left',
-                  backgroundColor: theme.colors.card,
-                  fontWeight: 'bold',
-                  fontFamily: 'Poppins_Medium',
-                  fontSize: 16,
+                  backgroundColor: theme.colors.primary,
+                  color: '#FFFFFF',
+                  fontWeight: '700',
+                  fontFamily: theme.fontFamily.bold,
+                  fontSize: 15,
+                  borderRightWidth: 1,
+                  borderRightColor: 'rgba(255,255,255,0.2)',
+                  borderBottomWidth: 0,
                 },
                 td: {
-                  padding: 12,
+                  padding: 14,
                   textAlign: 'left',
-                  fontFamily: 'Poppins_Regular',
-                  fontSize: 16,
+                  fontFamily: theme.fontFamily.regular,
+                  fontSize: 15,
+                  color: theme.colors.text,
+                  borderRightWidth: 1,
+                  borderRightColor: theme.colors.border,
+                  borderBottomWidth: 1,
+                  borderBottomColor: theme.colors.border,
+                  lineHeight: 22,
+                },
+                tr: {
+                  backgroundColor: theme.colors.card,
                 },
                 img: {
                   width: '100%',
@@ -963,9 +1161,9 @@ export default function ArticleScreen() {
           {/* YouTube Video */}
           {youtubeUrl && (
             <View style={styles.videoContainer}>
-              <Text style={[styles.videoTitle, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>
-                Wideo
-              </Text>
+                              <Text style={[styles.videoTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
+                  Wideo
+                </Text>
               <VideoPlayer url={youtubeUrl} />
             </View>
           )}
@@ -973,7 +1171,7 @@ export default function ArticleScreen() {
           {/* Galeria - Przywrócona */}
           {allImages.length > 1 && (
             <View style={styles.galleryContainer}>
-              <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>
+              <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
                 Galeria
               </Text>
               
@@ -994,27 +1192,45 @@ export default function ArticleScreen() {
                   style={[styles.flickrButton, { backgroundColor: theme.colors.primary }]}
                   onPress={() => Linking.openURL(flickrUrl)}
                 >
-                  <Text style={styles.flickrButtonText}>Zobacz więcej zdjęć</Text>
+                  <Text style={[styles.flickrButtonText, { fontFamily: theme.fontFamily.medium }]}>Zobacz więcej zdjęć</Text>
                 </TouchableOpacity>
               )}
             </View>
           )}
 
-          {/* Źródło */}
-          {article?.meta?.zrodlo && (
+          {/* Źródło i informacje o zdjęciu */}
+          {(article?.meta?.zrudlo || article?.meta?.zrodlo || article?.meta?.foto) && (
             <View style={styles.sourceContainer}>
-              <Text style={[styles.sourceText, { color: theme.colors.textSecondary }]}>
-                źródło: {article.meta.zrodlo}
-              </Text>
+              {article?.meta?.foto && (
+                <Text style={[styles.sourceText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+                  fot. {article.meta.foto}
+                </Text>
+              )}
+              {(article?.meta?.zrudlo || article?.meta?.zrodlo) && (
+                <Text style={[styles.sourceText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+                  źródło: {article.meta.zrudlo || article.meta.zrodlo}
+                </Text>
+              )}
             </View>
           )}
 
-          {/* Sprawdź również - Sekcja z powiązanymi artykułami - Przywrócona */}
+          {/* Sekcja wsparcia - Postaw nam kawę */}
+          <CoffeeSupportCard onPress={handleCoffeeSupport} />
+
+          {/* Sprawdź również - Sekcja z powiązanymi artykułami - Ulepszona */}
           {relatedArticles.length > 0 && (
             <View style={styles.relatedSection}>
-              <Text style={[styles.relatedSectionTitle, { color: theme.colors.text, fontFamily: 'Poppins_Bold' }]}>
-                Sprawdź również
-              </Text>
+              <View style={styles.relatedSectionHeader}>
+                <View style={styles.relatedSectionTitleContainer}>
+                  <Text style={[styles.relatedSectionTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
+                    Sprawdź też
+                  </Text>
+                  <View style={[styles.relatedSectionIcon, { backgroundColor: theme.colors.primary }]}>
+                    <Eye size={16} color="#FFFFFF" />
+                  </View>
+                </View>
+                <View style={[styles.relatedSectionDivider, { backgroundColor: theme.colors.border }]} />
+              </View>
               <FlatList
                 data={relatedArticles}
                 renderItem={renderRelatedArticle}
@@ -1030,7 +1246,7 @@ export default function ArticleScreen() {
           <Animated.View style={[styles.homeHintContainer, hintAnimatedStyle]}>
             <View style={[styles.homeHint, { backgroundColor: theme.colors.primary }]}>
               <ChevronUp size={20} color="#FFFFFF" />
-              <Text style={styles.homeHintText}>Przewiń, by wrócić na stronę główną</Text>
+              <Text style={[styles.homeHintText, { fontFamily: theme.fontFamily.regular }]}>Przewiń, by wrócić na stronę główną</Text>
             </View>
           </Animated.View>
 
@@ -1076,11 +1292,11 @@ const styles = StyleSheet.create({
   },
   imageContainer: { 
     width: '100%', 
-    height: height * 0.45,
+    height: height * 0.55, // Zwiększone z 0.45 na 0.55
     position: 'relative',
     zIndex: 1,
     elevation: 1,
-    marginTop: 0, // Usunięty zbędny margines
+    marginTop: -20, // Przesunięte wyżej o 20px
   },
   featuredImage: { 
     width: '100%', 
@@ -1160,7 +1376,7 @@ const styles = StyleSheet.create({
   },
   title: { 
     fontSize: 32,
-    fontWeight: 'bold', 
+    fontWeight: '700', 
     marginBottom: 16,
     lineHeight: 40,
     textAlign: 'left',
@@ -1192,7 +1408,7 @@ const styles = StyleSheet.create({
   },
   relatedTitle: { 
     fontSize: 18, 
-    fontWeight: 'bold', 
+    fontWeight: '700', 
     marginBottom: 16 
   },
   relatedCard: { 
@@ -1248,7 +1464,6 @@ const styles = StyleSheet.create({
   galleryTitle: {
     fontSize: 22,
     marginBottom: 20,
-    fontFamily: 'Poppins_Bold',
     textAlign: 'left',
   },
   galleryContent: {
@@ -1310,7 +1525,6 @@ const styles = StyleSheet.create({
   flickrButtonText: {
     fontSize: 14,
     color: '#FFFFFF',
-    fontFamily: 'Poppins_Medium',
   },
   videoContainer: {
     marginTop: 40,
@@ -1319,7 +1533,7 @@ const styles = StyleSheet.create({
   },
   videoTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 16,
   },
   morePhotosButton: {
@@ -1392,18 +1606,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     marginLeft: 8,
-    fontFamily: 'Poppins_Regular',
   },
   bottomPadding: {
     height: 120,
   },
   sourceContainer: {
-    marginTop: 24,
+    marginTop: 12,
     paddingHorizontal: 20,
   },
   sourceText: {
     fontSize: 13,
-    fontFamily: 'Poppins_Regular',
   },
   
   // Nowe style dla sekcji powiązanych artykułów
@@ -1412,11 +1624,35 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     paddingHorizontal: 20,
   },
-  relatedSectionTitle: {
-    fontSize: 22,
+  relatedSectionHeader: {
     marginBottom: 20,
-    fontFamily: 'Poppins_Bold',
+  },
+  relatedSectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  relatedSectionTitle: {
+    fontSize: 20,
     textAlign: 'left',
+    flex: 1,
+  },
+  relatedSectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  relatedSectionDivider: {
+    height: 1,
+    borderRadius: 0.5,
   },
   relatedList: {
     paddingHorizontal: 0,
@@ -1424,40 +1660,69 @@ const styles = StyleSheet.create({
   relatedArticleItem: {
     flexDirection: 'row',
     marginBottom: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    gap: 12,
+  },
+  relatedArticleImageContainer: {
+    position: 'relative',
+    width: 110,
+    height: 110,
+    marginLeft: 12,
+    marginTop: 12,
+    marginBottom: 12,
   },
   relatedArticleImage: {
-    width: 100,
-    height: 100,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    width: 110,
+    height: 110,
+    borderRadius: 16,
+  },
+  relatedArticleImageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    borderRadius: 16,
   },
   relatedArticleContent: {
     flex: 1,
-    padding: 16,
+    padding: 20,
+    paddingLeft: 8,
+    justifyContent: 'space-between',
+  },
+  relatedArticleMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  relatedArticleIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   relatedArticleTitle: {
     fontSize: 15,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 8,
     lineHeight: 20,
-    fontFamily: 'Poppins_SemiBold',
+    letterSpacing: -0.2,
   },
   relatedArticleDate: {
     fontSize: 13,
-    opacity: 0.7,
-    fontFamily: 'Poppins_Regular',
+    opacity: 0.6,
+    fontWeight: '500',
   },
   categoryText: {
     fontSize: 12, // Mniejszy font
-    fontFamily: 'Poppins_Medium',
     fontWeight: '600',
     paddingVertical: 8, // Więcej paddingu pionowego
     paddingHorizontal: 16, // Więcej paddingu poziomego
@@ -1480,11 +1745,10 @@ const styles = StyleSheet.create({
   },
   titleOnImage: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 40,        // rozmiar fontu 40px
     lineHeight: 48,      // min. 1.2×40
     includeFontPadding: false, // usuwa dodatkowe wewnętrzne odstępy
-    fontFamily: 'Poppins_Bold',
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
@@ -1493,10 +1757,9 @@ const styles = StyleSheet.create({
   },
   articleTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 16,
     lineHeight: 32,
-    fontFamily: 'Poppins_Bold',
     textAlign: 'left',
     color: '#1a1a1a',
     letterSpacing: -0.5,

@@ -282,127 +282,131 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: Platform.OS === 'android' ? 20 : 16, // Increased padding on Android
+    paddingHorizontal: Platform.OS === 'android' ? 24 : 20, // Increased padding on Android
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   image: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    marginRight: 16,
+    width: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
   },
   imagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    marginRight: 16,
+    width: Platform.OS === 'android' ? 88 : 80, // Larger placeholder on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger placeholder on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
   },
   textContent: {
     flex: 1,
     justifyContent: 'space-between',
   },
   categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: Platform.OS === 'android' ? 10 : 8, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 6 : 4, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
     alignSelf: 'flex-start',
-    marginBottom: 8,
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
   },
   categoryText: {
-    fontSize: 10,
+    fontSize: Platform.OS === 'android' ? 11 : 10, // Larger font on Android
     fontWeight: '600',
-    letterSpacing: 0.3,
+    letterSpacing: Platform.OS === 'android' ? 0.4 : 0.3, // Better letter spacing on Android
   },
   title: {
-    fontSize: Platform.OS === 'android' ? 17 : 16,
+    fontSize: Platform.OS === 'android' ? 18 : 16, // Increased from 17 to 18 on Android
     fontWeight: '600',
-    lineHeight: Platform.OS === 'android' ? 24 : 22,
-    marginBottom: 8,
-    letterSpacing: Platform.OS === 'android' ? -0.1 : -0.2,
+    lineHeight: Platform.OS === 'android' ? 26 : 22, // Increased line height on Android
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
+    letterSpacing: Platform.OS === 'android' ? -0.05 : -0.2, // Better letter spacing on Android
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
   },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   date: {
-    fontSize: Platform.OS === 'android' ? 13 : 12,
-    marginLeft: 6,
+    fontSize: Platform.OS === 'android' ? 14 : 12, // Increased from 13 to 14 on Android
+    marginLeft: Platform.OS === 'android' ? 8 : 6, // More spacing on Android
     opacity: 0.7,
     fontWeight: '500',
   },
   bookmarkButton: {
-    padding: 8,
-    borderRadius: 12,
+    padding: Platform.OS === 'android' ? 10 : 8, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    minHeight: Platform.OS === 'android' ? 44 : 40, // Minimum touch target on Android
+    minWidth: Platform.OS === 'android' ? 44 : 40, // Minimum touch target on Android
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   
   // Compact styles - improved
   compactContainer: {
     flexDirection: 'row',
-    borderRadius: 16,
-    marginBottom: 12,
+    borderRadius: Platform.OS === 'android' ? 18 : 16, // Larger radius on Android
+    marginBottom: Platform.OS === 'android' ? 14 : 12, // More spacing on Android
     overflow: 'hidden',
     backgroundColor: 'transparent',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: Platform.OS === 'android' ? 14 : 12, // More padding on Android
+    paddingHorizontal: Platform.OS === 'android' ? 24 : 20, // More padding on Android
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.04)',
   },
   compactImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    marginRight: 16,
+    width: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
   },
   compactImagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    marginRight: 16,
+    width: Platform.OS === 'android' ? 88 : 80, // Larger placeholder on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger placeholder on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
   },
   compactContent: {
     flex: 1,
     justifyContent: 'space-between',
   },
   compactTitle: {
-    fontSize: Platform.OS === 'android' ? 16 : 15,
+    fontSize: Platform.OS === 'android' ? 17 : 15, // Increased from 16 to 17 on Android
     fontWeight: '600',
-    marginBottom: 8,
-    lineHeight: Platform.OS === 'android' ? 22 : 20,
-    letterSpacing: Platform.OS === 'android' ? -0.1 : -0.2,
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
+    lineHeight: Platform.OS === 'android' ? 24 : 20, // Increased line height on Android
+    letterSpacing: Platform.OS === 'android' ? -0.05 : -0.2, // Better letter spacing on Android
   },
   compactFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
   },
   compactTimeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   compactDate: {
-    fontSize: Platform.OS === 'android' ? 12 : 11,
-    marginLeft: 6,
+    fontSize: Platform.OS === 'android' ? 13 : 11, // Increased from 12 to 13 on Android
+    marginLeft: Platform.OS === 'android' ? 8 : 6, // More spacing on Android
     opacity: 0.7,
     fontWeight: '500',
   },
   compactCategory: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: Platform.OS === 'android' ? 12 : 10, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 8 : 6, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
   },
   compactCategoryText: {
-    fontSize: 10,
+    fontSize: Platform.OS === 'android' ? 11 : 10, // Larger font on Android
     fontWeight: '600',
-    letterSpacing: 0.3,
+    letterSpacing: Platform.OS === 'android' ? 0.4 : 0.3, // Better letter spacing on Android
   },
 });
 

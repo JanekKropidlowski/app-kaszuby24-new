@@ -5,7 +5,7 @@
     "version": "1.0.21",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "kaszuby24",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "splash": {
@@ -17,10 +17,15 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.kaszuby24",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "associatedDomains": [
+        "applinks:kaszuby24.pl",
+        "applinks:www.kaszuby24.pl"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
+        "NSCalendarsUsageDescription": "Aplikacja potrzebuje dostępu do kalendarza, aby dodać wydarzenia do Twojego kalendarza.",
         "UIDeviceFamily": [1]
       }
     },
@@ -31,6 +36,26 @@
       },
       "package": "app.kaszuby24",
       "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "kaszuby24.pl"
+            },
+            {
+              "scheme": "https",
+              "host": "www.kaszuby24.pl"
+            },
+            {
+              "scheme": "kaszuby24"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
@@ -40,6 +65,8 @@
         "WAKE_LOCK",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
         "com.android.vending.BILLING",
         "com.google.android.c2dm.permission.RECEIVE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
@@ -77,7 +104,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy."
         }
-      ]
+      ],
+      "expo-calendar"
     ],
     "notification": {
       "icon": "./assets/images/icon.png",

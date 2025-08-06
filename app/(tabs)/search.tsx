@@ -57,7 +57,7 @@ const CATEGORIES = [
 
 // Real regions from your system
 const REGIONS = [
-  { id: '', name: 'Wszystkie regiony' },
+  { id: '', name: 'Regiony' },
   { id: '65556', name: 'Chojnice' },
   { id: '626', name: 'Gmina Puck' },
   { id: '65545', name: 'Kartuzy' },
@@ -72,7 +72,7 @@ const REGIONS = [
 
 // Sort options
 const SORT_OPTIONS = [
-  { id: 'date', name: 'Najnowsze', icon: Clock },
+  { id: 'date', name: 'Sortowanie', icon: Clock },
   { id: 'relevance', name: 'Trafność', icon: Heart },
   { id: 'popularity', name: 'Popularne', icon: TrendingUp },
 ];
@@ -96,6 +96,7 @@ export default function SearchScreen() {
   const [showRegionSelect, setShowRegionSelect] = useState(false);
   const [showSortSelect, setShowSortSelect] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   // Close all dropdowns
   const closeAllDropdowns = useCallback(() => {
@@ -120,7 +121,8 @@ export default function SearchScreen() {
     const trimmedQuery = searchQuery.trim();
     
     if (!trimmedQuery && !selectedCategory && !selectedRegion) {
-      setArticles([]);
+      // If no filters, load all articles instead of clearing
+      await loadAllArticles();
       return;
     }
     
@@ -160,6 +162,25 @@ export default function SearchScreen() {
       setPage(1);
     } catch (err) {
       console.error('Error searching articles:', err);
+      setArticles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // New function to load all articles
+  const loadAllArticles = async () => {
+    try {
+      setLoading(true);
+      const results = await fetchArticles(1, 20);
+      let filteredResults = filterSponsoredArticles(results.articles || []);
+      filteredResults = applySorting(filteredResults, selectedSort);
+      
+      setArticles(filteredResults);
+      setTotalPages(results.totalPages || 1);
+      setPage(1);
+    } catch (err) {
+      console.error('Error loading all articles:', err);
       setArticles([]);
     } finally {
       setLoading(false);
@@ -268,7 +289,8 @@ export default function SearchScreen() {
         setLoading(false);
       }
     } else {
-      setArticles([]);
+      // If "Wszystkie" is selected, load all articles
+      await loadAllArticles();
     }
   };
   
@@ -312,7 +334,8 @@ export default function SearchScreen() {
         setLoading(false);
       }
     } else {
-      setArticles([]);
+      // If no filters, load all articles
+      await loadAllArticles();
     }
   };
   
@@ -330,7 +353,6 @@ export default function SearchScreen() {
     setSelectedRegion('');
     setSelectedSort('date');
     setQuery('');
-    setArticles([]);
     closeAllDropdowns();
     
     // Clear any pending search
@@ -338,6 +360,9 @@ export default function SearchScreen() {
       clearTimeout(searchTimeout);
       setSearchTimeout(null);
     }
+    
+    // Load all articles when filters are cleared
+    loadAllArticles();
   };
   
   // Handle query changes with debounce
@@ -346,7 +371,8 @@ export default function SearchScreen() {
     if (text.trim()) {
       debouncedSearch(text);
     } else {
-      setArticles([]);
+      // If query is cleared, load all articles
+      loadAllArticles();
     }
   }, [debouncedSearch]);
   
@@ -365,10 +391,18 @@ export default function SearchScreen() {
       setSelectedRegion(regionId);
     }
   }, [regionId]);
+
+  // Load all articles on initial mount
+  useEffect(() => {
+    if (!initialLoadComplete) {
+      loadAllArticles();
+      setInitialLoadComplete(true);
+    }
+  }, [initialLoadComplete]);
   
   const hasActiveFilters = selectedCategory || selectedRegion || query.trim();
-  const selectedRegionName = REGIONS.find(r => r.id === selectedRegion)?.name || 'Wszystkie regiony';
-  const selectedSortName = SORT_OPTIONS.find(s => s.id === selectedSort)?.name || 'Najnowsze';
+  const selectedRegionName = REGIONS.find(r => r.id === selectedRegion)?.name || 'Regiony';
+  const selectedSortName = SORT_OPTIONS.find(s => s.id === selectedSort)?.name || 'Sortowanie';
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -458,7 +492,7 @@ export default function SearchScreen() {
               activeOpacity={0.8}
               onPress={clearFilters}
             >
-              <XCircle size={14} color="#FFFFFF" />
+              {/* XCircle icon removed */}
               <Text style={[styles.clearButtonText, { fontFamily: theme.fontFamily.medium }]}>
                 Wyczyść
               </Text>
@@ -475,7 +509,7 @@ export default function SearchScreen() {
                 styles.selectButton,
                 { 
                   backgroundColor: theme.colors.card,
-                  borderColor: selectedRegion ? theme.colors.primary : theme.colors.border,
+                  borderColor: selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.border,
                 }
               ]}
               activeOpacity={0.7}
@@ -486,11 +520,11 @@ export default function SearchScreen() {
                 setShowRegionSelect(prev => !prev);
               }}
             >
-              <MapPin size={16} color={selectedRegion ? theme.colors.primary : theme.colors.textSecondary} />
+              <MapPin size={16} color={selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.textSecondary} />
               <Text style={[
                 styles.selectButtonText,
                 { 
-                  color: selectedRegion ? theme.colors.primary : theme.colors.text,
+                  color: selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.text,
                   fontFamily: theme.fontFamily.medium,
                 }
               ]}>

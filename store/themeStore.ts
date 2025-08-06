@@ -17,6 +17,7 @@ export interface Theme {
     success: string;
     error: string;
     warning: string;
+    info: string;
     subtle: string;
     shadow: string;
     tabBarBackground: string;
@@ -51,6 +52,7 @@ const lightTheme: Theme = {
     success: '#10B981',
     error: '#EF4444',
     warning: '#F59E0B',
+    info: '#3B82F6',
     subtle: '#F1F5F9',
     shadow: '#000000',
     tabBarBackground: '#FFFFFF',
@@ -112,6 +114,7 @@ const darkTheme: Theme = {
     success: '#34D399',
     error: '#F87171',
     warning: '#FBBF24',
+    info: '#60A5FA',
     subtle: '#334155',
     shadow: '#000000',
     tabBarBackground: '#1E293B',
@@ -212,6 +215,11 @@ export const useThemeStore = create<ThemeState>()(
     {
       name: 'theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        isDarkMode: state.isDarkMode,
+        autoTheme: state.autoTheme,
+        debugMode: state.debugMode,
+      }),
     }
   )
 );

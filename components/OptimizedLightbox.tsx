@@ -235,13 +235,14 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
             </TouchableOpacity>
           )}
           
-          <TouchableOpacity
+          {/* X button removed */}
+          {/* <TouchableOpacity
             style={styles.headerButton}
             onPress={onClose}
             activeOpacity={0.7}
           >
             <X size={28} color="#FFFFFF" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
         
         {/* Navigation */}

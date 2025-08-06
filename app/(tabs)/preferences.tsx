@@ -27,10 +27,9 @@ import {
   User,
   Zap,
   CheckCircle,
-  Navigation,
   BellRing
 } from 'lucide-react-native';
-import { useNotificationsStore, availableLocations } from '@/store/notificationsStore';
+import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
@@ -47,8 +46,6 @@ export default function PreferencesScreen() {
     updatePreference,
     initializePreferences,
     isFirstTimeUser,
-    userLocation,
-    setUserLocation,
     expoPushToken,
     getUnreadCount
   } = useNotificationsStore();
@@ -83,7 +80,7 @@ export default function PreferencesScreen() {
     if (notificationsEnabled && expoPushToken) {
       notificationService.updatePreferences();
     }
-  }, [preferences, notificationsEnabled, expoPushToken, userLocation]);
+  }, [preferences, notificationsEnabled, expoPushToken]);
   
   const handleToggleNotifications = async () => {
     if (!notificationsEnabled) {
@@ -155,28 +152,7 @@ export default function PreferencesScreen() {
     }
   };
   
-  const handleLocationChange = () => {
-    Alert.alert(
-      'Zmień lokalizację',
-      'Wybierz swoją główną lokalizację:',
-      [
-        ...availableLocations.map(location => ({
-          text: location.name,
-          onPress: async () => {
-            setUserLocation(location);
-            // Re-register with new location
-            await notificationService.updateLocationAndReregister();
-            Alert.alert(
-              'Lokalizacja zmieniona',
-              `Twoja główna lokalizacja została zmieniona na ${location.name}.`,
-              [{ text: 'OK' }]
-            );
-          }
-        })),
-        { text: 'Anuluj', style: 'cancel' }
-      ]
-    );
-  };
+
   
   const handleOpenWebsite = () => {
     Linking.openURL('https://kaszuby24.pl');
@@ -278,65 +254,10 @@ export default function PreferencesScreen() {
             Twoje źródło wiadomości z Kaszub
           </Text>
           
-          {/* Location info */}
-          {userLocation && (
-            <View style={[styles.locationBadge, { backgroundColor: theme.colors.subtle }]}>
-              <MapPin size={14} color={theme.colors.primary} />
-              <Text style={[
-                styles.locationText,
-                { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium
-                }
-              ]}>
-                {userLocation.name}
-              </Text>
-            </View>
-          )}
+
         </View>
         
-        {/* Location Settings */}
-        <Text style={[
-          styles.sectionTitle, 
-          { 
-            color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold
-          }
-        ]}>
-          Lokalizacja
-        </Text>
-        
-        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-          <TouchableOpacity 
-            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-            onPress={handleLocationChange}
-          >
-            <View style={styles.settingLabelContainer}>
-              <Navigation size={20} color={theme.colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[
-                  styles.settingLabel, 
-                  { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.medium
-                  }
-                ]}>
-                  Główna lokalizacja
-                </Text>
-                <Text style={[
-                  styles.settingSubtitle,
-                  { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular
-                  }
-                ]}>
-                  {userLocation ? userLocation.name : 'Nie wybrano'}
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
+
         
         {/* Quick Setup for new users */}
         {(isFirstTimeUser || !notificationsEnabled) && (
@@ -796,18 +717,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   profileImageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     overflow: 'hidden',
     marginBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
   },
   profileName: {
     fontSize: 20,
@@ -819,18 +740,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
-  locationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  locationText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',

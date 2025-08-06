@@ -237,15 +237,15 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
             </TouchableOpacity>
           )}
           
-          {/* Clear button - only show if there's a selection */}
-          {(selectedDate || rangeStart) && (
+          {/* Clear button - X removed */}
+          {/* {(selectedDate || rangeStart) && (
             <TouchableOpacity
               style={[styles.clearButton, { backgroundColor: theme.colors.error }]}
               onPress={clearSelection}
             >
               <X size={14} color="#fff" />
             </TouchableOpacity>
-          )}
+          )} */}
           
           <TouchableOpacity
             style={styles.monthButton}

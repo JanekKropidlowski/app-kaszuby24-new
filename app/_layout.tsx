@@ -11,112 +11,94 @@ import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { useRouter } from 'expo-router';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { handleDeepLinkWithValidation } from '@/utils/linkHandler';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { theme, isDarkMode } = useThemeStore();
-  const [appIsReady, setAppIsReady] = useState(false);
+  const { isDarkMode, theme } = useThemeStore();
   const router = useRouter();
-  
-  const [loaded, error] = useFonts({
+  const [appIsReady, setAppIsReady] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Performance monitoring
+  usePerformanceMonitor();
+
+  // Load fonts
+  const [fontsLoaded, fontError] = useFonts({
     'Poppins_Thin': require('../assets/fonts/Poppins/Poppins_Thin.ttf'),
+    'Poppins_ThinItalic': require('../assets/fonts/Poppins/Poppins_ThinItalic.ttf'),
     'Poppins_ExtraLight': require('../assets/fonts/Poppins/Poppins_ExtraLight.ttf'),
+    'Poppins_ExtraLightItalic': require('../assets/fonts/Poppins/Poppins_ExtraLightItalic.ttf'),
     'Poppins_Light': require('../assets/fonts/Poppins/Poppins_Light.ttf'),
+    'Poppins_LightItalic': require('../assets/fonts/Poppins/Poppins_LightItalic.ttf'),
     'Poppins_Regular': require('../assets/fonts/Poppins/Poppins_Regular.ttf'),
+    'Poppins_Italic': require('../assets/fonts/Poppins/Poppins_Italic.ttf'),
     'Poppins_Medium': require('../assets/fonts/Poppins/Poppins_Medium.ttf'),
+    'Poppins_MediumItalic': require('../assets/fonts/Poppins/Poppins_MediumItalic.ttf'),
     'Poppins_SemiBold': require('../assets/fonts/Poppins/Poppins_SemiBold.ttf'),
+    'Poppins_SemiBoldItalic': require('../assets/fonts/Poppins/Poppins_SemiBoldItalic.ttf'),
     'Poppins_Bold': require('../assets/fonts/Poppins/Poppins_Bold.ttf'),
+    'Poppins_BoldItalic': require('../assets/fonts/Poppins/Poppins_BoldItalic.ttf'),
     'Poppins_ExtraBold': require('../assets/fonts/Poppins/Poppins_ExtraBold.ttf'),
+    'Poppins_ExtraBoldItalic': require('../assets/fonts/Poppins/Poppins_ExtraBoldItalic.ttf'),
     'Poppins_Black': require('../assets/fonts/Poppins/Poppins_Black.ttf'),
+    'Poppins_BlackItalic': require('../assets/fonts/Poppins/Poppins_BlackItalic.ttf'),
   });
 
-  // Add performance monitoring
-  const performance = usePerformanceMonitor('RootLayout', __DEV__);
-  
+  // Handle font loading errors
   useEffect(() => {
-    performance.markRenderStart();
-    
-    // Initialize app performance optimizations
-    // Clear image cache on app start to prevent memory issues
-    MemoryOptimizer.clearImageCache();
-    
-    performance.markRenderEnd('initialization');
-    
-    return () => {
-      // Clean up resources when app is closed
-      MemoryOptimizer.clearImageCache();
-    };
-  }, []);
-  
+    if (fontError) {
+      console.error('Font loading error:', fontError);
+      setError(fontError);
+    }
+  }, [fontError]);
+
+  // Initialize app
   useEffect(() => {
     async function prepare() {
       try {
-        console.log('App initialization started...');
+        // Initialize notification service
+        await notificationService.setupNotificationHandlers();
         
-        // Pre-load fonts, make any API calls you need to do here
-        if (loaded || error) {
-          console.log('Fonts loaded:', loaded ? 'success' : 'failed');
-          
-          // Initialize notification service (don't wait for it)
-          notificationService.setupNotificationHandlers().catch((err) => {
-            console.warn('Notification service setup failed:', err);
-          });
-          
-          setAppIsReady(true);
-        }
+        // Memory optimization
+        MemoryOptimizer.initialize();
+        
+        // Preload critical assets
+        await Promise.all([
+          // Add any critical asset preloading here
+        ]);
+        
       } catch (e) {
         console.warn('Error during app preparation:', e);
-        // Even if something fails, we should still show the app
+        setError(e as Error);
+      } finally {
         setAppIsReady(true);
       }
     }
 
     prepare();
-  }, [loaded, error]);
+  }, []);
 
+  // Hide splash screen when app is ready
   useEffect(() => {
     if (appIsReady) {
-      console.log('App is ready, hiding splash screen...');
-      // Hide splash screen with a small delay to ensure everything is ready
-      const timer = setTimeout(() => {
-        SplashScreen.hideAsync().catch(console.warn);
-      }, Platform.OS === 'android' ? 300 : 100);
-      
-      return () => clearTimeout(timer);
+      SplashScreen.hideAsync();
     }
   }, [appIsReady]);
 
-  // Add deep linking handler
+  // Add deep linking handler with improved error handling
   useEffect(() => {
     const handleDeepLink = (url: string) => {
-      console.log('Deep link received:', url);
+      console.log('Deep link received in _layout:', url);
       
       try {
-        const urlObj = new URL(url);
-        
-        // Check if it's a kaszuby24.pl link
-        if (urlObj.hostname === 'kaszuby24.pl' || urlObj.hostname === 'www.kaszuby24.pl') {
-          const pathname = urlObj.pathname;
-          
-          // Extract slug from pathname (remove leading and trailing slashes)
-          const slug = pathname.replace(/^\/+|\/+$/g, '');
-          
-          if (slug && slug.length > 0) {
-            console.log('Navigating to article with slug:', slug);
-            
-            // Navigate to the slug-based article route
-            router.push(`/article/${slug}`);
-          } else {
-            // If no slug, navigate to home
-            console.log('No slug found, navigating to home');
-            router.push('/(tabs)');
-          }
-        }
+        // Use the enhanced link handler with validation
+        handleDeepLinkWithValidation(url);
       } catch (error) {
-        console.error('Error parsing deep link:', error);
-        // Fallback to home page
+        console.error('Error handling deep link in _layout:', error);
+        // Fallback to home
         router.push('/(tabs)');
       }
     };
@@ -168,7 +150,7 @@ export default function RootLayout() {
         <StatusBar 
           style={isDarkMode ? "light" : "dark"} 
           backgroundColor="transparent"
-          translucent={true}
+          translucent={Platform.OS === 'android'} // Only translucent on Android
         />
         <Stack
           screenOptions={{
@@ -176,17 +158,18 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: theme.colors.background },
             animation: Platform.select({
               ios: 'default',
-              android: 'fade',
+              android: 'slide_from_right', // Changed from 'fade' to 'slide_from_right' for better Android experience
               web: 'default',
               default: 'default',
             }),
             animationDuration: Platform.select({
-              android: 150,
+              android: 200, // Increased from 150 to 200 for smoother animations
               default: undefined,
             }),
             ...(Platform.OS === 'android' && {
               gestureEnabled: true,
               gestureDirection: 'horizontal',
+              gestureResponseDistance: 50, // Added for better gesture handling on Android
             }),
           }}
         >
@@ -199,6 +182,7 @@ export default function RootLayout() {
               gestureEnabled: true,
               ...(Platform.OS === 'android' && {
                 animationTypeForReplace: 'push',
+                gestureResponseDistance: 50,
               }),
             }} 
           />
@@ -210,6 +194,19 @@ export default function RootLayout() {
               gestureEnabled: true,
               ...(Platform.OS === 'android' && {
                 animationTypeForReplace: 'push',
+                gestureResponseDistance: 50,
+              }),
+            }} 
+          />
+          <Stack.Screen 
+            name="event/[id]" 
+            options={{ 
+              headerShown: false,
+              presentation: 'card',
+              gestureEnabled: true,
+              ...(Platform.OS === 'android' && {
+                animationTypeForReplace: 'push',
+                gestureResponseDistance: 50,
               }),
             }} 
           />

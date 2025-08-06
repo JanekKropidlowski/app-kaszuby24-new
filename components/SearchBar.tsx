@@ -115,7 +115,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
         autoFocus={autoFocus}
       />
       
-      {query.length > 0 && (
+      {/* X button removed */}
+      {/* {query.length > 0 && (
         <TouchableOpacity 
           onPress={handleClear} 
           style={styles.iconButton}
@@ -128,7 +129,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             <X size={14} color={theme.colors.textSecondary} />
           </View>
         </TouchableOpacity>
-      )}
+      )} */}
     </Animated.View>
   );
 };
@@ -137,30 +138,34 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 54,
-    marginHorizontal: 16,
-    marginVertical: 12,
+    borderRadius: Platform.OS === 'android' ? 18 : 16, // Większy radius na Androidzie
+    paddingHorizontal: Platform.OS === 'android' ? 20 : 16, // Większy padding na Androidzie
+    height: Platform.OS === 'android' ? 58 : 54, // Większa wysokość na Androidzie dla lepszych touch targets
+    marginHorizontal: Platform.OS === 'android' ? 20 : 16, // Większy margines na Androidzie
+    marginVertical: Platform.OS === 'android' ? 14 : 12, // Większy margines na Androidzie
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: Platform.OS === 'android' ? 10 : 8, // Większy shadow na Androidzie
+    elevation: Platform.OS === 'android' ? 4 : 2, // Większy elevation na Androidzie
   },
   input: {
     flex: 1,
     height: '100%',
-    marginLeft: 12,
-    fontSize: 16,
+    marginLeft: Platform.OS === 'android' ? 14 : 12, // Większy margines na Androidzie
+    fontSize: Platform.OS === 'android' ? 17 : 16, // Większy font na Androidzie
   },
   iconButton: {
-    padding: 4,
+    padding: Platform.OS === 'android' ? 6 : 4, // Większy padding na Androidzie dla lepszych touch targets
+    minWidth: Platform.OS === 'android' ? 44 : 32, // Minimum touch target na Androidzie
+    minHeight: Platform.OS === 'android' ? 44 : 32, // Minimum touch target na Androidzie
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   clearButton: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: Platform.OS === 'android' ? 26 : 22, // Większy przycisk na Androidzie
+    height: Platform.OS === 'android' ? 26 : 22, // Większy przycisk na Androidzie
+    borderRadius: Platform.OS === 'android' ? 13 : 11, // Większy radius na Androidzie
     alignItems: 'center',
     justifyContent: 'center',
   },

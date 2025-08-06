@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#1f2937',
     marginTop: 16,
     marginBottom: 8,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   },
   debugTitle: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#374151',
     marginBottom: 8,
   },
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   diagnosticTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#374151',
     marginBottom: 8,
   },

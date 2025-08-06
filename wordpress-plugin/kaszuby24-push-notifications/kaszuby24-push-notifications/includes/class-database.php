@@ -43,17 +43,66 @@ class Kaszuby24_Push_Database {
             body text NOT NULL,
             status varchar(20) NOT NULL,
             response_data longtext DEFAULT NULL,
+            notification_id varchar(100) DEFAULT NULL,
+            receipt_id varchar(100) DEFAULT NULL,
+            delivery_status varchar(20) DEFAULT 'pending',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            delivered_at datetime DEFAULT NULL,
             PRIMARY KEY (id),
             KEY push_token (push_token),
             KEY article_id (article_id),
             KEY status (status),
+            KEY notification_id (notification_id),
+            KEY receipt_id (receipt_id),
+            KEY delivery_status (delivery_status),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+        
+        // Table for scheduled notifications
+        $scheduled_table = $wpdb->prefix . 'kaszuby24_push_scheduled';
+        $scheduled_sql = "CREATE TABLE $scheduled_table (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            title varchar(255) NOT NULL,
+            body text NOT NULL,
+            article_id int(11) DEFAULT NULL,
+            image varchar(500) DEFAULT NULL,
+            icon varchar(500) DEFAULT NULL,
+            regions longtext DEFAULT NULL,
+            categories longtext DEFAULT NULL,
+            options longtext DEFAULT NULL,
+            scheduled_time datetime NOT NULL,
+            status varchar(20) DEFAULT 'pending',
+            sent_at datetime DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY scheduled_time (scheduled_time),
+            KEY status (status),
+            KEY article_id (article_id)
+        ) $charset_collate;";
+        
+        // Table for notification analytics
+        $analytics_table = $wpdb->prefix . 'kaszuby24_push_analytics';
+        $analytics_sql = "CREATE TABLE $analytics_table (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            article_id int(11) DEFAULT NULL,
+            notification_id varchar(100) NOT NULL,
+            action varchar(50) NOT NULL,
+            platform varchar(20) DEFAULT NULL,
+            location varchar(100) DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY article_id (article_id),
+            KEY notification_id (notification_id),
+            KEY action (action),
+            KEY platform (platform),
             KEY created_at (created_at)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($tokens_sql);
         dbDelta($logs_sql);
+        dbDelta($scheduled_sql);
+        dbDelta($analytics_sql);
     }
     
     public function register_token($data) {
@@ -247,5 +296,162 @@ class Kaszuby24_Push_Database {
             array('%d'),
             array('%s')
         );
+    }
+    
+    public function update_token_activity($token) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'kaszuby24_push_tokens';
+        
+        return $wpdb->update(
+            $table_name,
+            array('last_active' => current_time('mysql')),
+            array('push_token' => $token),
+            array('%s'),
+            array('%s')
+        );
+    }
+    
+    public function schedule_notification($data) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'kaszuby24_push_scheduled';
+        
+        return $wpdb->insert(
+            $table_name,
+            array(
+                'title' => $data['title'],
+                'body' => $data['body'],
+                'article_id' => $data['article_id'] ?? null,
+                'image' => $data['image'] ?? '',
+                'icon' => $data['icon'] ?? '',
+                'regions' => json_encode($data['regions'] ?? array()),
+                'categories' => json_encode($data['categories'] ?? array()),
+                'options' => json_encode($data['options'] ?? array()),
+                'scheduled_time' => $data['scheduled_time'],
+                'status' => 'pending'
+            ),
+            array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+        );
+    }
+    
+    public function get_pending_scheduled_notifications() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'kaszuby24_push_scheduled';
+        
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE status = 'pending' AND scheduled_time <= %s ORDER BY scheduled_time ASC",
+            current_time('mysql')
+        ));
+    }
+    
+    public function mark_scheduled_notification_sent($id) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'kaszuby24_push_scheduled';
+        
+        return $wpdb->update(
+            $table_name,
+            array(
+                'status' => 'sent',
+                'sent_at' => current_time('mysql')
+            ),
+            array('id' => $id),
+            array('%s', '%s'),
+            array('%d')
+        );
+    }
+    
+    public function log_notification_analytics($notification_id, $action, $platform = null, $location = null, $article_id = null) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'kaszuby24_push_analytics';
+        
+        return $wpdb->insert(
+            $table_name,
+            array(
+                'notification_id' => $notification_id,
+                'action' => $action,
+                'platform' => $platform,
+                'location' => $location,
+                'article_id' => $article_id,
+                'created_at' => current_time('mysql')
+            ),
+            array('%s', '%s', '%s', '%s', '%d', '%s')
+        );
+    }
+    
+    public function get_notification_analytics($article_id = null, $days = 30) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'kaszuby24_push_analytics';
+        
+        $where_clause = "WHERE created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)";
+        $params = array($days);
+        
+        if ($article_id) {
+            $where_clause .= " AND article_id = %d";
+            $params[] = $article_id;
+        }
+        
+        $sql = "SELECT 
+                    action,
+                    platform,
+                    COUNT(*) as count,
+                    DATE(created_at) as date
+                FROM $table_name 
+                $where_clause
+                GROUP BY action, platform, DATE(created_at)
+                ORDER BY created_at DESC";
+        
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
+    }
+    
+    public function update_delivery_status($receipt_id, $status, $delivered_at = null) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'kaszuby24_push_logs';
+        
+        $update_data = array('delivery_status' => $status);
+        $format = array('%s');
+        
+        if ($delivered_at) {
+            $update_data['delivered_at'] = $delivered_at;
+            $format[] = '%s';
+        }
+        
+        return $wpdb->update(
+            $table_name,
+            $update_data,
+            array('receipt_id' => $receipt_id),
+            $format,
+            array('%s')
+        );
+    }
+    
+    public function get_delivery_stats($article_id = null, $days = 7) {
+        global $wpdb;
+        
+        $logs_table = $wpdb->prefix . 'kaszuby24_push_logs';
+        
+        $where_clause = "WHERE created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)";
+        $params = array($days);
+        
+        if ($article_id) {
+            $where_clause .= " AND article_id = %d";
+            $params[] = $article_id;
+        }
+        
+        $sql = "SELECT 
+                    status,
+                    delivery_status,
+                    COUNT(*) as count,
+                    AVG(TIMESTAMPDIFF(SECOND, created_at, delivered_at)) as avg_delivery_time
+                FROM $logs_table 
+                $where_clause
+                GROUP BY status, delivery_status";
+        
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
     }
 } 

@@ -13,7 +13,8 @@ import {
   ScrollView, 
   RefreshControl,
   ActivityIndicator,
-  Modal
+  Modal,
+  Alert
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -50,6 +51,7 @@ import InlineCalendar from '@/components/InlineCalendar';
 import ModernEventList from '@/components/ModernEventList';
 import { formatDateTime, formatDate, formatTime } from '@/utils/dateFormatter';
 import * as Haptics from 'expo-haptics';
+import calendarService from '@/services/calendarService';
 
 // Event type definition
 interface Event extends SavedEvent {
@@ -158,6 +160,7 @@ export default function EventCalendarScreen() {
         
         // Log which filter is being used
         console.log('🔍 Debug - Using filter:', selectedFilters[0]);
+        console.log('🔍 Debug - All selected filters:', selectedFilters);
       }
       
       if (cityFilter) {
@@ -174,6 +177,8 @@ export default function EventCalendarScreen() {
       console.log('🔍 Debug - Fetching URL:', url);
       console.log('🔍 Debug - Request params:', params.toString());
       console.log('🔍 Debug - Selected filters:', selectedFilters);
+      console.log('🔍 Debug - Params has filter:', params.has('filter'));
+      console.log('🔍 Debug - All params:', Array.from(params.entries()));
       
       const res = await fetch(url);
       const data = await res.json();
@@ -347,12 +352,16 @@ export default function EventCalendarScreen() {
     // Define time-based filters that are mutually exclusive
     const timeFilters = ['today', 'this-weekend', 'this-week'];
     
+    console.log('🔍 Debug - handleFilterPress called with:', filterId);
+    console.log('🔍 Debug - Current selectedFilters:', selectedFilters);
+    
     // Special handling for 'saved' filter - it's client-side only
     if (filterId === 'saved') {
       const newFilters = selectedFilters.includes(filterId)
         ? selectedFilters.filter(id => id !== filterId)
         : [...selectedFilters, filterId];
       
+      console.log('🔍 Debug - Saved filter newFilters:', newFilters);
       setSelectedFilters(newFilters);
       // For saved filter, we don't reload from server since it's client-side
       return;
@@ -362,11 +371,15 @@ export default function EventCalendarScreen() {
     if (timeFilters.includes(filterId)) {
       // If clicking on already selected filter, deselect it
       if (selectedFilters.includes(filterId)) {
-        setSelectedFilters(selectedFilters.filter(id => !timeFilters.includes(id)));
+        const newFilters = selectedFilters.filter(id => !timeFilters.includes(id));
+        console.log('🔍 Debug - Deselecting time filter, newFilters:', newFilters);
+        setSelectedFilters(newFilters);
       } else {
         // Remove other time filters and add this one
         const filteredWithoutTime = selectedFilters.filter(id => !timeFilters.includes(id));
-        setSelectedFilters([...filteredWithoutTime, filterId]);
+        const newFilters = [...filteredWithoutTime, filterId];
+        console.log('🔍 Debug - Selecting time filter, newFilters:', newFilters);
+        setSelectedFilters(newFilters);
       }
     } else {
       // For other filters, toggle normally
@@ -374,10 +387,12 @@ export default function EventCalendarScreen() {
         ? selectedFilters.filter(id => id !== filterId)
         : [...selectedFilters, filterId];
       
+      console.log('🔍 Debug - Toggle filter, newFilters:', newFilters);
       setSelectedFilters(newFilters);
     }
     
     // Reload events when filters change
+    console.log('🔍 Debug - Calling reloadEvents()');
     reloadEvents();
   };
 
@@ -440,21 +455,18 @@ export default function EventCalendarScreen() {
 
   const handleAddToCalendar = async (event: any) => {
     try {
-      const eventDate = safeDate(event.date);
-      const endDate = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000); // +2 hours
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
-      const calendarUrl = `calshow://?startDate=${eventDate.toISOString()}&endDate=${endDate.toISOString()}&title=${encodeURIComponent(he.decode(event.title.rendered))}&location=${encodeURIComponent(event.meta?.miasto || '')}&notes=${encodeURIComponent(event.meta?.['opis-wydarzenia']?.replace(/<[^>]*>/g, '').trim() || '')}`;
+      // Use the calendar service to add event
+      const calendarEvent = calendarService.createEventFromEventData(event);
+      const success = await calendarService.addEventToCalendar(calendarEvent);
       
-      const canOpen = await Linking.canOpenURL(calendarUrl);
-      if (canOpen) {
-        await Linking.openURL(calendarUrl);
-      } else {
-        // Fallback to web calendar
-        const webUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(he.decode(event.title.rendered))}&dates=${eventDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(event.meta?.['opis-wydarzenia']?.replace(/<[^>]*>/g, '').trim() || '')}&location=${encodeURIComponent(event.meta?.miasto || '')}`;
-        await Linking.openURL(webUrl);
+      if (!success) {
+        Alert.alert('Błąd', 'Nie udało się dodać wydarzenia do kalendarza');
       }
     } catch (error) {
-      console.log('Error adding to calendar:', error);
+      console.error('Error adding to calendar:', error);
+      Alert.alert('Błąd', 'Nie udało się dodać wydarzenia do kalendarza');
     }
   };
 
@@ -475,16 +487,6 @@ export default function EventCalendarScreen() {
       
       {/* Wszystkie Filtry w Jednej Linii */}
       <View style={styles.filtersInSection}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={[styles.filtersLabel, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.medium }]}>
-            Filtry:
-          </Text>
-          {filteredEvents.length > 0 && (
-            <Text style={[styles.filtersLabel, { color: theme.colors.primary, fontFamily: theme.fontFamily.bold }]}>
-              ({filteredEvents.length} {filteredEvents.length === 1 ? 'wydarzenie' : 'wydarzeń'})
-            </Text>
-          )}
-        </View>
         
         {/* JEDNA LINIA - Wszystkie filtry równej wielkości */}
         <ScrollView 
@@ -641,7 +643,7 @@ export default function EventCalendarScreen() {
               style={[styles.uniformClearButton]}
               onPress={handleClearFilters}
             >
-              <X size={14} color={theme.colors.error} />
+              {/* X icon removed */}
               <Text style={[styles.uniformFilterText, { color: theme.colors.error, fontFamily: theme.fontFamily.medium }]}>
                 Wyczyść
               </Text>
@@ -972,11 +974,7 @@ const styles = StyleSheet.create({
   filtersInSection: {
     paddingVertical: 12,
   },
-  filtersLabel: {
-    fontSize: 14,
-    marginBottom: 8,
-    paddingHorizontal: 16,
-  },
+
   filtersScroll: {
     flexGrow: 0,
   },

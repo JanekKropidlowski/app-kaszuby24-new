@@ -9,12 +9,15 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { Calendar, MapPin, Clock, Share2 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { safeFormatDate, safeFormatTime, safeDateParse } from '@/utils/dateFormatter';
 import WeekendEventsSlider from './WeekendEventsSlider';
 import * as he from 'he';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface Event {
   id: number;
@@ -104,7 +107,7 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
         <View style={styles.contentContainer}>
           <View style={styles.headerRow}>
             <Text style={[styles.eventTitle, { color: theme.colors.text }]} numberOfLines={2}>
-              {Platform.OS === 'android' ? event.title.rendered : he.decode(event.title.rendered)}
+              {he.decode(event.title.rendered)}
             </Text>
             {(isToday || isTomorrow) && (
               <View style={[
@@ -233,37 +236,38 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingTop: 8, // Dodany padding na górze aby nie była przykryta przez slider
-    paddingBottom: 20,
+    paddingHorizontal: Platform.OS === 'android' ? 20 : 16, // Większy padding na Androidzie
+    paddingTop: Platform.OS === 'android' ? 12 : 8, // Większy padding na Androidzie
+    paddingBottom: Platform.OS === 'android' ? 24 : 20, // Większy padding na Androidzie
   },
   weekendSection: {
     marginBottom: 16, // Dodany margines pod sliderem weekendowym
     paddingHorizontal: 0, // Usunięcie paddingu aby slider miał pełną szerokość
+    marginHorizontal: -16, // Negatywny margines aby wyjść poza padding kontenera
   },
   eventItem: {
-    borderRadius: 12, // Zmniejszony border radius
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Większy radius na Androidzie
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 }, // Zmniejszony shadow
-    shadowOpacity: 0.05, // Zmniejszona przezroczystość
-    shadowRadius: 4, // Zmniejszony radius
-    elevation: 2, // Zmniejszony elevation
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: Platform.OS === 'android' ? 0.08 : 0.05, // Większy shadow na Androidzie
+    shadowRadius: Platform.OS === 'android' ? 6 : 4, // Większy radius na Androidzie
+    elevation: Platform.OS === 'android' ? 4 : 2, // Większy elevation na Androidzie
     overflow: 'hidden',
-    flexDirection: 'row', // Dodany flexDirection: 'row'
-    alignItems: 'center', // Dodany alignItems: 'center'
-    paddingHorizontal: 16, // Dodany padding poziomy
-    paddingVertical: 12, // Dodany padding pionowy
-    marginBottom: 8, // Dodany margines na dole
-    backgroundColor: 'transparent', // Przezroczyste tło
-    borderBottomWidth: 1, // Dodana dolna linia
-    borderBottomColor: 'rgba(0,0,0,0.06)', // Kolor linii
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Platform.OS === 'android' ? 20 : 16, // Większy padding na Androidzie
+    paddingVertical: Platform.OS === 'android' ? 16 : 12, // Większy padding na Androidzie
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // Większy margines na Androidzie
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   imageContainer: {
-    width: 80, // Zmniejszona szerokość obrazka jak w ArticleCard
-    height: 80, // Zmniejszona wysokość obrazka jak w ArticleCard
-    borderRadius: 12, // Border radius jak w ArticleCard
+    width: Platform.OS === 'android' ? 88 : 80, // Większy obrazek na Androidzie jak w ArticleCard
+    height: Platform.OS === 'android' ? 88 : 80, // Większy obrazek na Androidzie jak w ArticleCard
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Większy radius na Androidzie jak w ArticleCard
     overflow: 'hidden',
-    marginRight: 16, // Margines po prawej jak w ArticleCard
+    marginRight: Platform.OS === 'android' ? 18 : 16, // Większy margines na Androidzie jak w ArticleCard
   },
   eventImage: {
     width: '100%',
@@ -283,55 +287,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8, // Zmniejszony margin
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // Większy margines na Androidzie
   },
   eventTitle: {
-    fontSize: Platform.OS === 'android' ? 17 : 16, // Zwiększony font size jak w ArticleCard
+    fontSize: Platform.OS === 'android' ? 18 : 16, // Jeszcze większy font size na Androidzie
     fontWeight: '600',
-    lineHeight: Platform.OS === 'android' ? 24 : 22, // Zwiększony line height jak w ArticleCard
-    flex: 1, // Dodany flex: 1
-    marginRight: 8, // Zmniejszony margin
-    letterSpacing: Platform.OS === 'android' ? -0.1 : -0.2, // Dodany letter spacing jak w ArticleCard
+    lineHeight: Platform.OS === 'android' ? 26 : 22, // Większy line height na Androidzie
+    flex: 1,
+    marginRight: Platform.OS === 'android' ? 10 : 8, // Większy margines na Androidzie
+    letterSpacing: Platform.OS === 'android' ? -0.05 : -0.2, // Lepszy letter spacing na Androidzie
   },
   dateBadge: {
-    paddingHorizontal: 6, // Zmniejszony padding
-    paddingVertical: 3, // Zmniejszony padding
-    borderRadius: 6, // Zmniejszony border radius
+    paddingHorizontal: Platform.OS === 'android' ? 8 : 6, // Większy padding na Androidzie
+    paddingVertical: Platform.OS === 'android' ? 4 : 3, // Większy padding na Androidzie
+    borderRadius: Platform.OS === 'android' ? 8 : 6, // Większy radius na Androidzie
   },
   dateBadgeText: {
-    fontSize: 10, // Zmniejszony font size
+    fontSize: Platform.OS === 'android' ? 11 : 10, // Większy font na Androidzie
     fontWeight: '600',
   },
   metaContainer: {
-    gap: 4, // Zmniejszony gap
-    marginBottom: 8, // Dodany margines na dole
+    gap: Platform.OS === 'android' ? 6 : 4, // Większy gap na Androidzie
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // Większy margines na Androidzie
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4, // Zmniejszony gap
+    gap: Platform.OS === 'android' ? 6 : 4, // Większy gap na Androidzie
   },
   metaText: {
-    fontSize: Platform.OS === 'android' ? 13 : 12, // Zmniejszony font size
+    fontSize: Platform.OS === 'android' ? 14 : 12, // Większy font na Androidzie jak w ArticleCard
     fontWeight: '500',
-    marginLeft: 6, // Dodany margin jak w ArticleCard
-    opacity: 0.7, // Dodana przezroczystość jak w ArticleCard
+    marginLeft: Platform.OS === 'android' ? 8 : 6, // Większy margines na Androidzie jak w ArticleCard
+    opacity: 0.7,
   },
   quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between', // Zmienione na space-between
-    marginTop: 8, // Zmniejszony margines na górze
+    justifyContent: 'space-between',
+    marginTop: Platform.OS === 'android' ? 10 : 8, // Większy margines na Androidzie
   },
   quickAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4, // Dodany gap
-    paddingHorizontal: 8, // Zmniejszony padding
-    paddingVertical: 6, // Zmniejszony padding
-    borderRadius: 8, // Zmniejszony border radius
+    gap: Platform.OS === 'android' ? 6 : 4, // Większy gap na Androidzie
+    paddingHorizontal: Platform.OS === 'android' ? 12 : 8, // Większy padding na Androidzie
+    paddingVertical: Platform.OS === 'android' ? 8 : 6, // Większy padding na Androidzie
+    borderRadius: Platform.OS === 'android' ? 10 : 8, // Większy radius na Androidzie
+    minHeight: Platform.OS === 'android' ? 44 : 36, // Minimum touch target na Androidzie
+    minWidth: Platform.OS === 'android' ? 80 : 60, // Minimum width na Androidzie
   },
   quickActionText: {
-    fontSize: 11, // Zmniejszony font size
+    fontSize: Platform.OS === 'android' ? 12 : 11, // Większy font na Androidzie
     fontWeight: '500',
   },
   emptyContainer: {

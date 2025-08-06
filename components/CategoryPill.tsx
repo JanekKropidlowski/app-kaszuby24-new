@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, Animated, Platform } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
 
 interface CategoryPillProps {
@@ -78,17 +78,18 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
 
 const styles = StyleSheet.create({
   pill: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginRight: 12,
+    paddingHorizontal: Platform.OS === 'android' ? 22 : 18, // Większy padding na Androidzie
+    paddingVertical: Platform.OS === 'android' ? 14 : 12, // Większy padding na Androidzie
+    borderRadius: Platform.OS === 'android' ? 26 : 24, // Większy radius na Androidzie
+    marginRight: Platform.OS === 'android' ? 14 : 12, // Większy margines na Androidzie
     borderWidth: 1,
     shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: Platform.OS === 'android' ? 8 : 6, // Większy shadow na Androidzie
+    elevation: Platform.OS === 'android' ? 5 : 3, // Większy elevation na Androidzie
+    minHeight: Platform.OS === 'android' ? 52 : 44, // Minimum touch target na Androidzie
   },
   text: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'android' ? 15 : 14, // Większy font na Androidzie
   },
 });
 

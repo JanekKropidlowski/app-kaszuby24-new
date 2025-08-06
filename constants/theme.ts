@@ -29,8 +29,8 @@ const getSystemFontFallback = (weight: string) => {
 // Helper function to get optimized font sizes for Android
 const getAndroidOptimizedFontSize = (baseSize: number) => {
   if (Platform.OS === 'android') {
-    // Android needs slightly larger fonts for better readability
-    return Math.round(baseSize * 1.05);
+    // Android needs larger fonts for better readability
+    return Math.round(baseSize * 1.08); // Increased from 1.05 to 1.08
   }
   return baseSize;
 };
@@ -39,9 +39,18 @@ const getAndroidOptimizedFontSize = (baseSize: number) => {
 const getAndroidOptimizedPadding = (basePadding: number) => {
   if (Platform.OS === 'android') {
     // Android needs larger touch targets
-    return Math.round(basePadding * 1.1);
+    return Math.round(basePadding * 1.15); // Increased from 1.1 to 1.15
   }
   return basePadding;
+};
+
+// Helper function to get optimized line height for Android
+const getAndroidOptimizedLineHeight = (baseLineHeight: number) => {
+  if (Platform.OS === 'android') {
+    // Android needs larger line height for better readability
+    return Math.round(baseLineHeight * 1.1);
+  }
+  return baseLineHeight;
 };
 
 export const lightTheme = {
@@ -107,17 +116,37 @@ export const lightTheme = {
       medium: getAndroidOptimizedFontSize(16),
       large: getAndroidOptimizedFontSize(18),
       xlarge: getAndroidOptimizedFontSize(20),
+      title: getAndroidOptimizedFontSize(22),
+      heading: getAndroidOptimizedFontSize(24),
+    },
+    lineHeight: {
+      small: getAndroidOptimizedLineHeight(16),
+      regular: getAndroidOptimizedLineHeight(20),
+      medium: getAndroidOptimizedLineHeight(22),
+      large: getAndroidOptimizedLineHeight(24),
+      xlarge: getAndroidOptimizedLineHeight(28),
+      title: getAndroidOptimizedLineHeight(30),
+      heading: getAndroidOptimizedLineHeight(32),
     },
     padding: {
       small: getAndroidOptimizedPadding(8),
       regular: getAndroidOptimizedPadding(12),
       medium: getAndroidOptimizedPadding(16),
       large: getAndroidOptimizedPadding(20),
+      xlarge: getAndroidOptimizedPadding(24),
     },
     height: {
-      button: Platform.OS === 'android' ? 48 : 44,
-      input: Platform.OS === 'android' ? 48 : 44,
-      touchTarget: Platform.OS === 'android' ? 44 : 40,
+      button: Platform.OS === 'android' ? 52 : 44, // Increased from 48 to 52
+      input: Platform.OS === 'android' ? 52 : 44, // Increased from 48 to 52
+      touchTarget: Platform.OS === 'android' ? 48 : 40, // Increased from 44 to 48
+      tabBar: Platform.OS === 'android' ? 64 : 56, // New for tab bar
+    },
+    spacing: {
+      xs: Platform.OS === 'android' ? 4 : 4,
+      sm: Platform.OS === 'android' ? 8 : 8,
+      md: Platform.OS === 'android' ? 16 : 12,
+      lg: Platform.OS === 'android' ? 24 : 20,
+      xl: Platform.OS === 'android' ? 32 : 28,
     },
   },
   logo: {
@@ -197,17 +226,37 @@ export const darkTheme = {
       medium: getAndroidOptimizedFontSize(16),
       large: getAndroidOptimizedFontSize(18),
       xlarge: getAndroidOptimizedFontSize(20),
+      title: getAndroidOptimizedFontSize(22),
+      heading: getAndroidOptimizedFontSize(24),
+    },
+    lineHeight: {
+      small: getAndroidOptimizedLineHeight(16),
+      regular: getAndroidOptimizedLineHeight(20),
+      medium: getAndroidOptimizedLineHeight(22),
+      large: getAndroidOptimizedLineHeight(24),
+      xlarge: getAndroidOptimizedLineHeight(28),
+      title: getAndroidOptimizedLineHeight(30),
+      heading: getAndroidOptimizedLineHeight(32),
     },
     padding: {
       small: getAndroidOptimizedPadding(8),
       regular: getAndroidOptimizedPadding(12),
       medium: getAndroidOptimizedPadding(16),
       large: getAndroidOptimizedPadding(20),
+      xlarge: getAndroidOptimizedPadding(24),
     },
     height: {
-      button: Platform.OS === 'android' ? 48 : 44,
-      input: Platform.OS === 'android' ? 48 : 44,
-      touchTarget: Platform.OS === 'android' ? 44 : 40,
+      button: Platform.OS === 'android' ? 52 : 44, // Increased from 48 to 52
+      input: Platform.OS === 'android' ? 52 : 44, // Increased from 48 to 52
+      touchTarget: Platform.OS === 'android' ? 48 : 40, // Increased from 44 to 48
+      tabBar: Platform.OS === 'android' ? 64 : 56, // New for tab bar
+    },
+    spacing: {
+      xs: Platform.OS === 'android' ? 4 : 4,
+      sm: Platform.OS === 'android' ? 8 : 8,
+      md: Platform.OS === 'android' ? 16 : 12,
+      lg: Platform.OS === 'android' ? 24 : 20,
+      xl: Platform.OS === 'android' ? 32 : 28,
     },
   },
   logo: {

@@ -1271,3 +1271,64 @@ const fetchArticlesWithCategories = async (
     totalPages: totalPages,
   };
 };
+
+// Fetch related events based on categories and location
+export const fetchRelatedEvents = async (
+  currentEventId: number,
+  categories: number[],
+  location?: string,
+  limit = 6
+): Promise<any[]> => {
+  const requestKey = `related_events_${currentEventId}_${categories.join(',')}_${location}_${limit}`;
+  
+  return deduplicateRequest(requestKey, async () => {
+    try {
+      const timestamp = new Date().getTime();
+      
+      // Try the new related-events endpoint first
+      let url = `https://kaszuby24.pl/wp-json/kaszuby24/v1/related-events?event_id=${currentEventId}&limit=${limit}&_=${timestamp}`;    
+
+      // Add category filter if available
+      if (categories && categories.length > 0) {
+        url += `&categories=${categories.join(',')}`;
+      }
+
+      // Add location filter if available
+      if (location) {
+        url += `&location=${encodeURIComponent(location)}`;
+      }
+
+      console.log('Trying related-events endpoint:', url);
+      const response = await fetchWithTimeout(url);
+
+      if (response.ok) {
+        const events = await response.json();
+        console.log('Related events from new endpoint:', events.length);
+        return Array.isArray(events) ? events.slice(0, limit) : [];
+      }
+
+      // Fallback to standard WordPress events endpoint
+      console.log('Falling back to standard WordPress events endpoint');
+      let fallbackUrl = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?per_page=${limit * 2}&exclude=${currentEventId}&_=${timestamp}`;    
+
+      // Add category filter if available
+      if (categories && categories.length > 0) {
+        fallbackUrl += `&kategoria-wydarzenia=${categories.join(',')}`;
+      }
+
+      const fallbackResponse = await fetchWithTimeout(fallbackUrl);
+
+      if (!fallbackResponse.ok) {
+        console.warn(`Events API returned ${fallbackResponse.status}: ${fallbackResponse.statusText}`);
+        return [];
+      }
+
+      const fallbackEvents = await fallbackResponse.json();
+      console.log('Related events from fallback endpoint:', fallbackEvents.length);
+      return Array.isArray(fallbackEvents) ? fallbackEvents.slice(0, limit) : [];
+    } catch (error: any) {
+      console.warn('Error fetching related events:', error);
+      return [];
+    }
+  });
+};

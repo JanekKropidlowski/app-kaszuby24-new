@@ -17,6 +17,15 @@ const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 }) => {
   const { theme } = useThemeStore();
   
+  // Fallback if theme is not loaded yet
+  if (!theme) {
+    return (
+      <View style={fullScreen ? styles.fullScreen : styles.container}>
+        <ActivityIndicator size={size} color="#224A96" />
+      </View>
+    );
+  }
+  
   if (fullScreen) {
     return (
       <View style={[styles.fullScreen, { backgroundColor: theme.colors.background }]}>

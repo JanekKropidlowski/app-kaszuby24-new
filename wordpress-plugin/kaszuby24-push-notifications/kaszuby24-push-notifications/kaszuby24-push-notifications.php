@@ -72,16 +72,25 @@ class Kaszuby24_Push_Notifications {
         add_option('kaszuby24_push_auto_send', 1);
         add_option('kaszuby24_push_batch_size', 100);
         add_option('kaszuby24_push_rate_limit', 600); // 10 minutes
+        add_option('kaszuby24_push_rich_notifications', 1);
+        add_option('kaszuby24_push_analytics_enabled', 1);
         
         // Schedule cleanup cron job
         if (!wp_next_scheduled('kaszuby24_push_cleanup')) {
             wp_schedule_event(time(), 'daily', 'kaszuby24_push_cleanup');
+        }
+        
+        // Schedule processing of scheduled notifications (every 5 minutes)
+        if (!wp_next_scheduled('kaszuby24_process_scheduled_notifications')) {
+            wp_schedule_event(time(), 'kaszuby24_every_5_minutes', 'kaszuby24_process_scheduled_notifications');
         }
     }
     
     public function deactivate() {
         // Clear scheduled hooks
         wp_clear_scheduled_hook('kaszuby24_push_cleanup');
+        wp_clear_scheduled_hook('kaszuby24_process_scheduled_notifications');
+        wp_clear_scheduled_hook('kaszuby24_check_push_receipts');
     }
 }
 
@@ -106,4 +115,63 @@ add_action('kaszuby24_push_cleanup', function() {
         "DELETE FROM $logs_table WHERE created_at < %s",
         date('Y-m-d H:i:s', strtotime('-30 days'))
     ));
+    
+    // Remove old scheduled notifications
+    $scheduled_table = $wpdb->prefix . 'kaszuby24_push_scheduled';
+    $wpdb->query($wpdb->prepare(
+        "DELETE FROM $scheduled_table WHERE status = 'sent' AND sent_at < %s",
+        date('Y-m-d H:i:s', strtotime('-7 days'))
+    ));
+    
+    // Remove old analytics data (keep 6 months)
+    $analytics_table = $wpdb->prefix . 'kaszuby24_push_analytics';
+    $wpdb->query($wpdb->prepare(
+        "DELETE FROM $analytics_table WHERE created_at < %s",
+        date('Y-m-d H:i:s', strtotime('-6 months'))
+    ));
+});
+
+// Scheduled notifications cron job
+add_action('kaszuby24_process_scheduled_notifications', function() {
+    $database = new Kaszuby24_Push_Database();
+    $expo_push = new Kaszuby24_Expo_Push();
+    
+    $pending_notifications = $database->get_pending_scheduled_notifications();
+    
+    foreach ($pending_notifications as $notification) {
+        $notification_data = array(
+            'title' => $notification->title,
+            'body' => $notification->body,
+            'article_id' => $notification->article_id,
+            'image' => $notification->image,
+            'icon' => $notification->icon,
+            'regions' => json_decode($notification->regions, true) ?: array(),
+            'categories' => json_decode($notification->categories, true) ?: array(),
+            'options' => json_decode($notification->options, true) ?: array()
+        );
+        
+        $result = $expo_push->send_scheduled_notification($notification_data);
+        
+        if ($result) {
+            $database->mark_scheduled_notification_sent($notification->id);
+            error_log("Scheduled notification {$notification->id} sent successfully");
+        } else {
+            error_log("Failed to send scheduled notification {$notification->id}");
+        }
+    }
+});
+
+// Receipt checking cron job
+add_action('kaszuby24_check_push_receipts', function($receipt_ids, $article_id = null) {
+    $expo_push = new Kaszuby24_Expo_Push();
+    $expo_push->check_push_receipts($receipt_ids, $article_id);
+});
+
+// Add custom cron schedule
+add_filter('cron_schedules', function($schedules) {
+    $schedules['kaszuby24_every_5_minutes'] = array(
+        'interval' => 300, // 5 minutes in seconds
+        'display' => __('Every 5 Minutes', 'kaszuby24-push')
+    );
+    return $schedules;
 }); 

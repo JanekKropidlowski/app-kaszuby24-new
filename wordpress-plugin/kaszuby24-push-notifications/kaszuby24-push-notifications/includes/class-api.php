@@ -102,6 +102,86 @@ class Kaszuby24_Push_API {
             )
         ));
         
+        // Track notification analytics endpoint
+        register_rest_route('kaszuby24/v1', '/track-notification', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'track_notification'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'notification_id' => array(
+                    'required' => true,
+                    'type' => 'string'
+                ),
+                'action' => array(
+                    'required' => true,
+                    'type' => 'string'
+                ),
+                'platform' => array(
+                    'required' => false,
+                    'type' => 'string'
+                ),
+                'location' => array(
+                    'required' => false,
+                    'type' => 'string'
+                ),
+                'article_id' => array(
+                    'required' => false,
+                    'type' => 'integer'
+                )
+            )
+        ));
+        
+        // Get analytics endpoint
+        register_rest_route('kaszuby24/v1', '/push-analytics', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_analytics'),
+            'permission_callback' => array($this, 'check_admin_permissions'),
+            'args' => array(
+                'article_id' => array(
+                    'required' => false,
+                    'type' => 'integer'
+                ),
+                'days' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'default' => 30
+                )
+            )
+        ));
+        
+        // Schedule notification endpoint
+        register_rest_route('kaszuby24/v1', '/schedule-notification', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'schedule_notification'),
+            'permission_callback' => array($this, 'check_admin_permissions'),
+            'args' => array(
+                'title' => array(
+                    'required' => true,
+                    'type' => 'string'
+                ),
+                'body' => array(
+                    'required' => true,
+                    'type' => 'string'
+                ),
+                'scheduled_time' => array(
+                    'required' => true,
+                    'type' => 'string'
+                ),
+                'article_id' => array(
+                    'required' => false,
+                    'type' => 'integer'
+                ),
+                'regions' => array(
+                    'required' => false,
+                    'type' => 'array'
+                ),
+                'categories' => array(
+                    'required' => false,
+                    'type' => 'array'
+                )
+            )
+        ));
+        
         register_rest_route('kaszuby24/v1', '/posts-filtered', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_filtered_posts'),
@@ -174,6 +254,51 @@ class Kaszuby24_Push_API {
             'methods' => 'GET',
             'callback' => array($this, 'get_event_counts'),
             'permission_callback' => '__return_true'
+        ));
+        
+        /**
+         * Get individual event by ID
+         */
+        register_rest_route('kaszuby24/v1', '/events/(?P<id>\d+)', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_event_by_id'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'id' => array(
+                    'required' => true,
+                    'type' => 'integer',
+                    'sanitize_callback' => 'absint'
+                )
+            )
+        ));
+        
+        /**
+         * Get related events
+         */
+        register_rest_route('kaszuby24/v1', '/related-events', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_related_events'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'event_id' => array(
+                    'required' => true,
+                    'type' => 'integer',
+                    'sanitize_callback' => 'absint'
+                ),
+                'categories' => array(
+                    'required' => false,
+                    'type' => 'string'
+                ),
+                'location' => array(
+                    'required' => false,
+                    'type' => 'string'
+                ),
+                'limit' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'default' => 6
+                )
+            )
         ));
         
         register_rest_route('kaszuby24/v1', '/saved-events', array(
@@ -592,6 +717,8 @@ class Kaszuby24_Push_API {
             $filters = is_array($filter) ? $filter : ($filter ? [$filter] : []);
             error_log("API Debug - Raw filter param: " . print_r($filter, true));
             error_log("API Debug - Processed filters: " . print_r($filters, true));
+            error_log("API Debug - Filter type: " . gettype($filter));
+            error_log("API Debug - Filters array: " . print_r($filters, true));
             $city = $request->get_param('city');
             $category = $request->get_param('category');
             $search = $request->get_param('search');
@@ -618,6 +745,10 @@ class Kaszuby24_Push_API {
             $timeFilters = ['today', 'this-weekend', 'this-week'];
             $hasTimeFilter = !empty($filters) && !empty(array_intersect($filters, $timeFilters));
             
+            error_log("API Debug - Filters: " . print_r($filters, true));
+            error_log("API Debug - Time filters: " . print_r($timeFilters, true));
+            error_log("API Debug - Has time filter: " . ($hasTimeFilter ? 'true' : 'false'));
+            
             if (!$hasTimeFilter) {
                 $meta_query[] = array(
                     'key' => 'sama-data',
@@ -625,6 +756,7 @@ class Kaszuby24_Push_API {
                     'compare' => '>=',
                     'type' => 'NUMERIC'
                 );
+                error_log("API Debug - Added default filter: >= " . date('Y-m-d H:i:s', $today));
             }
             
             // NOWE: obsługa wielu filtrów
@@ -645,6 +777,7 @@ class Kaszuby24_Push_API {
                                 'compare' => 'BETWEEN',
                                 'type' => 'NUMERIC'
                             );
+                            error_log("API Debug - Added today filter to meta_query");
                             break;
                             
                         case 'this-weekend':
@@ -1095,6 +1228,342 @@ class Kaszuby24_Push_API {
         } catch (Exception $e) {
             error_log("Error in get_saved_events: " . $e->getMessage());
             return new WP_Error('saved_events_error', 'Error fetching saved events', array('status' => 500));
+        }
+    }
+    
+    public function track_notification($request) {
+        try {
+            $notification_id = sanitize_text_field($request['notification_id']);
+            $action = sanitize_text_field($request['action']);
+            $platform = sanitize_text_field($request['platform'] ?? '');
+            $location = sanitize_text_field($request['location'] ?? '');
+            $article_id = intval($request['article_id'] ?? 0);
+            
+            $result = $this->database->log_notification_analytics(
+                $notification_id,
+                $action,
+                $platform,
+                $location,
+                $article_id ?: null
+            );
+            
+            if ($result) {
+                return new WP_REST_Response(array(
+                    'success' => true,
+                    'message' => 'Analytics tracked successfully'
+                ), 200);
+            } else {
+                return new WP_Error('tracking_failed', 'Failed to track analytics', array('status' => 500));
+            }
+            
+        } catch (Exception $e) {
+            error_log('Notification tracking error: ' . $e->getMessage());
+            return new WP_Error('tracking_error', 'Failed to track notification', array('status' => 500));
+        }
+    }
+    
+    public function get_analytics($request) {
+        try {
+            $article_id = intval($request['article_id'] ?? 0);
+            $days = intval($request['days'] ?? 30);
+            
+            $analytics = $this->database->get_notification_analytics(
+                $article_id ?: null,
+                $days
+            );
+            
+            $delivery_stats = $this->database->get_delivery_stats(
+                $article_id ?: null,
+                $days
+            );
+            
+            return new WP_REST_Response(array(
+                'success' => true,
+                'analytics' => $analytics,
+                'delivery_stats' => $delivery_stats,
+                'period_days' => $days
+            ), 200);
+            
+        } catch (Exception $e) {
+            error_log('Analytics retrieval error: ' . $e->getMessage());
+            return new WP_Error('analytics_error', 'Failed to get analytics', array('status' => 500));
+        }
+    }
+    
+    public function schedule_notification($request) {
+        try {
+            $title = sanitize_text_field($request['title']);
+            $body = sanitize_textarea_field($request['body']);
+            $scheduled_time = sanitize_text_field($request['scheduled_time']);
+            $article_id = intval($request['article_id'] ?? 0);
+            $regions = $request['regions'] ?? array();
+            $categories = $request['categories'] ?? array();
+            
+            // Validate scheduled time
+            $scheduled_timestamp = strtotime($scheduled_time);
+            if (!$scheduled_timestamp || $scheduled_timestamp <= time()) {
+                return new WP_Error('invalid_time', 'Scheduled time must be in the future', array('status' => 400));
+            }
+            
+            $notification_data = array(
+                'title' => $title,
+                'body' => $body,
+                'scheduled_time' => date('Y-m-d H:i:s', $scheduled_timestamp),
+                'article_id' => $article_id ?: null,
+                'regions' => $regions,
+                'categories' => $categories
+            );
+            
+            $result = $this->database->schedule_notification($notification_data);
+            
+            if ($result) {
+                return new WP_REST_Response(array(
+                    'success' => true,
+                    'message' => 'Notification scheduled successfully',
+                    'scheduled_id' => $this->database->wpdb->insert_id,
+                    'scheduled_time' => $scheduled_time
+                ), 200);
+            } else {
+                return new WP_Error('scheduling_failed', 'Failed to schedule notification', array('status' => 500));
+            }
+            
+        } catch (Exception $e) {
+            error_log('Notification scheduling error: ' . $e->getMessage());
+            return new WP_Error('scheduling_error', 'Failed to schedule notification', array('status' => 500));
+        }
+    }
+    
+    /**
+     * Get individual event by ID
+     */
+    public function get_event_by_id($request) {
+        try {
+            $event_id = $request['id'];
+            
+            // Get the event post
+            $event = get_post($event_id);
+            
+            if (!$event || $event->post_type !== 'wydarzenie') {
+                return new WP_Error('event_not_found', 'Event not found', array('status' => 404));
+            }
+            
+            // Get event data
+            $event_data = array(
+                'id' => $event->ID,
+                'title' => array(
+                    'rendered' => get_the_title($event->ID)
+                ),
+                'excerpt' => array(
+                    'rendered' => get_the_excerpt($event->ID),
+                    'protected' => false
+                ),
+                'content' => array(
+                    'rendered' => get_the_content(null, false, $event->ID),
+                    'protected' => false
+                ),
+                'date' => get_post_meta($event->ID, 'sama-data', true),
+                'modified' => get_the_modified_date('c', $event->ID),
+                'link' => get_permalink($event->ID),
+                'slug' => get_post_field('post_name', $event->ID),
+                'featured_media' => get_post_thumbnail_id($event->ID),
+                'featured_media_url' => get_the_post_thumbnail_url($event->ID, 'full'),
+                'meta' => array(
+                    'miasto' => get_post_meta($event->ID, 'miasto', true),
+                    'cena' => get_post_meta($event->ID, 'cena', true),
+                    'opis-wydarzenia' => get_post_meta($event->ID, 'opis-wydarzenia', true),
+                    'link-do-wydarzenia' => get_post_meta($event->ID, 'link-do-wydarzenia', true)
+                )
+            );
+            
+            // Get embedded data
+            $event_data['_embedded'] = array(
+                'wp:featuredmedia' => array(),
+                'wp:term' => array()
+            );
+            
+            // Get featured media
+            if (has_post_thumbnail($event->ID)) {
+                $event_data['_embedded']['wp:featuredmedia'][] = array(
+                    'id' => get_post_thumbnail_id($event->ID),
+                    'source_url' => get_the_post_thumbnail_url($event->ID, 'full'),
+                    'media_details' => array(
+                        'sizes' => array(
+                            'medium' => array(
+                                'source_url' => get_the_post_thumbnail_url($event->ID, 'medium')
+                            ),
+                            'thumbnail' => array(
+                                'source_url' => get_the_post_thumbnail_url($event->ID, 'thumbnail')
+                            )
+                        )
+                    )
+                );
+            }
+            
+            // Get terms (categories)
+            $categories = get_the_terms($event->ID, 'kategoria-wydarzenia');
+            if ($categories && !is_wp_error($categories)) {
+                $event_data['_embedded']['wp:term'][] = array_map(function($term) {
+                    return array(
+                        'id' => $term->term_id,
+                        'name' => $term->name,
+                        'taxonomy' => $term->taxonomy
+                    );
+                }, $categories);
+            }
+            
+            // Get category IDs for filtering
+            $category_ids = wp_get_post_terms($event->ID, 'kategoria-wydarzenia', array('fields' => 'ids'));
+            if (!is_wp_error($category_ids)) {
+                $event_data['kategoria-wydarzenia'] = $category_ids;
+            }
+            
+            return new WP_REST_Response($event_data, 200);
+            
+        } catch (Exception $e) {
+            return new WP_Error('event_error', $e->getMessage(), array('status' => 500));
+        }
+    }
+    
+    /**
+     * Get related events based on categories and location
+     */
+    public function get_related_events($request) {
+        try {
+            $event_id = $request['event_id'];
+            $categories = $request['categories'] ? explode(',', $request['categories']) : array();
+            $location = $request['location'] ? sanitize_text_field($request['location']) : '';
+            $limit = $request['limit'] ? intval($request['limit']) : 6;
+            
+            // Get current event to extract categories and location if not provided
+            $current_event = get_post($event_id);
+            if (!$current_event || $current_event->post_type !== 'wydarzenie') {
+                return new WP_Error('event_not_found', 'Current event not found', array('status' => 404));
+            }
+            
+            // If categories not provided, get them from current event
+            if (empty($categories)) {
+                $category_ids = wp_get_post_terms($event_id, 'kategoria-wydarzenia', array('fields' => 'ids'));
+                if (!is_wp_error($category_ids) && !empty($category_ids)) {
+                    $categories = $category_ids;
+                }
+            }
+            
+            // If location not provided, get it from current event
+            if (empty($location)) {
+                $location = get_post_meta($event_id, 'miasto', true);
+            }
+            
+            // Build query arguments
+            $args = array(
+                'post_type' => 'wydarzenie',
+                'post_status' => 'publish',
+                'posts_per_page' => $limit,
+                'post__not_in' => array($event_id), // Exclude current event
+                'meta_query' => array(),
+                'tax_query' => array()
+            );
+            
+            // Add location filter if provided
+            if (!empty($location)) {
+                $args['meta_query'][] = array(
+                    'key' => 'miasto',
+                    'value' => $location,
+                    'compare' => 'LIKE'
+                );
+            }
+            
+            // Add category filter if provided
+            if (!empty($categories)) {
+                $args['tax_query'][] = array(
+                    'taxonomy' => 'kategoria-wydarzenia',
+                    'field' => 'term_id',
+                    'terms' => $categories,
+                    'operator' => 'IN'
+                );
+            }
+            
+            // If we have both location and categories, use OR relation
+            if (!empty($location) && !empty($categories)) {
+                $args['meta_query']['relation'] = 'OR';
+                $args['tax_query']['relation'] = 'OR';
+            }
+            
+            // Order by date (upcoming events first)
+            $args['meta_key'] = 'sama-data';
+            $args['orderby'] = 'meta_value';
+            $args['order'] = 'ASC';
+            
+            // Get related events
+            $related_events = get_posts($args);
+            
+            $events_data = array();
+            
+            foreach ($related_events as $event) {
+                $event_data = array(
+                    'id' => $event->ID,
+                    'title' => array(
+                        'rendered' => get_the_title($event->ID)
+                    ),
+                    'excerpt' => array(
+                        'rendered' => get_the_excerpt($event->ID),
+                        'protected' => false
+                    ),
+                    'date' => get_post_meta($event->ID, 'sama-data', true),
+                    'link' => get_permalink($event->ID),
+                    'slug' => get_post_field('post_name', $event->ID),
+                    'featured_media' => get_post_thumbnail_id($event->ID),
+                    'featured_media_url' => get_the_post_thumbnail_url($event->ID, 'full'),
+                    'meta' => array(
+                        'miasto' => get_post_meta($event->ID, 'miasto', true),
+                        'cena' => get_post_meta($event->ID, 'cena', true),
+                        'opis-wydarzenia' => get_post_meta($event->ID, 'opis-wydarzenia', true),
+                        'link-do-wydarzenia' => get_post_meta($event->ID, 'link-do-wydarzenia', true)
+                    )
+                );
+                
+                // Get embedded data
+                $event_data['_embedded'] = array(
+                    'wp:featuredmedia' => array(),
+                    'wp:term' => array()
+                );
+                
+                // Get featured media
+                if (has_post_thumbnail($event->ID)) {
+                    $event_data['_embedded']['wp:featuredmedia'][] = array(
+                        'id' => get_post_thumbnail_id($event->ID),
+                        'source_url' => get_the_post_thumbnail_url($event->ID, 'full'),
+                        'media_details' => array(
+                            'sizes' => array(
+                                'medium' => array(
+                                    'source_url' => get_the_post_thumbnail_url($event->ID, 'medium')
+                                ),
+                                'thumbnail' => array(
+                                    'source_url' => get_the_post_thumbnail_url($event->ID, 'thumbnail')
+                                )
+                            )
+                        )
+                    );
+                }
+                
+                // Get terms (categories)
+                $categories = get_the_terms($event->ID, 'kategoria-wydarzenia');
+                if ($categories && !is_wp_error($categories)) {
+                    $event_data['_embedded']['wp:term'][] = array_map(function($term) {
+                        return array(
+                            'id' => $term->term_id,
+                            'name' => $term->name,
+                            'taxonomy' => $term->taxonomy
+                        );
+                    }, $categories);
+                }
+                
+                $events_data[] = $event_data;
+            }
+            
+            return new WP_REST_Response($events_data, 200);
+            
+        } catch (Exception $e) {
+            return new WP_Error('related_events_error', $e->getMessage(), array('status' => 500));
         }
     }
 } 

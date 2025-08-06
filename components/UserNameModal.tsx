@@ -51,9 +51,10 @@ export const UserNameModal = ({ visible, onClose, onSave, currentName = '' }: Us
             }]}>
               Jak masz na imię?
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            {/* X button removed */}
+            {/* <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={24} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           <Text style={[styles.subtitle, { 

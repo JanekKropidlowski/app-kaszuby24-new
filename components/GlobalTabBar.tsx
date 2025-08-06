@@ -13,6 +13,25 @@ const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
   const { theme } = useThemeStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  
+  // Oblicz właściwy padding dla Androida z safe area
+  const getBottomPadding = () => {
+    if (Platform.OS === 'ios') {
+      return insets.bottom > 0 ? insets.bottom : 32;
+    }
+    // Android: zawsze dodaj minimum 20px + safe area
+    const androidPadding = Math.max(20, insets.bottom) + 20;
+    console.log('Android Tab Bar - Safe Area Bottom:', insets.bottom, 'Final Padding:', androidPadding);
+    return androidPadding;
+  };
+  
+  const getTabBarHeight = () => {
+    if (Platform.OS === 'ios') {
+      return 110;
+    }
+    // Android: bazowa wysokość + padding
+    return 80 + getBottomPadding();
+  };
 
   return (
     <View style={[
@@ -21,9 +40,9 @@ const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
         backgroundColor: theme.colors.tabBarBackground, 
         borderTopColor: theme.colors.border,
         borderTopWidth: 1,
-        paddingBottom: insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 32 : 18),
-        paddingTop: 16,
-        height: Platform.OS === 'ios' ? 110 : 98
+        paddingBottom: getBottomPadding(),
+        paddingTop: Platform.OS === 'android' ? 20 : 16,
+        height: getTabBarHeight()
       }
     ]}>
       <TabBarButton
@@ -69,13 +88,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    elevation: 8,
+    elevation: Platform.OS === 'android' ? 12 : 8, // Increased elevation for Android
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    shadowOpacity: Platform.OS === 'android' ? 0.15 : 0.1, // Increased shadow for Android
+    shadowRadius: Platform.OS === 'android' ? 12 : 8, // Increased shadow radius for Android
+    borderTopLeftRadius: Platform.OS === 'android' ? 32 : 28, // Increased radius for Android
+    borderTopRightRadius: Platform.OS === 'android' ? 32 : 28, // Increased radius for Android
     zIndex: 10,
   },
 });

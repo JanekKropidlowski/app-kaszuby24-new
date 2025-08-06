@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     fontSize: Platform.OS === 'android' ? 12 : 13, // Zwiększona czcionka na Android dla lepszej czytelności
     color: GRANT,
     fontFamily: Platform.OS === 'ios' ? 'Poppins_Bold' : 'Poppins_Bold',
-    fontWeight: Platform.OS === 'android' ? 'bold' : 'normal',
+    fontWeight: Platform.OS === 'android' ? '700' : 'normal',
   },
   closeBtn: {
     marginLeft: Platform.OS === 'android' ? 12 : 14, // Mniejszy margin na Android

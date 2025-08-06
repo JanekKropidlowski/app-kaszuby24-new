@@ -173,8 +173,8 @@ const EventFilters: React.FC<EventFiltersProps> = ({
       {/* Expanded Filters */}
       {isExpanded && (
         <View style={styles.expandedContent}>
-          {/* Clear Button */}
-          {hasActiveFilters && (
+          {/* Clear Button - X removed */}
+          {/* {hasActiveFilters && (
             <TouchableOpacity 
               style={styles.clearButton}
               onPress={clearAllFilters}
@@ -184,7 +184,7 @@ const EventFilters: React.FC<EventFiltersProps> = ({
                 Wyczyść wszystkie filtry
               </Text>
             </TouchableOpacity>
-          )}
+          )} */}
           
           {/* City and Category Filters */}
           <View style={styles.mainFiltersRow}>

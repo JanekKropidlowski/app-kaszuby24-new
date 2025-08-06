@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path, G, Circle } from 'react-native-svg';
@@ -116,7 +116,7 @@ export const WelcomeGreeting = ({ compact = false, enlarged = false }: WelcomeGr
           <Text style={[styles.greetingText, { 
             color: theme.colors.textSecondary,
             fontFamily: theme.fontFamily.light,
-            fontSize: enlarged ? 14 : 12
+            fontSize: enlarged ? (Platform.OS === 'android' ? 15 : 14) : (Platform.OS === 'android' ? 13 : 12) // Większe fonty na Androidzie
           }]}>
             {greeting}
           </Text>
@@ -124,7 +124,7 @@ export const WelcomeGreeting = ({ compact = false, enlarged = false }: WelcomeGr
             <Text style={[styles.nameText, { 
               color: theme.isDarkMode ? '#FFFFFF' : '#1E293B',
               fontFamily: theme.fontFamily.bold,
-              fontSize: enlarged ? 22 : 18
+              fontSize: enlarged ? (Platform.OS === 'android' ? 24 : 22) : (Platform.OS === 'android' ? 19 : 18) // Większe fonty na Androidzie
             }]}>
               {userName}
             </Text>
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: Platform.OS === 'android' ? 12 : 10, // Większy gap na Androidzie
   },
   iconContainer: {
     width: 26,
@@ -156,17 +156,17 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flexDirection: 'column',
-    gap: -2,
+    gap: Platform.OS === 'android' ? -1 : -2, // Lepsze spacing na Androidzie
   },
   greetingText: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'android' ? 13 : 12, // Większy font na Androidzie
     fontWeight: '300',
-    letterSpacing: 0.2,
+    letterSpacing: Platform.OS === 'android' ? 0.3 : 0.2, // Lepsze letter spacing na Androidzie
     opacity: 0.8,
   },
   nameText: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'android' ? 19 : 18, // Większy font na Androidzie
     fontWeight: '700',
-    letterSpacing: -0.4,
+    letterSpacing: Platform.OS === 'android' ? -0.3 : -0.4, // Lepsze letter spacing na Androidzie
   },
 }); 

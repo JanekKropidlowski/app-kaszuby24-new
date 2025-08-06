@@ -469,7 +469,7 @@ export default function ArticleSlugScreen() {
   const enhancedHtml = useMemo(() => {
     if (!article) return '';
     
-    const cleanedHtml = cleanHtml(article.content.rendered);
+    const cleanedHtml = cleanHtml(article.content.rendered, isDarkMode);
     
     return `
       <!DOCTYPE html>
@@ -488,7 +488,7 @@ export default function ArticleSlugScreen() {
           
           body {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             line-height: 1.6;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
             background-color: ${isDarkMode ? '#1E293B' : '#F8FAFC'} !important;
@@ -506,7 +506,7 @@ export default function ArticleSlugScreen() {
             margin-bottom: 16px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             line-height: 1.6 !important;
             font-weight: 400 !important;
           }
@@ -544,9 +544,9 @@ export default function ArticleSlugScreen() {
           h1 { font-size: 22px !important; }
           h2 { font-size: 18px !important; }
           h3 { font-size: 16px !important; }
-          h4 { font-size: 14px !important; }
-          h5 { font-size: 13px !important; }
-          h6 { font-size: 12px !important; }
+          h4 { font-size: 15px !important; }
+          h5 { font-size: 14px !important; }
+          h6 { font-size: 13px !important; }
           
           blockquote {
             position: relative !important;
@@ -594,7 +594,7 @@ export default function ArticleSlugScreen() {
             margin-bottom: 10px !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             line-height: 1.5 !important;
           }
           
@@ -613,7 +613,7 @@ export default function ArticleSlugScreen() {
             text-align: left !important;
             font-family: 'Poppins', sans-serif !important;
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
           }
           
           th {
@@ -630,6 +630,21 @@ export default function ArticleSlugScreen() {
           /* Force text color on all elements */
           *, *::before, *::after {
             color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+          }
+          
+          /* Force bold styling */
+          strong, b {
+            font-weight: 700 !important;
+            font-family: 'Poppins', sans-serif !important;
+            color: ${isDarkMode ? '#F1F5F9' : '#1E293B'} !important;
+            font-size: 14px !important;
+            line-height: 1.6 !important;
+          }
+          
+          /* Force bold on any element with font-weight: bold */
+          [style*="font-weight: bold"], [style*="font-weight:bold"] {
+            font-weight: 700 !important;
+            font-family: 'Poppins', sans-serif !important;
           }
           
           /* iOS specific fixes */
@@ -864,7 +879,7 @@ export default function ArticleSlugScreen() {
               fontFamily: theme.fontFamily.regular
             }
           ]}>
-            📷 Zdjęcie: {photoCredit}
+            fot. {photoCredit}
           </Text>
         )}
         
@@ -876,7 +891,7 @@ export default function ArticleSlugScreen() {
               fontFamily: theme.fontFamily.regular
             }
           ]}>
-            ℹ️ Źródło: {metaSource}
+            źródło: {metaSource}
           </Text>
         )}
       </View>
@@ -1248,7 +1263,7 @@ const styles = StyleSheet.create({
   featuredImageContainer: {
     position: 'relative',
     width: '100%',
-    height: height * 0.45,
+    height: height * 0.55, // Zwiększone z 0.45 na 0.55
     marginTop: 0, // Usunięty zbędny margines
   },
   featuredImage: {

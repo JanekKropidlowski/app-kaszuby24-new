@@ -1022,13 +1022,13 @@ export default function HomeScreen() {
               onWeatherPress={handleWeatherPress}
             />
             
-            {/* Notifications Banner */}
-            {shouldShowBanner() && (
+            {/* Notifications Banner - REMOVED */}
+            {/* {shouldShowBanner() && (
               <NotificationsBanner
                 onPress={handleBannerPress}
                 onDismiss={handleBannerDismiss}
               />
-            )}
+            )} */}
             
             {/* Enhanced Latest Articles Carousel */}
             {featuredArticles.length > 0 && (
@@ -1099,11 +1099,11 @@ export default function HomeScreen() {
         legacyImplementation={false}
       />
       
-      {/* Welcome Modal */}
-      <WelcomeNotifications
+      {/* Welcome Modal - REMOVED */}
+      {/* <WelcomeNotifications
         visible={showWelcomeModal}
         onClose={handleWelcomeClose}
-      />
+      /> */}
 
 
     </View>
@@ -1116,16 +1116,16 @@ const styles = StyleSheet.create({
     // backgroundColor będzie ustawiony dynamicznie przez theme.colors.background
   },
   listContent: {
-    paddingBottom: 150, // Increased to accommodate bigger modern bottom menu
+    paddingBottom: Platform.OS === 'android' ? 160 : 150, // Increased padding for Android
   },
   carouselContainer: {
-    marginTop: 12,
-    marginBottom: 28,
+    marginTop: Platform.OS === 'android' ? 14 : 12, // More spacing on Android
+    marginBottom: Platform.OS === 'android' ? 32 : 28, // More spacing on Android
     width: '100%',
   },
   carouselListContent: {
     paddingHorizontal: CAROUSEL_SIDE_PEEK,
-    paddingVertical: 6,
+    paddingVertical: Platform.OS === 'android' ? 8 : 6, // More padding on Android
     alignItems: 'center',
   },
   carouselItemWrapper: {
@@ -1185,14 +1185,14 @@ const styles = StyleSheet.create({
   },
   carouselLabel: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: Platform.OS === 'android' ? 12 : 11, // Większy font na Androidzie
     fontWeight: '600',
-    letterSpacing: 0.4,
-    marginLeft: 4,
+    letterSpacing: Platform.OS === 'android' ? 0.5 : 0.4, // Lepsze letter spacing na Androidzie
+    marginLeft: Platform.OS === 'android' ? 5 : 4, // Większy margines na Androidzie
   },
   carouselTitle: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: Platform.OS === 'android' ? 18 : 17, // Większy font na Androidzie
     fontWeight: '700',
     lineHeight: 23,
     marginBottom: 14,
@@ -1306,17 +1306,17 @@ const styles = StyleSheet.create({
   },
   newCarouselLabel: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: Platform.OS === 'android' ? 13 : 12, // Większy font na Androidzie
     fontWeight: '600',
-    letterSpacing: 0.4,
-    marginLeft: 4,
+    letterSpacing: Platform.OS === 'android' ? 0.5 : 0.4, // Lepsze letter spacing na Androidzie
+    marginLeft: Platform.OS === 'android' ? 5 : 4, // Większy margines na Androidzie
   },
   newCarouselTitle: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: Platform.OS === 'android' ? 18 : 17, // Większy font na Androidzie
     fontWeight: '700',
-    lineHeight: 23,
-    marginBottom: 16,
+    lineHeight: Platform.OS === 'android' ? 25 : 23, // Większy line height na Androidzie
+    marginBottom: Platform.OS === 'android' ? 18 : 16, // Większy margines na Androidzie
     textShadowColor: 'rgba(0, 0, 0, 0.7)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
@@ -1328,69 +1328,71 @@ const styles = StyleSheet.create({
   },
   newCarouselReadMore: {
     color: '#FFFFFF',
-    fontSize: 13,
-    marginRight: 6,
+    fontSize: Platform.OS === 'android' ? 14 : 13, // Większy font na Androidzie
+    marginRight: Platform.OS === 'android' ? 7 : 6, // Większy margines na Androidzie
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: Platform.OS === 'android' ? 0.3 : 0.2, // Lepsze letter spacing na Androidzie
   },
   categoriesContainer: {
-    marginBottom: 24,
+    marginBottom: Platform.OS === 'android' ? 28 : 24, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   categoriesContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: Platform.OS === 'android' ? 20 : 16, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 8 : 6, // More padding on Android
     alignItems: 'center',
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: Platform.OS === 'android' ? 18 : 16, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 12 : 10, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 22 : 20, // Larger radius on Android
     borderWidth: 1.5,
-    marginRight: 10,
+    marginRight: Platform.OS === 'android' ? 12 : 10, // More spacing on Android
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
     backgroundColor: 'transparent', // Dodane przezroczyste tło
+    minHeight: Platform.OS === 'android' ? 48 : 44, // Minimum touch target on Android
   },
   categoryEmoji: {
-    fontSize: 16,
-    marginRight: 8,
+    fontSize: Platform.OS === 'android' ? 18 : 16, // Larger emoji on Android
+    marginRight: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'android' ? 15 : 14, // Larger font on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    marginTop: 8,
+    paddingHorizontal: Platform.OS === 'android' ? 20 : 16, // More padding on Android
+    marginBottom: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+    marginTop: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: Platform.OS === 'android' ? 24 : 22, // Larger font on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionMoreButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 18,
+    paddingHorizontal: Platform.OS === 'android' ? 14 : 12, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 8 : 6, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 20 : 18, // Larger radius on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
+    minHeight: Platform.OS === 'android' ? 44 : 40, // Minimum touch target on Android
   },
   sectionMoreText: {
-    fontSize: 14,
-    marginRight: 4,
+    fontSize: Platform.OS === 'android' ? 15 : 14, // Larger font on Android
+    marginRight: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   // New improved footer styles
@@ -1398,40 +1400,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
-    gap: 12,
+    paddingVertical: Platform.OS === 'android' ? 28 : 24, // More padding on Android
+    gap: Platform.OS === 'android' ? 14 : 12, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'android' ? 17 : 16, // Larger font on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   endFooter: {
-    paddingVertical: 40,
+    paddingVertical: Platform.OS === 'android' ? 44 : 40, // More padding on Android
     alignItems: 'center',
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   endDivider: {
     width: '30%',
     height: 1,
-    marginBottom: 20,
+    marginBottom: Platform.OS === 'android' ? 24 : 20, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   endText: {
-    fontSize: 18,
-    marginBottom: 4,
+    fontSize: Platform.OS === 'android' ? 20 : 18, // Larger font on Android
+    marginBottom: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   endSubtext: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'android' ? 15 : 14, // Larger font on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   nekrologCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 18,
+    marginHorizontal: Platform.OS === 'android' ? 20 : 16, // More margin on Android
+    marginBottom: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+    borderRadius: Platform.OS === 'android' ? 20 : 18, // Larger radius on Android
     borderWidth: 1,
-    padding: 14,
+    padding: Platform.OS === 'android' ? 16 : 14, // More padding on Android
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -1445,11 +1447,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   nekrologImageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: Platform.OS === 'android' ? 66 : 60, // Larger image on Android
+    height: Platform.OS === 'android' ? 66 : 60, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 33 : 30, // Larger radius on Android
     overflow: 'hidden',
-    marginRight: 16,
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent', // Dodane przezroczyste tło
@@ -1464,31 +1466,31 @@ const styles = StyleSheet.create({
   nekrologHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: Platform.OS === 'android' ? 8 : 6, // More spacing on Android
   },
   nekrologBadge: {
-    fontSize: 11,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    fontSize: Platform.OS === 'android' ? 12 : 11, // Larger font on Android
+    paddingHorizontal: Platform.OS === 'android' ? 10 : 8, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 5 : 3, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 12 : 10, // Larger radius on Android
     overflow: 'hidden',
   },
   nekrologTitle: {
-    fontSize: 15,
-    lineHeight: 20,
-    marginBottom: 4,
+    fontSize: Platform.OS === 'android' ? 16 : 15, // Larger font on Android
+    lineHeight: Platform.OS === 'android' ? 22 : 20, // Increased line height on Android
+    marginBottom: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
   },
   nekrologDate: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'android' ? 13 : 12, // Larger font on Android
   },
 
   // Modern header styles
   modernHeaderWrapper: {
-    paddingVertical: 16,
+    paddingVertical: Platform.OS === 'android' ? 18 : 16, // More padding on Android
     paddingHorizontal: 0,
     // paddingTop będzie ustawiony dynamicznie przez insets.top
     width: '100%',
-    minHeight: Platform.OS === 'ios' ? 60 : 80,
+    minHeight: Platform.OS === 'ios' ? 60 : (Platform.OS === 'android' ? 85 : 80), // Increased height on Android
     // backgroundColor automatycznie dziedziczy z rodzica
   },
   modernHeaderGradient: {
@@ -1504,9 +1506,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 1,
-    paddingHorizontal: 20, // Move padding here
+    paddingHorizontal: Platform.OS === 'android' ? 24 : 20, // More padding on Android
     width: '100%',
-    minHeight: 60, // Added minimum height for content
+    minHeight: Platform.OS === 'ios' ? 60 : (Platform.OS === 'android' ? 70 : 60), // Increased height on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   headerLeftSection: {
@@ -1516,18 +1518,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   logoContainer: {
-    width: 60, // Increased from 50
-    height: 60, // Increased from 50
-    borderRadius: 30, // Adjusted for new size
+    width: Platform.OS === 'android' ? 66 : 60, // Larger logo on Android
+    height: Platform.OS === 'android' ? 66 : 60, // Larger logo on Android
+    borderRadius: Platform.OS === 'android' ? 33 : 30, // Larger radius on Android
     overflow: 'hidden',
-    marginRight: 20, // Increased from 16
+    marginRight: Platform.OS === 'android' ? 22 : 20, // More spacing on Android
     backgroundColor: 'transparent', // Zmienione na przezroczyste
-    padding: 3, // Increased from 2
+    padding: Platform.OS === 'android' ? 4 : 3, // More padding on Android
   },
   headerLogo: {
     width: '100%',
     height: '100%',
-    borderRadius: 27, // Adjusted for new padding
+    borderRadius: Platform.OS === 'android' ? 29 : 27, // Larger radius on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   greetingSection: {
@@ -1542,15 +1544,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   wavingHandIcon: {
-    marginRight: 12,
+    marginRight: Platform.OS === 'android' ? 14 : 12, // More spacing on Android
     transform: [{ rotate: '15deg' }],
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   // Region Filter Header Styles
   regionFilterHeader: {
-    paddingHorizontal: 24,
-    marginBottom: 16,
-    marginTop: 8,
+    paddingHorizontal: Platform.OS === 'android' ? 28 : 24, // More padding on Android
+    marginBottom: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+    marginTop: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   regionFilterTitleRow: {
@@ -1559,30 +1561,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   regionFilterTitle: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'android' ? 20 : 18, // Larger font on Android
     fontWeight: '700',
     letterSpacing: -0.3,
-    marginLeft: 8,
+    marginLeft: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   weatherIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 80,
-    height: 60,
+    width: Platform.OS === 'android' ? 88 : 80, // Larger container on Android
+    height: Platform.OS === 'android' ? 66 : 60, // Larger container on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   weatherSummaryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   weatherTemperature: {
-    fontSize: 16,
+    fontSize: Platform.OS === 'android' ? 18 : 16, // Larger font on Android
     fontFamily: 'Poppins_Bold',
-    marginTop: 2,
+    marginTop: Platform.OS === 'android' ? 4 : 2, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
 
