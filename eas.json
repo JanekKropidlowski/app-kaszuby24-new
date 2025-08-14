@@ -39,6 +39,13 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6748219988",
+        "ascApiKeyPath": "./asc-api-key.p8",
+        "ascApiKeyIssuerId": "YOUR_ISSUER_ID_HERE",
+        "ascApiKeyId": "YOUR_KEY_ID_HERE"
+      }
+    }
   }
 }

@@ -4,7 +4,23 @@ import { useThemeStore } from '@/store/themeStore';
 import { WeatherIcon } from './WeatherIcon';
 import { MapPin, Clock, Thermometer, Droplets, Wind, Gauge } from 'lucide-react-native';
 
-const WeatherSummary = ({ weatherData, stationName, currentWmoCode }) => {
+interface WeatherData {
+  temperatura: string;
+  cisnienie: string;
+  wilgotnosc_wzgledna: string;
+  predkosc_wiatru: string;
+  suma_opadu: string;
+  data_pomiaru: string;
+  godzina_pomiaru: string;
+}
+
+interface WeatherSummaryProps {
+  weatherData: WeatherData;
+  stationName: string;
+  currentWmoCode: number;
+}
+
+const WeatherSummary: React.FC<WeatherSummaryProps> = ({ weatherData, stationName, currentWmoCode }) => {
     const { theme } = useThemeStore();
     const styles = getStyles(theme);
 
@@ -12,7 +28,7 @@ const WeatherSummary = ({ weatherData, stationName, currentWmoCode }) => {
 
     const { temperatura, cisnienie, wilgotnosc_wzgledna, predkosc_wiatru, suma_opadu, data_pomiaru, godzina_pomiaru } = weatherData;
 
-    const getWeatherDescription = (wmoCode) => {
+    const getWeatherDescription = (wmoCode: number): string => {
         if (wmoCode <= 1) return 'Słonecznie';
         if (wmoCode === 2) return 'Częściowo pochmurno';
         if (wmoCode === 3) return 'Pochmurno';
@@ -26,7 +42,7 @@ const WeatherSummary = ({ weatherData, stationName, currentWmoCode }) => {
         return 'Pochmurno';
     };
 
-    const getTemperatureColor = (temp) => {
+    const getTemperatureColor = (temp: string): string => {
         const temperature = parseFloat(temp);
         if (temperature >= 25) return '#FF6B6B'; // Hot
         if (temperature >= 15) return '#4ECDC4'; // Warm
@@ -34,7 +50,7 @@ const WeatherSummary = ({ weatherData, stationName, currentWmoCode }) => {
         return '#96CEB4'; // Cold
     };
 
-    const getWindDescription = (speed) => {
+    const getWindDescription = (speed: string): string => {
         const windSpeed = parseFloat(speed);
         if (windSpeed < 2) return 'Bezwietrznie';
         if (windSpeed < 5) return 'Lekki wiatr';
@@ -119,7 +135,7 @@ const WeatherSummary = ({ weatherData, stationName, currentWmoCode }) => {
     );
 };
 
-const getStyles = (theme) => StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
     container: {
         backgroundColor: theme.colors.card,
         borderRadius: 24,

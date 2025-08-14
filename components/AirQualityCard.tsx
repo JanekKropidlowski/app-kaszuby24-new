@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Wind, AlertCircle, Activity } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Wind, AlertCircle, Activity, Eye, Cloud, Leaf } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface AirQualityCardProps {
   airQuality: {
@@ -10,10 +11,16 @@ interface AirQualityCardProps {
       pm2_5: number[];
       time: string[];
     };
+    daily?: {
+      pm10: number[];
+      pm2_5: number[];
+      time: string[];
+    };
   };
+  onPress?: () => void;
 }
 
-export const AirQualityCard: React.FC<AirQualityCardProps> = ({ airQuality }) => {
+export const AirQualityCard: React.FC<AirQualityCardProps> = ({ airQuality, onPress }) => {
   const { theme } = useThemeStore();
   
   if (!theme || !airQuality || !airQuality.hourly) {
@@ -22,141 +29,183 @@ export const AirQualityCard: React.FC<AirQualityCardProps> = ({ airQuality }) =>
   
   const styles = getStyles(theme);
   
-  // Get current hour data
-  const currentHour = new Date().getHours();
-  const pm10 = airQuality.hourly.pm10?.[currentHour] || 0;
-  const pm25 = airQuality.hourly.pm2_5?.[currentHour] || 0;
-  
-  // Calculate AQI
   const getAQILevel = (pm25: number, pm10: number) => {
-    const pm25Index = pm25 / 25 * 100; // WHO guideline: 25 μg/m³
-    const pm10Index = pm10 / 50 * 100; // WHO guideline: 50 μg/m³
-    const aqi = Math.max(pm25Index, pm10Index);
-    
-    if (aqi <= 50) return { level: 'Dobra', color: '#10B981', icon: '😊' };
-    if (aqi <= 100) return { level: 'Umiarkowana', color: '#F59E0B', icon: '😐' };
-    if (aqi <= 150) return { level: 'Niezdrowa dla wrażliwych', color: '#EF4444', icon: '😷' };
-    if (aqi <= 200) return { level: 'Niezdrowa', color: '#DC2626', icon: '😵' };
-    return { level: 'Bardzo niezdrowa', color: '#7C3AED', icon: '☠️' };
+    const aqi = Math.max(pm25, pm10);
+    if (aqi <= 20) return { level: 'Dobra', color: '#10b981', description: 'Powietrze jest czyste' };
+    if (aqi <= 50) return { level: 'Umiarkowana', color: '#f59e0b', description: 'Jakość powietrza jest akceptowalna' };
+    if (aqi <= 100) return { level: 'Niezdrowa', color: '#ef4444', description: 'Może wpływać na zdrowie' };
+    if (aqi <= 150) return { level: 'Bardzo niezdrowa', color: '#dc2626', description: 'Może powodować problemy zdrowotne' };
+    return { level: 'Niebezpieczna', color: '#7c2d12', description: 'Unikaj przebywania na zewnątrz' };
   };
-  
-  const aqiInfo = getAQILevel(pm25, pm10);
-  
+
+  const currentPM25 = airQuality.hourly.pm2_5?.[0] || 0;
+  const currentPM10 = airQuality.hourly.pm10?.[0] || 0;
+  const aqiInfo = getAQILevel(currentPM25, currentPM10);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Wind size={24} color={theme.colors.primary} />
-        <Text style={styles.title}>Jakość powietrza</Text>
-      </View>
-      
-      <View style={[styles.aqiCard, { backgroundColor: `${aqiInfo.color}15`, borderColor: aqiInfo.color }]}>
-        <Text style={styles.aqiEmoji}>{aqiInfo.icon}</Text>
-        <Text style={[styles.aqiLevel, { color: aqiInfo.color }]}>{aqiInfo.level}</Text>
-      </View>
-      
-      <View style={styles.metricsContainer}>
-        <View style={styles.metric}>
-          <Text style={styles.metricLabel}>PM2.5</Text>
-          <Text style={[styles.metricValue, { color: pm25 > 25 ? theme.colors.warning : theme.colors.success }]}>
-            {pm25.toFixed(1)} μg/m³
-          </Text>
-          <Text style={styles.metricLimit}>Limit: 25 μg/m³</Text>
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.8}>
+      <LinearGradient colors={['#1e40af', '#3b82f6']} style={styles.gradient}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Wind size={24} color="#fff" />
+            <Text style={styles.title}>Jakość powietrza</Text>
+          </View>
+          <View style={[styles.aqiBadge, { backgroundColor: `${aqiInfo.color}30` }]}>
+            <Text style={[styles.aqiText, { color: aqiInfo.color }]}>
+              {aqiInfo.level}
+            </Text>
+          </View>
         </View>
-        
-        <View style={styles.metric}>
-          <Text style={styles.metricLabel}>PM10</Text>
-          <Text style={[styles.metricValue, { color: pm10 > 50 ? theme.colors.warning : theme.colors.success }]}>
-            {pm10.toFixed(1)} μg/m³
+
+        <View style={styles.aqiContainer}>
+          <Text style={styles.aqiValue}>
+            {Math.max(currentPM25, currentPM10).toFixed(0)}
           </Text>
-          <Text style={styles.metricLimit}>Limit: 50 μg/m³</Text>
+          <Text style={styles.aqiLabel}>AQI</Text>
         </View>
-      </View>
-      
-      <View style={styles.recommendation}>
-        <AlertCircle size={16} color={theme.colors.textSecondary} />
-        <Text style={styles.recommendationText}>
-          {aqiInfo.level === 'Dobra' 
-            ? 'Idealny czas na aktywność na świeżym powietrzu!'
-            : aqiInfo.level === 'Umiarkowana'
-            ? 'Ogranicz intensywne ćwiczenia na zewnątrz.'
-            : 'Unikaj aktywności na zewnątrz, szczególnie osoby wrażliwe.'}
-        </Text>
-      </View>
-    </View>
+
+        <View style={styles.metricsGrid}>
+          <View style={styles.metricCard}>
+            <Activity size={20} color="#fff" />
+            <Text style={styles.metricLabel}>PM2.5</Text>
+            <Text style={styles.metricValue}>{currentPM25.toFixed(1)}</Text>
+          </View>
+
+          <View style={styles.metricCard}>
+            <Cloud size={20} color="#fff" />
+            <Text style={styles.metricLabel}>PM10</Text>
+            <Text style={styles.metricValue}>{currentPM10.toFixed(1)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionText}>{aqiInfo.description}</Text>
+        </View>
+
+        <View style={styles.additionalInfo}>
+          <View style={styles.infoItem}>
+            <Eye size={16} color="#fff" />
+            <Text style={styles.infoText}>
+              Widoczność: {aqiInfo.level === 'Dobra' ? 'Dobra' : 'Ograniczona'}
+            </Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Leaf size={16} color="#fff" />
+            <Text style={styles.infoText}>
+              Wpływ na zdrowie: {aqiInfo.level === 'Dobra' ? 'Minimalny' : 'Możliwy'}
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 };
 
 const getStyles = (theme: any) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.card,
     borderRadius: 20,
-    padding: 20,
     marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  gradient: {
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 16,
   },
   title: {
     fontFamily: 'Poppins_Bold',
     fontSize: 20,
-    color: theme.colors.text,
+    color: '#fff',
   },
-  aqiCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 2,
-    marginBottom: 20,
-    gap: 12,
+  aqiBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  aqiEmoji: {
-    fontSize: 32,
-  },
-  aqiLevel: {
+  aqiText: {
     fontFamily: 'Poppins_Bold',
-    fontSize: 24,
+    fontSize: 12,
   },
-  metricsContainer: {
+  aqiContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  aqiValue: {
+    fontFamily: 'Poppins_Bold',
+    fontSize: 48,
+    color: '#fff',
+    lineHeight: 56,
+  },
+  aqiLabel: {
+    fontFamily: 'Poppins_Medium',
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  metricsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 16,
   },
-  metric: {
+  metricCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    padding: 12,
     alignItems: 'center',
   },
   metricLabel: {
     fontFamily: 'Poppins_Medium',
-    fontSize: 14,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 4,
     marginBottom: 4,
   },
   metricValue: {
     fontFamily: 'Poppins_Bold',
-    fontSize: 20,
-    marginBottom: 4,
+    fontSize: 16,
+    color: '#fff',
   },
-  metricLimit: {
+  descriptionContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  descriptionText: {
     fontFamily: 'Poppins_Regular',
-    fontSize: 11,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#fff',
+    textAlign: 'center',
   },
-  recommendation: {
+  additionalInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    paddingTop: 12,
+  },
+  infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    backgroundColor: theme.colors.subtle,
-    borderRadius: 12,
+    gap: 6,
   },
-  recommendationText: {
+  infoText: {
     fontFamily: 'Poppins_Regular',
-    fontSize: 13,
-    color: theme.colors.text,
-    flex: 1,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });

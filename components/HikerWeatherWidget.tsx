@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Dimensions, StatusBar } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { 
   Mountain, 
@@ -23,8 +23,17 @@ import {
   AlertCircle
 } from 'lucide-react-native';
 import { UnifiedWeatherWidget } from './UnifiedWeatherWidget';
-import DetailedWeatherModal from './DetailedWeatherModal';
-import { LongTermForecastComponent } from './LongTermForecastComponent';
+
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  withTiming,
+  runOnJS
+} from 'react-native-reanimated';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 interface HikerWeatherWidgetProps {
   currentWeather?: any;
@@ -182,6 +191,22 @@ export const HikerWeatherWidget: React.FC<HikerWeatherWidgetProps> = ({
       trend: safeWeatherData.windSpeed > 25 ? 'up' as const : 'stable' as const,
     },
     {
+      label: 'UV',
+      value: forecastData?.daily?.uv_index_max?.[0]?.toFixed(1) || 'N/A',
+      unit: '',
+      icon: SunMedium,
+      status: (() => {
+        const uv = forecastData?.daily?.uv_index_max?.[0];
+        if (!uv) return 'moderate' as const;
+        if (uv <= 2) return 'excellent' as const;
+        if (uv <= 5) return 'good' as const;
+        if (uv <= 7) return 'moderate' as const;
+        if (uv <= 10) return 'poor' as const;
+        return 'dangerous' as const;
+      })(),
+      trend: 'stable' as const,
+    },
+    {
       label: 'Warunki',
       value: hikingConditions.conditions,
       icon: Mountain,
@@ -211,7 +236,7 @@ export const HikerWeatherWidget: React.FC<HikerWeatherWidgetProps> = ({
   // Określ jakość danych
   const getDataQuality = () => {
     const hasSynopData = synopData && Object.keys(synopData).length > 0;
-    const hasForecastData = forecastData && Object.keys(forecastData).length > 0;
+    const hasForecastData = forecastData && forecastData.daily && Array.isArray(forecastData.daily.time) && forecastData.daily.time.length > 0;
     
     if (hasSynopData && hasForecastData) return 'high';
     if (hasSynopData || hasForecastData) return 'medium';
@@ -238,7 +263,7 @@ export const HikerWeatherWidget: React.FC<HikerWeatherWidgetProps> = ({
         title="Pogoda dla Turystyki Pieszej"
         subtitle="Warunki wędrówek i trekkingu"
         icon={Mountain}
-        gradientColors={['#059669', '#10b981', '#34d399']}
+        gradientColors={['#224A96', '#1e40af', '#1d4ed8']}
         metrics={metrics}
         onPress={() => setDetailModalVisible(true)}
         lastUpdate={getLastUpdate()}
@@ -336,16 +361,16 @@ export const HikerWeatherWidget: React.FC<HikerWeatherWidgetProps> = ({
       </View>
 
       {/* Long-term Forecast Section */}
-      {forecastData && (
+      {forecastData && forecastData.daily ? (
         <View style={styles.forecastSection}>
           <View style={styles.forecastHeader}>
             <Clock size={20} color={colors.info} />
             <Text style={styles.forecastTitle}>Prognoza 14-dniowa</Text>
           </View>
-          <LongTermForecastComponent forecastData={forecastData} />
+
           
           {/* Hiking Insights from Long-term Forecast */}
-          {forecastData?.daily && (
+          {forecastData?.daily && forecastData.daily.temperature_2m_max && forecastData.daily.precipitation_probability_max && (
             <View style={styles.hikingInsights}>
               <View style={styles.insightsHeader}>
                 <Compass size={18} color={colors.success} />
@@ -528,17 +553,162 @@ export const HikerWeatherWidget: React.FC<HikerWeatherWidgetProps> = ({
             </View>
           )}
         </View>
+      ) : (
+        <View style={styles.forecastSection}>
+          <View style={styles.forecastHeader}>
+            <Clock size={20} color={colors.info} />
+            <Text style={styles.forecastTitle}>Prognoza 14-dniowa</Text>
+          </View>
+          <View style={styles.noForecastData}>
+            <Text style={styles.noForecastDataText}>Brak danych prognostycznych</Text>
+            <Text style={styles.noForecastDataSubtext}>Sprawdź połączenie z internetem i spróbuj ponownie</Text>
+          </View>
+        </View>
       )}
 
-      {/* Detail Modal */}
-      <DetailedWeatherModal
+      {/* Sheets Style Modal for 14-day Forecast */}
+      <Modal
         visible={detailModalVisible}
-        onClose={() => setDetailModalVisible(false)}
-        weatherType="hiking"
-        weatherData={currentWeather}
-        forecastData={forecastData}
-        synopData={synopData}
-      />
+        animationType="none"
+        presentationStyle="pageSheet"
+        onRequestClose={closeDetailModal}
+        transparent
+      >
+        <StatusBar backgroundColor="rgba(0,0,0,0.8)" barStyle="light-content" />
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {/* Header with gradient */}
+            <LinearGradient
+              colors={['#224A96', '#1e40af', '#1d4ed8']}
+              style={styles.modalHeader}
+            >
+              <View style={styles.modalHeaderContent}>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalHeaderIcon}>
+                    <Mountain size={24} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.modalHeaderText}>
+                    <Text style={styles.modalTitle}>Prognoza 14-dniowa</Text>
+                    <Text style={styles.modalSubtitle}>Szczegółowe warunki dla turystyki pieszej</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.modalCloseButton} onPress={closeDetailModal}>
+                  <X size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+
+            {/* Modal Content */}
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+              {/* Current Conditions Summary */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Aktualne Warunki</Text>
+                <View style={styles.currentConditionsGrid}>
+                  <View style={styles.conditionCard}>
+                    <Thermometer size={24} color={colors.primary} />
+                    <Text style={styles.conditionValue}>{safeWeatherData.temperature.toFixed(1)}°C</Text>
+                    <Text style={styles.conditionLabel}>Temperatura</Text>
+                  </View>
+                  <View style={styles.conditionCard}>
+                    <Wind size={24} color={colors.primary} />
+                    <Text style={styles.conditionValue}>{safeWeatherData.windSpeed.toFixed(1)} km/h</Text>
+                    <Text style={styles.conditionLabel}>Wiatr</Text>
+                  </View>
+                  <View style={styles.conditionCard}>
+                    <Eye size={24} color={colors.primary} />
+                    <Text style={styles.conditionValue}>{safeWeatherData.visibility.toFixed(1)} km</Text>
+                    <Text style={styles.conditionLabel}>Widoczność</Text>
+                  </View>
+                  <View style={styles.conditionCard}>
+                    <CloudRain size={24} color={colors.primary} />
+                    <Text style={styles.conditionValue}>{safeWeatherData.precipitation.toFixed(1)} mm</Text>
+                    <Text style={styles.conditionLabel}>Opady</Text>
+                  </View>
+                  <View style={styles.conditionCard}>
+                    <SunMedium size={24} color={colors.primary} />
+                    <Text style={styles.conditionValue}>
+                      {forecastData?.daily?.uv_index_max?.[0]?.toFixed(1) || 'N/A'}
+                    </Text>
+                    <Text style={styles.conditionLabel}>Indeks UV</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Hiking Conditions Assessment */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Ocena Warunków Wędrówki</Text>
+                <View style={styles.assessmentCard}>
+                  <View style={styles.assessmentHeader}>
+                    <View style={[styles.assessmentIcon, { backgroundColor: getStatusColor(hikingConditions.level) + '20' }]}>
+                      {getStatusIcon(hikingConditions.level)}
+                    </View>
+                    <View style={styles.assessmentText}>
+                      <Text style={styles.assessmentTitle}>{hikingConditions.conditions}</Text>
+                      <Text style={styles.assessmentDescription}>
+                        {hikingConditions.level === 'excellent' ? 'Idealne warunki do wędrówek' :
+                         hikingConditions.level === 'good' ? 'Dobre warunki do wędrówek' :
+                         hikingConditions.level === 'moderate' ? 'Wymaga uwagi i planowania' :
+                         hikingConditions.level === 'poor' ? 'Trudne warunki - rozważ przełożenie' :
+                         'Niebezpieczne warunki - odradzamy wędrówki'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* 14-Day Forecast */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Prognoza 14-dniowa</Text>
+      
+              </View>
+
+              {/* Safety Recommendations */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Rekomendacje Bezpieczeństwa</Text>
+                <View style={styles.recommendationsList}>
+                  {getAlerts().map((alert, index) => (
+                    <View key={index} style={styles.recommendationItem}>
+                      <AlertTriangle size={16} color={colors.warning} />
+                      <Text style={styles.recommendationText}>{alert}</Text>
+                    </View>
+                  ))}
+                  {getAlerts().length === 0 && (
+                    <View style={styles.recommendationItem}>
+                      <CheckCircle size={16} color={colors.success} />
+                      <Text style={styles.recommendationText}>Brak szczególnych zagrożeń</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+
+
+              {/* Equipment Recommendations */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Rekomendowany Ekwipunek</Text>
+                <View style={styles.equipmentGrid}>
+                  <View style={styles.equipmentCard}>
+                    <Text style={styles.equipmentTitle}>Odzież</Text>
+                    <Text style={styles.equipmentText}>
+                      {safeWeatherData.temperature < 5 ? 'Ciepła kurtka, rękawice, czapka' :
+                       safeWeatherData.temperature > 25 ? 'Lekkie, przewiewne ubranie' :
+                       'Standardowa odzież turystyczna'}
+                    </Text>
+                  </View>
+                  <View style={styles.equipmentCard}>
+                    <Text style={styles.equipmentTitle}>Ochrona</Text>
+                    <Text style={styles.equipmentText}>
+                      {safeWeatherData.precipitation > 5 ? 'Płaszcz przeciwdeszczowy, nieprzemakalne buty' :
+                       safeWeatherData.windSpeed > 20 ? 'Kurtka wiatroszczelna' :
+                       'Standardowa ochrona'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -681,24 +851,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginBottom: 8,
   },
-  recommendationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    gap: 8,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  recommendationText: {
-    fontSize: 14,
-    fontWeight: '500',
-    fontFamily: 'Poppins_Medium',
-    color: '#64748B',
-    flex: 1,
-    lineHeight: 20,
-  },
+
   // Modal styles
   modalContainer: {
     flex: 1,
@@ -714,97 +867,125 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
     backgroundColor: '#F8FAFC',
   },
+  modalHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalHeaderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeaderText: {
+    flex: 1,
+  },
   modalTitle: {
     fontSize: 24,
     fontFamily: 'Poppins_Bold',
-    color: '#1E293B',
+    color: '#FFFFFF',
   },
-  closeButton: {
+  modalSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Poppins_Regular',
+    color: '#FFFFFF',
+    marginTop: 4,
+  },
+  modalCloseButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   modalContent: {
     flex: 1,
     padding: 20,
   },
-  detailSection: {
+  modalSection: {
     marginBottom: 24,
   },
-  detailSectionTitle: {
+  modalSectionTitle: {
     fontSize: 18,
     fontFamily: 'Poppins_SemiBold',
     color: '#1E293B',
     marginBottom: 16,
   },
-  detailCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  detailCardHeader: {
+  currentConditionsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  detailCardTitle: {
-    fontSize: 16,
-    fontFamily: 'Poppins_SemiBold',
-    color: '#1E293B',
-  },
-  detailCardValue: {
-    fontSize: 24,
-    fontFamily: 'Poppins_Bold',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  detailCardDescription: {
-    fontSize: 14,
-    fontFamily: 'Poppins_Regular',
-    color: '#64748B',
-    lineHeight: 20,
-  },
-  detailGrid: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
-  },
-  detailMetricCard: {
+  conditionCard: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 20,
+    minWidth: '48%',
     alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  detailMetricValue: {
-    fontSize: 20,
+  conditionValue: {
+    fontSize: 24,
     fontFamily: 'Poppins_Bold',
     color: '#1E293B',
     marginTop: 8,
     marginBottom: 4,
   },
-  detailMetricLabel: {
-    fontSize: 14,
+  conditionLabel: {
+    fontSize: 12,
     fontFamily: 'Poppins_Medium',
     color: '#64748B',
-    marginBottom: 8,
-  },
-  detailMetricDescription: {
-    fontSize: 12,
-    fontFamily: 'Poppins_Regular',
-    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 16,
   },
-  safetyContainer: {
+  assessmentCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  assessmentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
     gap: 12,
   },
-  safetyItem: {
+  assessmentIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E0F2FE',
+  },
+  assessmentText: {
+    flex: 1,
+  },
+  assessmentTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins_SemiBold',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  assessmentDescription: {
+    fontSize: 14,
+    fontFamily: 'Poppins_Regular',
+    color: '#64748B',
+    lineHeight: 20,
+  },
+  recommendationsList: {
+    gap: 12,
+  },
+  recommendationItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
@@ -814,11 +995,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  safetyText: {
-    fontSize: 14,
-    fontFamily: 'Poppins_Medium',
-    color: '#64748B',
+  equipmentGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  equipmentCard: {
     flex: 1,
+    minWidth: '48%',
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  equipmentTitle: {
+    fontSize: 14,
+    fontFamily: 'Poppins_SemiBold',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  equipmentText: {
+    fontSize: 13,
+    fontFamily: 'Poppins_Regular',
+    color: '#64748B',
     lineHeight: 20,
   },
   // New styles for additional info blocks
@@ -893,6 +1094,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#E0F2FE',
+  },
+  safetyText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_Medium',
+    color: '#64748B',
+    flex: 1,
+    lineHeight: 20,
   },
   recommendationTip: {
     flexDirection: 'row',
@@ -1034,5 +1242,41 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_Regular',
     color: '#64748B',
     lineHeight: 18,
+  },
+  noForecastData: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  noForecastDataText: {
+    fontSize: 16,
+    fontFamily: 'Poppins_SemiBold',
+    color: '#64748B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noForecastDataSubtext: {
+    fontSize: 14,
+    fontFamily: 'Poppins_Regular',
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  // New styles for modal overlay and container
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'flex-end',
+  },
+  recommendationText: {
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: 'Poppins_Medium',
+    color: '#64748B',
+    flex: 1,
+    lineHeight: 20,
   },
 });

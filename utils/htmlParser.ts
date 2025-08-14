@@ -112,6 +112,14 @@ export const cleanHtml = (html: string, isDarkMode: boolean = false): string => 
   console.log('[HTML_PARSER_DEBUG] Original HTML - B tags:', originalBCount);
   console.log('[HTML_PARSER_DEBUG] Original HTML - Span with font-weight:', originalSpanBoldCount);
   
+  // Debug: log a sample of the original HTML for inspection
+  if (originalSpanBoldCount > 0) {
+    const spanMatches = html.match(/<span[^>]*style[^>]*font-weight[^>]*>.*?<\/span>/gi);
+    if (spanMatches) {
+      console.log('[HTML_PARSER_DEBUG] Sample span with font-weight:', spanMatches[0]);
+    }
+  }
+  
   // Decode HTML entities first
   let cleanedHtml = html
     .replace(/\\u003C/g, '<')
@@ -240,9 +248,42 @@ export const cleanHtml = (html: string, isDarkMode: boolean = false): string => 
     ''
   );
   
-  // Remove any color styles that might cause white text
-  cleanedHtml = cleanedHtml.replace(/color:\s*(?:white|#fff|#ffffff|rgb\(255,\s*255,\s*255\)|rgba\(255,\s*255,\s*255,\s*[^)]*\))/gi, 'color: #000000');
-  cleanedHtml = cleanedHtml.replace(/color\s*=\s*["'](?:white|#fff|#ffffff)["']/gi, 'color="#000000"');
+  // Normalize inline colors and backgrounds for theme contrast
+  if (isDarkMode) {
+    // In dark mode: force very light text instead of white-specific or white backgrounds
+    cleanedHtml = cleanedHtml.replace(
+      /color:\s*(?:white|#fff|#ffffff|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\)|rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*[^)]*\))/gi,
+      'color: #F1F5F9'
+    );
+    cleanedHtml = cleanedHtml.replace(
+      /color\s*=\s*["'](?:white|#fff|#ffffff)["']/gi,
+      'color="#F1F5F9"'
+    );
+    // Remove white backgrounds that create white-on-white blocks in dark mode
+    cleanedHtml = cleanedHtml.replace(
+      /background-color:\s*(?:white|#fff|#ffffff|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\)|rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*[^)]*\))/gi,
+      'background-color: transparent'
+    );
+    cleanedHtml = cleanedHtml.replace(
+      /bgcolor\s*=\s*["'](?:white|#fff|#ffffff)["']/gi,
+      'bgcolor="transparent"'
+    );
+    // Also neutralize shorthand background declarations that set white
+    cleanedHtml = cleanedHtml.replace(
+      /background:\s*(?:white|#fff|#ffffff|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\)|rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*[^)]*\))/gi,
+      'background: transparent'
+    );
+  } else {
+    // In light mode: force dark text when explicit white is encountered
+    cleanedHtml = cleanedHtml.replace(
+      /color:\s*(?:white|#fff|#ffffff|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\)|rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*[^)]*\))/gi,
+      'color: #000000'
+    );
+    cleanedHtml = cleanedHtml.replace(
+      /color\s*=\s*["'](?:white|#fff|#ffffff)["']/gi,
+      'color="#000000"'
+    );
+  }
   
   // Ensure bold tags are properly formatted
   cleanedHtml = cleanedHtml.replace(/<strong([^>]*)>/gi, '<strong$1>');
@@ -250,36 +291,20 @@ export const cleanHtml = (html: string, isDarkMode: boolean = false): string => 
   cleanedHtml = cleanedHtml.replace(/<b([^>]*)>/gi, '<b$1>');
   cleanedHtml = cleanedHtml.replace(/<\/b>/gi, '</b>');
   
-  // Convert other bold-like tags to strong
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:\s*bold[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:\s*700[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:\s*600[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:\s*800[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:\s*900[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<\/span>/gi, '</strong>');
-  
-  // Handle cases where font-weight is in a different format (without spaces)
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:bold[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:700[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:600[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:800[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:900[^>]*>/gi, '<strong>');
-  
-  // Handle cases with quotes around font-weight values
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:\s*["']bold["'][^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*font-weight:\s*["']700["'][^>]*>/gi, '<strong>');
-  
-  // Handle cases where there might be other styles mixed in
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*[^>]*font-weight:\s*bold[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*[^>]*font-weight:\s*700[^>]*>/gi, '<strong>');
+  // Convert only spans with bold-like font-weight to <strong> preserving inner content
+  cleanedHtml = cleanedHtml.replace(
+    /<span([^>]*)style=["'][^"']*font-weight\s*:\s*(?:bold|[6-9]00)[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi,
+    '<strong>$2</strong>'
+  );
+  // Normalize nested strong tags
+  cleanedHtml = cleanedHtml.replace(/<strong>\s*<strong>/gi, '<strong>');
+  cleanedHtml = cleanedHtml.replace(/<\/strong>\s*<\/strong>/gi, '</strong>');
   
 
   
 
   
-  // Also convert <em> tags that might be used for emphasis to <strong>
-  cleanedHtml = cleanedHtml.replace(/<em[^>]*>/gi, '<strong>');
-  cleanedHtml = cleanedHtml.replace(/<\/em>/gi, '</strong>');
+  // Keep <em> tags as italics (do not force to <strong>) to preserve formatting
   
   // Debug: sprawdź czy są tagi pogrubienia po konwersji
   const strongCount = (cleanedHtml.match(/<strong>/gi) || []).length;
@@ -287,13 +312,31 @@ export const cleanHtml = (html: string, isDarkMode: boolean = false): string => 
   console.log('[HTML_PARSER_DEBUG] Strong tags count:', strongCount);
   console.log('[HTML_PARSER_DEBUG] B tags count:', bCount);
   
-  // Handle any remaining span tags that might have bold styling
-  cleanedHtml = cleanedHtml.replace(/<span[^>]*style[^>]*[^>]*font-weight[^>]*>/gi, (match) => {
-    if (match.includes('bold') || match.includes('700') || match.includes('600') || match.includes('800') || match.includes('900')) {
-      return '<strong>';
+  // Debug: log final HTML sample if strong tags are present
+  if (strongCount > 0) {
+    const strongMatches = cleanedHtml.match(/<strong>.*?<\/strong>/gi);
+    if (strongMatches) {
+      console.log('[HTML_PARSER_DEBUG] Sample strong tag:', strongMatches[0]);
     }
-    return match;
-  });
+  }
+  
+  // Handle any remaining spans with bold style in a single-pass robust way
+  cleanedHtml = cleanedHtml.replace(
+    /<span([^>]*)style=(["'])([\s\S]*?)\2([^>]*)>([\s\S]*?)<\/span>/gi,
+    (full, before, quote, style, after, inner) => {
+      const s = style.toLowerCase();
+      if (/(font-weight\s*:\s*(bold|[6-9]00))/.test(s)) {
+        return `<strong>${inner}</strong>`;
+      }
+      return full;
+    }
+  );
+  
+  // Additional conversion for spans with font-weight that might have been missed
+  cleanedHtml = cleanedHtml.replace(
+    /<span[^>]*style=["'][^"']*font-weight\s*:\s*(bold|[6-9]00)[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi,
+    '<strong>$2</strong>'
+  );
   
 
   
@@ -328,322 +371,19 @@ export const cleanHtml = (html: string, isDarkMode: boolean = false): string => 
     '<strong>$1</strong>'
   );
   
-
-
-  
-  // Enhanced styles for better rendering across platforms
-  const textColor = isDarkMode ? '#F1F5F9' : '#1E293B';
-  const backgroundColor = isDarkMode ? '#1E293B' : '#F8FAFC';
-  const borderColor = isDarkMode ? '#334155' : '#E2E8F0';
-  
-  const webStyles = `
-    <style>
-      
-      * {
-        box-sizing: border-box;
-      }
-      
-      body {
-        font-family: 'Poppins_Regular', sans-serif;
-        line-height: ${Platform.OS === 'android' ? '1.7' : '1.6'};
-        padding: 0;
-        margin: 0;
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'}; // Zmniejszone dla lepszej czytelności
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        -webkit-text-size-adjust: 100%;
-        text-size-adjust: 100%;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-align: justify;
-        color: ${textColor};
-        background-color: ${backgroundColor};
-        letter-spacing: ${Platform.OS === 'android' ? '0.01em' : 'normal'}; // Better letter spacing on Android
-      }
-      
-      p {
-        font-family: 'Poppins_Regular', sans-serif;
-        font-weight: 400;
-        line-height: ${Platform.OS === 'android' ? '1.8' : '1.7'}; // Increased line height on Android
-        margin-bottom: ${Platform.OS === 'android' ? '1.2rem' : '1rem'}; // More spacing on Android
-        text-align: justify;
-        color: ${textColor};
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'}; // Zmniejszone dla lepszej czytelności
-      }
-      
-      h1, h2, h3, h4, h5, h6 {
-        font-family: 'Poppins_Bold', sans-serif;
-        font-weight: 700;
-        line-height: ${Platform.OS === 'android' ? '1.4' : '1.3'}; // Increased line height on Android
-        margin-bottom: ${Platform.OS === 'android' ? '0.9rem' : '0.75rem'}; // More spacing on Android
-        color: ${textColor};
-        letter-spacing: ${Platform.OS === 'android' ? '-0.01em' : 'normal'}; // Better letter spacing on Android
-      }
-      
-      h1 {
-        font-size: ${Platform.OS === 'android' ? '2.2rem' : '2rem'}; // Larger on Android
-        margin-top: ${Platform.OS === 'android' ? '2.2rem' : '2rem'}; // More spacing on Android
-        margin-bottom: ${Platform.OS === 'android' ? '1.2rem' : '1rem'}; // More spacing on Android
-      }
-      
-      h2 {
-        font-family: 'Poppins_SemiBold', sans-serif;
-        font-weight: 600;
-        font-size: ${Platform.OS === 'android' ? '1.5rem' : '1.375rem'}; // Larger on Android
-        margin-top: ${Platform.OS === 'android' ? '1.4rem' : '1.25rem'}; // More spacing on Android
-        margin-bottom: ${Platform.OS === 'android' ? '1.1rem' : '1rem'}; // More spacing on Android
-      }
-      
-      h3 {
-        font-family: 'Poppins_SemiBold', sans-serif;
-        font-weight: 600;
-        font-size: ${Platform.OS === 'android' ? '1.3rem' : '1.1875rem'}; // Larger on Android
-        margin-top: ${Platform.OS === 'android' ? '1.1rem' : '1rem'}; // More spacing on Android
-        margin-bottom: ${Platform.OS === 'android' ? '0.85rem' : '0.75rem'}; // More spacing on Android
-      }
-      
-      strong, b {
-        font-family: 'Poppins_Bold', sans-serif !important;
-        font-weight: 700 !important;
-        color: ${textColor} !important;
-        -webkit-font-smoothing: antialiased !important;
-        text-shadow: 0.5px 0 0 currentColor !important;
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'} !important;
-        line-height: ${Platform.OS === 'android' ? '1.8' : '1.7'} !important;
-      }
-      
-      /* Force bold on any element with font-weight: bold */
-      [style*="font-weight: bold"], [style*="font-weight:bold"] {
-        font-weight: 700 !important;
-        font-family: 'Poppins_Bold', sans-serif !important;
-        color: ${textColor} !important;
-      }
-      
-      /* Additional bold selectors for different formats */
-      [style*="font-weight: 700"], [style*="font-weight:700"] {
-        font-weight: 700 !important;
-        font-family: 'Poppins_Bold', sans-serif !important;
-        color: ${textColor} !important;
-      }
-      
-      [style*="font-weight: 600"], [style*="font-weight:600"] {
-        font-weight: 600 !important;
-        font-family: 'Poppins_SemiBold', sans-serif !important;
-        color: ${textColor} !important;
-      }
-      
-      [style*="font-weight: 800"], [style*="font-weight:800"] {
-        font-weight: 800 !important;
-        font-family: 'Poppins_ExtraBold', sans-serif !important;
-        color: ${textColor} !important;
-      }
-      
-      [style*="font-weight: 900"], [style*="font-weight:900"] {
-        font-weight: 900 !important;
-        font-family: 'Poppins_Black', sans-serif !important;
-        color: ${textColor} !important;
-      }
-      
-      /* Support for span tags with font-weight */
-      span[style*="font-weight"] {
-        color: ${textColor} !important;
-      }
-      
-
-      
-      /* Force bold on any element with bold-related classes */
-      .bold, .strong, .b, .emphasized, .highlight {
-        font-weight: 700 !important;
-        font-family: 'Poppins_Bold', sans-serif !important;
-        color: ${textColor} !important;
-      }
-      
-      /* Additional support for different bold formats */
-      [class*="bold"], [class*="strong"], [class*="emphasized"] {
-        font-weight: 700 !important;
-        font-family: 'Poppins_Bold', sans-serif !important;
-        color: ${textColor} !important;
-      }
-      
-      em, i {
-        font-family: 'Poppins_Regular', sans-serif;
-        font-style: italic;
-        font-weight: 400;
-        color: ${textColor};
-      }
-      
-      blockquote {
-        font-family: 'Poppins_Regular', sans-serif;
-        font-style: italic;
-        font-weight: 400;
-        border-left: 4px solid #224A96;
-        padding-left: ${Platform.OS === 'android' ? '1.2rem' : '1rem'}; // More padding on Android
-        margin: ${Platform.OS === 'android' ? '1.2rem 0' : '1rem 0'}; // More spacing on Android
-        background-color: rgba(34, 74, 150, 0.05);
-        padding: ${Platform.OS === 'android' ? '1.2rem' : '1rem'}; // More padding on Android
-        border-radius: 8px;
-        color: ${textColor};
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'}; // Zmniejszone dla lepszej czytelności
-      }
-      
-      ul, ol {
-        font-family: 'Poppins_Regular', sans-serif;
-        padding-left: ${Platform.OS === 'android' ? '1.8rem' : '1.5rem'}; // More padding on Android
-        margin-bottom: ${Platform.OS === 'android' ? '1.2rem' : '1rem'}; // More spacing on Android
-        color: ${textColor};
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'}; // Zmniejszone dla lepszej czytelności
-      }
-      
-      li {
-        font-family: 'Poppins_Regular', sans-serif;
-        line-height: ${Platform.OS === 'android' ? '1.7' : '1.6'}; // Increased line height on Android
-        margin-bottom: ${Platform.OS === 'android' ? '0.6rem' : '0.5rem'}; // More spacing on Android
-        color: ${textColor};
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'}; // Zmniejszone dla lepszej czytelności
-      }
-      
-      a {
-        color: #224A96;
-        text-decoration: underline;
-        font-weight: 500;
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'}; // Zmniejszone dla lepszej czytelności
-      }
-      
-      code {
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        background-color: rgba(0, 0, 0, 0.05);
-        padding: ${Platform.OS === 'android' ? '0.3rem 0.6rem' : '0.25rem 0.5rem'}; // More padding on Android
-        border-radius: 4px;
-        font-size: ${Platform.OS === 'android' ? '0.95em' : '0.9em'}; // Larger font on Android
-      }
-      
-      pre {
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        background-color: rgba(0, 0, 0, 0.05);
-        padding: ${Platform.OS === 'android' ? '1.2rem' : '1rem'}; // More padding on Android
-        border-radius: 8px;
-        overflow-x: auto;
-        margin: ${Platform.OS === 'android' ? '1.2rem 0' : '1rem 0'}; // More spacing on Android
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'}; // Larger font on Android
-      }
-      
-      table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin: ${Platform.OS === 'android' ? '2.4em 0' : '2em 0'}; // More spacing on Android
-        font-size: ${Platform.OS === 'android' ? '15px' : '0.95em'}; // Larger font on Android
-        font-family: 'Poppins_Regular', sans-serif;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        border-radius: 12px;
-        overflow: hidden;
-        border: 2px solid ${borderColor};
-        background-color: ${backgroundColor};
-      }
-
-      th, td {
-        padding: ${Platform.OS === 'android' ? '18px 20px' : '16px 18px'}; // More padding on Android
-        text-align: left;
-        color: ${textColor};
-        font-family: 'Poppins_Regular', sans-serif;
-        border-right: 1px solid ${borderColor};
-        vertical-align: top;
-        font-size: ${Platform.OS === 'android' ? '15px' : '14px'}; // Larger font on Android
-      }
-
-      th:last-child, td:last-child {
-        border-right: none;
-      }
-
-      thead th {
-        background-color: #224A96;
-        color: #ffffff;
-        font-family: 'Poppins_Bold', sans-serif;
-        font-weight: 700;
-        font-size: ${Platform.OS === 'android' ? '16px' : '0.95em'}; // Larger font on Android
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #1a3d7a;
-      }
-
-      tbody td {
-        border-bottom: 1px solid ${borderColor};
-        font-size: ${Platform.OS === 'android' ? '15px' : '0.9em'}; // Larger font on Android
-        line-height: ${Platform.OS === 'android' ? '1.6' : '1.5'}; // Increased line height on Android
-      }
-
-      tbody tr:nth-of-type(even) {
-        background-color: ${isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(34, 74, 150, 0.02)'};
-      }
-
-      tbody tr:hover {
-        background-color: ${isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(34, 74, 150, 0.05)'};
-      }
-
-      tbody tr:last-of-type td {
-        border-bottom: none;
-      }
-      
-      /* Remove any video/iframe elements to prevent conflicts */
-      iframe, video, embed, object {
-        display: none !important;
-      }
-      
-      /* iOS specific optimizations */
-      @supports (-webkit-touch-callout: none) {
-        body {
-          -webkit-text-size-adjust: 100%;
-          -webkit-font-smoothing: antialiased;
-        }
-        
-        * {
-          -webkit-font-smoothing: antialiased;
-        }
-      }
-      
-      /* Android-specific optimizations */
-      ${Platform.OS === 'android' ? `
-        * {
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-        }
-        
-        body {
-          font-weight: 400;
-          letter-spacing: 0.01em;
-          line-height: 1.7;
-        }
-        
-        h1, h2, h3, h4, h5, h6 {
-          font-weight: 600;
-          letter-spacing: -0.01em;
-          line-height: 1.4;
-        }
-        
-        p {
-          line-height: 1.8;
-          margin-bottom: 1.2rem;
-        }
-        
-        li {
-          line-height: 1.7;
-          margin-bottom: 0.6rem;
-        }
-      ` : ''}
-    </style>
-  `;
-  
-  // For mobile, we'll inject the styles in the head
-  cleanedHtml = cleanedHtml.replace(
-    /<head>(.*?)<\/head>/s,
-    `<head>$1${webStyles}</head>`
-  );
-  
-  // If there's no head tag, add one
-  if (!cleanedHtml.includes('<head>')) {
-    cleanedHtml = `<head>${webStyles}</head>${cleanedHtml}`;
+  // If no explicit strong/b tags are present, convert markdown-style **bold** and __bold__ to <strong>
+  if (!/(<strong>|<b>)/i.test(cleanedHtml)) {
+    cleanedHtml = cleanedHtml
+      .replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__([\s\S]*?)__/g, '<strong>$1</strong>');
   }
+
+
+
   
+  // Do not inject <head> or additional CSS here. The hosting renderer (WebView/RenderHtml)
+  // is responsible for providing styles. Returning a clean HTML fragment preserves
+  // original tags like <strong>, <b>, <em>, enabling correct formatting.
   return cleanedHtml;
 };
 

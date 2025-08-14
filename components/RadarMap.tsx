@@ -71,14 +71,14 @@ export const RadarMap: React.FC<RadarMapProps> = ({ precipitation, time }) => {
       <Text style={[styles.title, { color: theme.colors.text }]}>Radar opadów</Text>
       
       <View style={styles.radarContainer}>
-        <View style={styles.radarBackground}>
+        <View style={[styles.radarBackground, { borderColor: theme.colors.border, backgroundColor: theme.colors.subtle }]}>
           {radarCircles}
           
           {/* Center point */}
           <View style={[styles.centerPoint, { backgroundColor: precipInfo.color }]} />
           
           {/* Precipitation indicator */}
-          <View style={[styles.precipIndicator, { backgroundColor: `${precipInfo.color}20` }]}>
+          <View style={[styles.precipIndicator, { backgroundColor: `${precipInfo.color}20`, borderColor: `${precipInfo.color}40` }]}>
             <CloudRain size={24} color={precipInfo.color} />
             <Text style={[styles.precipText, { color: precipInfo.color }]}>
               {currentPrecipitation.toFixed(1)} mm/h
@@ -191,8 +191,7 @@ export const RadarMap: React.FC<RadarMapProps> = ({ precipitation, time }) => {
           <View style={[styles.legendDivider, { backgroundColor: theme.colors.subtle }]} />
           
           <Text style={[styles.legendNote, { color: theme.colors.textSecondary }]}>
-            💡 <Text style={{ fontFamily: 'Poppins_Bold' }}>Wskazówka:</Text> Powyżej 2.5 mm/h 
-            warto wziąć parasol, a powyżej 7.5 mm/h lepiej zostać w domu!
+            Wskazówka: powyżej 2.5 mm/h warto wziąć parasol, a powyżej 7.5 mm/h lepiej zostać w domu.
           </Text>
         </View>
       </Animated.View>
@@ -217,11 +216,9 @@ const styles = StyleSheet.create({
     width: MAP_SIZE,
     height: MAP_SIZE,
     borderRadius: MAP_SIZE / 2,
-    borderWidth: 2,
-    borderColor: '#374151',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   radarCircle: {
     position: 'absolute',
@@ -240,6 +237,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     gap: 4,
+    borderWidth: 1,
   },
   precipText: {
     fontFamily: 'Poppins_Bold',

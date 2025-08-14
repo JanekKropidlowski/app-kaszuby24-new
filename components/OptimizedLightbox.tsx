@@ -148,7 +148,7 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
   const pinchGestureHandler = useAnimatedGestureHandler({
     onActive: (event) => {
       'worklet';
-      scale.value = Math.max(1, Math.min(event.scale, 3));
+      scale.value = Math.max(1, Math.min((event as any).scale, 3));
     },
     onEnd: () => {
       'worklet';
@@ -191,12 +191,14 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
         <GestureHandlerRootView style={styles.gestureContainer}>
           <PanGestureHandler onGestureEvent={panGestureHandler}>
             <Animated.View style={styles.imageContainer}>
-              <PinchGestureHandler onGestureEvent={pinchGestureHandler}>
+              <PinchGestureHandler onGestureEvent={pinchGestureHandler as any}>
                 <Animated.View style={[styles.imageWrapper, animatedImageStyle]}>
                   {currentImage && (
                     <Image
                       key={`lightbox-image-${currentIndex}`}
-                      ref={(ref) => (imageRefs.current[currentIndex] = ref)}
+                      ref={(ref) => {
+                        if (ref) imageRefs.current[currentIndex] = ref;
+                      }}
                       source={{ uri: currentImage.uri }}
                       style={styles.image}
                       contentFit="contain"

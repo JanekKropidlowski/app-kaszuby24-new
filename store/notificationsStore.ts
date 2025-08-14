@@ -46,6 +46,10 @@ interface NotificationsState {
   // Notification history
   notifications: Notification[];
   
+  // Daily weather push
+  dailyWeatherEnabled: boolean;
+  dailyWeatherHour: number; // 0-23, local time (default 8)
+  
   // Actions
   setExpoPushToken: (token: string) => void;
   setUserLocation: (location: UserLocation) => void;
@@ -58,6 +62,10 @@ interface NotificationsState {
   getUnreadCount: () => number;
   hasUnreadNotifications: () => boolean;
   incrementNotificationCount: () => void;
+  
+  // Daily weather actions
+  setDailyWeatherEnabled: (enabled: boolean) => void;
+  setDailyWeatherHour: (hour: number) => void;
   
   // First time user actions
   completeFirstTimeSetup: () => void;
@@ -109,6 +117,10 @@ export const useNotificationsStore = create<NotificationsState>()(
       preferences: [],
       notificationsEnabled: false,
       notifications: [],
+      
+      // Daily weather defaults
+      dailyWeatherEnabled: false,
+      dailyWeatherHour: 8,
       
       // First time user state
       isFirstTimeUser: true,
@@ -207,6 +219,41 @@ export const useNotificationsStore = create<NotificationsState>()(
         // This is for real-time notification count increment
         // The actual notification will be added via addNotification
         // This function can be used for UI updates
+      },
+      
+      // Daily weather actions
+      setDailyWeatherEnabled: (enabled: boolean) => {
+        set({ dailyWeatherEnabled: enabled });
+        // Side-effect: schedule/cancel in service
+        setTimeout(async () => {
+          try {
+            const { notificationService } = await import('@/services/notificationService');
+            if (enabled) {
+              const hour = get().dailyWeatherHour;
+              await notificationService.scheduleDailyWeatherSummary(hour);
+            } else {
+              await notificationService.cancelDailyWeatherSummary();
+            }
+          } catch (error) {
+            console.warn('Failed to update daily weather schedule:', error);
+          }
+        }, 0);
+      },
+      setDailyWeatherHour: (hour: number) => {
+        const normalized = Math.min(23, Math.max(0, Math.floor(hour)));
+        set({ dailyWeatherHour: normalized });
+        // If enabled, reschedule with new hour
+        setTimeout(async () => {
+          try {
+            const state = get();
+            if (state.dailyWeatherEnabled) {
+              const { notificationService } = await import('@/services/notificationService');
+              await notificationService.scheduleDailyWeatherSummary(state.dailyWeatherHour);
+            }
+          } catch (error) {
+            console.warn('Failed to reschedule daily weather after hour change:', error);
+          }
+        }, 0);
       },
       
       // First time user actions

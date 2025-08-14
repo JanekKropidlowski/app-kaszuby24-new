@@ -34,7 +34,7 @@ export const WeatherSection = ({ title, icon, children, defaultCollapsed = false
     <View style={styles.container}>
       <TouchableOpacity onPress={toggleCollapse} style={styles.header} activeOpacity={0.8}>
         <View style={styles.titleContainer}>
-          {React.cloneElement(icon as React.ReactElement, { size: 22, color: theme.colors.text })}
+          {React.cloneElement(icon as React.ReactElement)}
           <Text style={styles.title}>{title}</Text>
         </View>
         {isCollapsed ? <ChevronDown size={22} color={theme.colors.textSecondary} /> : <ChevronUp size={22} color={theme.colors.textSecondary} />}

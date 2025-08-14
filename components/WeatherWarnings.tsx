@@ -1,23 +1,66 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, LayoutAnimation, Platform, UIManager, Animated } from 'react-native';
-import { AlertTriangle, ChevronDown, AlertCircle, AlertOctagon } from 'lucide-react-native';
+import { AlertTriangle, ChevronDown, AlertCircle, AlertOctagon, Info } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
+
+interface WarningLevel {
+  level: string;
+  color: string;
+  icon: React.ReactNode;
+}
+
+interface WarningItemProps {
+  title: string;
+  subtitle: string;
+  content: string;
+  level: string;
+  validUntil: string;
+}
+
+interface WeatherWarningsProps {
+  warnings: {
+    meteo?: Array<{
+      title: string;
+      subtitle: string;
+      content: string;
+      level: string;
+      validUntil: string;
+    }>;
+    hydro?: Array<{
+      title: string;
+      subtitle: string;
+      content: string;
+      level: string;
+      validUntil: string;
+    }>;
+  };
+}
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const getWarningStyles = (theme, level) => {
-    const getWarningColor = (level) => {
-        if (level >= 3) return theme.colors.error;
-        if (level === 2) return '#FF6B35'; // Orange for medium warnings
-        return theme.colors.warning;
+const getWarningStyles = (theme: any, level: string) => {
+    const getWarningColor = (level: string) => {
+        switch (level.toLowerCase()) {
+            case 'extreme': return '#dc2626';
+            case 'severe': return '#ea580c';
+            case 'moderate': return '#d97706';
+            case 'minor': return '#059669';
+            default: return '#6b7280';
+        }
     };
 
-    const getWarningIcon = (level) => {
-        if (level >= 3) return AlertOctagon;
-        if (level === 2) return AlertTriangle;
-        return AlertCircle;
+    const getWarningIcon = (level: string) => {
+        switch (level.toLowerCase()) {
+            case 'extreme':
+            case 'severe':
+                return <AlertTriangle size={24} color={getWarningColor(level)} />;
+            case 'moderate':
+                return <AlertCircle size={24} color={getWarningColor(level)} />;
+            default:
+                return <Info size={24} color={getWarningColor(level)} />;
+        }
     };
 
     const baseColor = getWarningColor(level);
@@ -105,24 +148,34 @@ const getWarningStyles = (theme, level) => {
     });
 };
 
-const WarningItem = ({ title, subtitle, content, level, validUntil }) => {
+const WarningItem: React.FC<WarningItemProps> = ({ title, subtitle, content, level, validUntil }) => {
     const { theme } = useThemeStore();
     const [isExpanded, setIsExpanded] = useState(false);
     const [rotateAnim] = useState(new Animated.Value(0));
     const styles = getWarningStyles(theme, level);
     
-    const getWarningIcon = (level) => {
-        if (level >= 3) return AlertOctagon;
-        if (level === 2) return AlertTriangle;
-        return AlertCircle;
+    const getWarningIcon = (level: string) => {
+        switch (level.toLowerCase()) {
+            case 'extreme':
+            case 'severe':
+                return <AlertTriangle size={24} color={getWarningColor(level)} />;
+            case 'moderate':
+                return <AlertCircle size={24} color={getWarningColor(level)} />;
+            default:
+                return <Info size={24} color={getWarningColor(level)} />;
+        }
     };
     
     const IconComponent = getWarningIcon(level);
     
-    const getWarningColor = (level) => {
-        if (level >= 3) return theme.colors.error;
-        if (level === 2) return '#FF6B35'; // Orange for medium warnings
-        return theme.colors.warning;
+    const getWarningColor = (level: string) => {
+        switch (level.toLowerCase()) {
+            case 'extreme': return '#dc2626';
+            case 'severe': return '#ea580c';
+            case 'moderate': return '#d97706';
+            case 'minor': return '#059669';
+            default: return '#6b7280';
+        }
     };
 
     const toggleExpand = () => {
@@ -138,10 +191,14 @@ const WarningItem = ({ title, subtitle, content, level, validUntil }) => {
         setIsExpanded(!isExpanded);
     };
 
-    const getLevelText = (level) => {
-        if (level >= 3) return 'KRYTYCZNE';
-        if (level === 2) return 'ŚREDNIE';
-        return 'NISKIE';
+    const getLevelText = (level: string) => {
+        switch (level.toLowerCase()) {
+            case 'extreme': return 'EKSTREMALNE';
+            case 'severe': return 'SILNE';
+            case 'moderate': return 'ŚREDNIE';
+            case 'minor': return 'NISKIE';
+            default: return 'NISKIE';
+        }
     };
 
     const rotate = rotateAnim.interpolate({
@@ -153,7 +210,7 @@ const WarningItem = ({ title, subtitle, content, level, validUntil }) => {
         <View style={styles.container}>
             <TouchableOpacity onPress={toggleExpand} style={styles.header} activeOpacity={0.7}>
                 <View style={styles.iconContainer}>
-                    <IconComponent size={20} color={getWarningColor(level)} />
+                  {IconComponent}
                 </View>
                 <View style={styles.headerTextContainer}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -181,8 +238,8 @@ const WarningItem = ({ title, subtitle, content, level, validUntil }) => {
     );
 };
 
-export const WeatherWarnings = ({ warnings }) => {
-    const meteoWarnings = (warnings.meteo || []).map(w => ({
+export const WeatherWarnings: React.FC<WeatherWarningsProps> = ({ warnings }) => {
+    const meteoWarnings = (warnings.meteo || []).map((w: any) => ({
         id: `meteo-${w.ID}`,
         title: w.Name,
         subtitle: `Ostrzeżenie meteorologiczne`,
@@ -191,7 +248,7 @@ export const WeatherWarnings = ({ warnings }) => {
         validUntil: w.valid_do,
     }));
 
-    const hydroWarnings = (warnings.hydro || []).map(w => ({
+    const hydroWarnings = (warnings.hydro || []).map((w: any) => ({
         id: `hydro-${w.ID}`,
         title: `Ostrzeżenie hydrologiczne`,
         subtitle: `Poziom ${w.Stopien}`,

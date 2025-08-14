@@ -235,7 +235,7 @@ class Kaszuby24_Push_Database {
         }
     }
     
-    public function log_notification($token, $article_id, $title, $body, $status, $response = null) {
+    public function log_notification($token, $article_id, $title, $body, $status, $response = null, $receipt_id = null) {
         global $wpdb;
         
         $table_name = $wpdb->prefix . 'kaszuby24_push_logs';
@@ -249,9 +249,10 @@ class Kaszuby24_Push_Database {
                 'body' => $body,
                 'status' => $status,
                 'response_data' => $response ? json_encode($response) : null,
+                'receipt_id' => $receipt_id,
                 'created_at' => current_time('mysql')
             ),
-            array('%s', '%d', '%s', '%s', '%s', '%s', '%s')
+            array('%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s')
         );
     }
     

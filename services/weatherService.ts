@@ -10,8 +10,319 @@ import {
 } from '@/types/weather';
 
 const API_BASE_URL = 'https://danepubliczne.imgw.pl/api/data';
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
-const OPENWEATHER_API_KEY = 'YOUR_API_KEY'; // You'll need to add your API key
+
+// Intelligent TTLs per data category
+const CACHE_TTL = {
+    currentMs: 5 * 60 * 1000, // 5 minutes (current observations)
+    forecastMs: 30 * 60 * 1000, // 30 minutes
+    warningsMs: 15 * 60 * 1000, // 15 minutes
+    historyMs: 24 * 60 * 60 * 1000, // 24 hours
+    defaultMs: 10 * 60 * 1000, // fallback: 10 minutes
+} as const;
+// API key removed - using free Open-Meteo API for weather data
+
+// Cache configuration
+const CACHE_EXPIRY = {
+  CURRENT_WEATHER: 5 * 60 * 1000, // 5 minutes
+  FORECAST: 15 * 60 * 1000, // 15 minutes
+  AIR_QUALITY: 30 * 60 * 1000, // 30 minutes
+  STATIONS: 10 * 60 * 1000, // 10 minutes
+};
+
+interface CachedData<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+class WeatherCache {
+  private static instance: WeatherCache;
+  
+  static getInstance(): WeatherCache {
+    if (!WeatherCache.instance) {
+      WeatherCache.instance = new WeatherCache();
+    }
+    return WeatherCache.instance;
+  }
+
+  async set<T>(key: string, data: T, expiryMs: number): Promise<void> {
+    try {
+      const cachedData: CachedData<T> = {
+        data,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + expiryMs,
+      };
+      await AsyncStorage.setItem(key, JSON.stringify(cachedData));
+    } catch (error) {
+      console.warn('Failed to cache weather data:', error);
+    }
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    try {
+      const cached = await AsyncStorage.getItem(key);
+      if (!cached) return null;
+
+      const cachedData: CachedData<T> = JSON.parse(cached);
+      
+      // Check if cache is expired
+      if (Date.now() > cachedData.expiresAt) {
+        await AsyncStorage.removeItem(key);
+        return null;
+      }
+
+      return cachedData.data;
+    } catch (error) {
+      console.warn('Failed to retrieve cached weather data:', error);
+      return null;
+    }
+  }
+
+  async clear(): Promise<void> {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const weatherKeys = keys.filter(key => key.startsWith('weather_'));
+      await AsyncStorage.multiRemove(weatherKeys);
+    } catch (error) {
+      console.warn('Failed to clear weather cache:', error);
+    }
+  }
+
+  async isStale(key: string): Promise<boolean> {
+    try {
+      const cached = await AsyncStorage.getItem(key);
+      if (!cached) return true;
+
+      const cachedData: CachedData<any> = JSON.parse(cached);
+      return Date.now() > cachedData.expiresAt;
+    } catch {
+      return true;
+    }
+  }
+}
+
+// Enhanced weather service with caching
+export class EnhancedWeatherService {
+  private cache = WeatherCache.getInstance();
+  private pendingRequests: Map<string, Promise<any>> = new Map();
+
+  // Prevent duplicate requests
+  private async deduplicateRequest<T>(
+    key: string, 
+    requestFn: () => Promise<T>
+  ): Promise<T> {
+    if (this.pendingRequests.has(key)) {
+      return this.pendingRequests.get(key)!;
+    }
+
+    const request = requestFn();
+    this.pendingRequests.set(key, request);
+
+    try {
+      const result = await request;
+      return result;
+    } finally {
+      this.pendingRequests.delete(key);
+    }
+  }
+
+  async getCurrentWeather(lat: number, lon: number, forceRefresh = false) {
+    const cacheKey = `weather_current_${lat}_${lon}`;
+    
+    // Return cached data if available and not stale
+    if (!forceRefresh) {
+      const cached = await this.cache.get(cacheKey);
+      if (cached) {
+        console.log('Weather data served from cache');
+        return cached;
+      }
+    }
+
+    return this.deduplicateRequest(cacheKey, async () => {
+      try {
+        // Show loading state immediately
+        const startTime = Date.now();
+        
+        const response = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY}&units=metric&lang=pl`
+        );
+        
+        if (!response.ok) throw new Error('Weather API error');
+        
+        const data = await response.json();
+        const loadTime = Date.now() - startTime;
+        
+        console.log(`Weather data loaded in ${loadTime}ms`);
+        
+        // Cache the result
+        await this.cache.set(cacheKey, data, CACHE_EXPIRY.CURRENT_WEATHER);
+        
+        return data;
+      } catch (error) {
+        console.error('Failed to fetch weather data:', error);
+        throw error;
+      }
+    });
+  }
+
+  async getForecast(lat: number, lon: number, forceRefresh = false) {
+    const cacheKey = `weather_forecast_${lat}_${lon}`;
+    
+    if (!forceRefresh) {
+      const cached = await this.cache.get(cacheKey);
+      if (cached) return cached;
+    }
+
+    return this.deduplicateRequest(cacheKey, async () => {
+      try {
+        const startTime = Date.now();
+        
+        const response = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY}&units=metric&lang=pl`
+        );
+        
+        if (!response.ok) throw new Error('Forecast API error');
+        
+        const data = await response.json();
+        const loadTime = Date.now() - startTime;
+        
+        console.log(`Forecast data loaded in ${loadTime}ms`);
+        
+        await this.cache.set(cacheKey, data, CACHE_EXPIRY.FORECAST);
+        
+        return data;
+      } catch (error) {
+        console.error('Failed to fetch forecast data:', error);
+        throw error;
+      }
+    });
+  }
+
+  async getAirQuality(lat: number, lon: number, forceRefresh = false) {
+    const cacheKey = `weather_airquality_${lat}_${lon}`;
+    
+    if (!forceRefresh) {
+      const cached = await this.cache.get(cacheKey);
+      if (cached) return cached;
+    }
+
+    return this.deduplicateRequest(cacheKey, async () => {
+      try {
+        const startTime = Date.now();
+        
+        const response = await fetch(
+          `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY}`
+        );
+        
+        if (!response.ok) throw new Error('Air quality API error');
+        
+        const data = await response.json();
+        const loadTime = Date.now() - startTime;
+        
+        console.log(`Air quality data loaded in ${loadTime}ms`);
+        
+        await this.cache.set(cacheKey, data, CACHE_EXPIRY.AIR_QUALITY);
+        
+        return data;
+      } catch (error) {
+        console.error('Failed to fetch air quality data:', error);
+        throw error;
+      }
+    });
+  }
+
+  // Batch multiple weather requests
+  async getWeatherBatch(lat: number, lon: number, forceRefresh = false) {
+    const startTime = Date.now();
+    
+    try {
+      const [current, forecast, airQuality] = await Promise.allSettled([
+        this.getCurrentWeather(lat, lon, forceRefresh),
+        this.getForecast(lat, lon, forceRefresh),
+        this.getAirQuality(lat, lon, forceRefresh),
+      ]);
+
+      const batchTime = Date.now() - startTime;
+      console.log(`Weather batch loaded in ${batchTime}ms`);
+
+      return {
+        current: current.status === 'fulfilled' ? current.value : null,
+        forecast: forecast.status === 'fulfilled' ? forecast.value : null,
+        airQuality: airQuality.status === 'fulfilled' ? airQuality.value : null,
+        loadTime: batchTime,
+      };
+    } catch (error) {
+      console.error('Failed to load weather batch:', error);
+      throw error;
+    }
+  }
+
+  // Preload weather data for better UX
+  async preloadWeatherData(lat: number, lon: number) {
+    try {
+      // Preload in background without blocking UI
+      setTimeout(async () => {
+        try {
+          await this.getWeatherBatch(lat, lon, false);
+          console.log('Weather data preloaded successfully');
+        } catch (error) {
+          console.warn('Weather preload failed:', error);
+        }
+      }, 100);
+    } catch (error) {
+      console.warn('Failed to schedule weather preload:', error);
+    }
+  }
+
+  // Clear expired cache entries
+  async cleanupCache() {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const weatherKeys = keys.filter(key => key.startsWith('weather_'));
+      
+      for (const key of weatherKeys) {
+        if (await this.cache.isStale(key)) {
+          await AsyncStorage.removeItem(key);
+        }
+      }
+    } catch (error) {
+      console.warn('Cache cleanup failed:', error);
+    }
+  }
+
+  // Get cache statistics
+  async getCacheStats() {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const weatherKeys = keys.filter(key => key.startsWith('weather_'));
+      
+      let totalSize = 0;
+      let expiredCount = 0;
+      
+      for (const key of weatherKeys) {
+        const cached = await AsyncStorage.getItem(key);
+        if (cached) {
+          totalSize += cached.length;
+          if (await this.cache.isStale(key)) {
+            expiredCount++;
+          }
+        }
+      }
+      
+      return {
+        totalKeys: weatherKeys.length,
+        expiredKeys: expiredCount,
+        estimatedSize: `${(totalSize / 1024).toFixed(2)} KB`,
+      };
+    } catch (error) {
+      console.warn('Failed to get cache stats:', error);
+      return null;
+    }
+  }
+}
+
+// Export singleton instance
+export const weatherService = new EnhancedWeatherService();
 
 // --- STATIONS ---
 // Hardcoded lists of main stations for now. This could be fetched from an API in the future.
@@ -33,212 +344,589 @@ export const SYNOP_STATIONS: StationInfo[] = [
 ];
 
 // --- CACHE SYSTEM ---
-class WeatherCache {
-    private static async getCacheKey(endpoint: string): Promise<string> {
-        return `weather_cache_${endpoint}`;
+
+// --- GENERIC API FETCHER WITH CACHE, TTL, RETRY, OFFLINE FALLBACK ---
+type FetchOptions<T> = {
+    cacheKey?: string;
+    ttlMs?: number;
+    allowStale?: boolean;
+    retries?: number;
+    backoffBaseMs?: number;
+    transform?: (data: any) => T;
+    skipNetwork?: boolean; // offline-mode
+};
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fetchApi = async <T>(endpoint: string, options: FetchOptions<T> = {}): Promise<T> => {
+    const {
+        cacheKey = endpoint,
+        ttlMs = CACHE_TTL.defaultMs,
+        allowStale = true,
+        retries = 2,
+        backoffBaseMs = 500,
+        transform,
+        skipNetwork = false,
+    } = options;
+
+    // 1) Try fresh-valid cache first
+    const cache = WeatherCache.getInstance();
+    const cachedFresh = await cache.get<T>(cacheKey);
+    if (cachedFresh) {
+        console.log(`Using cached data for ${cacheKey}`);
+        return cachedFresh;
     }
 
-    static async get<T>(endpoint: string): Promise<T | null> {
+    // 2) Offline mode: return stale if requested to skip network
+    if (skipNetwork) {
+        const stale = await cache.get<T>(cacheKey);
+        if (stale) {
+            console.log(`Offline: using stale cached data for ${cacheKey}`);
+            return stale;
+        }
+        throw new Error(`Offline and no cache for ${cacheKey}`);
+    }
+
+    // 3) Network with retry
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
         try {
-            const key = await this.getCacheKey(endpoint);
-            const cached = await AsyncStorage.getItem(key);
-            if (!cached) return null;
-            
-            const { data, timestamp } = JSON.parse(cached);
-            const now = Date.now();
-            
-            if (now - timestamp > CACHE_DURATION) {
-                await AsyncStorage.removeItem(key);
-                return null;
+            console.log(`Fetching fresh data from: ${API_BASE_URL}/${endpoint} (attempt ${attempt + 1})`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+                signal: controller.signal,
+                headers: {
+                    Accept: 'application/json',
+                    'User-Agent': 'Kaszuby24-App/1.0',
+                },
+            });
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
             }
-            
-            return data as T;
+            const raw = await response.json();
+            const data: T = transform ? transform(raw) : raw;
+            await cache.set(cacheKey, data, ttlMs);
+            console.log(`Successfully fetched ${endpoint}${transform ? ' (transformed)' : ''}`);
+            return data;
         } catch (error) {
-            console.error('Cache read error:', error);
-            return null;
-        }
-    }
-
-    static async set<T>(endpoint: string, data: T): Promise<void> {
-        try {
-            const key = await this.getCacheKey(endpoint);
-            const cacheData = {
-                data,
-                timestamp: Date.now()
-            };
-            await AsyncStorage.setItem(key, JSON.stringify(cacheData));
-        } catch (error) {
-            console.error('Cache write error:', error);
-        }
-    }
-
-    static async clear(): Promise<void> {
-        try {
-            const keys = await AsyncStorage.getAllKeys();
-            const weatherKeys = keys.filter(key => key.startsWith('weather_cache_'));
-            await AsyncStorage.multiRemove(weatherKeys);
-        } catch (error) {
-            console.error('Cache clear error:', error);
-        }
-    }
-}
-
-// --- GENERIC API FETCHER WITH CACHE ---
-const fetchApi = async <T>(endpoint: string, useCache = true): Promise<T> => {
-    try {
-        // Check cache first
-        if (useCache) {
-            const cached = await WeatherCache.get<T>(endpoint);
-            if (cached) {
-                console.log(`Using cached data for ${endpoint}`);
-                return cached;
+            lastError = error;
+            const backoff = backoffBaseMs * Math.pow(2, attempt);
+            if (attempt < retries) {
+                console.warn(`Fetch ${endpoint} failed (attempt ${attempt + 1}). Retrying in ${backoff}ms...`, error);
+                await delay(backoff);
+                continue;
             }
         }
-
-        console.log(`Fetching fresh data from: ${API_BASE_URL}/${endpoint}`);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
-            signal: controller.signal,
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Kaszuby24-App/1.0'
-            }
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log(`Successfully fetched ${endpoint}, data length: ${Array.isArray(data) ? data.length : 'object'}`);
-        
-        // Cache the response
-        if (useCache) {
-            await WeatherCache.set(endpoint, data);
-        }
-        
-        return data;
-    } catch (error) {
-        console.error(`Error fetching from ${endpoint}:`, error);
-        
-        // Try to return cached data even if expired as fallback
-        if (useCache) {
-            try {
-                const key = `weather_cache_${endpoint}`;
-                const cached = await AsyncStorage.getItem(key);
-                if (cached) {
-                    const { data } = JSON.parse(cached);
-                    console.log(`Using expired cached data for ${endpoint} as fallback`);
-                    return data as T;
-                }
-            } catch (cacheError) {
-                console.error('Failed to get fallback cache:', cacheError);
-            }
-        }
-        
-        throw error;
     }
+
+    console.error(`Error fetching from ${endpoint}:`, lastError);
+
+    // 4) Stale fallback
+    if (allowStale) {
+        const stale = await cache.get<T>(cacheKey);
+        if (stale) {
+            console.log(`Using expired cached data for ${cacheKey} as fallback`);
+            return stale;
+        }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
 };
 
 // --- API FETCH FUNCTIONS ---
-export const fetchSynopData = () => fetchApi<SynopData[]>('synop');
-export const fetchHydroData = () => fetchApi<HydroData[]>('hydro');
-export const fetchMeteoData = () => fetchApi<MeteoData[]>('meteo');
-export const fetchMeteoWarnings = () => fetchApi<any[]>('warningsmeteo');
-export const fetchHydroWarnings = () => fetchApi<any[]>('warningshydro');
-
-export const fetchAllWarnings = async (): Promise<WarningData[]> => {
-    const [meteo, hydro] = await Promise.all([fetchMeteoWarnings(), fetchHydroWarnings()]);
-
-    const meteoWarnings: WarningData[] = (meteo || []).map(w => ({
-        id: w.id,
-        type: 'meteo',
-        level: parseInt(w.stopien, 10) || 1,
-        title: w.nazwa_zdarzenia || 'Ostrzeżenie meteorologiczne',
-        description: w.tresc || '',
-        validFrom: w.obowiazuje_od,
-        validTo: w.obowiazuje_do,
-        validUntil: w.obowiazuje_do, // For backward compatibility
-        regions: w.teryt || [],
-        probability: parseInt(w.prawdopodobienstwo) || 0,
-        comment: w.komentarz
+// Minimal field selection to reduce payload stored/rendered
+const transformSynop = (items: any[]): SynopData[] =>
+    (Array.isArray(items) ? items : []).map((i) => ({
+        id_stacji: i.id_stacji,
+        stacja: i.stacja,
+        data_pomiaru: i.data_pomiaru,
+        godzina_pomiaru: i.godzina_pomiaru,
+        temperatura: i.temperatura,
+        predkosc_wiatru: i.predkosc_wiatru,
+        kierunek_wiatru: i.kierunek_wiatru,
+        wilgotnosc_wzgledna: i.wilgotnosc_wzgledna,
+        suma_opadu: i.suma_opadu,
+        cisnienie: i.cisnienie,
+        // include visibility if present in raw (widocznosc)
+        // @ts-ignore
+        widocznosc: (i as any).widocznosc ?? null,
     }));
 
-    const hydroWarnings: WarningData[] = (hydro || []).map(w => ({
-        id: w.numer,
-        type: 'hydro',
-        level: parseInt(w.stopień || w.stopien, 10) || 1,
-        title: w.zdarzenie || 'Ostrzeżenie hydrologiczne',
-        description: w.przebieg || '',
-        validFrom: w.data_od,
-        validTo: w.data_do,
-        validUntil: w.data_do, // For backward compatibility
-        regions: w.obszary?.map((o: any) => o.wojewodztwo) || [],
-        obszary: w.obszary,
-        probability: parseInt(w.prawdopodobienstwo) || 0,
-        comment: w.komentarz
+const transformMeteo = (items: any[]): MeteoData[] =>
+    (Array.isArray(items) ? items : []).map((i) => ({
+        kod_stacji: i.kod_stacji,
+        nazwa_stacji: i.nazwa_stacji,
+        lat: i.lat,
+        lon: i.lon,
+        temperatura_gruntu: i.temperatura_gruntu ?? null,
+        temperatura_gruntu_data: i.temperatura_gruntu_data ?? null,
+        temperatura_powietrza: i.temperatura_powietrza ?? null,
+        temperatura_powietrza_data: i.temperatura_powietrza_data ?? null,
+        wiatr_kierunek: i.wiatr_kierunek ?? null,
+        wiatr_kierunek_data: i.wiatr_kierunek_data ?? null,
+        wiatr_srednia_predkosc: i.wiatr_srednia_predkosc ?? null,
+        wiatr_srednia_predkosc_data: i.wiatr_srednia_predkosc_data ?? null,
+        wiatr_predkosc_maksymalna: i.wiatr_predkosc_maksymalna ?? null,
+        wiatr_predkosc_maksymalna_data: i.wiatr_predkosc_maksymalna_data ?? null,
+        wilgotnosc_wzgledna: i.wilgotnosc_wzgledna ?? null,
+        wilgotnosc_wzgledna_data: i.wilgotnosc_wzgledna_data ?? null,
+        wiatr_poryw_10min: i.wiatr_poryw_10min ?? null,
+        wiatr_poryw_10min_data: i.wiatr_poryw_10min_data ?? null,
+        opad_10min: i.opad_10min ?? '0',
+        opad_10min_data: i.opad_10min_data ?? new Date().toISOString(),
     }));
 
-    return [...meteoWarnings, ...hydroWarnings];
+const transformHydro = (items: any[]): HydroData[] =>
+    (Array.isArray(items) ? items : []).map((i) => ({
+        id_stacji: i.id_stacji,
+        stacja: i.stacja,
+        rzeka: i.rzeka,
+        wojewodztwo: i.wojewodztwo ?? '',
+        lon: i.lon,
+        lat: i.lat,
+        stan_wody: i.stan_wody,
+        stan_wody_data_pomiaru: i.stan_wody_data_pomiaru,
+        temperatura_wody: i.temperatura_wody ?? null,
+        temperatura_wody_data_pomiaru: i.temperatura_wody_data_pomiaru ?? null,
+        przeplyw: i.przeplyw ?? null,
+        przeplyw_data: i.przeplyw_data ?? null,
+        zjawisko_lodowe: i.zjawisko_lodowe,
+        zjawisko_lodowe_data_pomiaru: i.zjawisko_lodowe_data_pomiaru,
+        zjawisko_zarastania: i.zjawisko_zarastania,
+        zjawisko_zarastania_data_pomiaru: i.zjawisko_zarastania_data_pomiaru,
+    }));
+
+export const fetchSynopData = (options: Partial<FetchOptions<SynopData[]>> = {}) =>
+    fetchApi<SynopData[]>('synop', {
+        cacheKey: 'synop',
+        ttlMs: CACHE_TTL.currentMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        transform: transformSynop,
+        ...options,
+    });
+
+// Fetch SYNOP by station id
+export const fetchSynopById = (id: string, options: Partial<FetchOptions<SynopData[]>> = {}) =>
+    fetchApi<SynopData[]>(`synop/id/${encodeURIComponent(id)}`, {
+        cacheKey: `synop_id_${id}`,
+        ttlMs: CACHE_TTL.currentMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        transform: transformSynop,
+        ...options,
+    });
+
+// Fetch SYNOP by station name (ASCII, without diacritics)
+export const fetchSynopByStation = (nameAscii: string, options: Partial<FetchOptions<SynopData[]>> = {}) =>
+    fetchApi<SynopData[]>(`synop/station/${encodeURIComponent(nameAscii)}`, {
+        cacheKey: `synop_station_${nameAscii}`,
+        ttlMs: CACHE_TTL.currentMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        transform: transformSynop,
+        ...options,
+    });
+
+export const fetchHydroData = (options: Partial<FetchOptions<HydroData[]>> = {}) =>
+    fetchApi<HydroData[]>('hydro', {
+        cacheKey: 'hydro',
+        ttlMs: CACHE_TTL.forecastMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        transform: transformHydro,
+        ...options,
+    });
+
+// Fetch HYDRO by station id
+export const fetchHydroById = (id: string, options: Partial<FetchOptions<HydroData[]>> = {}) =>
+    fetchApi<HydroData[]>(`hydro/id/${encodeURIComponent(id)}`, {
+        cacheKey: `hydro_id_${id}`,
+        ttlMs: CACHE_TTL.forecastMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        transform: transformHydro,
+        ...options,
+    });
+
+export const fetchMeteoData = (options: Partial<FetchOptions<MeteoData[]>> = {}) =>
+    fetchApi<MeteoData[]>('meteo', {
+        cacheKey: 'meteo',
+        ttlMs: CACHE_TTL.forecastMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        transform: transformMeteo,
+        ...options,
+    });
+
+// Fetch METEO by station code
+export const fetchMeteoByCode = (code: string, options: Partial<FetchOptions<MeteoData[]>> = {}) =>
+    fetchApi<MeteoData[]>(`meteo/kod_stacji/${encodeURIComponent(code)}`, {
+        cacheKey: `meteo_code_${code}`,
+        ttlMs: CACHE_TTL.forecastMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        transform: transformMeteo,
+        ...options,
+    });
+
+export const fetchMeteoWarnings = (options: Partial<FetchOptions<any[]>> = {}) =>
+    fetchApi<any[]>('warningsmeteo', {
+        cacheKey: 'warningsmeteo',
+        ttlMs: CACHE_TTL.warningsMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        ...options,
+    });
+
+export const fetchHydroWarnings = (options: Partial<FetchOptions<any[]>> = {}) =>
+    fetchApi<any[]>('warningshydro', {
+        cacheKey: 'warningshydro',
+        ttlMs: CACHE_TTL.warningsMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        ...options,
+    });
+
+export const fetchAllWarnings = async (options?: { skipNetwork?: boolean }): Promise<WarningData[]> => {
+    const [meteo, hydro] = await Promise.all([
+        fetchMeteoWarnings({ skipNetwork: options?.skipNetwork }),
+        fetchHydroWarnings({ skipNetwork: options?.skipNetwork }),
+    ]);
+
+    const meteoWarnings: WarningData[] = (Array.isArray(meteo) ? meteo : []).map((w: any) => {
+        const levelRaw = w.stopien ?? w["stopień"] ?? w.level;
+        const level = parseInt(levelRaw, 10);
+        const regions = Array.isArray(w.teryt)
+            ? w.teryt
+            : typeof w.teryt === 'string' && w.teryt.length > 0
+                ? [w.teryt]
+                : [];
+        const id = w.id || w.identyfikator || `${w.nazwa_zdarzenia ?? 'meteo'}_${w.obowiazuje_od ?? ''}_${w.obowiazuje_do ?? ''}`;
+        return {
+            id: id || 'unknown',
+            type: 'meteo',
+            level: Number.isFinite(level) ? level : 1,
+            title: w.nazwa_zdarzenia || 'Ostrzeżenie meteorologiczne',
+            description: w.tresc || '',
+            validFrom: w.obowiazuje_od || '',
+            validTo: w.obowiazuje_do || '',
+            validUntil: w.obowiazuje_do || '',
+            regions,
+            probability: parseInt(w.prawdopodobienstwo, 10) || 0,
+            comment: w.komentarz || ''
+        } as WarningData;
+    });
+
+    const hydroWarnings: WarningData[] = (Array.isArray(hydro) ? hydro : []).map((w: any) => {
+        const levelRaw = w["stopień"] ?? w.stopien ?? w.level;
+        const level = parseInt(levelRaw, 10);
+        const id = w.numer || w.id || `${w.zdarzenie ?? 'hydro'}_${w.data_od ?? ''}_${w.data_do ?? ''}`;
+        return {
+            id: id || 'unknown',
+            type: 'hydro',
+            level: Number.isFinite(level) ? level : 1,
+            title: w.zdarzenie || 'Ostrzeżenie hydrologiczne',
+            description: w.przebieg || '',
+            validFrom: w.data_od || '',
+            validTo: w.data_do || '',
+            validUntil: w.data_do || '',
+            regions: Array.isArray(w.obszary) ? w.obszary.map((o: any) => o.wojewodztwo).filter(Boolean) : [],
+            // pass-through full areas if present
+            obszary: w.obszary || [],
+            probability: parseInt(w.prawdopodobienstwo, 10) || 0,
+            comment: w.komentarz || ''
+        } as WarningData;
+    });
+
+    // Deduplicate by id+type and prefer higher level or longer validity
+    const combined = [...meteoWarnings, ...hydroWarnings];
+    const uniqueMap = new Map<string, WarningData>();
+    for (const w of combined) {
+        const key = `${w.type}:${w.id}`;
+        const existing = uniqueMap.get(key);
+        if (!existing) {
+            uniqueMap.set(key, w);
+            continue;
+        }
+        const shouldReplace = (w.level > existing.level) || (w.validTo > existing.validTo);
+        if (shouldReplace) uniqueMap.set(key, w);
+    }
+
+    // Sort by severity descending then by validTo ascending (soonest first)
+    return Array.from(uniqueMap.values()).sort((a, b) => {
+        if (b.level !== a.level) return b.level - a.level;
+        return (a.validTo || '').localeCompare(b.validTo || '');
+    });
+};
+
+// Filter warnings specifically for Pomeranian Voivodeship (województwo pomorskie)
+export const filterWarningsForPomeranianVoivodeship = (warnings: WarningData[]): WarningData[] => {
+    if (!Array.isArray(warnings)) {
+        return [];
+    }
+    
+    const pomeranianKeywords = [
+        'pomorskie',
+        'pomorsk',
+        'województwo pomorskie',
+        'wojewodztwo pomorskie',
+        'gdańsk',
+        'gdansk',
+        'słupsk',
+        'slupsk',
+        'starogard',
+        'chojnice',
+        'kartuzy',
+        'kościerzyna',
+        'koscierzyna',
+        'kwidzyn',
+        'malbork',
+        'nowy dwór gdański',
+        'nowy dwor gdanski',
+        'puck',
+        'sopot',
+        'tczew',
+        'wejherowo',
+        'bytów',
+        'bytow',
+        'człuchów',
+        'czluchow',
+        'lębork',
+        'lebork',
+        'słupsk',
+        'slupsk',
+        'pomorskie województwo',
+        'pomorskie wojewodztwo'
+    ];
+
+    return warnings.filter(warning => {
+        // If no regions specified, show the warning (general warnings)
+        if (!warning.regions || !Array.isArray(warning.regions) || warning.regions.length === 0) {
+            return true;
+        }
+
+        // Check if any of the warning regions match Pomeranian Voivodeship keywords
+        return warning.regions.some(region => {
+            if (!region || typeof region !== 'string') return false;
+            const regionLower = region.toLowerCase();
+            return pomeranianKeywords.some(keyword => 
+                regionLower.includes(keyword.toLowerCase())
+            );
+        });
+    });
 };
 
 // Enhanced forecast with hourly data and UV index
-export const fetchForecast = async (coords: { latitude: number; longitude: number; }) => {
+export const fetchForecast = async (
+    coords: { latitude: number; longitude: number },
+    options?: { skipNetwork?: boolean; ttlMs?: number }
+) => {
     const { latitude, longitude } = coords;
-    if (!latitude || !longitude) return null;
+    if (!latitude || !longitude) {
+        console.log("No coordinates provided for forecast");
+        return null;
+    }
     
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-        `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,uv_index_max` +
-        `&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,winddirection_10m,relativehumidity_2m,pressure_msl,visibility` +
+        `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,uv_index_max,sunrise,sunset,windspeed_10m_max` +
+        `&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,winddirection_10m,relativehumidity_2m,pressure_msl,visibility,uv_index,dew_point_2m,cloudcover,wind_gusts_10m` +
         `&current_weather=true&timezone=Europe%2FWarsaw`;
     
+    const cacheKey = `forecast_${latitude}_${longitude}`;
+    const ttlMs = options?.ttlMs ?? CACHE_TTL.forecastMs;
+    const cache = WeatherCache.getInstance();
+    
     try {
-        const cached = await WeatherCache.get<any>(`forecast_${latitude}_${longitude}`);
-        if (cached) return cached;
-        
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch forecast");
+        // Fresh-valid cache fast-path
+        const cached = await cache.get<any>(cacheKey);
+        if (cached) {
+            console.log('Using cached forecast data');
+            return cached;
+        }
+
+        if (options?.skipNetwork) {
+            const stale = await cache.isStale(cacheKey) ? null : await cache.get<any>(cacheKey);
+            if (stale) {
+                console.log('Offline: using stale cached forecast');
+                return stale;
+            }
+            return null;
+        }
+
+        console.log(`Fetching forecast from: ${url}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json',
+                'User-Agent': 'Kaszuby24-App/1.0',
+            },
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+        }
         const data = await response.json();
-        
-        await WeatherCache.set(`forecast_${latitude}_${longitude}`, data);
+        console.log('Successfully fetched forecast data');
+        await cache.set(cacheKey, data, ttlMs);
         return data;
-    } catch(error) {
-        console.error("Forecast fetch error:", error);
+    } catch (error) {
+        console.error('Forecast fetch error:', error);
+        const cacheKey = `forecast_${latitude}_${longitude}`;
+        const stale = await cache.isStale(cacheKey) ? null : await cache.get<any>(cacheKey);
+        if (stale) {
+            console.log('Using expired cached forecast data as fallback');
+            return stale;
+        }
         return null;
     }
 };
 
 // Fetch air quality data (using Open-Meteo Air Quality API)
-export const fetchAirQuality = async (coords: { latitude: number; longitude: number; }) => {
+export const fetchAirQuality = async (
+    coords: { latitude: number; longitude: number },
+    options?: { skipNetwork?: boolean; ttlMs?: number }
+) => {
     const { latitude, longitude } = coords;
-    if (!latitude || !longitude) return null;
+    if (!latitude || !longitude) {
+        console.log("No coordinates provided for air quality");
+        return null;
+    }
     
     const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}` +
         `&hourly=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,aerosol_optical_depth,dust` +
         `&timezone=Europe%2FWarsaw`;
     
+    const cacheKey = `airquality_${latitude}_${longitude}`;
+    const ttlMs = options?.ttlMs ?? CACHE_TTL.forecastMs;
+    const cache = WeatherCache.getInstance();
+    
     try {
-        const cached = await WeatherCache.get<any>(`airquality_${latitude}_${longitude}`);
-        if (cached) return cached;
-        
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch air quality");
+        const cached = await cache.get<any>(cacheKey);
+        if (cached) {
+            console.log('Using cached air quality data');
+            return cached;
+        }
+
+        if (options?.skipNetwork) {
+            const stale = await cache.isStale(cacheKey) ? null : await cache.get<any>(cacheKey);
+            if (stale) {
+                console.log('Offline: using stale cached air quality');
+                return stale;
+            }
+            return null;
+        }
+
+        console.log(`Fetching air quality from: ${url}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                Accept: 'application/json',
+                'User-Agent': 'Kaszuby24-App/1.0',
+            },
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+        }
         const data = await response.json();
-        
-        await WeatherCache.set(`airquality_${latitude}_${longitude}`, data);
+        console.log('Successfully fetched air quality data');
+        await cache.set(cacheKey, data, ttlMs);
         return data;
-    } catch(error) {
-        console.error("Air quality fetch error:", error);
+    } catch (error) {
+        console.error('Air quality fetch error:', error);
+        const cacheKey = `airquality_${latitude}_${longitude}`;
+        const stale = await cache.isStale(cacheKey) ? null : await cache.get<any>(cacheKey);
+        if (stale) {
+            console.log('Using expired cached air quality data as fallback');
+            return stale;
+        }
         return null;
     }
 };
 
+// Fetch marine forecast (Open-Meteo Marine API)
+export const fetchMarineForecast = async (
+    coords: { latitude: number; longitude: number },
+    options?: { skipNetwork?: boolean; ttlMs?: number }
+) => {
+    const { latitude, longitude } = coords;
+    if (!latitude || !longitude) {
+        console.log("No coordinates provided for marine forecast");
+        return null;
+    }
+    const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${latitude}&longitude=${longitude}` +
+        `&hourly=wave_height,wave_direction,wave_period,wind_wave_height,wind_wave_direction,wind_wave_period` +
+        `&timezone=Europe%2FWarsaw`;
+
+    const cacheKey = `marine_${latitude}_${longitude}`;
+    const ttlMs = options?.ttlMs ?? CACHE_TTL.forecastMs;
+    const cache = WeatherCache.getInstance();
+
+    try {
+        const cached = await cache.get<any>(cacheKey);
+        if (cached) {
+            console.log('Using cached marine forecast data');
+            return cached;
+        }
+
+        if (options?.skipNetwork) {
+            const stale = await cache.isStale(cacheKey) ? null : await cache.get<any>(cacheKey);
+            if (stale) return stale;
+            return null;
+        }
+
+        console.log(`Fetching marine forecast from: ${url}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: { Accept: 'application/json', 'User-Agent': 'Kaszuby24-App/1.0' },
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+        const data = await response.json();
+        await cache.set(cacheKey, data, ttlMs);
+        return data;
+    } catch (error) {
+        console.error('Marine forecast fetch error:', error);
+        const stale = await cache.isStale(cacheKey) ? null : await cache.get<any>(cacheKey);
+        if (stale) return stale;
+        return null;
+    }
+};
+
+// Fetch IMGW Product list (radar and other products)
+export const fetchProductsList = (options: Partial<FetchOptions<any[]>> = {}) =>
+    fetchApi<any[]>(`product`, {
+        cacheKey: 'product_list',
+        ttlMs: CACHE_TTL.historyMs,
+        allowStale: true,
+        retries: 2,
+        backoffBaseMs: 400,
+        ...options,
+    });
+
 // --- HELPERS ---
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) {
+        return Infinity;
+    }
     const R = 6371; // km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -253,7 +941,7 @@ export const findNearestStation = <T extends { lat: string | number, lon: string
     userCoords: Location.LocationObjectCoords,
     stations: T[]
 ): T | null => {
-    if (!stations || stations.length === 0) return null;
+    if (!stations || !Array.isArray(stations) || stations.length === 0) return null;
 
     let nearestStation: T | null = null;
     let minDistance = Infinity;
@@ -281,10 +969,16 @@ export const findNearestStation = <T extends { lat: string | number, lon: string
 };
 
 export const findNearestSynopStation = (userCoords: Location.LocationObjectCoords): StationInfo & { distance?: number } => {
+    if (!userCoords || isNaN(userCoords.latitude) || isNaN(userCoords.longitude)) {
+        return { ...SYNOP_STATIONS[0], distance: 0 };
+    }
+    
     let nearestStation = SYNOP_STATIONS[0];
     let minDistance = Infinity;
     
     SYNOP_STATIONS.forEach(station => {
+        if (isNaN(station.lat) || isNaN(station.lon)) return;
+        
         const distance = calculateDistance(
             userCoords.latitude,
             userCoords.longitude,
@@ -308,7 +1002,7 @@ export const findNearestStations = <T extends { lat: string | number, lon: strin
     stations: T[],
     limit: number = 5
 ): T[] => {
-    if (!stations || stations.length === 0) return [];
+    if (!stations || !Array.isArray(stations) || stations.length === 0) return [];
 
     const stationsWithDistance = stations.map(station => {
         const stationLat = typeof station.lat === 'string' ? parseFloat(station.lat) : station.lat;
@@ -331,5 +1025,28 @@ export const findNearestStations = <T extends { lat: string | number, lon: strin
         .map(({ distance, ...station }) => station as unknown as T);
 };
 
+// Find nearest stations and include distance in results
+export const findNearestStationsWithDistance = <T extends { lat: string | number, lon: string | number }>(
+    userCoords: Location.LocationObjectCoords,
+    stations: T[],
+    limit: number = 5
+): Array<T & { distance: number }> => {
+    if (!stations || !Array.isArray(stations) || stations.length === 0) return [];
+
+    const stationsWithDistance = stations.map(station => {
+        const stationLat = typeof station.lat === 'string' ? parseFloat(station.lat) : station.lat;
+        const stationLon = typeof station.lon === 'string' ? parseFloat(station.lon) : station.lon;
+        const distance = calculateDistance(
+            userCoords.latitude,
+            userCoords.longitude,
+            stationLat as number,
+            stationLon as number
+        );
+        return { ...(station as any), distance } as T & { distance: number };
+    });
+
+    return stationsWithDistance.sort((a, b) => a.distance - b.distance).slice(0, limit);
+};
+
 // Export cache clear for manual refresh
-export const clearWeatherCache = WeatherCache.clear;
+export const clearWeatherCache = () => WeatherCache.getInstance().clear();

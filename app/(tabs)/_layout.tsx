@@ -9,6 +9,8 @@ import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 import { useScrollStore } from '@/store/scrollStore';
+import { useTTSStore } from '@/store/ttsStore';
+import { AudioPlayerBar } from '@/components/AudioPlayerBar';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -78,6 +80,7 @@ export default function TabLayout() {
   const { showTabBar } = useScrollStore();
   const tabBarTranslateY = React.useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
+  const tts = useTTSStore();
   
   // Oblicz właściwy padding dla Androida z safe area
   const getBottomPadding = () => {
@@ -86,7 +89,7 @@ export default function TabLayout() {
     }
     // Android: zawsze dodaj minimum 20px + safe area
     const androidPadding = Math.max(20, insets.bottom) + 20;
-    console.log('Android Main Tabs - Safe Area Bottom:', insets.bottom, 'Final Padding:', androidPadding);
+    // console.log('Android Main Tabs - Safe Area Bottom:', insets.bottom, 'Final Padding:', androidPadding);
     return androidPadding;
   };
   
@@ -109,12 +112,12 @@ export default function TabLayout() {
   useEffect(() => {
     // Listen for notifications (permissions and registration are handled in _layout.tsx)
     const notificationListener = notificationService.addNotificationReceivedListener((notification) => {
-      console.log('Notification received in TabLayout:', notification);
+      // console.log('Notification received in TabLayout:', notification);
       incrementNotificationCount();
     });
     
     const responseListener = notificationService.addNotificationResponseReceivedListener((response) => {
-      console.log('Notification response in TabLayout:', response);
+              // console.log('Notification response in TabLayout:', response);
       // Handle notification tap - navigation is handled in notificationService
     });
     
@@ -377,8 +380,7 @@ export default function TabLayout() {
 
       </Tabs>
       
-      {/* Floating Logo - tymczasowo wyłączony 
-      <FloatingLogo /> */}
+      {/* Floating Logo - tymczasowo wyłączony  <FloatingLogo /> */}
     </>
   );
 }

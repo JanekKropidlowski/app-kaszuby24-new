@@ -1,2667 +1,1390 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  View, Text, StyleSheet, SafeAreaView, ScrollView, RefreshControl, TouchableOpacity, Modal, FlatList, Dimensions, StatusBar, Alert, Animated, TextInput, Platform
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { 
-  MapPin, AlertTriangle, CloudRain, Wind, Thermometer, Droplets, Sun, Calendar, Clock, X, ChevronRight, Cloud, CloudFog, CloudSnow, CloudLightning, Gauge, ChevronDown, Waves, Zap, Sunrise, Sunset, Eye, Compass
-} from 'lucide-react-native';
-import * as Location from 'expo-location';
+import { View, StyleSheet, ScrollView, RefreshControl, Text, TouchableOpacity, Animated, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Settings, AlertCircle, WifiOff, MapPin, Calendar, Clock, TrendingUp, Thermometer, Cloud, Droplets, Wind, Eye, Sun, Info, AlertTriangle, Bell } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
+import { useWeatherConfigStore } from '@/store/weatherConfigStore';
+import { WeatherHero } from '@/components/WeatherHero';
+import { HourlyForecast } from '@/components/HourlyForecast';
+import { WeeklyForecast } from '@/components/WeeklyForecast';
+import SpecializedWeatherWidgets from '@/components/SpecializedWeatherWidgets';
+import { WeatherConfig } from '@/components/WeatherConfig';
 import LoadingIndicator from '@/components/LoadingIndicator';
-import { WeatherSection } from '@/components/WeatherSection';
-import { HydroStationCard } from '@/components/HydroStationCard';
-import { MeteoStationCard } from '@/components/MeteoStationCard';
-import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
-import { TemperatureChart } from '@/components/TemperatureChart';
-import { AirQualityCard } from '@/components/AirQualityCard';
-import { RadarMap } from '@/components/RadarMap';
-import {
-  SynopData, WarningData, HydroData, MeteoData, StationInfo
-} from '@/types/weather';
-import {
-  fetchSynopData,
-  fetchAllWarnings,
-  fetchForecast,
-  fetchAirQuality,
-  findNearestSynopStation,
-  findNearestStation,
-  findNearestStations,
-  fetchHydroData,
-  fetchMeteoData,
-  clearWeatherCache,
-  SYNOP_STATIONS
-} from '@/services/weatherService';
+import EmptyState from '@/components/EmptyState';
+import { LocationSelectionModal } from '@/components/LocationSelectionModal';
+
+
+import { WeatherIcon } from '@/components/WeatherIcon';
+
+
+import SwipeableModal from '@/components/SwipeableModal';
+
+
+import * as Location from 'expo-location';
+import { fetchForecast, fetchAllWarnings, filterWarningsForPomeranianVoivodeship, fetchAirQuality, fetchSynopData, findNearestSynopStation, fetchMeteoData, findNearestStations, fetchMarineForecast, findNearestStationsWithDistance, fetchHydroData } from '@/services/weatherService';
+import { useRouter } from 'expo-router';
+import { testNetworkConnectivity } from '@/utils/androidNetworkHelper';
+
+// Simplified mock data
+const mockCurrentWeather = {
+  temperature: 18.5,
+  condition: 'Partly cloudy',
+  wmoCode: 3,
+  humidity: 65,
+  windSpeed: 12.3,
+  pressure: 1013.2,
+  feelsLike: 16.8,
+  uvIndex: 4,
+  visibility: 10.2,
+  precipitation: 0.0,
+};
+
+const mockHourlyData = Array.from({ length: 24 }, (_, i) => {
+  const hour = new Date(Date.now() + i * 60 * 60 * 1000).getHours();
+  const baseTemp = 15;
+  const tempVariation = Math.sin((hour - 6) * Math.PI / 12) * 8;
+  const temp = baseTemp + tempVariation + (Math.random() - 0.5) * 2;
+  
+  return {
+    time: new Date(Date.now() + i * 60 * 60 * 1000).toISOString(),
+    temperature: Math.round(temp * 10) / 10,
+    wmoCode: hour >= 6 && hour <= 18 ? (Math.random() > 0.7 ? 3 : 1) : (Math.random() > 0.8 ? 2 : 0),
+    precipitation: hour >= 14 && hour <= 18 ? Math.random() * 2.5 : Math.random() * 0.3,
+    windSpeed: 8 + Math.sin(hour * Math.PI / 12) * 4 + (Math.random() - 0.5) * 2,
+    humidity: 60 + Math.sin(hour * Math.PI / 12) * 15 + (Math.random() - 0.5) * 10,
+  };
+});
+
+const mockWeeklyData = Array.from({ length: 7 }, (_, i) => {
+  const date = new Date(Date.now() + i * 24 * 60 * 60 * 1000);
+  const dayOfWeek = date.getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  
+  return {
+    date: date.toISOString(),
+    wmoCode: isWeekend ? (Math.random() > 0.6 ? 3 : 1) : (Math.random() > 0.8 ? 2 : 1),
+    maxTemp: 18 + Math.sin(i * Math.PI / 7) * 8 + (Math.random() - 0.5) * 4,
+    minTemp: 8 + Math.sin(i * Math.PI / 7) * 6 + (Math.random() - 0.5) * 3,
+    precipitation: isWeekend ? Math.random() * 0.8 : Math.random() * 0.4,
+    windSpeed: 10 + Math.sin(i * Math.PI / 7) * 5 + (Math.random() - 0.5) * 3,
+  };
+});
+
+
 
 export default function WeatherScreen() {
-  const { theme } = useThemeStore();
-  const insets = useSafeAreaInsets();
-  const screenHeight = Dimensions.get('window').height;
+  const { theme, isDarkMode } = useThemeStore();
+  const { config, setConfig, selectedStation, sectionOrder, setSectionOrder } = useWeatherConfigStore();
+  const router = useRouter();
+  const handleOpenPushSettings = () => {
+     router.push('/(tabs)/preferences');
+  };
   
-  // State
-  const [loading, setLoading] = useState(true);
+
+  
+
+  
+  // Simplified state management
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState('');
+  const [currentWeather, setCurrentWeather] = useState(mockCurrentWeather);
+  const [hourlyData, setHourlyData] = useState(mockHourlyData);
+  const [weeklyData, setWeeklyData] = useState(mockWeeklyData);
 
-  // Location and Station State
-  const [locationData, setLocationData] = useState<Location.LocationObjectCoords | null>(null);
-  const [userLocation, setUserLocation] = useState('Pobieranie lokalizacji...');
-  const [selectedSynopStation, setSelectedSynopStation] = useState<StationInfo>(SYNOP_STATIONS[0]);
-  const [showStationModal, setShowStationModal] = useState(false);
-
-  // Weather Data State
-  const [synopData, setSynopData] = useState<SynopData | null>(null);
-  const [hydroData, setHydroData] = useState<HydroData[]>([]);
-  const [meteoData, setMeteoData] = useState<MeteoData[]>([]);
-  const [warnings, setWarnings] = useState<WarningData[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [allAlerts, setAllAlerts] = useState<any[]>([]);
+  const [alertsModalVisible, setAlertsModalVisible] = useState(false);
+  const [alertFilters, setAlertFilters] = useState<{ severity: 'all' | 'low' | 'medium' | 'high'; type: 'all' | 'meteo' | 'hydro' }>({ severity: 'all', type: 'all' });
+  const [showAllWarningsNationwide, setShowAllWarningsNationwide] = useState(false);
+  const [nearestStation, setNearestStation] = useState<{ name: string; distance?: number } | null>(null);
+  const [synopData, setSynopData] = useState<any | null>(null);
+  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const [meteoNearest, setMeteoNearest] = useState<any | null>(null);
+  const [dataSources, setDataSources] = useState<{ label: string; source: string }[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [forecastData, setForecastData] = useState<any>(null);
-  const [airQualityData, setAirQualityData] = useState<any>(null);
-  const [nearestHydroStation, setNearestHydroStation] = useState<HydroData | null>(null);
-  const [nearestMeteoStation, setNearestMeteoStation] = useState<MeteoData | null>(null);
-  const [nearbyHydroStations, setNearbyHydroStations] = useState<HydroData[]>([]);
-  const [selectedDay, setSelectedDay] = useState<any>(null);
-  const [showDayModal, setShowDayModal] = useState(false);
-  const [searchStationQuery, setSearchStationQuery] = useState('');
-  const [hasShownAutoSelectAlert, setHasShownAutoSelectAlert] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [lastErrorShown, setLastErrorShown] = useState<string | null>(null);
-  const [selectedWarning, setSelectedWarning] = useState<WarningData | null>(null);
-  const [showWarningModal, setShowWarningModal] = useState(false);
-  const [showWarningsListModal, setShowWarningsListModal] = useState(false);
-  const warningModalAnimation = useRef(new Animated.Value(0)).current;
-  const warningsListModalAnimation = useRef(new Animated.Value(0)).current;
-  const [canScrollWarningModal, setCanScrollWarningModal] = useState(false);
-
-  // Animation for weather icon - moved to component level
-  const iconAnimation = useRef(new Animated.Value(0)).current;
   
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(iconAnimation, {
-          toValue: 1,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(iconAnimation, {
-          toValue: 0,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [iconAnimation]);
 
-  // Zabezpieczenie przed undefined theme
-  if (!theme) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Ładowanie...</Text>
-      </View>
-    );
-  }
   
-  const styles = getStyles(theme, screenHeight, insets);
+  // Modal states
+  const [configVisible, setConfigVisible] = useState(false);
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
 
-  useEffect(() => {
-    initializeWeather();
-  }, []);
+  const [weatherDetailsModalVisible, setWeatherDetailsModalVisible] = useState(false);
+  const [marineData, setMarineData] = useState<any | null>(null);
+  const [waterTempC, setWaterTempC] = useState<number | null>(null);
 
-  useEffect(() => {
-    // Only fetch data when station changes after initialization
-    if (!isInitializing && (locationData || !userLocation.includes('Pobieranie'))) {
-      console.log('Station changed, fetching new data...');
-      fetchAllData();
-    }
-  }, [selectedSynopStation, isInitializing, locationData, userLocation]);
+  // Simple animations
 
-  const initializeWeather = async () => {
-    setLoading(true);
+  // Simple animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  // Location handling
+  const getCurrentLocation = useCallback(async () => {
     try {
-      console.log('Initializing weather - requesting location permissions...');
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        console.log('Location permission denied, using default location');
-        // Just log instead of showing alert every time
-        console.log('Location permission denied, using default location (Gdańsk)');
-        setUserLocation('Gdańsk, Pomorze (domyślna)');
-        setLocationData(null);
-        // Keep default station (Gdańsk)
-      } else {
-        console.log('Location permission granted, getting current position...');
-        try {
-          const location = await Location.getCurrentPositionAsync({ 
-            accuracy: Location.Accuracy.Balanced
-          });
-          
-          console.log('Got location:', location.coords);
-          setLocationData(location.coords);
-          
-          // Get city name from coordinates
-          try {
-            const [reverseGeocode] = await Location.reverseGeocodeAsync(location.coords);
-            const cityName = reverseGeocode?.city || reverseGeocode?.subregion || reverseGeocode?.region || 'Nieznana lokalizacja';
-            setUserLocation(`${cityName} (automatycznie)`);
-          } catch (geocodeError) {
-            console.log('Reverse geocoding failed, using coordinates');
-            setUserLocation(`${location.coords.latitude.toFixed(3)}, ${location.coords.longitude.toFixed(3)} (automatycznie)`);
-          }
-          
-          // Find nearest station
-          const nearestStation = findNearestSynopStation(location.coords);
-          console.log('Selected nearest station:', nearestStation.name);
-          setSelectedSynopStation(nearestStation);
-          
-          // Just log the auto-selected station instead of showing alert
-          console.log(`Auto-selected nearest station: ${nearestStation.name} (${nearestStation.distance?.toFixed(1)} km)`);
-          
-        } catch (locationError) {
-          console.error('Failed to get current position:', locationError);
-          // Just log the error instead of showing alert
-          console.log('Failed to get current position, using default station (Gdańsk)');
-          setUserLocation('Gdańsk, Pomorze (domyślna)');
-          setLocationData(null);
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing weather:', error);
-      // Just log the error instead of showing alert
-      console.log('Error initializing weather, using default station');
-      setUserLocation('Gdańsk, Pomorze (domyślna)');
-      setLocationData(null);
-    } finally {
-      // Always fetch data regardless of location success
-      setIsInitializing(false); // Mark initialization as complete
-      fetchAllData();
-    }
-  };
-
-  const fetchBasicData = async () => {
-    setLoading(true);
-    const startTime = Date.now();
-    
-    try {
-      console.log('Fetching basic weather data...');
-      const coords = locationData || { latitude: selectedSynopStation.lat, longitude: selectedSynopStation.lon };
-      console.log('Using coordinates:', coords);
-      console.log('Selected station:', selectedSynopStation.name);
-      
-      // Load only essential data for fast initial display
-      const promises = [
-        fetchSynopData().catch(error => {
-          console.error('Synop data fetch failed:', error);
-          return []; // Return empty array on error
-        }),
-        fetchForecast(coords).catch(error => {
-          console.error('Forecast fetch failed:', error);
-          return null; // Return null on error
-        })
-      ];
-      
-      const [synop, forecast] = await Promise.all(promises);
-      console.log('Synop data length:', Array.isArray(synop) ? synop.length : 'not array');
-      console.log('Forecast data available:', !!forecast);
-
-      // Find current station data
-      const currentSynop = Array.isArray(synop) ? 
-        synop.find(s => s.id_stacji === selectedSynopStation.id) : null;
-      
-      if (currentSynop) {
-        console.log('Found synop data for station:', currentSynop.stacja);
-        setSynopData(currentSynop);
-      } else {
-        console.warn('No synop data found for station:', selectedSynopStation.id);
-        setSynopData(null);
-      }
-      
-      if (forecast) {
-        setForecastData(forecast);
-      } else {
-        console.warn('No forecast data available');
-        setForecastData(null);
-      }
-
-      const loadTime = Date.now() - startTime;
-      console.log(`Basic weather data loaded in ${loadTime}ms`);
-      
-      setLastUpdate(new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }));
-      
-      // Load additional data in background
-      fetchAdditionalData();
-      
-      // Show success message if we got at least some data
-      if (currentSynop || forecast) {
-        console.log('Weather data loaded successfully');
-      } else {
-        console.warn('No weather data available - some APIs may be down');
-        // Don't show alert immediately, just log the issue
-      }
-      
-    } catch (error) {
-      console.error("Error fetching basic data:", error);
-      
-      // Check if it's a network error and avoid showing same error repeatedly
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorKey = errorMessage?.includes('Network request failed') ? 'network' : 'general';
-      
-      // Only show error alert if we haven't shown this type recently
-      if (lastErrorShown !== errorKey) {
-        setLastErrorShown(errorKey);
-        
-        // Clear the error flag after 30 seconds
-        setTimeout(() => setLastErrorShown(null), 30000);
-        
-        if (errorMessage?.includes('Network request failed') || errorMessage?.includes('TypeError')) {
-          Alert.alert(
-            'Błąd połączenia', 
-            'Sprawdź połączenie internetowe i spróbuj ponownie. Aplikacja spróbuje użyć zapisanych danych.',
-            [
-              { text: 'Spróbuj ponownie', onPress: () => fetchBasicData() },
-              { text: 'OK' }
-            ]
-          );
-        } else {
-          Alert.alert(
-            'Błąd pobierania danych', 
-            'Wystąpił błąd podczas pobierania danych pogodowych. Spróbuj odświeżyć.',
-            [
-              { text: 'Odśwież', onPress: () => fetchBasicData() },
-              { text: 'OK' }
-            ]
-          );
-        }
-      } else {
-        // Just log if we've already shown this error recently
-        console.log('Error already shown recently, skipping alert:', errorKey);
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const fetchAdditionalData = async () => {
-    try {
-      console.log('Fetching additional weather data...');
-      const coords = locationData || { latitude: selectedSynopStation.lat, longitude: selectedSynopStation.lon };
-      
-      // Load additional data in background without blocking UI
-      const promises = [
-        fetchAllWarnings().catch(error => {
-          console.error('Warnings fetch failed:', error);
-          return []; // Return empty array on error
-        }),
-        fetchHydroData().catch(error => {
-          console.error('Hydro data fetch failed:', error);
-          return []; // Return empty array on error
-        }),
-        fetchMeteoData().catch(error => {
-          console.error('Meteo data fetch failed:', error);
-          return []; // Return empty array on error
-        }),
-        fetchAirQuality(coords).catch(error => {
-          console.error('Air quality fetch failed:', error);
-          return null; // Return null on error
-        })
-      ];
-      
-      const [warnings, hydro, meteo, airQuality] = await Promise.all(promises);
-      
-      console.log('Additional data loaded:');
-      console.log('- Warnings:', Array.isArray(warnings) ? warnings.length : 'error');
-      console.log('- Hydro stations:', Array.isArray(hydro) ? hydro.length : 'error');
-      console.log('- Meteo stations:', Array.isArray(meteo) ? meteo.length : 'error');
-      console.log('- Air quality:', !!airQuality ? 'available' : 'unavailable');
-
-      // Set data even if some failed
-      setWarnings(Array.isArray(warnings) ? warnings : []);
-      setHydroData(Array.isArray(hydro) ? hydro : []);
-      setMeteoData(Array.isArray(meteo) ? meteo : []);
-      setAirQualityData(airQuality);
-
-      // Find nearest stations if we have location and data
-      if (locationData && Array.isArray(hydro) && hydro.length > 0) {
-        const nearestHydro = findNearestStation(locationData, hydro);
-        setNearestHydroStation(nearestHydro);
-        console.log('Nearest hydro station:', nearestHydro?.stacja || 'none found');
-        
-        const nearbyHydro = findNearestStations(locationData, hydro, 3);
-        setNearbyHydroStations(nearbyHydro);
-        console.log('Nearby hydro stations:', nearbyHydro.length);
-      }
-      
-      if (locationData && Array.isArray(meteo) && meteo.length > 0) {
-        const nearestMeteo = findNearestStation(locationData, meteo);
-        setNearestMeteoStation(nearestMeteo);
-        console.log('Nearest meteo station:', nearestMeteo?.nazwa_stacji || 'none found');
-      }
-      
-      console.log('Additional weather data processing completed');
-    } catch (error) {
-      console.error("Error fetching additional data:", error);
-      // Don't show error alert for additional data as it's not critical
-    }
-  };
-
-  const fetchAllData = fetchBasicData;
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchAllData();
-  };
-
-  // Filter stations based on search query
-  const filteredStations = SYNOP_STATIONS.filter(station => 
-    station.name.toLowerCase().includes(searchStationQuery.toLowerCase()) ||
-    (station.region && station.region.toLowerCase().includes(searchStationQuery.toLowerCase()))
-  );
-
-  const selectStation = (station: StationInfo) => {
-    console.log('Selecting new station:', station.name);
-    setSelectedSynopStation(station);
-    setShowStationModal(false);
-    setSearchStationQuery('');
-    // fetchAllData will be called automatically by useEffect when selectedSynopStation changes
-  };
-
-  const getWeatherUIMeta = (code: number, isDay: boolean = true) => {
-    const descriptions: { [key: number]: string } = {
-        0: 'Bezchmurnie', 1: 'Prawie bezchmurnie', 2: 'Częściowo pochmurno', 3: 'Pochmurno',
-        45: 'Mgła', 48: 'Mgła z szronem', 51: 'Lekka mżawka', 53: 'Mżawka', 55: 'Intensywna mżawka',
-        61: 'Lekki deszcz', 63: 'Deszcz', 65: 'Intensywny deszcz', 71: 'Lekki śnieg', 73: 'Śnieg',
-        75: 'Intensywny śnieg', 95: 'Burza',
-    };
-  
-    const icons: { [key: number]: any } = {
-        0: Sun, 1: Sun, 2: Cloud, 3: Cloud, 45: CloudFog, 48: CloudFog, 51: CloudRain,
-        53: CloudRain, 55: CloudRain, 61: CloudRain, 63: CloudRain, 65: CloudRain,
-        71: CloudSnow, 73: CloudSnow, 75: CloudSnow, 95: CloudLightning,
-    };
-
-    const dayGradient = {
-        'clear': ['#4792FF', '#005CFF'],
-        'cloudy': ['#77A3D7', '#5A89C7'],
-        'rainy': ['#617892', '#43576B'],
-        'snowy': ['#B0C7DE', '#8A9EB5'],
-        'stormy': ['#3E4C5A', '#2A343E'],
-    }
-
-    const nightGradient = {
-        'clear': ['#0B1527', '#1C2E4A'],
-        'cloudy': ['#2A3B53', '#1D2A3C'],
-        'rainy': ['#3E4C5A', '#2A343E'],
-        'snowy': ['#4E5B6A', '#343D46'],
-        'stormy': ['#222831', '#1A1F26'],
-    }
-    
-    let condition = 'cloudy';
-    if ([0, 1].includes(code)) condition = 'clear';
-    if ([51, 53, 55, 61, 63, 65].includes(code)) condition = 'rainy';
-    if ([71, 73, 75].includes(code)) condition = 'snowy';
-    if ([95].includes(code)) condition = 'stormy';
-
-    const gradients = isDay ? dayGradient : nightGradient;
-  
-    return {
-      description: descriptions[code] || 'Brak danych',
-      Icon: icons[code] || Cloud,
-      gradient: gradients[condition as keyof typeof gradients] || gradients.cloudy,
-    };
-  };
-
-  // RENDER FUNCTIONS
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.headerTitle}>Pogoda</Text>
-        <Text style={styles.headerSubtitle}>{selectedSynopStation?.name || userLocation}</Text>
-      </View>
-      <TouchableOpacity style={styles.locationButton} onPress={() => setShowStationModal(true)}>
-        <MapPin size={24} color={theme.colors.primary} />
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderCurrentWeather = () => {
-    if (!synopData || !forecastData) return <LoadingIndicator />;
-    
-    const weatherCode = forecastData?.weathercode?.[0] || 3;
-    // Simple day/night check
-    const isDay = new Date().getHours() > 6 && new Date().getHours() < 20;
-    const { Icon, description, gradient } = getWeatherUIMeta(weatherCode, isDay);
-    
-    const iconTransform = {
-      transform: [
-        {
-          translateY: iconAnimation.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, -10],
-          }),
-        },
-      ],
-    };
-
-    return (
-        <LinearGradient colors={gradient as [string, string]} style={styles.currentWeatherCard}>
-            <View style={styles.currentWeatherHeader}>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.stationName}>{synopData.stacja}</Text>
-                    <Text style={styles.currentTemp}>{parseFloat(synopData.temperatura).toFixed(1)}°</Text>
-                    <Text style={styles.currentTempLabel}>{description}</Text>
-                    <View style={styles.feelsLikeContainer}>
-                        <Text style={styles.feelsLikeText}>Odczuwalna: {(parseFloat(synopData.temperatura) - 2).toFixed(1)}°</Text>
-                    </View>
-                </View>
-                <Animated.View style={iconTransform}>
-                    <Icon size={100} color="#fff" />
-                </Animated.View>
-            </View>
-            
-            <View style={styles.currentWeatherFooter}>
-                <View style={styles.metricItem}>
-                    <Wind size={16} color="#fff" />
-                    <Text style={styles.metricValue}>{synopData.predkosc_wiatru} km/h</Text>
-                </View>
-                <View style={styles.metricItem}>
-                    <Droplets size={16} color="#fff" />
-                    <Text style={styles.metricValue}>{synopData.wilgotnosc_wzgledna}%</Text>
-                </View>
-                <View style={styles.metricItem}>
-                    <Gauge size={16} color="#fff" />
-                    <Text style={styles.metricValue}>{synopData.cisnienie} hPa</Text>
-                </View>
-                <View style={styles.metricItem}>
-                    <Compass size={16} color="#fff" />
-                    <Text style={styles.metricValue}>{synopData.kierunek_wiatru}°</Text>
-                </View>
-            </View>
-            
-            <View style={styles.additionalInfo}>
-                <View style={styles.infoRow}>
-                    <CloudRain size={14} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.feelsLikeText}>Opady: {synopData.suma_opadu} mm</Text>
-                </View>
-                <View style={styles.infoRow}>
-                    <Eye size={14} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.feelsLikeText}>Widoczność: dobra</Text>
-                </View>
-            </View>
-        </LinearGradient>
-    );
-  };
-  
-  const renderWarnings = () => {
-    if (!warnings || warnings.length === 0) {
-      return (
-        <WeatherSection title="Ostrzeżenia" icon={<AlertTriangle size={24} color={theme.colors.warning} />}>
-          <View style={styles.noWarningsCard}>
-            <Cloud size={32} color={theme.colors.success} />
-            <Text style={styles.noWarningsText}>Brak aktywnych ostrzeżeń</Text>
-            <Text style={styles.noWarningsSubtext}>Bezpieczna pogoda w Twojej okolicy</Text>
-          </View>
-        </WeatherSection>
-      );
-    }
-
-    // Filter warnings for user's location/region if available
-    let localWarnings = warnings;
-    
-    // If we have location data, try to filter by region
-    if (locationData || selectedSynopStation) {
-      const userRegion = selectedSynopStation?.region || 'Pomorze'; // Default to Pomorze
-      
-      // Filter warnings that affect user's region
-      const regionFilteredWarnings = warnings.filter(warning => {
-        if (!warning.regions || warning.regions.length === 0) {
-          return true; // Show warnings without specific regions (general warnings)
-        }
-        
-        // Check if warning affects user's region
-        return warning.regions.some(region => 
-          region.toLowerCase().includes(userRegion.toLowerCase()) ||
-          userRegion.toLowerCase().includes(region.toLowerCase()) ||
-          (userRegion === 'Pomorze' && (
-            region.toLowerCase().includes('pomorsk') ||
-            region.toLowerCase().includes('gdańsk') ||
-            region.toLowerCase().includes('gdansk') ||
-            region.toLowerCase().includes('słupsk') ||
-            region.toLowerCase().includes('slupsk')
-          ))
-        );
-      });
-      
-      localWarnings = regionFilteredWarnings.length > 0 ? regionFilteredWarnings : warnings.slice(0, 3);
-      console.log(`Filtered warnings for region ${userRegion}: ${regionFilteredWarnings.length} out of ${warnings.length}`);
-    } else {
-      localWarnings = warnings.slice(0, 3); // Fallback to first 3
-    }
-    
-    const hasMoreWarnings = localWarnings.length > 3;
-    const displayWarnings = localWarnings.slice(0, 3);
-    
-    const getWarningIcon = (type: string, level: number) => {
-      if (type === 'hydro') {
-        return <Waves size={24} color="#3B82F6" />;
-      }
-      if (level >= 3) {
-        return <Zap size={24} color="#DC2626" />;
-      }
-      if (level >= 2) {
-        return <CloudLightning size={24} color="#F59E0B" />;
-      }
-      return <CloudRain size={24} color="#8B5CF6" />;
-    };
-
-    const getWarningColor = (level: number) => {
-      if (level >= 3) return '#DC2626'; // Red
-      if (level >= 2) return '#F59E0B'; // Orange
-      if (level >= 1) return '#8B5CF6'; // Purple
-      return '#3B82F6'; // Blue
-    };
-
-    return (
-      <WeatherSection title="Ostrzeżenia" icon={<AlertTriangle size={24} color={theme.colors.warning} />}>
-        <View style={styles.warningsContainer}>
-          {displayWarnings.map((warning, index) => {
-            const warningColor = getWarningColor(warning.level);
-            const Icon = getWarningIcon(warning.type, warning.level);
-            
-            return (
-              <TouchableOpacity 
-                key={`warning-${warning.id}-${index}`} 
-                style={[styles.warningBlock, { borderColor: warningColor }]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedWarning(warning);
-                  setShowWarningModal(true);
-                  Animated.timing(warningModalAnimation, {
-                    toValue: 1,
-                    duration: 300,
-                    useNativeDriver: true,
-                  }).start();
-                }}
-              >
-                <View style={[styles.warningHeader, { backgroundColor: `${warningColor}15` }]}>
-                  {Icon}
-                  <View style={styles.warningHeaderText}>
-                    <Text style={[styles.warningType, { color: warningColor }]}>
-                      {warning.type === 'meteo' ? 'Meteorologiczne' : 'Hydrologiczne'}
-                    </Text>
-                    <Text style={styles.warningLevel}>Stopień {warning.level}</Text>
-                  </View>
-                </View>
-                
-                <Text style={styles.warningTitle} numberOfLines={2}>
-                  {warning.title}
-                </Text>
-                
-                <View style={styles.warningFooter}>
-                  <View style={styles.warningTime}>
-                    <Clock size={12} color={theme.colors.textSecondary} />
-                    <Text style={styles.warningTimeText}>
-                      Do: {new Date(warning.validUntil || '').toLocaleDateString('pl-PL')}
-                    </Text>
-                  </View>
-                  <ChevronRight size={16} color={theme.colors.textSecondary} />
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        
-        {hasMoreWarnings && (
-          <TouchableOpacity 
-            style={styles.showMoreButton}
-            onPress={() => {
-              // Show list of all warnings for the region
-              setShowWarningsListModal(true);
-              Animated.timing(warningsListModalAnimation, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-              }).start();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-          >
-            <Text style={styles.showMoreText}>
-              Pokaż więcej ({localWarnings.length - 3} więcej)
-            </Text>
-            <ChevronDown size={16} color={theme.colors.primary} />
-          </TouchableOpacity>
-        )}
-      </WeatherSection>
-    );
-  };
-
-  const renderHydroSection = () => (
-    <WeatherSection title="Stan wód" icon={<Waves size={24} color={theme.colors.info} />} defaultCollapsed>
-        {nearestHydroStation ? <HydroStationCard station={nearestHydroStation} /> : <Text style={styles.infoText}>Nie znaleziono stacji hydrologicznej w pobliżu.</Text>}
-    </WeatherSection>
-  );
-
-  const renderMeteoSection = () => (
-    <WeatherSection title="Dane telemetryczne" icon={<Zap size={24} color={theme.colors.success} />} defaultCollapsed>
-        {nearestMeteoStation ? <MeteoStationCard station={nearestMeteoStation} /> : <Text style={styles.infoText}>Nie znaleziono stacji telemetrycznej w pobliżu.</Text>}
-    </WeatherSection>
-  );
-  
-  const renderWeeklyForecast = () => {
-    if (!forecastData?.daily) return null;
-    
-    const days = ['Ndz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
-    const fullDays = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
-    const today = new Date().getDay();
-    
-    // Get all 7 days
-    const weekDays = [];
-    for (let i = 0; i < 7; i++) {
-      const dayIndex = (today + i) % 7;
-      const isWeekend = dayIndex === 6 || dayIndex === 0;
-      const isToday = i === 0;
-      const date = new Date(forecastData.daily.time[i]);
-      
-      weekDays.push({
-        index: i,
-        dayName: isToday ? 'Dziś' : days[dayIndex],
-        fullDayName: fullDays[dayIndex],
-        dayNumber: date.getDate(),
-        month: date.toLocaleDateString('pl-PL', { month: 'short' }),
-        date: forecastData.daily.time[i],
-        weatherCode: forecastData.daily.weathercode[i],
-        maxTemp: forecastData.daily.temperature_2m_max[i],
-        minTemp: forecastData.daily.temperature_2m_min[i],
-        precipProb: forecastData.daily.precipitation_probability_max[i],
-        isWeekend: isWeekend,
-        isToday: isToday,
-        windSpeed: forecastData.daily.windspeed_10m_max?.[i],
-        uvIndex: forecastData.daily.uv_index_max?.[i],
-      });
-    }
-    
-        const showDayDetails = (day: any) => {
-      const { description, Icon } = getWeatherUIMeta(day.weatherCode, true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setSelectedDay({ ...day, description, Icon });
-      setShowDayModal(true);
-    };
-    
-    return (
-      <View style={styles.weeklyContainer}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.weeklySlider}
-          snapToInterval={120}
-          decelerationRate="fast"
-        >
-          {weekDays.map((day, index) => {
-            const { Icon, gradient } = getWeatherUIMeta(day.weatherCode, true);
-            const tempRange = day.maxTemp - day.minTemp;
-            const tempBarHeight = ((day.maxTemp + 10) / 50) * 100; // Normalize temp to percentage
-            
-            return (
-    <TouchableOpacity 
-                key={index} 
-      style={[
-                  styles.weeklyCardNew,
-                  day.isToday && styles.weeklyCardToday,
-                  day.isWeekend && styles.weeklyCardWeekend,
-                ]}
-                onPress={() => showDayDetails(day)}
-      activeOpacity={0.8}
-    >
-                {/* Day Label */}
-                <View style={styles.weeklyHeader}>
-        <Text style={[
-                    styles.weeklyDayText,
-                    day.isToday && styles.weeklyDayTextToday,
-                    day.isWeekend && styles.weeklyDayTextWeekend,
-        ]}>
-                    {day.dayName}
-        </Text>
-        <Text style={[
-                    styles.weeklyDateText,
-                    day.isToday && styles.weeklyDateTextToday,
-        ]}>
-                    {day.dayNumber}
-        </Text>
-      </View>
-                
-                {/* Weather Icon */}
-                <View style={styles.weeklyIconContainer}>
-                  <Icon 
-                    size={day.isToday ? 32 : 28} 
-                    color={day.isToday ? theme.colors.primary : theme.colors.text} 
-                  />
-        </View>
-          
-                {/* Temperature */}
-                <View style={styles.weeklyTempContainer}>
-                  <Text style={[
-                    styles.weeklyMaxTemp,
-                    day.isToday && styles.weeklyMaxTempToday,
-                  ]}>
-                    {day.maxTemp?.toFixed(0)}°
-            </Text>
-                  <Text style={styles.weeklyMinTemp}>
-                    {day.minTemp?.toFixed(0)}°
-                    </Text>
-      </View>
-
-                
-                
-                {/* Today Badge */}
-                {day.isToday && (
-                  <View style={styles.todayBadge}>
-                    <View style={styles.todayDot} />
-          </View>
-        )}
-            </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-        
-        {/* Legend */}
-        <View style={styles.weeklyLegend}>
-          <View style={styles.weeklyLegendItem}>
-            <View style={[styles.weeklyLegendDot, { backgroundColor: theme.colors.primary }]} />
-            <Text style={styles.weeklyLegendText}>Dziś</Text>
-          </View>
-          <View style={styles.weeklyLegendItem}>
-            <View style={[styles.weeklyLegendDot, { backgroundColor: '#FFD700' }]} />
-            <Text style={styles.weeklyLegendText}>Weekend</Text>
-          </View>
-        </View>
-
-        {/* Day Details Modal */}
-        <Modal
-          visible={showDayModal}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowDayModal(false)}
-        >
-            <TouchableOpacity 
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowDayModal(false)}
-          >
-            <View style={styles.modalContent}>
-              {selectedDay && (
-                <>
-                  <View style={styles.modalHeader}>
-                    <View>
-                      <Text style={styles.modalTitle}>
-                        {selectedDay.fullDayName}
-                  </Text>
-                      <Text style={styles.modalSubtitle}>
-                        {selectedDay.dayNumber} {selectedDay.month}
-                    </Text>
-              </View>
-                    {/* X button removed */}
-                    {/* <TouchableOpacity onPress={() => setShowDayModal(false)}>
-                      <X size={24} color={theme.colors.text} />
-            </TouchableOpacity> */}
-          </View>
-                  
-                  <View style={styles.modalBody}>
-                    <View style={styles.modalIconSection}>
-                      <selectedDay.Icon size={64} color={theme.colors.primary} />
-                      <Text style={styles.modalDescription}>
-                        {selectedDay.description}
-                      </Text>
-          </View>
-            
-                    <View style={styles.modalDetailsGrid}>
-                      <View style={styles.modalDetailItem}>
-                        <Thermometer size={20} color={theme.colors.textSecondary} />
-                        <Text style={styles.modalDetailLabel}>Temperatura</Text>
-                        <Text style={styles.modalDetailValue}>
-                          {selectedDay.maxTemp?.toFixed(0)}° / {selectedDay.minTemp?.toFixed(0)}°
-                    </Text>
-              </View>
-                      
-                      <View style={styles.modalDetailItem}>
-                        <Droplets size={20} color={theme.colors.textSecondary} />
-                        <Text style={styles.modalDetailLabel}>Opady</Text>
-                        <Text style={styles.modalDetailValue}>
-                          {selectedDay.precipProb}%
-                </Text>
-              </View>
-            
-                      <View style={styles.modalDetailItem}>
-                        <Wind size={20} color={theme.colors.textSecondary} />
-                        <Text style={styles.modalDetailLabel}>Wiatr</Text>
-                        <Text style={styles.modalDetailValue}>
-                          {selectedDay.windSpeed?.toFixed(0)} km/h
-                </Text>
-          </View>
-                    
-                      <View style={styles.modalDetailItem}>
-                        <Sun size={20} color={theme.colors.textSecondary} />
-                        <Text style={styles.modalDetailLabel}>Indeks UV</Text>
-                        <Text style={styles.modalDetailValue}>
-                          {selectedDay.uvIndex?.toFixed(0)}
-                      </Text>
-                    </View>
-            </View>
-            
-                    {selectedDay.isWeekend && (
-                      <View style={styles.modalWeekendBadge}>
-                        <Text style={styles.modalWeekendText}>WEEKEND</Text>
-            </View>
-                    )}
-          </View>
-                </>
-              )}
-            </View>
-          </TouchableOpacity>
-                </Modal>
-                    </View>
-    );
-  };
-
-  // Auto-detect location function
-  const autoDetectLocation = async () => {
-    try {
-      setShowStationModal(false);
       setLoading(true);
+      setError(null);
       
       const { status } = await Location.requestForegroundPermissionsAsync();
+      
       if (status !== 'granted') {
-        Alert.alert(
-          'Brak uprawnień', 
-          'Aby automatycznie wykryć lokalizację, musisz zezwolić na dostęp do lokalizacji w ustawieniach.',
-          [{ text: 'OK' }]
-        );
+        setError('Brak uprawnień do lokalizacji');
+        setLoading(false);
         return;
       }
-
-      const location = await Location.getCurrentPositionAsync({ 
-        accuracy: Location.Accuracy.Balanced
+      
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 10000,
+        distanceInterval: 100,
       });
       
-      setLocationData(location.coords);
+       setUserLocation(location);
+       await fetchWeatherData(location.coords);
       
-      // Get city name
-      try {
-        const [reverseGeocode] = await Location.reverseGeocodeAsync(location.coords);
-        const cityName = reverseGeocode?.city || reverseGeocode?.subregion || reverseGeocode?.region || 'Nieznana lokalizacja';
-        setUserLocation(`${cityName} (automatycznie)`);
-      } catch {
-        setUserLocation(`${location.coords.latitude.toFixed(3)}, ${location.coords.longitude.toFixed(3)} (automatycznie)`);
-      }
-      
-      // Find and select nearest station
-      const nearestStation = findNearestSynopStation(location.coords);
-      setSelectedSynopStation(nearestStation);
-      
-      // Just show a console log instead of alert
-      console.log(`Auto-detected location and selected station: ${nearestStation.name} (${nearestStation.distance?.toFixed(1)} km)`);
-      
-    } catch (error) {
-      console.error('Auto-detect location failed:', error);
-      Alert.alert(
-        'Błąd wykrywania lokalizacji', 
-        'Nie udało się automatycznie wykryć lokalizacji. Wybierz stację ręcznie.',
-        [{ text: 'OK' }]
-      );
+    } catch (err) {
+      console.error('Błąd pobierania lokalizacji:', err);
+      setError('Nie udało się pobrać lokalizacji');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Station Selection Modal
-  const renderStationModal = () => (
-    <Modal
-      visible={showStationModal}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowStationModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.stationModalContent}>
-          <View style={styles.stationModalHeader}>
-            <Text style={styles.stationModalTitle}>Wybierz stację pogodową</Text>
-            {/* X button removed */}
-            {/* <TouchableOpacity onPress={() => setShowStationModal(false)}>
-              <X size={24} color={theme.colors.text} />
-            </TouchableOpacity> */}
-          </View>
-          
-          {/* Auto-detect button */}
-          <TouchableOpacity style={styles.autoDetectButton} onPress={autoDetectLocation}>
-            <MapPin size={20} color={theme.colors.primary} />
-            <Text style={styles.autoDetectText}>Wykryj automatycznie</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Szukaj stacji..."
-              placeholderTextColor={theme.colors.textSecondary}
-              value={searchStationQuery}
-              onChangeText={setSearchStationQuery}
-            />
-          </View>
-          
-          <Text style={styles.stationListHeader}>
-            {filteredStations.length} stacji dostępnych
-          </Text>
-                    
-          <FlatList
-            data={filteredStations}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => {
-              // Calculate distance if we have location
-              let distance = '';
-              if (locationData) {
-                const dist = calculateDistance(
-                  locationData.latitude, 
-                  locationData.longitude, 
-                  item.lat, 
-                  item.lon
-                );
-                distance = `${dist.toFixed(1)} km`;
-              }
-              
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.stationItem,
-                    selectedSynopStation.id === item.id && styles.stationItemSelected
-                  ]}
-                  onPress={() => selectStation(item)}
-                >
-                  <View style={styles.stationItemContent}>
-                    <Text style={[
-                      styles.stationItemName,
-                      selectedSynopStation.id === item.id && styles.stationNameSelected
-                    ]}>
-                      {item.name}
-                    </Text>
-                    <Text style={[
-                      styles.stationRegion,
-                      selectedSynopStation.id === item.id && styles.stationRegionSelected
-                    ]}>
-                      {item.region} {distance && `• ${distance}`}
-                    </Text>
-                  </View>
-                  {selectedSynopStation.id === item.id && (
-                    <View style={styles.selectedIndicator}>
-                      <Text style={styles.selectedIndicatorText}>✓</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            }}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.stationList}
-          />
-        </View>
-      </View>
-    </Modal>
-  );
-  
-  // Helper function for distance calculation (add to component)
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // Warnings List Modal
-  const renderWarningsListModal = () => {
-    if (!showWarningsListModal) return null;
-
-    const userRegion = selectedSynopStation?.region || 'Pomorze';
-    
-    // Get filtered warnings for the region
-    let regionWarnings = warnings || [];
-    
-    if (locationData || selectedSynopStation) {
-      const regionFilteredWarnings = regionWarnings.filter((warning: any) => {
-        if (!warning.regions || warning.regions.length === 0) {
-          return true; // Show warnings without specific regions
-        }
-        
-        return warning.regions.some((region: string) => 
-          region.toLowerCase().includes(userRegion.toLowerCase()) ||
-          userRegion.toLowerCase().includes(region.toLowerCase()) ||
-          (userRegion === 'Pomorze' && (
-            region.toLowerCase().includes('pomorsk') ||
-            region.toLowerCase().includes('gdańsk') ||
-            region.toLowerCase().includes('gdansk') ||
-            region.toLowerCase().includes('słupsk') ||
-            region.toLowerCase().includes('slupsk')
-          ))
-        );
-      });
+  // Enhanced weather data fetching with IMGW integration
+  const fetchWeatherData = useCallback(async (coords: Location.LocationObjectCoords) => {
+    try {
+      const online = await testNetworkConnectivity();
+      setIsOnline(online);
+      setError(null);
       
-      regionWarnings = regionFilteredWarnings.length > 0 ? regionFilteredWarnings : regionWarnings.slice(0, 5);
+      console.log('Fetching comprehensive weather data for coordinates:', coords);
+
+      // Parallel fetch all data sources for better performance
+      const [
+        forecast,
+        warnings,
+        air,
+        synop,
+        meteo,
+        marine,
+        hydro
+      ] = await Promise.allSettled([
+        fetchForecast(coords, { skipNetwork: !online }),
+        fetchAllWarnings({ skipNetwork: !online }),
+        fetchAirQuality(coords, { skipNetwork: !online }),
+        fetchSynopData({ skipNetwork: !online }),
+        fetchMeteoData({ skipNetwork: !online }),
+        fetchMarineForecast(coords, { skipNetwork: !online }),
+        fetchHydroData({ skipNetwork: !online })
+      ]);
+
+      // Process Open-Meteo forecast data
+      if (forecast.status === 'fulfilled' && forecast.value) {
+        console.log('Forecast data received:', forecast.value);
+        setForecastData(forecast.value);
+        
+        if (forecast.value.current_weather) {
+          setCurrentWeather(prev => ({
+            ...prev,
+            temperature: forecast.value.current_weather.temperature,
+            condition: getWeatherCondition(forecast.value.current_weather.weathercode),
+            wmoCode: forecast.value.current_weather.weathercode,
+            windSpeed: forecast.value.current_weather.windspeed,
+          }));
+        }
+
+        if (forecast.value.hourly && Array.isArray(forecast.value.hourly.time)) {
+          const realHourlyData = forecast.value.hourly.time.map((time: string, index: number) => ({
+            time,
+            temperature: forecast.value.hourly.temperature_2m[index],
+            wmoCode: forecast.value.hourly.weathercode[index],
+            precipitation: forecast.value.hourly.precipitation[index] || 0,
+            windSpeed: forecast.value.hourly.windspeed_10m[index] || 0,
+            humidity: forecast.value.hourly.relativehumidity_2m[index] || 0,
+          }));
+          setHourlyData(realHourlyData);
+        }
+
+        if (forecast.value.daily && Array.isArray(forecast.value.daily.time)) {
+          const realWeeklyData = forecast.value.daily.time.map((date: string, index: number) => ({
+            date,
+            wmoCode: forecast.value.daily.weathercode[index],
+            maxTemp: forecast.value.daily.temperature_2m_max[index],
+            minTemp: forecast.value.daily.temperature_2m_min[index],
+            precipitation: forecast.value.daily.precipitation_sum[index] || 0,
+            windSpeed: forecast.value.daily.windspeed_10m_max?.[index] || 10,
+          }));
+          setWeeklyData(realWeeklyData);
+        }
+      }
+
+      // Process Air Quality
+      if (air.status === 'fulfilled' && air.value) {
+        console.log('Air quality data received');
+        // Keep it in state if needed later (optional)
+        // setAirQuality(air.value)
+      }
+
+      // Process Marine
+      if (marine.status === 'fulfilled' && marine.value) {
+        // sanity: tylko dla lokalizacji morskich (blisko Bałtyku)
+        const lat = coords.latitude;
+        const lon = coords.longitude;
+        const nearBaltic = lat >= 53.0 && lat <= 56.5 && lon >= 13.0 && lon <= 20.5;
+        if (nearBaltic) {
+          setMarineData(marine.value);
+        } else {
+          setMarineData(null);
+        }
+      } else {
+        setMarineData(null);
+      }
+
+      // Process Hydro (water temperature from nearest station)
+      if (hydro.status === 'fulfilled' && Array.isArray(hydro.value)) {
+        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 10).find((h: any) => h?.temperatura_wody != null && String(h.temperatura_wody).trim() !== '');
+        if (nearestHydro) {
+          const t = parseFloat(String(nearestHydro.temperatura_wody));
+          setWaterTempC(Number.isFinite(t) ? t : null);
+          // push to data sources later below
+        } else {
+          setWaterTempC(null);
+        }
+      } else {
+        setWaterTempC(null);
+      }
+
+      // Process warnings (IMGW meteo + hydro)
+      if (warnings.status === 'fulfilled' && Array.isArray(warnings.value)) {
+        // Map ALL warnings for modal 'Polska' widok
+        const mappedAll = warnings.value
+          .map((w: any) => ({
+            id: w.id,
+            title: w.title,
+            description: w.description,
+            severity: w.level >= 3 ? 'high' : w.level === 2 ? 'medium' : 'low',
+            level: w.level,
+            type: w.type,
+            validFrom: w.validFrom,
+            validTo: w.validTo,
+          }))
+          // Highest first
+          .sort((a: any, b: any) => (b.level || 0) - (a.level || 0));
+        setAllAlerts(mappedAll);
+
+        // Filter for Pomorskie and map to UI alerts for skrót na ekranie
+        const relevant = filterWarningsForPomeranianVoivodeship(warnings.value);
+        const mapped = relevant
+          .map((w: any) => ({
+            id: w.id,
+            title: w.title,
+            description: w.description,
+            severity: w.level >= 3 ? 'high' : w.level === 2 ? 'medium' : 'low',
+            level: w.level,
+            type: w.type,
+            validFrom: w.validFrom,
+            validTo: w.validTo,
+          }))
+          .sort((a: any, b: any) => (b.level || 0) - (a.level || 0));
+        setAlerts(mapped);
+      } else {
+        setAlerts([]);
+        setAllAlerts([]);
+      }
+
+      // Process nearest IMGW SYNOP station for data provenance
+      if (synop.status === 'fulfilled' && Array.isArray(synop.value)) {
+        const nearest = findNearestSynopStation(coords);
+        if (nearest?.id) {
+          const found = synop.value.find((s: any) => String(s.id_stacji) === String(nearest.id));
+          if (found) {
+            setSynopData(found);
+            setNearestStation({ name: nearest.name, distance: nearest.distance });
+          }
+        }
+      }
+
+      // Find nearest METEO station (for soil temperature etc.)
+      if (meteo.status === 'fulfilled' && Array.isArray(meteo.value)) {
+        // Find nearest METEO station with soil temperature; fallback to the nearest available
+        const nearestList = findNearestStationsWithDistance(coords, meteo.value, 10);
+        const soilStation = Array.isArray(nearestList)
+          ? nearestList.find((s: any) => s?.temperatura_gruntu != null && String(s.temperatura_gruntu).trim() !== '')
+          : null;
+        const chosen = soilStation || (Array.isArray(nearestList) && nearestList.length > 0 ? nearestList[0] : null);
+        if (chosen) {
+          setMeteoNearest(chosen as any);
+          // enrich currentWeather with soil temperature for widgets if absent
+          if (chosen?.temperatura_gruntu != null) {
+            setCurrentWeather(prev => ({ ...prev, soilTemperature: Number(chosen.temperatura_gruntu) }));
+          }
+        }
+      }
+
+      // Build source notes per metric from available stations
+      const sources: { label: string; source: string }[] = [];
+      if (synop.status === 'fulfilled' && Array.isArray(synop.value)) {
+        if (synopData?.stacja) sources.push({ label: 'Powietrze', source: `SYNOP: ${synopData.stacja}${nearestStation?.distance ? ` (${nearestStation.distance.toFixed(1)} km)` : ''}` });
+      }
+      if (meteoNearest) {
+        if (meteoNearest?.temperatura_gruntu)
+          sources.push({ label: 'Gleba', source: `METEO: ${meteoNearest?.nazwa_stacji || 'stacja'} (${(meteoNearest as any).distance?.toFixed?.(1) || '?'} km)` });
+      }
+      if (marine.status === 'fulfilled' && marine.value && marineData) {
+        sources.push({ label: 'Morze', source: 'Open‑Meteo Marine (grid)' });
+      }
+      if (hydro.status === 'fulfilled' && Array.isArray(hydro.value)) {
+        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 10).find((h: any) => h?.temperatura_wody != null && String(h.temperatura_wody).trim() !== '');
+        if (nearestHydro) {
+          sources.push({ label: 'Woda', source: `HYDRO: ${nearestHydro.stacja || 'stacja'} (${(nearestHydro as any).distance?.toFixed?.(1) || '?'} km)` });
+        }
+      }
+      setDataSources(sources);
+
+    } catch (err) {
+      console.error('Błąd pobierania danych pogodowych:', err);
+      setIsOnline(false);
+      setError('Błąd połączenia z internetem');
+    }
+  }, []);
+
+  // Helper functions
+  const getWeatherCondition = (code: number): string => {
+    const conditions: { [key: number]: string } = {
+      0: 'Bezchmurnie',
+      1: 'Przeważnie bezchmurnie',
+      2: 'Częściowo zachmurzone',
+      3: 'Zachmurzone',
+      45: 'Mgła',
+      48: 'Mgła z szronem',
+      51: 'Mżawka lekka',
+      53: 'Mżawka umiarkowana',
+      55: 'Mżawka intensywna',
+      61: 'Deszcz lekki',
+      63: 'Deszcz umiarkowany',
+      65: 'Deszcz intensywny',
+      71: 'Śnieg lekki',
+      73: 'Śnieg umiarkowany',
+      75: 'Śnieg intensywny',
+      95: 'Burza',
+    };
+    return conditions[code] || 'Nieznane';
+  };
+
+  // Initialize
+  useEffect(() => {
+    getCurrentLocation();
+  }, [getCurrentLocation]);
+
+  // Animations
+  useEffect(() => {
+    if (!loading) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [loading, fadeAnim, slideAnim]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    if (userLocation) {
+      await fetchWeatherData(userLocation.coords);
+    }
+    setRefreshing(false);
+  };
+
+  const formatDateTime = (iso?: string) => {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+    } catch {
+      return iso;
+    }
+  };
+
+  // Quick consistency validator for displayed metrics vs source
+  const validateDataConsistency = () => {
+    const issues: string[] = [];
+    if (synopData) {
+      // Compare currentWeather temperature vs synop temperature if both exist
+      const synopTemp = parseFloat(String(synopData.temperatura ?? 'NaN'));
+      const appTemp = Number(currentWeather.temperature);
+      if (!Number.isNaN(synopTemp) && !Number.isNaN(appTemp)) {
+        const delta = Math.abs(appTemp - synopTemp);
+        if (delta > 3) {
+          issues.push(`Różnica temperatury >3°C (SYNOP ${synopTemp}°C vs app ${appTemp}°C)`);
+        }
+      }
+
+      if (typeof synopData.predkosc_wiatru !== 'undefined' && typeof currentWeather.windSpeed !== 'undefined') {
+        const synopWind = Number(synopData.predkosc_wiatru);
+        const appWind = Number(currentWeather.windSpeed);
+        if (!Number.isNaN(synopWind) && !Number.isNaN(appWind) && Math.abs(appWind - synopWind) > 10) {
+          issues.push(`Różnica wiatru >10 km/h (SYNOP ${synopWind} vs app ${appWind})`);
+        }
+      }
     }
 
-    return (
-      <Modal visible={showWarningsListModal} transparent animationType="none">
-        <Animated.View 
-          style={[
-            styles.modalBackdrop,
-            {
-              opacity: warningsListModalAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.5],
-              }),
-            }
-          ]}
-        />
-        <TouchableOpacity
-          style={styles.modalBackdropTouchable}
-          activeOpacity={1}
-          onPress={() => {
-            Animated.timing(warningsListModalAnimation, {
-              toValue: 0,
-              duration: 200,
-              useNativeDriver: true,
-            }).start(() => {
-              setShowWarningsListModal(false);
-            });
-          }}
-        />
-        <Animated.View 
-          style={[
-            styles.warningsListModalContainer,
-            {
-              transform: [{
-                translateY: warningsListModalAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [screenHeight, 0],
-                }),
-              }],
-            }
-          ]}
-        >
-          <View style={styles.warningsListModalContent}>
-            {/* Drag Handle */}
-            <View style={styles.warningModalHandleContainer}>
-              <View style={styles.warningModalHandle} />
-            </View>
-            
-            {/* Header */}
-            <View style={styles.warningsListHeader}>
-              <View style={styles.warningsListHeaderContent}>
-                <Text style={styles.warningsListTitle}>
-                  Wszystkie ostrzeżenia
-                </Text>
-                <Text style={styles.warningsListSubtitle}>
-                  Region: {userRegion}
-                </Text>
-              </View>
-              {/* X button removed */}
-              {/* <TouchableOpacity 
-                style={styles.modalCloseButton}
-                onPress={() => {
-                  Animated.timing(warningsListModalAnimation, {
-                    toValue: 0,
-                    duration: 200,
-                    useNativeDriver: true,
-                  }).start(() => {
-                    setShowWarningsListModal(false);
-                  });
-                }}
-              >
-                <X size={24} color={theme.colors.text} />
-              </TouchableOpacity> */}
-            </View>
+    if (meteoNearest && typeof (meteoNearest as any).temperatura_gruntu !== 'undefined' && typeof (currentWeather as any).soilTemperature !== 'undefined') {
+      const soilApi = Number((meteoNearest as any).temperatura_gruntu);
+      const soilApp = Number((currentWeather as any).soilTemperature);
+      if (!Number.isNaN(soilApi) && !Number.isNaN(soilApp) && Math.abs(soilApi - soilApp) > 3) {
+        issues.push(`Różnica temperatury gleby >3°C (METEO ${soilApi}°C vs app ${soilApp}°C)`);
+      }
+    }
 
-            {/* Warnings List */}
-            <ScrollView 
-              style={styles.warningsListScrollView}
-              contentContainerStyle={styles.warningsListScrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              {regionWarnings.length === 0 ? (
-                <View style={styles.noWarningsContainer}>
-                  <AlertTriangle size={48} color={theme.colors.textSecondary} />
-                  <Text style={styles.noWarningsText}>
-                    Brak ostrzeżeń dla Twojego regionu
-                  </Text>
-                </View>
-              ) : (
-                regionWarnings.map((warning: any, index: number) => {
-                  const warningColor = warning.level === 1 ? '#FFA500' : warning.level === 2 ? '#FF4500' : '#DC143C';
-                  const Icon = warning.type === 'hydro' ? 
-                    <Waves size={24} color={warningColor} /> : 
-                    <CloudRain size={24} color={warningColor} />;
-                  
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={[styles.warningsListItem, { borderLeftColor: warningColor }]}
-                      onPress={() => {
-                        setSelectedWarning(warning);
-                        setShowWarningsListModal(false);
-                        setShowWarningModal(true);
-                        Animated.timing(warningModalAnimation, {
-                          toValue: 1,
-                          duration: 300,
-                          useNativeDriver: true,
-                        }).start();
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      }}
-                    >
-                      <View style={styles.warningsListItemIcon}>
-                        {Icon}
-                      </View>
-                      <View style={styles.warningsListItemContent}>
-                        <Text style={styles.warningsListItemTitle}>
-                          {warning.title}
-                        </Text>
-                        <Text style={styles.warningsListItemSubtitle}>
-                          Stopień {warning.level} • {warning.type === 'meteo' ? 'Meteorologiczne' : 'Hydrologiczne'}
-                        </Text>
-                        {warning.validFrom && warning.validTo && (
-                          <Text style={styles.warningsListItemTime}>
-                            {new Date(warning.validFrom).toLocaleDateString('pl-PL', { 
-                              day: '2-digit', 
-                              month: '2-digit', 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })} - {new Date(warning.validTo).toLocaleDateString('pl-PL', { 
-                              day: '2-digit', 
-                              month: '2-digit', 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </Text>
-                        )}
-                      </View>
-                      <ChevronRight size={20} color={theme.colors.textSecondary} />
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
-        </Animated.View>
-      </Modal>
+    return issues;
+  };
+
+  const baseAlerts = showAllWarningsNationwide ? allAlerts : alerts;
+  const filteredAlerts = baseAlerts.filter((a) => {
+    const severityOk = alertFilters.severity === 'all' || a.severity === alertFilters.severity;
+    const typeOk = alertFilters.type === 'all' || a.type === alertFilters.type;
+    return severityOk && typeOk;
+  });
+
+
+
+  const handleConfigChange = (newConfig: any) => {
+    setConfig(newConfig);
+    // Force refresh to apply new configuration
+    if (userLocation) {
+      fetchWeatherData(userLocation.coords);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <LoadingIndicator message="Pobieranie danych pogodowych..." />
+      </SafeAreaView>
     );
-  };
+  }
 
-  // Warning Details Modal
-  const renderWarningModal = () => {
-    if (!selectedWarning) return null;
-
-    const getWarningIcon = (type: string, level: number) => {
-      if (type === 'hydro') {
-        return <Waves size={48} color="#3B82F6" />;
-      }
-      if (level >= 3) {
-        return <Zap size={48} color="#DC2626" />;
-      }
-      if (level >= 2) {
-        return <CloudLightning size={48} color="#F59E0B" />;
-      }
-      return <CloudRain size={48} color="#8B5CF6" />;
-    };
-
-    const getWarningColor = (level: number) => {
-      if (level >= 3) return '#DC2626'; // Red
-      if (level >= 2) return '#F59E0B'; // Orange
-      if (level >= 1) return '#8B5CF6'; // Purple
-      return '#3B82F6'; // Blue
-    };
-
-    const warningColor = getWarningColor(selectedWarning.level);
-    const Icon = getWarningIcon(selectedWarning.type, selectedWarning.level);
-
-    const formatDate = (dateString: string) => {
-      try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pl-PL', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      } catch {
-        return dateString;
-      }
-    };
-
+  if (error && !userLocation) {
     return (
-      <Modal
-        visible={showWarningModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowWarningModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Animated.View 
-            style={[
-              styles.modalBackdrop, 
-              {
-                opacity: warningModalAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 1],
-                }),
-              }
-            ]}
-          >
-            <TouchableOpacity 
-              style={styles.modalBackdropTouchable}
-              activeOpacity={1}
-              onPress={() => {
-                Animated.timing(warningModalAnimation, {
-                  toValue: 0,
-                  duration: 200,
-                  useNativeDriver: true,
-                }).start(() => {
-                  setShowWarningModal(false);
-                });
-              }}
-            />
-          </Animated.View>
-          <View style={styles.warningModalContent}>
-            {/* Drag Handle */}
-            <View style={styles.warningModalHandleContainer}>
-              <View style={styles.warningModalHandle} />
-            </View>
-            
-            {/* Fully Scrollable Content */}
-            <ScrollView 
-              style={styles.warningModalScrollView}
-              contentContainerStyle={styles.warningModalScrollContent}
-              showsVerticalScrollIndicator={false}
-              bounces={true}
-              keyboardShouldPersistTaps="handled"
-            >
-              {/* Header Section - now scrollable */}
-              <View style={styles.warningModalScrollableHeader}>
-                <View style={styles.warningModalHeaderContent}>
-                  <Text style={styles.warningModalTitle}>
-                    Ostrzeżenie {selectedWarning.type === 'meteo' ? 'meteorologiczne' : 'hydrologiczne'}
-                  </Text>
-                  <Text style={[styles.warningModalSubtitle, { color: warningColor }]}>
-                    Stopień {selectedWarning.level}
-                  </Text>
-                </View>
-                {/* X button removed */}
-                {/* <TouchableOpacity 
-                  style={styles.modalCloseButton}
-                  onPress={() => {
-                    Animated.timing(warningModalAnimation, {
-                      toValue: 0,
-                      duration: 200,
-                      useNativeDriver: true,
-                    }).start(() => {
-                      setShowWarningModal(false);
-                    });
-                  }}
-                >
-                  <X size={24} color={theme.colors.text} />
-                </TouchableOpacity> */}
-              </View>
-
-              {/* Icon Section */}
-              <View style={[styles.warningModalIconSection, { backgroundColor: `${warningColor}15` }]}>
-                {Icon}
-                <Text style={[styles.warningModalDescription, { color: warningColor }]}>
-                  {selectedWarning.title}
-                </Text>
-              </View>
-        
-              {/* Details Section */}
-              <View style={styles.warningDetailsContainer}>
-                <Text style={styles.warningDetailsTitle}>Szczegóły ostrzeżenia:</Text>
-                <Text style={styles.warningDetailsText}>
-                  {selectedWarning.description || 'Brak dodatkowych szczegółów.'}
-                </Text>
-              </View>
-
-              {/* Info Grid */}
-              <View style={styles.warningModalDetailsGrid}>
-                <View style={styles.warningModalDetailItem}>
-                  <Clock size={20} color={theme.colors.textSecondary} />
-                  <Text style={styles.warningModalDetailLabel}>Obowiązuje od</Text>
-                  <Text style={styles.warningModalDetailValue}>
-                    {formatDate(selectedWarning.validFrom)}
-                  </Text>
-                </View>
-                
-                <View style={styles.warningModalDetailItem}>
-                  <AlertTriangle size={20} color={theme.colors.textSecondary} />
-                  <Text style={styles.warningModalDetailLabel}>Obowiązuje do</Text>
-                  <Text style={styles.warningModalDetailValue}>
-                    {formatDate(selectedWarning.validTo || selectedWarning.validUntil || '')}
-                  </Text>
-                </View>
-
-                {selectedWarning.probability && selectedWarning.probability > 0 && (
-                  <View style={styles.warningModalDetailItem}>
-                    <Gauge size={20} color={theme.colors.textSecondary} />
-                    <Text style={styles.warningModalDetailLabel}>Prawdopodobieństwo</Text>
-                    <Text style={styles.warningModalDetailValue}>
-                      {selectedWarning.probability}%
-                    </Text>
-                  </View>
-                )}
-
-                <View style={styles.warningModalDetailItem}>
-                  <MapPin size={20} color={theme.colors.textSecondary} />
-                  <Text style={styles.warningModalDetailLabel}>Typ ostrzeżenia</Text>
-                  <Text style={styles.warningModalDetailValue}>
-                    {selectedWarning.type === 'meteo' ? 'Meteorologiczne' : 'Hydrologiczne'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Additional Info Section */}
-              <View style={styles.warningAdditionalInfoContainer}>
-                {/* Regions */}
-                {selectedWarning.regions && selectedWarning.regions.length > 0 && (
-                  <View style={styles.warningInfoSection}>
-                    <View style={styles.warningInfoHeader}>
-                      <MapPin size={18} color={theme.colors.primary} />
-                      <Text style={styles.warningInfoTitle}>Obszary objęte ostrzeżeniem</Text>
-                    </View>
-                    <View style={styles.warningRegionsGrid}>
-                      {selectedWarning.regions.map((region, index) => (
-                        <View key={index} style={styles.warningRegionChip}>
-                          <Text style={styles.warningRegionText}>{region}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
-
-                {/* Comment */}
-                {selectedWarning.comment && (
-                  <View style={styles.warningInfoSection}>
-                    <View style={styles.warningInfoHeader}>
-                      <AlertTriangle size={18} color={theme.colors.warning} />
-                      <Text style={styles.warningInfoTitle}>Dodatkowe informacje</Text>
-                    </View>
-                    <View style={styles.warningCommentBox}>
-                      <Text style={styles.warningCommentText}>
-                        {selectedWarning.comment}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-
-              {/* Level Badge */}
-              <View style={[styles.warningLevelBadge, { backgroundColor: warningColor }]}>
-                <Text style={styles.warningLevelBadgeText}>
-                  STOPIEŃ {selectedWarning.level}
-                </Text>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
-  const renderForecast = () => {
-      if (!forecastData?.time?.length) return null;
-      return (
-        <WeatherSection title="Prognoza na 7 dni" icon={<Calendar size={24} color={theme.colors.primary} />}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {forecastData.time.map((time: string, index: number) => {
-                const { Icon } = getWeatherUIMeta(forecastData.weathercode[index]);
-                return (
-                    <View key={`forecast-${index}-${time}`} style={styles.weeklyCard}>
-                        <Text style={styles.weeklyDay}>{new Date(time).toLocaleDateString('pl-PL', { weekday: 'short' })}</Text>
-                        <Icon size={32} color={theme.colors.text} />
-                        <Text style={styles.weeklyTempMax}>{forecastData.temperature_2m_max[index]?.toFixed(0)}°</Text>
-                        <Text style={styles.weeklyTempMin}>{forecastData.temperature_2m_min[index]?.toFixed(0)}°</Text>
-              </View>
-                )
-            })}
-            </ScrollView>
-        </WeatherSection>
-      )
-  };
-
-  if (loading && !synopData) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <LoadingIndicator />
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <EmptyState
+          icon={<AlertCircle size={48} color={theme.colors.error} />}
+          title="Błąd lokalizacji"
+          message={error}
+          actionLabel="Spróbuj ponownie"
+          onAction={getCurrentLocation}
+        />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={theme.isDarkMode ? 'light-content' : 'dark-content'} />
-            <ScrollView 
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* Clean header with location and settings */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={[styles.locationButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+          onPress={() => setLocationModalVisible(true)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Lokalizacja"
+        >
+          <MapPin size={16} color={theme.colors.primary} />
+          <Text
+            style={[styles.locationText, { color: theme.colors.text }]}
+            numberOfLines={1}
+          >
+            {selectedStation?.name || nearestStation?.name || 'Twoja lokalizacja'}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={[styles.settingsButton, { backgroundColor: theme.colors.card }]}
+            onPress={() => setConfigVisible(true)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Otwórz ustawienia pogody"
+          >
+            <Settings size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.settingsButton, { backgroundColor: theme.colors.card }]}
+            onPress={handleOpenPushSettings}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Otwórz ustawienia powiadomień"
+          >
+            <Bell size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Status indicator */}
+      {!isOnline && (
+        <View style={[styles.statusIndicator, { backgroundColor: isDarkMode ? '#1F2937' : '#FEF3C7' }]}>
+          <WifiOff size={16} color={isDarkMode ? '#FCD34D' : '#D97706'} />
+          <Text style={[styles.statusText, { color: isDarkMode ? '#FCD34D' : '#D97706' }]}>
+            Offline
+          </Text>
+        </View>
+      )}
+
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        {renderHeader()}
-        {synopData ? renderCurrentWeather() : <LoadingIndicator />}
-        {/* 7-Day Forecast */}
-        {renderForecast()}
-        
-        {/* Weekly Forecast Highlight */}
-        {forecastData?.daily && (
-          <WeatherSection title="Pogoda na tydzień" icon={<Calendar size={24} color={theme.colors.primary} />}>
-            {renderWeeklyForecast()}
-          </WeatherSection>
-        )}
-        
-        {/* Detailed Weather Data */}
-        {locationData && renderHydroSection()}
-        {locationData && renderMeteoSection()}
-        
-        {/* Temperature Chart */}
-        {forecastData?.hourly && (
-          <WeatherSection title="Wykres temperatury (24h)" icon={<Thermometer size={24} color={theme.colors.primary} />} defaultCollapsed>
-            <TemperatureChart hourlyData={forecastData.hourly} />
-          </WeatherSection>
-        )}
-        
-        {/* Radar Map */}
-        {forecastData?.hourly?.precipitation && (
-          <WeatherSection title="Radar opadów" icon={<CloudRain size={24} color={theme.colors.primary} />} defaultCollapsed>
-            <RadarMap precipitation={forecastData.hourly.precipitation} time={forecastData.hourly.time} />
-          </WeatherSection>
-        )}
-        
-        {/* UV Index */}
-        {forecastData?.daily?.uv_index_max && (
-          <WeatherSection title="Indeks UV" icon={<Sun size={24} color={theme.colors.warning} />} defaultCollapsed>
-            <View style={styles.uvContainer}>
-              <Text style={styles.uvValue}>
-                UV: {forecastData.daily.uv_index_max[0]?.toFixed(1)}
-              </Text>
-              <Text style={styles.uvDescription}>
-                {forecastData.daily.uv_index_max[0] < 3 ? 'Niski' :
-                 forecastData.daily.uv_index_max[0] < 6 ? 'Średni' :
-                 forecastData.daily.uv_index_max[0] < 8 ? 'Wysoki' :
-                 forecastData.daily.uv_index_max[0] < 11 ? 'Bardzo wysoki' : 'Ekstremalny'}
-              </Text>
-                  </View>
-          </WeatherSection>
-        )}
-        
-        {/* Air Quality */}
-        {airQualityData && (
-          <WeatherSection title="Jakość powietrza" icon={<Wind size={24} color={theme.colors.primary} />} defaultCollapsed>
-            <AirQualityCard airQuality={airQualityData} />
-          </WeatherSection>
-        )}
-        
-        {/* Warnings */}
-        {renderWarnings()}
-        
-        {/* Data Sources */}
-        <View style={styles.dataSourcesContainer}>
-          <Text style={styles.dataSourcesTitle}>Źródła danych:</Text>
-          <Text style={styles.dataSourcesText}>• IMGW - Instytut Meteorologii i Gospodarki Wodnej</Text>
-          <Text style={styles.dataSourcesText}>• Open-Meteo - prognozy i jakość powietrza</Text>
-          <Text style={styles.dataSourcesText}>• Ostatnia aktualizacja: {lastUpdate}</Text>
+        {/* Weather hero - główna informacja pogodowa */}
+        <Animated.View 
+          style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+        >
+          <WeatherHero
+            temperature={currentWeather.temperature}
+            feelsLike={currentWeather.feelsLike}
+            wmoCode={currentWeather.wmoCode}
+            humidity={currentWeather.humidity}
+            windSpeed={currentWeather.windSpeed}
+            uvIndex={currentWeather.uvIndex}
+            pressure={currentWeather.pressure}
+            visibility={currentWeather.visibility}
+            windDirection={45}
+            onDetailsPress={() => setWeatherDetailsModalVisible(true)}
+          />
+          {/* Data consistency warnings (dev/debug) */}
+          {(() => {
+            const issues = validateDataConsistency();
+            return issues.length > 0 ? (
+              <View style={{ marginTop: 8, marginHorizontal: 16, padding: 8, borderRadius: 8, backgroundColor: (theme.colors.warning + '20') }}>
+                {issues.map((m, i) => (
+                  <Text key={i} style={{ color: theme.colors.warning, fontSize: 12 }}>{m}</Text>
+                ))}
               </View>
-        
-        <TouchableOpacity style={styles.clearCacheButton} onPress={async () => {
-          await clearWeatherCache();
-          Alert.alert('Sukces', 'Cache został wyczyszczony');
-          fetchAllData();
-        }}>
-          <Text style={styles.clearCacheText}>Wyczyść cache i odśwież</Text>
-              </TouchableOpacity>
-        
-        <Text style={styles.footerText}>Ostatnia aktualizacja: {lastUpdate}</Text>
+            ) : null;
+          })()}
+        </Animated.View>
+
+
+
+
+
+
+
+
+
+
+
+        {(sectionOrder || ['weekly','alerts','hourly','specialized']).map((sectionKey) => {
+          if (sectionKey === 'weekly' && config.showWeeklyForecast) {
+            return (
+              <Animated.View key="weekly" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+                <View style={styles.sectionHeader}>
+                  <Calendar size={20} color={theme.colors.primary} />
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Prognoza 7-dniowa</Text>
+                </View>
+                <WeeklyForecast data={weeklyData} />
+              </Animated.View>
+            );
+          }
+
+          if (sectionKey === 'alerts' && config.showAlerts && alerts.length > 0) {
+            return (
+              <Animated.View key="alerts" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+                <View style={styles.sectionHeader}>
+                  <AlertTriangle size={20} color={theme.colors.warning} />
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Ostrzeżenia pogodowe</Text>
+                  <View style={{ flex: 1 }} />
+                  <TouchableOpacity onPress={() => setAlertsModalVisible(true)} accessibilityRole="button">
+                    <Text style={{ color: theme.colors.primary, fontFamily: Platform.select({ default: 'Poppins_Medium', android: 'Poppins_Medium' }) || 'Poppins_Medium' }}>
+                      Zobacz wszystkie
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity activeOpacity={0.85} onPress={() => setAlertsModalVisible(true)}>
+                  <View style={[styles.alertsContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                    {alerts.slice(0, 3).map((alert, index) => (
+                      <View key={index} style={[styles.alertItem, { borderLeftColor: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}> 
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={[styles.alertTitle, { color: theme.colors.text }]}>{alert.title}</Text>
+                          <View style={[styles.badge, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}> 
+                            <Text style={[styles.badgeText, { color: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}> 
+                              {alert.severity === 'high' ? 'Wysokie' : alert.severity === 'medium' ? 'Średnie' : 'Niskie'}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={[styles.alertDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+                          {alert.description}
+                        </Text>
+                        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+                          {formatDateTime(alert.validFrom)} - {formatDateTime(alert.validTo)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          }
+
+          if (sectionKey === 'hourly' && config.showHourlyForecast) {
+            return (
+              <Animated.View key="hourly" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+                <View style={styles.sectionHeader}>
+                  <Clock size={20} color={theme.colors.primary} />
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Prognoza godzinowa</Text>
+                </View>
+                <HourlyForecast data={hourlyData} />
+              </Animated.View>
+            );
+          }
+
+          if (sectionKey === 'specialized' && config.showSpecializedWidgets) {
+            return (
+              <Animated.View key="specialized" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+                <View style={styles.sectionHeader}>
+                  <TrendingUp size={20} color={theme.colors.primary} />
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Pogoda specjalistyczna</Text>
+                </View>
+            <SpecializedWeatherWidgets 
+                  weatherData={currentWeather}
+                  forecastData={forecastData}
+              meteoData={meteoNearest}
+              airQualityData={null}
+              synopData={synopData}
+              marineData={marineData}
+              dataSources={dataSources}
+                  showAgricultural={config.showAgriculturalWeather}
+                  showMarine={config.showMarineWeather}
+                  showDriving={config.showDrivingWeather}
+                />
+              </Animated.View>
+            );
+          }
+
+          return null;
+        })}
       </ScrollView>
 
-      {/* Station Selection Modal */}
-      {renderStationModal()}
+      {/* Modals */}
+      <WeatherConfig
+        visible={configVisible}
+        onClose={() => setConfigVisible(false)}
+        config={config}
+        onConfigChange={handleConfigChange}
+      />
+
+      <LocationSelectionModal
+        visible={locationModalVisible}
+        onClose={() => setLocationModalVisible(false)}
+      />
+
       
-      {/* Warnings List Modal */}
-      {renderWarningsListModal()}
-      
-      {/* Warning Details Modal */}
-      {renderWarningModal()}
+
+
+
+
+
+      {/* Weather Details Modal */}
+      <SwipeableModal
+        visible={weatherDetailsModalVisible}
+        onClose={() => setWeatherDetailsModalVisible(false)}
+        title="Szczegóły pogody"
+        presentationStyle="pageSheet"
+      >
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+          {currentWeather && (
+            <View style={styles.weatherDetailsContainer}>
+              {/* Podsumowanie */}
+              <View style={[styles.weatherSummaryCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                <View style={styles.weatherSummaryHeader}>
+                  <View style={styles.weatherSummaryIcon}>
+                    <WeatherIcon wmoCode={currentWeather.wmoCode} size={84} />
+                  </View>
+                  <View style={styles.weatherSummaryInfo}>
+                    <Text style={[styles.weatherSummaryTemp, { color: theme.colors.text }]}>
+                      {Math.round(currentWeather.temperature)}°
+                    </Text>
+                    <Text style={[styles.weatherSummaryCondition, { color: theme.colors.textSecondary }]}>
+                      {currentWeather.condition}
+                    </Text>
+                    <Text style={[styles.weatherSummaryFeels, { color: theme.colors.textSecondary }]}>
+                      Odczuwalna {Math.round(currentWeather.feelsLike)}°
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Zwięzłe metryki */}
+              <View style={styles.tilesGrid}>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}> 
+                    <Droplets size={18} color={theme.colors.primary} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Wilgotność</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.humidity}%</Text>
+                </View>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.secondary + '15' }]}> 
+                    <Wind size={18} color={theme.colors.secondary} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Wiatr</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.windSpeed} km/h</Text>
+                </View>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.error + '15' }]}> 
+                    <Eye size={18} color={theme.colors.error} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Ciśnienie</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.pressure} hPa</Text>
+                </View>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}> 
+                    <Eye size={18} color={theme.colors.primary} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Widoczność</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.visibility} km</Text>
+                </View>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.warning + '15' }]}> 
+                    <Sun size={18} color={theme.colors.warning} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Indeks UV</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.uvIndex}</Text>
+                </View>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.info + '15' }]}> 
+                    <Cloud size={18} color={theme.colors.info} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Zachmurzenie</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.cloudcover?.[0] ?? '—'}%</Text>
+                </View>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.warning + '15' }]}> 
+                    <Droplets size={18} color={theme.colors.warning} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Szansa opadów</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.precipitation_probability?.[0] ?? '—'}%</Text>
+                </View>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}> 
+                    <Thermometer size={18} color={theme.colors.primary} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Punkt rosy</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.dew_point_2m?.[0] != null ? `${Math.round(forecastData.hourly.dew_point_2m[0])}°C` : '—'}</Text>
+                </View>
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.secondary + '15' }]}> 
+                    <Wind size={18} color={theme.colors.secondary} />
+                  </View>
+                  <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Porywy</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.wind_gusts_10m?.[0] != null ? `${Math.round(forecastData.hourly.wind_gusts_10m[0])} km/h` : '—'}</Text>
+                </View>
+              </View>
+
+              {/* Dodatkowe: miejsce + czas */}
+              <View style={styles.additionalRow}> 
+                <View style={[styles.additionalCell, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <Text style={[styles.additionalInfoLabel, { color: theme.colors.textSecondary }]}>Lokalizacja</Text>
+                  <Text style={[styles.additionalInfoValue, { color: theme.colors.text }]}>
+                    {selectedStation?.name || nearestStation?.name || 'Twoja lokalizacja'}
+                  </Text>
+                </View>
+                <View style={[styles.additionalCell, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                  <Text style={[styles.additionalInfoLabel, { color: theme.colors.textSecondary }]}>Wschód / zachód</Text>
+                  <Text style={[styles.additionalInfoValue, { color: theme.colors.text }]}>
+                    {forecastData?.daily?.sunrise?.[0] ? new Date(forecastData.daily.sunrise[0]).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '—'} / {forecastData?.daily?.sunset?.[0] ? new Date(forecastData.daily.sunset[0]).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </SwipeableModal>
+
+      {/* Alerts Modal */}
+      <SwipeableModal
+        visible={alertsModalVisible}
+        onClose={() => setAlertsModalVisible(false)}
+        title="Ostrzeżenia pogodowe"
+        presentationStyle="pageSheet"
+      >
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+          {/* Scope toggle */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={[styles.filterLabel, { color: theme.colors.textSecondary }]}>Zakres</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowAllWarningsNationwide(false)}
+                style={[styles.filterChip, !showAllWarningsNationwide && { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}
+              >
+                <Text style={[styles.filterChipText, { color: !showAllWarningsNationwide ? theme.colors.primary : theme.colors.text }]}>Pomorskie</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowAllWarningsNationwide(true)}
+                style={[styles.filterChip, showAllWarningsNationwide && { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}
+              >
+                <Text style={[styles.filterChipText, { color: showAllWarningsNationwide ? theme.colors.primary : theme.colors.text }]}>Polska</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Filters */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={[styles.filterLabel, { color: theme.colors.textSecondary }]}>Filtruj wg poziomu</Text>
+            <View style={styles.filtersRow}>
+              {(['all','low','medium','high'] as const).map((sev) => (
+                <TouchableOpacity
+                  key={sev}
+                  style={[styles.filterChip, alertFilters.severity === sev && { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}
+                  onPress={() => setAlertFilters((f) => ({ ...f, severity: sev }))}
+                >
+                  <Text style={[styles.filterChipText, { color: alertFilters.severity === sev ? theme.colors.primary : theme.colors.text }]}>
+                    {sev === 'all' ? 'Wszystkie' : sev === 'low' ? 'Niskie' : sev === 'medium' ? 'Średnie' : 'Wysokie'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={[styles.filterLabel, { color: theme.colors.textSecondary, marginTop: 12 }]}>Filtruj wg typu</Text>
+            <View style={styles.filtersRow}>
+              {(['all','meteo','hydro'] as const).map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.filterChip, alertFilters.type === t && { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}
+                  onPress={() => setAlertFilters((f) => ({ ...f, type: t }))}
+                >
+                  <Text style={[styles.filterChipText, { color: alertFilters.type === t ? theme.colors.primary : theme.colors.text }]}>
+                    {t === 'all' ? 'Wszystkie' : t === 'meteo' ? 'Meteorologiczne' : 'Hydrologiczne'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {filteredAlerts.map((alert) => (
+            <View key={alert.id} style={[styles.alertDetailCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+              <View style={styles.alertDetailHeader}>
+                <View style={[styles.sectionIconContainer, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}> 
+                  <AlertTriangle size={22} color={alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info} />
+                </View>
+                <Text style={[styles.alertDetailTitle, { color: theme.colors.text }]} numberOfLines={2}>
+                  {alert.title}
+                </Text>
+              </View>
+              <Text style={[styles.alertDetailDescription, { color: theme.colors.text }]}>
+                {alert.description || 'Brak opisu'}
+              </Text>
+              <View style={styles.alertDetailInfo}>
+                <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Typ: {alert.type === 'hydro' ? 'Hydrologiczne' : 'Meteorologiczne'}</Text>
+                <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Poziom: {alert.level}</Text>
+                <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Obowiązuje: {formatDateTime(alert.validFrom)} - {formatDateTime(alert.validTo)}</Text>
+              </View>
+            </View>
+          ))}
+          {filteredAlerts.length === 0 && (
+            <Text style={{ color: theme.colors.textSecondary, textAlign: 'center', marginTop: 24 }}>Brak ostrzeżeń dla wybranych filtrów</Text>
+          )}
+        </ScrollView>
+      </SwipeableModal>
+
+
     </SafeAreaView>
   );
 }
 
-const getStyles = (theme: any, screenHeight: number, insets: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  content: {
-        padding: 16,
-    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 16,
-  },
-  headerTitle: {
-    fontFamily: 'Poppins_Bold',
-        fontSize: 34,
-    color: theme.colors.text,
-  },
-  headerSubtitle: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 16,
-    color: theme.colors.textSecondary,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 6,
   },
   locationButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-    backgroundColor: theme.colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-        borderColor: theme.colors.border
-    },
-    currentWeatherCard: {
-    borderRadius: 24,
-        padding: 24,
-        marginBottom: 24,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 10,
-    },
-    currentWeatherHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    stationName: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 22,
-        color: '#fff',
-        marginBottom: 4,
-  },
-  currentTemp: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 64,
-        color: '#fff',
-        lineHeight: 72,
-    letterSpacing: -2,
-  },
-  currentTempLabel: {
-    fontFamily: 'Poppins_Medium',
-        fontSize: 18,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    currentWeatherFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.2)',
-        paddingTop: 16,
-        marginTop: 16,
-    },
-    metricItem: {
-        flexDirection: 'row',
-    alignItems: 'center',
-        gap: 8,
-    },
-    metricValue: {
-        fontFamily: 'Poppins_SemiBold',
-        fontSize: 14,
-        color: '#fff',
-    },
-    warningCard: {
-    backgroundColor: theme.colors.card,
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 10,
-        borderLeftWidth: 4,
-    },
-    warningTitle: {
-        fontFamily: 'Poppins_Bold',
-    fontSize: 16,
-        color: theme.colors.text,
-        marginBottom: 4,
-    },
-    warningDescription: {
-        fontFamily: 'Poppins_Regular',
-        fontSize: 14,
-    color: theme.colors.textSecondary,
-        lineHeight: 20
-    },
-    infoText: {
-        fontFamily: 'Poppins_Regular',
-        fontSize: 14,
-        color: theme.colors.textSecondary,
-        textAlign: 'center',
-        paddingVertical: 20,
-    },
-    weeklyCard: {
-    backgroundColor: theme.colors.card,
-        borderRadius: 16,
-        padding: 16,
-    alignItems: 'center',
-        marginRight: 12,
-        width: 90,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-    weeklyDay: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 16,
-        color: theme.colors.text,
-        marginBottom: 8,
-    },
-    weeklyTempMax: {
-    fontFamily: 'Poppins_Bold',
-        fontSize: 18,
-    color: theme.colors.text,
-        marginTop: 8,
-  },
-    weeklyTempMin: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    },
-    footerText: {
-    textAlign: 'center',
-        color: theme.colors.textSecondary,
-        marginTop: 20,
-        fontFamily: 'Poppins_Regular',
-        fontSize: 12,
-    },
-    feelsLikeContainer: {
-        marginTop: 4,
-    },
-    feelsLikeText: {
-        fontFamily: 'Poppins_Regular',
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.9)',
-    },
-    additionalInfo: {
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.2)',
-        paddingTop: 16,
-        marginTop: 16,
-    flexDirection: 'row',
-        justifyContent: 'space-around',
-    },
-    infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-        gap: 6,
-    },
-    uvContainer: {
-    alignItems: 'center',
-        padding: 20,
-    },
-    uvValue: {
-    fontFamily: 'Poppins_Bold',
-        fontSize: 36,
-    color: theme.colors.text,
-        marginBottom: 8,
-    },
-    uvDescription: {
-        fontFamily: 'Poppins_Medium',
-    fontSize: 18,
-    color: theme.colors.textSecondary,
-  },
-    clearCacheButton: {
-        backgroundColor: theme.colors.subtle,
-        borderRadius: 12,
-        padding: 12,
-    alignItems: 'center',
-        marginTop: 20,
-        marginBottom: 10,
-    },
-    clearCacheText: {
-    fontFamily: 'Poppins_Medium',
-    fontSize: 14,
-        color: theme.colors.primary,
-    },
-    weekendContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        paddingVertical: 10,
-    },
-    weekendDay: {
-    alignItems: 'center',
-        backgroundColor: theme.colors.card,
-        borderRadius: 16,
-        padding: 16,
-        marginHorizontal: 8,
-        minWidth: 120,
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    weekendDayName: {
-    fontFamily: 'Poppins_Bold',
-        fontSize: 16,
-    color: theme.colors.text,
-        marginBottom: 8,
-    },
-    weekendTemp: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 24,
-        color: theme.colors.primary,
-        marginTop: 4,
-  },
-  weekendTempMin: {
-        fontFamily: 'Poppins_Regular',
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-        marginTop: 2,
-    },
-    weekendDescription: {
-        fontFamily: 'Poppins_Medium',
-        fontSize: 12,
-        color: theme.colors.textSecondary,
-        textAlign: 'center',
-        marginTop: 4,
-    },
-    weekendPrecip: {
-    fontFamily: 'Poppins_Regular',
-        fontSize: 11,
-    color: theme.colors.textSecondary,
-        marginTop: 4,
-    },
-    dataSourcesContainer: {
-        backgroundColor: theme.colors.subtle,
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 20,
-        marginBottom: 10,
-    },
-    dataSourcesTitle: {
-    fontFamily: 'Poppins_Bold',
-        fontSize: 16,
-    color: theme.colors.text,
-        marginBottom: 8,
-  },
-    dataSourcesText: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-        marginBottom: 4,
-    },
-    noWarningsCard: {
-    alignItems: 'center',
-        padding: 30,
-        backgroundColor: theme.colors.card,
-        borderRadius: 16,
-      },
-    noWarningsSubtext: {
-        fontFamily: 'Poppins_Regular',
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-        marginTop: 4,
-    },
-    warningsContainer: {
-        gap: 12,
-    },
-    warningBlock: {
-        backgroundColor: theme.colors.card,
-        borderRadius: 16,
-        borderWidth: 2,
-        padding: 16,
-    marginBottom: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-  },
-    warningHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-        padding: 8,
-        borderRadius: 12,
-        marginBottom: 12,
-        gap: 12,
-    },
-    warningHeaderText: {
-    flex: 1,
-    },
-    warningType: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    warningLevel: {
-        fontFamily: 'Poppins_Regular',
-        fontSize: 11,
-        color: theme.colors.textSecondary,
-        marginTop: 2,
-    },
-    warningFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-        marginTop: 12,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.subtle,
-    },
-    warningTime: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    warningTimeText: {
-        fontFamily: 'Poppins_Regular',
-        fontSize: 11,
-        color: theme.colors.textSecondary,
-    },
-    showMoreButton: {
-        flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        backgroundColor: theme.colors.subtle,
-        borderRadius: 12,
-        marginTop: 12,
-    },
-    showMoreText: {
-        fontFamily: 'Poppins_Medium',
-        fontSize: 14,
-        color: theme.colors.primary,
-    },
-    // Weekly Forecast Styles
-    weeklyForecastContainer: {
-    flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        paddingVertical: 10,
-    },
-    weeklyForecastDay: {
-    alignItems: 'center',
-    backgroundColor: theme.colors.card,
-        borderRadius: 16,
-        padding: 12,
-        marginBottom: 12,
-        width: '30%',
-        minHeight: 140,
-        shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    weeklyForecastDayHighlighted: {
-    backgroundColor: theme.colors.primary,
-        shadowColor: theme.colors.primary,
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
-        transform: [{ scale: 1.05 }],
-    },
-    weeklyForecastDayName: {
-    fontFamily: 'Poppins_Bold',
-        fontSize: 14,
-    color: theme.colors.text,
-        marginBottom: 6,
-        textAlign: 'center',
-    },
-    weeklyForecastDayNameHighlighted: {
-        color: '#FFFFFF',
-        fontSize: 16,
-    },
-    weeklyForecastTemp: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 20,
-        color: theme.colors.primary,
-        marginTop: 4,
-    },
-    weeklyForecastTempHighlighted: {
-        color: '#FFFFFF',
-        fontSize: 24,
-    },
-    weeklyForecastTempMin: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-        marginTop: 2,
-    },
-    weeklyForecastTempMinHighlighted: {
-        color: '#FFFFFF',
-        opacity: 0.8,
-    },
-    weeklyForecastDescription: {
-        fontFamily: 'Poppins_Medium',
-        fontSize: 11,
-        color: theme.colors.textSecondary,
-        textAlign: 'center',
-        marginTop: 4,
-    },
-    weeklyForecastDescriptionHighlighted: {
-        color: '#FFFFFF',
-        opacity: 0.9,
-    },
-    weeklyForecastPrecip: {
-        fontFamily: 'Poppins_Regular',
-        fontSize: 10,
-        color: theme.colors.textSecondary,
-        marginTop: 4,
-    },
-    weeklyForecastPrecipHighlighted: {
-        color: '#FFFFFF',
-        opacity: 0.8,
-    },
-    weekendBadge: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        backgroundColor: '#FFD700',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.3,
-        shadowRadius: 2,
-        elevation: 3,
-    },
-    weekendBadgeText: {
-    fontFamily: 'Poppins_Bold',
-        fontSize: 8,
-        color: '#000000',
-        textAlign: 'center',
-    },
-    // Modern Weekly Forecast Styles
-    weeklyContainer: {
-        marginVertical: 8,
-    },
-    weeklySlider: {
-        paddingLeft: 2,
-        paddingRight: 8,
-        paddingVertical: 12,
-    },
-        weeklyCardNew: {
-        backgroundColor: theme.colors.card,
-        borderRadius: 16,
-        padding: 12,
-        marginHorizontal: 5,
-        width: 115,
-        minHeight: 150,
-    alignItems: 'center',
-        justifyContent: 'space-between',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-        elevation: 3,
-    },
-    weeklyCardToday: {
-        borderWidth: 2,
-        borderColor: theme.colors.primary,
-        backgroundColor: theme.colors.subtle,
-    },
-    weeklyCardWeekend: {
-        backgroundColor: theme.isDarkMode ? '#2A2A3E' : '#FFF9E6',
-    },
-    weeklyHeader: {
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-        weeklyDayText: {
-    fontFamily: 'Poppins_Bold',
-        fontSize: 11,
-        color: theme.colors.textSecondary,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    weeklyDayTextToday: {
-    color: theme.colors.primary,
-        fontSize: 12,
-  },
-    weeklyDayTextWeekend: {
-        color: '#FFD700',
-  },
-    weeklyDateText: {
-    fontFamily: 'Poppins_Medium',
-        fontSize: 14,
-    color: theme.colors.text,
-        marginTop: 1,
-    },
-    weeklyDateTextToday: {
-        color: theme.colors.primary,
-        fontFamily: 'Poppins_Bold',
-    },
-    weeklyIconContainer: {
-        marginVertical: 4,
-        height: 32,
-        justifyContent: 'center',
-    },
-        weeklyTempContainer: {
-    alignItems: 'center',
-        marginVertical: 2,
-        width: '100%',
-  },
-    weeklyMaxTemp: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 18,
-    color: theme.colors.text,
-  },
-    weeklyMaxTempToday: {
-        color: theme.colors.primary,
-        fontSize: 20,
-    },
-    weeklyMinTemp: {
-    fontFamily: 'Poppins_Regular',
-        fontSize: 12,
-    color: theme.colors.textSecondary,
-        marginTop: -2,
-  },
-    weeklyRainContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-        gap: 4,
-        backgroundColor: theme.colors.subtle,
-        paddingHorizontal: 8,
-    paddingVertical: 4,
-        borderRadius: 12,
-  },
-    weeklyRainText: {
-    fontFamily: 'Poppins_Medium',
-        fontSize: 11,
-        color: theme.colors.info,
-    },
-    todayBadge: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-    },
-    todayDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-    backgroundColor: theme.colors.primary,
-    },
-    weeklyLegend: {
-    flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 24,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-    },
-    weeklyLegendItem: {
-        flexDirection: 'row',
-    alignItems: 'center',
-        gap: 8,
-    },
-    weeklyLegendDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-    },
-    weeklyLegendText: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-    // Old styles kept for compatibility
-    weeklyForecastSlider: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-    },
-    weeklyForecastCard: {
-        alignItems: 'center',
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 16,
-        marginRight: 12,
-        width: 140,
-        minHeight: 160,
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    weeklyForecastCardHighlighted: {
-        backgroundColor: theme.colors.primary,
-        shadowColor: theme.colors.primary,
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
-        transform: [{ scale: 1.05 }],
-    },
-    // Modal Styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: theme.colors.background,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingTop: 24,
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-        maxHeight: '80%',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 10,
-    },
-    modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 24,
-    },
-    modalTitle: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 24,
-    color: theme.colors.text,
-  },
-    modalSubtitle: {
-    fontFamily: 'Poppins_Medium',
-        fontSize: 16,
-    color: theme.colors.textSecondary,
-        marginTop: 2,
-    },
-    modalBody: {
-        gap: 24,
-    },
-    modalIconSection: {
-    alignItems: 'center',
-        paddingVertical: 20,
-    backgroundColor: theme.colors.subtle,
-        borderRadius: 16,
-  },
-    modalDescription: {
-    fontFamily: 'Poppins_Medium',
-        fontSize: 18,
-        color: theme.colors.text,
-        marginTop: 12,
-    },
-    modalDetailsGrid: {
-    flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
-    },
-    modalDetailItem: {
-        width: '47%',
-    backgroundColor: theme.colors.card,
-        borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-        gap: 8,
-  },
-    modalDetailLabel: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-    modalDetailValue: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 18,
-    color: theme.colors.text,
-    },
-    modalWeekendBadge: {
-        backgroundColor: '#FFD700',
-    paddingVertical: 12,
-        paddingHorizontal: 24,
-    borderRadius: 16,
-        alignSelf: 'center',
-    },
-    modalWeekendText: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 14,
-        color: '#000000',
-        letterSpacing: 1,
-    },
-    // Station Modal Styles
-    stationModalContent: {
-        backgroundColor: theme.colors.background,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingTop: 24,
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-        maxHeight: '90%',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 10,
-    },
-    stationModalHeader: {
-    flexDirection: 'row',
-        justifyContent: 'space-between',
-    alignItems: 'center',
-        marginBottom: 20,
-    },
-    stationModalTitle: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 20,
-        color: theme.colors.text,
-    },
-    searchContainer: {
-        marginBottom: 16,
-    },
-    searchInput: {
-    backgroundColor: theme.colors.card,
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontFamily: 'Poppins_Regular',
-        fontSize: 16,
-        color: theme.colors.text,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-    stationList: {
-        paddingBottom: 20,
-    },
-    stationItem: {
-    backgroundColor: theme.colors.card,
-        borderRadius: 12,
-    padding: 16,
-        marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-    stationItemSelected: {
-        backgroundColor: theme.colors.primary,
-        borderWidth: 2,
-        borderColor: theme.colors.primary,
-    },
-    stationItemContent: {
-        flex: 1,
-    },
-    stationItemName: {
-        fontFamily: 'Poppins_Bold',
-    fontSize: 16,
-    color: theme.colors.text,
-        marginBottom: 4,
-    },
-    stationRegion: {
-        fontFamily: 'Poppins_Regular',
-        fontSize: 14,
-        color: theme.colors.textSecondary,
-    },
-    selectedIndicator: {
-        backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-        width: 24,
-        height: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    selectedIndicatorText: {
-        fontFamily: 'Poppins_Bold',
-        fontSize: 16,
-    color: theme.colors.primary,
-  },
-  // New styles for improved station selection
-  autoDetectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.subtle,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
     gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    minWidth: 0,
+    flex: 1,
+    marginRight: 8,
   },
-  autoDetectText: {
-    fontFamily: 'Poppins_Medium',
-    fontSize: 16,
-    color: theme.colors.primary,
+  locationText: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
   },
-  stationListHeader: {
-    fontFamily: 'Poppins_Medium',
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 8,
-    paddingHorizontal: 4,
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 0,
   },
-  stationNameSelected: {
-    color: '#FFFFFF',
+  statusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+    alignSelf: 'center',
+    marginHorizontal: 16,
+    marginBottom: 10,
   },
-  stationRegionSelected: {
-    color: 'rgba(255, 255, 255, 0.8)',
+  statusText: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
   },
-  // Warning Modal Styles - Improved
-  modalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  modalBackdropTouchable: {
+  scrollView: {
     flex: 1,
   },
-  warningModalContent: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    height: screenHeight * 0.85, // Fixed 85% of screen height
-    marginTop: 'auto',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
+  scrollContent: {
+    paddingBottom: 100,
   },
-  warningModalHandleContainer: {
+  // Section headers
+  sectionHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 24,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+  },
+  // Modal styles
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingTop: 12,
     paddingBottom: 16,
   },
-  warningModalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: theme.colors.border,
-    borderRadius: 2,
-    marginBottom: 8,
-  },
-  scrollIndicator: {
-    opacity: 0.6,
-    paddingVertical: 4,
-  },
-
-  warningModalTitle: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 20,
-    color: theme.colors.text,
-    marginBottom: 2,
-  },
-  warningModalSubtitle: {
-    fontFamily: 'Poppins_Medium',
-    fontSize: 16,
-    marginTop: 2,
-  },
-  modalCloseButton: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  warningModalScrollView: {
-    flex: 1,
-  },
-  warningModalScrollContent: {
-    paddingBottom: Math.max(insets.bottom, 40),
-    gap: 24,
-  },
-  warningModalScrollableHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 20,
-  },
-  warningModalHeaderContent: {
-    flex: 1,
-    marginRight: 16,
-  },
-  warningModalIconSection: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+  // Alert detail styles
+  alertDetailCard: {
     borderRadius: 16,
-    marginBottom: 0,
-    marginHorizontal: 20,
-  },
-  warningModalDescription: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 18,
-    textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 24,
-  },
-  warningDetailsContainer: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 0,
-    marginHorizontal: 20,
-  },
-  warningDetailsTitle: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 16,
-    color: theme.colors.text,
-    marginBottom: 12,
-  },
-  warningDetailsText: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    lineHeight: 22,
-  },
-  warningModalDetailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 0,
-    marginHorizontal: 20,
-  },
-  warningModalDetailItem: {
-    width: '47%',
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-  warningModalDetailLabel: {
-    fontFamily: 'Poppins_Medium',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  warningModalDetailValue: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 14,
-    color: theme.colors.text,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-
-  warningLevelBadge: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    alignSelf: 'center',
-    marginBottom: 0,
-    marginHorizontal: 20,
-  },
-  warningLevelBadgeText: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    letterSpacing: 1.5,
-    textAlign: 'center',
-  },
-  // New Additional Info Styles
-  warningAdditionalInfoContainer: {
-    marginHorizontal: 20,
-    gap: 16,
-  },
-  warningInfoSection: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 16,
-  },
-  warningInfoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  warningInfoTitle: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 16,
-    color: theme.colors.text,
-  },
-  warningRegionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  warningRegionChip: {
-    backgroundColor: theme.colors.subtle,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  warningRegionText: {
-    fontFamily: 'Poppins_Medium',
-    fontSize: 13,
-    color: theme.colors.text,
-  },
-  warningCommentBox: {
-    backgroundColor: theme.colors.subtle,
-    borderRadius: 12,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.warning,
-  },
-  warningCommentText: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-    fontStyle: 'italic',
-  },
-
-  // Warnings List Modal Styles
-  warningsListModalContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: screenHeight * 0.8,
-    backgroundColor: 'transparent',
-    justifyContent: 'flex-end',
-  },
-  warningsListModalContent: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    height: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  warningsListHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  warningsListHeaderContent: {
-    flex: 1,
-    marginRight: 16,
-  },
-  warningsListTitle: {
-    fontFamily: 'Poppins_Bold',
-    fontSize: 20,
-    color: theme.colors.text,
-    marginBottom: 2,
-  },
-  warningsListSubtitle: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  warningsListScrollView: {
-    flex: 1,
-  },
-  warningsListScrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: Math.max(insets.bottom, 40),
-  },
-  noWarningsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 16,
-  },
-  noWarningsText: {
-    fontFamily: 'Poppins_Regular',
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  warningsListItem: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderLeftWidth: 4,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  alertDetailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  alertDetailTitle: {
+    fontSize: 20,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    flex: 1,
+  },
+  alertDetailDescription: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 20,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+  },
+  alertDetailInfo: {
+    gap: 8,
+  },
+  alertDetailLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+  },
+  weatherDetailsContainer: {
+    gap: 20,
+    paddingBottom: 20,
+  },
+  weatherSummaryCard: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    marginTop: 8,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.98)',
+  },
+  weatherSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 6,
+    paddingBottom: 6,
+  },
+  weatherSummaryIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'rgba(34, 74, 150, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  weatherSummaryInfo: {
+    flex: 1,
+    marginLeft: 20,
+    alignItems: 'flex-end',
+  },
+  weatherSummaryTemp: {
+    fontSize: 56,
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
+    lineHeight: 60,
+    marginBottom: 6,
+  },
+  weatherSummaryCondition: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    marginBottom: 6,
+    textAlign: 'right',
+  },
+  weatherSummaryFeels: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    opacity: 0.8,
+    textAlign: 'right',
+  },
+  weatherDetailSection: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
+  },
+  weatherDetailSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 14,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.04)',
+  },
+  sectionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     elevation: 2,
   },
-  warningsListItemIcon: {
-    marginRight: 16,
+  weatherDetailSectionTitle: {
+    fontSize: 20,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    marginBottom: 0,
   },
-  warningsListItemContent: {
+  weatherDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  weatherDetailItem: {
     flex: 1,
-    marginRight: 12,
+    marginHorizontal: 4,
   },
-  warningsListItemTitle: {
-    fontFamily: 'Poppins_Bold',
+  weatherDetailLabel: {
     fontSize: 16,
-    color: theme.colors.text,
-    marginBottom: 4,
-    lineHeight: 22,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
   },
-  warningsListItemSubtitle: {
-    fontFamily: 'Poppins_Medium',
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginBottom: 4,
+  weatherDetailValue: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
   },
-  warningsListItemTime: {
-    fontFamily: 'Poppins_Regular',
+  weatherDetailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  weatherDetailGridItem: {
+    width: '48%',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  metricIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
+  },
+  metricContent: {
+    alignItems: 'center',
+    minWidth: 80,
+    paddingHorizontal: 4,
+  },
+
+  // Compact tiles grid for key metrics
+  tilesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 8,
+  },
+  tile: {
+    width: '48%',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  tileIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  tileLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontStyle: 'italic',
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  tileValue: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+  },
+
+  additionalRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  additionalCell: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+
+  additionalInfoGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  additionalInfoItem: {
+    width: '48%',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  additionalInfoLabel: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  additionalInfoValue: {
+    fontSize: 15,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    textAlign: 'center',
+  },
+  twoColumnGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  columnItem: {
+    width: '48%',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+    marginBottom: 8,
+  },
+  alertsContainer: {
+    marginHorizontal: 8,
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)'
+  },
+  alertItem: {
+    borderLeftWidth: 4,
+    paddingLeft: 12,
+    paddingVertical: 8,
+    paddingRight: 8,
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    marginBottom: 6,
+  },
+  alertDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+  },
+  filterLabel: {
+    fontSize: 12,
+    marginBottom: 8,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)'
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
   },
 
 }); 
+

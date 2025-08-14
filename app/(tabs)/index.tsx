@@ -14,6 +14,7 @@ import {
   AppState,
   SafeAreaView
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { 
@@ -49,6 +50,8 @@ import { ArticleCard } from '@/components/ArticleCard';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import WelcomeNotifications from '@/components/WelcomeNotifications';
+import OnboardingCoachmarks from '@/components/OnboardingCoachmarks';
+import ComprehensiveTutorial from '@/components/ComprehensiveTutorial';
 import NotificationsBanner from '@/components/NotificationsBanner';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -278,6 +281,8 @@ export default function HomeScreen() {
   // Carousel and modal states
 
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showCoachmarks, setShowCoachmarks] = useState(false);
+  const [showComprehensiveTutorial, setShowComprehensiveTutorial] = useState(false);
 
 
   const [isOffline, setIsOffline] = useState(false);
@@ -328,7 +333,7 @@ export default function HomeScreen() {
   
   // Initialize and check for first time user
   useEffect(() => {
-    console.log('HomeScreen: Initializing...');
+    // console.log('HomeScreen: Initializing...');
     initializePreferences();
     
     // Show welcome modal for first time users - reduced delay
@@ -340,17 +345,63 @@ export default function HomeScreen() {
     
     return () => clearTimeout(timer);
   }, [initializePreferences, shouldShowWelcome]);
+
+  const handleWelcomeClose = useCallback(async () => {
+    setShowWelcomeModal(false);
+    try {
+      const hasSeenCoach = await AsyncStorage.getItem('@hasSeenCoachmarks');
+      if (!hasSeenCoach) {
+        // Pokaż krótką podpowiedź po zamknięciu powitania
+        setTimeout(() => setShowCoachmarks(true), 400);
+      }
+    } catch {}
+  }, []);
+
+  const handleCoachmarksComplete = useCallback(async () => {
+    setShowCoachmarks(false);
+    try {
+      await AsyncStorage.setItem('@hasSeenCoachmarks', 'true');
+      // Check if user wants to see comprehensive tutorial
+      const hasSeenComprehensive = await AsyncStorage.getItem('@hasSeenComprehensiveTutorial');
+      if (!hasSeenComprehensive) {
+        setTimeout(() => setShowComprehensiveTutorial(true), 500);
+      }
+    } catch {}
+  }, []);
+
+  const handleCoachmarksSkip = useCallback(async () => {
+    setShowCoachmarks(false);
+    try {
+      await AsyncStorage.setItem('@hasSeenCoachmarks', 'true');
+    } catch {}
+  }, []);
+
+  const handleComprehensiveTutorialClose = useCallback(async () => {
+    setShowComprehensiveTutorial(false);
+    try {
+      await AsyncStorage.setItem('@hasSeenComprehensiveTutorial', 'true');
+    } catch {}
+  }, []);
+
+  const handleComprehensiveTutorialComplete = useCallback(async () => {
+    setShowComprehensiveTutorial(false);
+    try {
+      await AsyncStorage.setItem('@hasSeenComprehensiveTutorial', 'true');
+      // Show completion message or additional onboarding
+      console.log('Tutorial completed successfully');
+    } catch {}
+  }, []);
   
   // Main function to load articles with proper pagination
   const loadArticles = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     // Prevent multiple simultaneous requests
     if (loadingRef.current) {
-      console.log('Already loading, skipping request');
+              // console.log('Already loading, skipping request');
       return;
     }
     
     if (!isMountedRef.current) {
-      console.log('Component unmounted, cancelling request');
+              // console.log('Component unmounted, cancelling request');
       return;
     }
 
@@ -370,7 +421,7 @@ export default function HomeScreen() {
         setLoadingMore(true);
       }
       
-      console.log(`Loading articles: page=${pageNum}, refresh=${isRefresh}, category=${selectedCategory}`);
+      // console.log(`Loading articles: page=${pageNum}, refresh=${isRefresh}, category=${selectedCategory}`);
       
       const categoryFilter = selectedCategory && selectedCategory !== 554 ? [selectedCategory] : undefined;
       
@@ -381,11 +432,11 @@ export default function HomeScreen() {
       );
       
       if (!isMountedRef.current) {
-        console.log('Component unmounted during request, ignoring response');
+        // console.log('Component unmounted during request, ignoring response');
         return;
       }
       
-      console.log(`Received ${newArticles.length} articles for page ${pageNum}`);
+              // console.log(`Received ${newArticles.length} articles for page ${pageNum}`);
       
       if (pageNum === 1) {
         // First page or refresh - replace all articles
@@ -445,7 +496,7 @@ export default function HomeScreen() {
       const hasMore = pageNum < total && newArticles.length > 0;
       setHasMoreArticles(hasMore);
       
-      console.log(`Load complete. Page: ${pageNum}/${total}, Has more: ${hasMore}, Articles: ${newArticles.length}`);
+              // console.log(`Load complete. Page: ${pageNum}/${total}, Has more: ${hasMore}, Articles: ${newArticles.length}`);
       
     } catch (err: any) {
       if (!isMountedRef.current) return;
@@ -476,7 +527,7 @@ export default function HomeScreen() {
     if (!isMountedRef.current) return;
     
     try {
-      console.log('Loading categories...');
+              // console.log('Loading categories...');
       const data = await fetchCategories();
       
       if (!isMountedRef.current) return;
@@ -502,7 +553,7 @@ export default function HomeScreen() {
         .sort((a, b) => b.count - a.count);
       
       setCategories(filteredCategories);
-      console.log(`Loaded ${filteredCategories.length} filtered categories (specific IDs)`);
+              // console.log(`Loaded ${filteredCategories.length} filtered categories (specific IDs)`);
     } catch (err) {
       if (!isMountedRef.current) return;
       console.error('Error loading categories:', err);
@@ -548,7 +599,7 @@ export default function HomeScreen() {
     if (!isMountedRef.current) return;
     
     try {
-      console.log('Loading nekrologi...');
+              // console.log('Loading nekrologi...');
       const { nekrologi: loadedNekrologi } = await fetchNekrologi(1, 20);
       
       if (!isMountedRef.current) return;
@@ -559,7 +610,7 @@ export default function HomeScreen() {
       );
       
       setNekrologi(sortedNekrologi);
-      console.log(`Loaded ${sortedNekrologi.length} nekrologi`);
+              // console.log(`Loaded ${sortedNekrologi.length} nekrologi`);
     } catch (err) {
       if (!isMountedRef.current) return;
       console.error('Error loading nekrologi:', err);
@@ -589,7 +640,7 @@ export default function HomeScreen() {
     if (articles.length > 0 || nekrologi.length > 0) {
       const mixed = mixContentWithNekrologi(articles, nekrologi);
       setMixedContent(mixed);
-      console.log(`Mixed content updated: ${mixed.length} items (${articles.length} articles + ${nekrologi.length} nekrologi)`);
+              // console.log(`Mixed content updated: ${mixed.length} items (${articles.length} articles + ${nekrologi.length} nekrologi)`);
     }
   }, [articles, nekrologi, mixContentWithNekrologi]);
   
@@ -598,7 +649,7 @@ export default function HomeScreen() {
     isMountedRef.current = true;
     
     return () => {
-      console.log('HomeScreen unmounting, cancelling all requests');
+      // console.log('HomeScreen unmounting, cancelling all requests');
       isMountedRef.current = false;
       loadingRef.current = false;
       cancelAllRequests();
@@ -612,7 +663,7 @@ export default function HomeScreen() {
   // Initial load - optimized for faster startup
   useEffect(() => {
     if (isMountedRef.current) {
-      console.log('HomeScreen: Starting initial load...');
+      // console.log('HomeScreen: Starting initial load...');
       
       // Start both loads simultaneously for faster initial render
       const loadData = async () => {
@@ -636,7 +687,7 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!isMountedRef.current) return;
     
-    console.log('Category changed to:', selectedCategory);
+          // console.log('Category changed to:', selectedCategory);
     
     // Reset pagination state
     setCurrentPage(1);
@@ -691,7 +742,7 @@ export default function HomeScreen() {
 
   // Refresh handler
   const handleRefresh = useCallback(() => {
-    console.log('Refresh triggered');
+    // console.log('Refresh triggered');
     setCurrentPage(1);
     setHasMoreArticles(true);
     loadArticles(1, true);
@@ -701,12 +752,12 @@ export default function HomeScreen() {
   const handleLoadMore = useCallback(() => {
     // Don't load if already loading, no more articles, or at end
     if (loadingMore || !hasMoreArticles || currentPage >= totalPages || loadingRef.current) {
-      console.log('Skipping load more:', { loadingMore, hasMoreArticles, currentPage, totalPages, loadingRef: loadingRef.current });
+      // console.log('Skipping load more:', { loadingMore, hasMoreArticles, currentPage, totalPages, loadingRef: loadingRef.current });
       return;
     }
     
     const nextPage = currentPage + 1;
-    console.log(`Loading more articles: page ${nextPage}`);
+          // console.log(`Loading more articles: page ${nextPage}`);
     loadArticles(nextPage, false);
   }, [loadingMore, hasMoreArticles, currentPage, totalPages, loadArticles]);
 
@@ -791,7 +842,7 @@ export default function HomeScreen() {
 
   // Handler functions that need to be defined within component scope
   const handleCategoryChange = useCallback((categoryId: number | null) => {
-    console.log('Category change requested:', categoryId);
+          // console.log('Category change requested:', categoryId);
     
     // Handle "Wszystkie" category (ID: 3) as null for showing all articles
     const actualCategoryId = categoryId === 3 ? null : categoryId;
@@ -860,9 +911,7 @@ export default function HomeScreen() {
     index,
   }), []);
 
-  const handleWelcomeClose = useCallback(() => {
-    setShowWelcomeModal(false);
-  }, []);
+  
 
   const handleWeatherPress = useCallback(() => {
     try {
@@ -1099,11 +1148,22 @@ export default function HomeScreen() {
         legacyImplementation={false}
       />
       
-      {/* Welcome Modal - REMOVED */}
-      {/* <WelcomeNotifications
+      <WelcomeNotifications
         visible={showWelcomeModal}
         onClose={handleWelcomeClose}
-      /> */}
+      />
+
+              <OnboardingCoachmarks
+          visible={showCoachmarks}
+          onComplete={handleCoachmarksComplete}
+          onSkip={handleCoachmarksSkip}
+        />
+
+              <ComprehensiveTutorial
+          visible={showComprehensiveTutorial}
+          onClose={handleComprehensiveTutorialClose}
+          onComplete={handleComprehensiveTutorialComplete}
+        />
 
 
     </View>

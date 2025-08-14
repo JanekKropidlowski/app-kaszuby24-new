@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { fetchArticleBySlug } from '@/services/api';
 
 export interface DeepLinkInfo {
   type: 'article' | 'event' | 'category' | 'search' | 'weather' | 'home' | 'unknown';
@@ -93,13 +94,25 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
 /**
  * Handle navigation based on deep link information
  */
-export const handleDeepLinkNavigation = (linkInfo: DeepLinkInfo) => {
+export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
   try {
     switch (linkInfo.type) {
       case 'article':
         if (linkInfo.slug) {
           console.log('Navigating to article with slug:', linkInfo.slug);
-          router.push(`/article/${linkInfo.slug}`);
+          // Fetch article by slug, then navigate by ID
+          try {
+            const article = await fetchArticleBySlug(linkInfo.slug);
+            if (article?.id) {
+              router.push(`/article/${article.id}`);
+            } else {
+              console.warn('Article not found for slug, navigating home');
+              router.push('/(tabs)');
+            }
+          } catch (e) {
+            console.warn('Failed to fetch article by slug, navigating home', e);
+            router.push('/(tabs)');
+          }
         } else {
           console.log('No slug provided, navigating to home');
           router.push('/(tabs)');
@@ -162,13 +175,13 @@ export const handleDeepLinkNavigation = (linkInfo: DeepLinkInfo) => {
 /**
  * Main deep link handler function with error handling
  */
-export const handleDeepLink = (url: string) => {
+export const handleDeepLink = async (url: string) => {
   console.log('Deep link received:', url);
   
   try {
     const linkInfo = parseDeepLink(url);
     console.log('Parsed link info:', linkInfo);
-    handleDeepLinkNavigation(linkInfo);
+    await handleDeepLinkNavigation(linkInfo);
   } catch (error) {
     console.error('Error handling deep link:', error);
     // Fallback to home
@@ -222,7 +235,7 @@ export const isValidSlug = (slug: string): boolean => {
 /**
  * Handle deep link with validation and fallback
  */
-export const handleDeepLinkWithValidation = (url: string) => {
+export const handleDeepLinkWithValidation = async (url: string) => {
   console.log('Handling deep link with validation:', url);
   
   const linkInfo = parseDeepLink(url);
@@ -235,5 +248,5 @@ export const handleDeepLinkWithValidation = (url: string) => {
     return;
   }
   
-  handleDeepLinkNavigation(linkInfo);
+  await handleDeepLinkNavigation(linkInfo);
 };

@@ -213,6 +213,7 @@ VideoPlayer.displayName = 'VideoPlayer';
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 24,
     marginBottom: 16,
     width: '100%',
   },

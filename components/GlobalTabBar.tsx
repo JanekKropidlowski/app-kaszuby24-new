@@ -21,7 +21,7 @@ const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
     }
     // Android: zawsze dodaj minimum 20px + safe area
     const androidPadding = Math.max(20, insets.bottom) + 20;
-    console.log('Android Tab Bar - Safe Area Bottom:', insets.bottom, 'Final Padding:', androidPadding);
+    // console.log('Android Tab Bar - Safe Area Bottom:', insets.bottom, 'Final Padding:', androidPadding);
     return androidPadding;
   };
   

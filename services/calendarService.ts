@@ -79,7 +79,7 @@ class CalendarService {
 
       if (eventId) {
         // Haptic feedback
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Success);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         
         Alert.alert(
           'Sukces',

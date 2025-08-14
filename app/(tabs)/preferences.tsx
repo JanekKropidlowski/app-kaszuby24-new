@@ -27,7 +27,8 @@ import {
   User,
   Zap,
   CheckCircle,
-  BellRing
+  
+  BookOpen
 } from 'lucide-react-native';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { notificationService } from '@/services/notificationService';
@@ -37,6 +38,10 @@ import { Image } from 'expo-image';
 import { useScrollStore } from '@/store/scrollStore';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import WelcomeNotifications from '@/components/WelcomeNotifications';
+import OnboardingCoachmarks from '@/components/OnboardingCoachmarks';
+import ComprehensiveTutorial from '@/components/ComprehensiveTutorial';
+import SwipeableModal from '@/components/SwipeableModal';
 
 export default function PreferencesScreen() {
   const { 
@@ -47,15 +52,23 @@ export default function PreferencesScreen() {
     initializePreferences,
     isFirstTimeUser,
     expoPushToken,
-    getUnreadCount
+    getUnreadCount,
+    dailyWeatherEnabled,
+    dailyWeatherHour,
+    setDailyWeatherEnabled,
+    setDailyWeatherHour,
   } = useNotificationsStore();
   const insets = useSafeAreaInsets();
   
-  const { isDarkMode, toggleTheme, theme, debugMode, toggleDebugMode } = useThemeStore();
+  const { isDarkMode, toggleTheme, theme } = useThemeStore();
   const { clearRecentArticles } = useArticlesStore();
   const { setScrollDirection, resetScroll } = useScrollStore();
   const router = useRouter();
   const unreadCount = getUnreadCount();
+  const [showWelcomeAgain, setShowWelcomeAgain] = useState(false);
+
+  const [showComprehensiveTutorial, setShowComprehensiveTutorial] = useState(false);
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
   
   // Add scroll handler for logo visibility
   const handleScroll = useCallback((event: any) => {
@@ -74,6 +87,13 @@ export default function PreferencesScreen() {
   useEffect(() => {
     initializePreferences();
   }, [initializePreferences]);
+
+  // Ensure daily schedule is in sync on mount if enabled
+  useEffect(() => {
+    if (dailyWeatherEnabled) {
+      notificationService.scheduleDailyWeatherSummary(dailyWeatherHour).catch(console.warn);
+    }
+  }, []);
   
   // Update Expo Push preferences when they change
   useEffect(() => {
@@ -83,7 +103,8 @@ export default function PreferencesScreen() {
   }, [preferences, notificationsEnabled, expoPushToken]);
   
   const handleToggleNotifications = async () => {
-    if (!notificationsEnabled) {
+    const nextEnabled = !notificationsEnabled;
+    if (nextEnabled) {
       const hasPermission = await notificationService.requestPermissions();
       if (!hasPermission) {
         Alert.alert(
@@ -96,6 +117,13 @@ export default function PreferencesScreen() {
       
       // Register for push notifications
       await notificationService.registerForPushNotifications();
+    } else {
+      // Turning off global notifications: also cancel daily local schedule
+      try {
+        await notificationService.cancelDailyWeatherSummary();
+      } catch (e) {
+        console.warn('Cancel daily weather on global off failed', e);
+      }
     }
     toggleNotifications();
   };
@@ -170,43 +198,31 @@ export default function PreferencesScreen() {
     }
   };
   
-  const handleTestNotification = async () => {
-    try {
-      if (!notificationsEnabled) {
-        Alert.alert(
-          'Powiadomienia wyłączone',
-          'Aby przetestować powiadomienia, musisz najpierw włączyć je w ustawieniach.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      await notificationService.scheduleLocalNotification(
-        'Test powiadomienia',
-        'To jest testowe powiadomienie z aplikacji Kaszuby24. Jeśli widzisz to powiadomienie, oznacza to, że system powiadomień działa prawidłowo.',
-        { test: true }
-      );
-      
-      Alert.alert(
-        'Powiadomienie wysłane',
-        'Testowe powiadomienie zostało wysłane. Sprawdź centrum powiadomień na swoim urządzeniu.',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Error sending test notification:', error);
-      Alert.alert(
-        'Błąd',
-        'Nie udało się wysłać testowego powiadomienia. Sprawdź uprawnienia aplikacji.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
+  
+
+  const handleShowWelcomeAgain = useCallback(() => {
+    setShowWelcomeAgain(true);
+  }, []);
+
+  const handleCloseWelcomeAgain = useCallback(() => {
+    setShowWelcomeAgain(false);
+  }, []);
+
+
+
+  const handleShowComprehensiveTutorial = useCallback(() => {
+    setShowComprehensiveTutorial(true);
+  }, []);
+
+  const handleCloseComprehensiveTutorial = useCallback(() => {
+    setShowComprehensiveTutorial(false);
+  }, []);
   
   const regions = preferences.filter(pref => pref.type === 'region');
   const categories = preferences.filter(pref => pref.type === 'category');
   const enabledCount = preferences.filter(pref => pref.enabled).length;
   
-  console.log('PreferencesScreen render - debugMode:', debugMode);
+
   
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -294,7 +310,7 @@ export default function PreferencesScreen() {
                       fontFamily: theme.fontFamily.regular
                     }
                   ]}>
-                    Włącz powiadomienia dla popularnych regionów
+                    Włącz powiadomienia dla popularnych regionów i działów
                   </Text>
                 </View>
               </View>
@@ -321,7 +337,19 @@ export default function PreferencesScreen() {
                       fontFamily: theme.fontFamily.regular
                     }
                   ]}>
-                    Wiadomości i Kultura
+                    Wiadomości, Kultura i Rozrywka
+                  </Text>
+                </View>
+                <View style={styles.quickSetupFeature}>
+                  <CheckCircle size={16} color={theme.colors.success} />
+                  <Text style={[
+                    styles.quickSetupFeatureText,
+                    { 
+                      color: theme.colors.text,
+                      fontFamily: theme.fontFamily.regular
+                    }
+                  ]}>
+                    Automatyczna rejestracja push
                   </Text>
                 </View>
               </View>
@@ -341,64 +369,7 @@ export default function PreferencesScreen() {
           </>
         )}
         
-        {/* App Settings */}
-        <Text style={[
-          styles.sectionTitle, 
-          { 
-            color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold
-          }
-        ]}>
-          Ustawienia aplikacji
-        </Text>
-        
-        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-          <View style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}>
-            <View style={styles.settingLabelContainer}>
-              {isDarkMode ? (
-                <Moon size={20} color={theme.colors.primary} />
-              ) : (
-                <Sun size={20} color={theme.colors.primary} />
-              )}
-              <Text style={[
-                styles.settingLabel, 
-                { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium
-                }
-              ]}>
-                Tryb ciemny
-              </Text>
-            </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={theme.colors.card}
-            />
-          </View>
-          
-          <TouchableOpacity 
-            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-            onPress={clearRecentArticles}
-          >
-            <View style={styles.settingLabelContainer}>
-              <Trash2 size={20} color={theme.colors.primary} />
-              <Text style={[
-                styles.settingLabel, 
-                { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium
-                }
-              ]}>
-                Wyczyść historię
-              </Text>
-            </View>
-            <ChevronRight size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-        
-        {/* Notification Settings */}
+        {/* Notification Settings - moved higher for better UX */}
         <Text style={[
           styles.sectionTitle, 
           { 
@@ -441,7 +412,44 @@ export default function PreferencesScreen() {
             </Text>
           </View>
         </View>
-        
+
+        {/* Daily Weather Push */}
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.sectionHeader, { backgroundColor: theme.colors.subtle, borderBottomColor: theme.colors.border }]}>
+            <Bell size={18} color={theme.colors.primary} />
+            <Text style={[
+              styles.sectionHeaderTitle, 
+              { 
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.semibold
+              }
+            ]}>
+              Codzienna prognoza o 8:00
+            </Text>
+          </View>
+          <View style={[styles.preferenceRow, { borderBottomColor: theme.colors.border }]}>            
+            <Text style={[styles.preferenceName, { color: theme.colors.text }]}>Włącz powiadomienie</Text>
+            <Switch
+              value={dailyWeatherEnabled}
+              onValueChange={(enabled) => setDailyWeatherEnabled(enabled)}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.card}
+              disabled={!notificationsEnabled}
+            />
+          </View>
+          <View style={[styles.preferenceRow, { borderBottomColor: 'transparent' }]}>            
+            <Text style={[styles.preferenceName, { color: theme.colors.text }]}>Godzina</Text>
+            <TouchableOpacity
+              onPress={() => setTimePickerVisible(true)}
+              style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: theme.colors.subtle }}
+              disabled={!notificationsEnabled || !dailyWeatherEnabled}
+            >
+              <Text style={{ color: theme.colors.text }}>{String(dailyWeatherHour).padStart(2, '0')}:00</Text>
+            </TouchableOpacity>
+          </View>
+          {/* test push removed per request */}
+        </View>
+
         {/* Regions */}
         {regions.length > 0 && (
           <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
@@ -512,7 +520,7 @@ export default function PreferencesScreen() {
                     fontFamily: theme.fontFamily.medium
                   }
                 ]}>
-                  {category.name}
+                  {category.name === 'Wiadomości' ? 'Wszystkie' : category.name}
                 </Text>
                 <Switch
                   value={category.enabled}
@@ -525,7 +533,139 @@ export default function PreferencesScreen() {
             ))}
           </View>
         )}
+
+        {/* App Settings */}
+        <Text style={[
+          styles.sectionTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}>
+          Ustawienia aplikacji
+        </Text>
         
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}>
+            <View style={styles.settingLabelContainer}>
+              {isDarkMode ? (
+                <Moon size={20} color={theme.colors.primary} />
+              ) : (
+                <Sun size={20} color={theme.colors.primary} />
+              )}
+              <Text style={[
+                styles.settingLabel, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Tryb ciemny
+              </Text>
+            </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleTheme}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.card}
+            />
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={clearRecentArticles}
+          >
+            <View style={styles.settingLabelContainer}>
+              <Trash2 size={20} color={theme.colors.primary} />
+              <Text style={[
+                styles.settingLabel, 
+                { 
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.medium
+                }
+              ]}>
+                Wyczyść historię
+              </Text>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Tutorial & Welcome re-run */}
+        <Text style={[
+          styles.sectionTitle, 
+          { 
+            color: theme.colors.text,
+            fontFamily: theme.fontFamily.semibold
+          }
+        ]}>
+          Samouczek i powitanie
+        </Text>
+
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={handleShowWelcomeAgain}
+          >
+            <View style={styles.settingLabelContainer}>
+              <Info size={20} color={theme.colors.primary} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[
+                  styles.settingLabel, 
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
+                  Pokaż ekran powitalny
+                </Text>
+                <Text style={[
+                  styles.settingSubtitle,
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
+                  Konfiguracja powiadomień i regionów
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+
+
+
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
+            onPress={handleShowComprehensiveTutorial}
+          >
+            <View style={styles.settingLabelContainer}>
+              <BookOpen size={20} color={theme.colors.primary} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[
+                  styles.settingLabel, 
+                  { 
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
+                  Pełny samouczek
+                </Text>
+                <Text style={[
+                  styles.settingSubtitle,
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.regular
+                  }
+                ]}>
+                  Szczegółowy przewodnik po wszystkich funkcjach
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* About & Contact */}
         <Text style={[
           styles.sectionTitle, 
@@ -596,67 +736,12 @@ export default function PreferencesScreen() {
           </TouchableOpacity>
         </View>
         
-        {/* Test Notifications Section */}
-        <Text style={[
-          styles.sectionTitle, 
-          { 
-            color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold
-          }
-        ]}>
-          Narzędzia testowe
-        </Text>
         
-        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-          <TouchableOpacity 
-            style={[styles.settingRow, { borderBottomColor: theme.colors.border }]}
-            onPress={handleTestNotification}
-          >
-            <View style={styles.settingLabelContainer}>
-              <BellRing size={20} color={theme.colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[
-                  styles.settingLabel, 
-                  { 
-                    color: theme.colors.text,
-                    fontFamily: theme.fontFamily.medium
-                  }
-                ]}>
-                  Testowe powiadomienie
-                </Text>
-                <Text style={[
-                  styles.settingSubtitle,
-                  { 
-                    color: theme.colors.textSecondary,
-                    fontFamily: theme.fontFamily.regular
-                  }
-                ]}>
-                  Wyślij testowe powiadomienie push
-                </Text>
-              </View>
-            </View>
-            <ChevronRight size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
         
-        {/* Ustawienia debugowania */}
-        <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Tryb debugowania</Text>
-          <View style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-            <Switch
-              value={debugMode}
-              onValueChange={toggleDebugMode}
-              thumbColor={theme.colors.primary}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary + '55' }}
-            />
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
-              {debugMode ? 'Włączony' : 'Wyłączony'}
-            </Text>
-          </View>
-        </View>
+
         
         {/* Logo Section */}
-        <View style={[styles.logoSection, { backgroundColor: theme.colors.card }]}>
+        <View style={styles.logoSection}>
           <Text style={[
             styles.sponsorText, 
             { 
@@ -664,14 +749,14 @@ export default function PreferencesScreen() {
               fontFamily: theme.fontFamily.regular
             }
           ]}>
-            Aplikacja wspierana przez
+            Wspierane przez
           </Text>
           <View style={styles.logoContainer}>
             <Image 
               source={{ 
                 uri: theme.isDarkMode 
-                  ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY_Obszar-roboczy-1-scaled.png' // Wersja biała dla ciemnego motywu
-                  : 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-03-scaled.png' // Pełna wersja kolorowa dla jasnego motywu
+                  ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY_Obszar-roboczy-1-scaled.png'
+                  : 'http://kaszuby24.pl/wp-content/uploads/2025/07/LOGO-KROPIDLOWSCY-03-scaled.png'
               }}
               style={styles.sponsorLogo}
               contentFit="contain"
@@ -699,7 +784,56 @@ export default function PreferencesScreen() {
             © 2025 Kaszuby24.pl
           </Text>
         </View>
-              </ScrollView>
+        
+        {/* Modals for re-running onboarding */}
+        <WelcomeNotifications
+          visible={showWelcomeAgain}
+          onClose={handleCloseWelcomeAgain}
+        />
+
+
+
+        <ComprehensiveTutorial
+          visible={showComprehensiveTutorial}
+          onClose={handleCloseComprehensiveTutorial}
+        />
+
+        {/* Time Picker Modal */}
+        <SwipeableModal visible={timePickerVisible} onClose={() => setTimePickerVisible(false)} title="Wybierz godzinę">
+          <View style={{ paddingHorizontal: 16 }}>
+            <Text style={{ color: theme.colors.text, marginBottom: 12 }}>Godzina wysyłki powiadomienia</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {[...Array(24).keys()].map((h) => (
+                <TouchableOpacity
+                  key={h}
+                  onPress={() => setDailyWeatherHour(h)}
+                  style={{
+                    paddingVertical: 8,
+                    paddingHorizontal: 10,
+                    borderRadius: 8,
+                    backgroundColor: h === dailyWeatherHour ? theme.colors.primary : theme.colors.subtle,
+                    margin: 4,
+                    minWidth: 68,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: h === dailyWeatherHour ? '#fff' : theme.colors.text }}>
+                    {String(h).padStart(2, '0')}:00
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ height: 12 }} />
+            <TouchableOpacity
+              onPress={() => setTimePickerVisible(false)}
+              style={{ backgroundColor: theme.colors.primary, paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#fff' }}>Zapisz</Text>
+            </TouchableOpacity>
+          </View>
+        </SwipeableModal>
+
+      </ScrollView>
       </View>
     );
   }
@@ -882,28 +1016,25 @@ const styles = StyleSheet.create({
   },
   logoSection: {
     marginHorizontal: 20,
-    borderRadius: 16,
     padding: 24,
     marginBottom: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)', // Bardziej subtelna kreska
   },
   logoContainer: {
-    width: 160, // Zmniejszone z 200
-    height: 60, // Zmniejszone z 80
+    width: 200, // Zwiększone z 160
+    height: 80, // Zwiększone z 60
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12, // Zmniejszone z 16
+    marginTop: 12,
   },
   sponsorLogo: {
     width: '100%',
     height: '100%',
   },
   sponsorText: {
-    fontSize: 14, // Zmniejszone z 16
+    fontSize: 14,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: -8, // Ujemny margines, żeby tekst był bliżej logo
     fontFamily: 'Poppins-Regular',
   },
   footer: {

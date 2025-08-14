@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.22",
+    "version": "1.0.30",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaszuby24",
@@ -17,15 +17,14 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.kaszuby24",
       "googleServicesFile": "./GoogleService-Info.plist",
-      "associatedDomains": [
-        "applinks:kaszuby24.pl",
-        "applinks:www.kaszuby24.pl"
-      ],
+
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
         "NSCalendarsUsageDescription": "Aplikacja potrzebuje dostępu do kalendarza, aby dodać wydarzenia do Twojego kalendarza.",
+        "NSPhotoLibraryUsageDescription": "Aplikacja potrzebuje dostępu do galerii, aby umożliwić wybór zdjęć.",
+        "NSCameraUsageDescription": "Aplikacja potrzebuje dostępu do kamery, aby umożliwić robienie zdjęć.",
         "UIDeviceFamily": [1]
       }
     },
@@ -60,18 +59,12 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "ACCESS_WIFI_STATE",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "WAKE_LOCK",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "READ_CALENDAR",
         "WRITE_CALENDAR",
-        "com.android.vending.BILLING",
-        "com.google.android.c2dm.permission.RECEIVE",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.WAKE_LOCK"
+
+        "com.google.android.c2dm.permission.RECEIVE"
       ],
       "userInterfaceStyle": "automatic"
     },
@@ -87,7 +80,7 @@
         "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
       }
     },
-    "runtimeVersion": "1.0.22",
+    "runtimeVersion": "1.0.30",
     "plugins": [
       [
         "expo-notifications",

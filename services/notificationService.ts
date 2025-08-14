@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -12,12 +13,23 @@ class NotificationService {
   private initializationFailed = false;
   private notificationListener: any = null;
   private responseListener: any = null;
+  private dailyWeatherNotificationId: string | null = null;
   
   async setupNotificationHandlers() {
     if (this.isInitialized || this.initializationFailed) return;
     
     try {
       console.log('Initializing Expo Push Notifications...');
+      // Ensure notifications are presented while app is in foreground (iOS by default hides them)
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true
+        }),
+      });
       
       // Set up notification channels for Android
       if (Platform.OS === 'android') {
@@ -46,6 +58,18 @@ class NotificationService {
       setTimeout(() => {
         this.requestPermissionsAndRegister().catch(console.warn);
       }, 1000);
+
+      // Restore daily weather schedule if user enabled it
+      setTimeout(() => {
+        try {
+          const { dailyWeatherEnabled, dailyWeatherHour } = useNotificationsStore.getState();
+          if (dailyWeatherEnabled) {
+            this.scheduleDailyWeatherSummary(dailyWeatherHour).catch(console.warn);
+          }
+        } catch (e) {
+          console.warn('Failed to restore daily weather schedule:', e);
+        }
+      }, 1500);
       
     } catch (error) {
       console.error('Error setting up notification handlers:', error);
@@ -61,12 +85,13 @@ class NotificationService {
       
       // Extract image and icon from notification data
       const data = notification.request.content.data || {};
-      const image = data.image || notification.request.content.image;
-      const icon = data.icon || notification.request.content.icon;
+      // Usuwam nieistniejące właściwości image i icon
+      // const image = data.image || notification.request.content.image;
+      // const icon = data.icon || notification.request.content.icon;
       
       // Track notification received analytics
       if (data.notification_id) {
-        this.trackNotificationAnalytics(data.notification_id, 'received', data.articleId);
+        this.trackNotificationAnalytics(data.notification_id as string, 'received', data.articleId as string);
       }
       
       addNotification({
@@ -76,13 +101,13 @@ class NotificationService {
         read: false,
         articleId: data.articleId && typeof data.articleId === 'string' ? parseInt(data.articleId) : undefined,
         categoryId: data.categoryId && typeof data.categoryId === 'string' ? parseInt(data.categoryId) : undefined,
-        image: image,
-        icon: icon,
+        image: data.image as string | undefined,
+        icon: data.icon as string | undefined,
       });
       
       // Show rich notification if supported
-      if (Platform.OS === 'android' && image) {
-        this.showRichNotification(notification, image);
+      if (Platform.OS === 'android' && data.image) {
+        this.showRichNotification(notification, data.image as string);
       }
       
     } catch (error) {
@@ -99,7 +124,7 @@ class NotificationService {
       
       // Track notification clicked analytics
       if (data.notification_id) {
-        this.trackNotificationAnalytics(data.notification_id, 'clicked', data.articleId);
+        this.trackNotificationAnalytics(data.notification_id as string, 'clicked', data.articleId as string);
       }
       
       // Mark as read - fix type error by ensuring we have a string identifier
@@ -110,7 +135,9 @@ class NotificationService {
       }
       
       // Handle navigation based on notification data
-      if (data?.articleId) {
+      if (data?.route && typeof data.route === 'string') {
+        router.push(data.route);
+      } else if (data?.articleId) {
         console.log('Navigate to article:', data.articleId);
         // Navigate to article by ID
         router.push(`/article/${data.articleId}`);
@@ -121,7 +148,7 @@ class NotificationService {
       } else if (data?.url) {
         console.log('Navigate to URL:', data.url);
         // Handle external URL or deep link
-        this.handleNotificationUrl(data.url);
+        this.handleNotificationUrl(data.url as string);
       } else {
         console.log('No navigation data, going to home');
         // Default to home if no specific navigation data
@@ -395,6 +422,143 @@ class NotificationService {
       throw error; // Re-throw to allow handling in UI
     }
   }
+
+  // Build concise daily forecast summary using Open-Meteo via weatherService
+  private async buildTodayForecastSummary(): Promise<{ title: string; body: string; data: any }> {
+    try {
+      const { userLocation } = useNotificationsStore.getState();
+      // Try last known position; avoid prompting if possible
+      let coords: { latitude: number; longitude: number } | null = null;
+      try {
+        const last = await Location.getLastKnownPositionAsync();
+        if (last && last.coords) {
+          coords = { latitude: last.coords.latitude, longitude: last.coords.longitude };
+        }
+      } catch {}
+
+      if (!coords) {
+        // Fallback to Gdańsk SYNOP
+        coords = { latitude: 54.3775, longitude: 18.4667 };
+      }
+
+      const { fetchForecast } = await import('@/services/weatherService');
+      const forecast = await fetchForecast({ latitude: coords.latitude, longitude: coords.longitude }, { ttlMs: 10 * 60 * 1000 });
+      const locationLabel = userLocation?.name || 'Kaszuby';
+      let title = 'Hej! Pogoda na dziś 🌤️';
+      let body = 'Rzuć okiem w aplikacji Kaszuby24 po pełną prognozę.';
+      if (forecast && forecast.daily) {
+        const d = forecast.daily;
+        const idx = 0; // today
+        const tmax = Array.isArray(d.temperature_2m_max) ? Math.round(d.temperature_2m_max[idx]) : null;
+        const precipProb = Array.isArray(d.precipitation_probability_max) ? Math.round(d.precipitation_probability_max[idx]) : null;
+        const wind = Array.isArray(d.windspeed_10m_max) ? Math.round(d.windspeed_10m_max[idx]) : null;
+        const uv = Array.isArray(d.uv_index_max) ? Math.round(d.uv_index_max[idx]) : null;
+
+        // Krótko, bez szczegółowych liczb
+        const sentences: string[] = [];
+        // Odczucie temperatury bez liczb
+        if (tmax !== null) {
+          if (tmax <= 0) sentences.push(`Dziś w ${locationLabel} będzie bardzo zimno.`);
+          else if (tmax <= 10) sentences.push(`Dziś w ${locationLabel} raczej chłodno.`);
+          else if (tmax <= 20) sentences.push(`Dziś w ${locationLabel} umiarkowanie.`);
+          else sentences.push(`Dziś w ${locationLabel} ciepło i przyjemnie.`);
+        } else {
+          sentences.push(`Dziś w ${locationLabel} spokojna pogoda.`);
+        }
+        // Opady bez mm
+        if (precipProb !== null && precipProb >= 50) {
+          sentences.push('Możliwe przelotne opady ☔, warto mieć coś przeciwdeszczowego.');
+        }
+        // Wiatr bez km/h
+        if (wind !== null && wind >= 35) {
+          sentences.push('Miej na uwadze mocniejsze podmuchy wiatru.');
+        }
+        // UV bez wartości
+        if (uv !== null && uv >= 6) {
+          sentences.push('Słońce będzie mocniejsze, pamiętaj o ochronie.');
+        }
+        // Jedno zdanie o ubraniu (bez liczb)
+        if (tmax !== null) {
+          if (tmax <= 0) sentences.push('Ubierz się bardzo ciepło 🧣🧤.');
+          else if (tmax <= 10) sentences.push('Cieplejsza kurtka będzie w sam raz 🧥.');
+          else if (tmax <= 20) sentences.push('Lekka warstwa wystarczy 🧥.');
+          else sentences.push('Postaw na lżejsze, przewiewne rzeczy 🧢👕.');
+        }
+        sentences.push('Pełna prognoza czeka w aplikacji Kaszuby24.');
+        body = sentences.join(' ');
+      }
+      return { title, body, data: { type: 'daily_weather', route: '/(tabs)/weather' } };
+    } catch (error) {
+      console.warn('Failed to build daily forecast summary:', error);
+      return {
+        title: 'Hej! Pogoda na dziś 🌤️',
+        body: 'Sprawdź pełną prognozę w aplikacji Kaszuby24.',
+        data: { type: 'daily_weather', route: '/(tabs)/weather' },
+      };
+    }
+  }
+
+  // Schedule a repeating local notification every day at given hour (local time)
+  async scheduleDailyWeatherSummary(hour: number = 8) {
+    try {
+      const hasPerm = await this.requestPermissions();
+      if (!hasPerm) return;
+
+      // Cancel existing if any
+      await this.cancelDailyWeatherSummary();
+
+      // Build current summary content
+      const content = await this.buildTodayForecastSummary();
+
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: content.title,
+          body: content.body,
+          data: content.data,
+          sound: 'default',
+        },
+        trigger: { 
+          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          hour, 
+          minute: 0, 
+          repeats: true 
+        },
+      });
+
+      this.dailyWeatherNotificationId = notificationId as unknown as string;
+      await AsyncStorage.setItem('daily_weather_notification_id', String(notificationId));
+      await AsyncStorage.setItem('daily_weather_hour', String(hour));
+      console.log('Scheduled daily weather summary at', hour, 'ID:', notificationId);
+      return notificationId;
+    } catch (error) {
+      console.warn('Failed to schedule daily weather summary:', error);
+      throw error;
+    }
+  }
+
+  async cancelDailyWeatherSummary() {
+    try {
+      if (!this.dailyWeatherNotificationId) {
+        const stored = await AsyncStorage.getItem('daily_weather_notification_id');
+        if (stored) this.dailyWeatherNotificationId = stored;
+      }
+      if (this.dailyWeatherNotificationId) {
+        await Notifications.cancelScheduledNotificationAsync(this.dailyWeatherNotificationId);
+        console.log('Canceled daily weather summary:', this.dailyWeatherNotificationId);
+      }
+    } catch (error) {
+      console.warn('Failed to cancel daily weather summary:', error);
+    } finally {
+      this.dailyWeatherNotificationId = null;
+      await AsyncStorage.removeItem('daily_weather_notification_id');
+    }
+  }
+
+  // Public helper: send preview immediately
+  async sendDailyWeatherPreview() {
+    const content = await this.buildTodayForecastSummary();
+    await this.scheduleLocalNotification(content.title, content.body, content.data);
+  }
   
   async clearNotifications() {
     try {
@@ -445,15 +609,15 @@ class NotificationService {
           title: notification.request.content.title || 'Kaszuby24',
           body: notification.request.content.body || '',
           data: data,
-          image: imageUrl,
+          // image: imageUrl, // Removed - not supported in NotificationContentInput
           sound: 'default',
-          priority: Notifications.AndroidImportance.HIGH,
-          // Rich notification style
-          style: {
-            type: 'bigPicture',
-            picture: imageUrl,
-            largeIcon: data.icon || 'https://kaszuby24.pl/wp-content/uploads/2024/app-icon.png',
-          },
+          priority: Notifications.AndroidImportance.HIGH as any,
+          // Rich notification style - removed style property as it's not supported
+          // style: {
+          //   type: 'bigPicture',
+          //   picture: imageUrl,
+          //   largeIcon: data.icon || 'https://kaszuby24.pl/wp-content/uploads/2024/app-icon.png',
+          // },
         },
         trigger: null, // Show immediately
       });
@@ -474,7 +638,7 @@ class NotificationService {
           if (data.articleId) {
             // Track action
             if (data.notification_id) {
-              this.trackNotificationAnalytics(data.notification_id, 'action_read', data.articleId);
+              this.trackNotificationAnalytics(data.notification_id as string, 'action_read', data.articleId as string);
             }
             // Navigate to article
             router.push(`/article/${data.articleId}`);
@@ -485,7 +649,7 @@ class NotificationService {
           if (data.articleId) {
             // Track action
             if (data.notification_id) {
-              this.trackNotificationAnalytics(data.notification_id, 'action_save', data.articleId);
+              this.trackNotificationAnalytics(data.notification_id as string, 'action_save', data.articleId as string);
             }
             // Save article logic - you can implement this
             console.log('Save article:', data.articleId);
@@ -513,12 +677,13 @@ class NotificationService {
         body,
         data: data || {},
         sound: 'default',
-        priority: Notifications.AndroidImportance.HIGH,
+        priority: Notifications.AndroidImportance.HIGH as any,
       };
 
       // Add rich content for Android
       if (Platform.OS === 'android' && imageUrl) {
-        notificationContent.image = imageUrl;
+        // Usuwam nieistniejącą właściwość image
+        // notificationContent.image = imageUrl;
       }
 
       const notificationId = await Notifications.scheduleNotificationAsync({

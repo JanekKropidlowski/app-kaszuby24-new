@@ -1,71 +1,73 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Share, 
-  Platform, 
-  Dimensions, 
-  StatusBar,
-  Alert,
-  Modal,
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
   FlatList,
-  Linking
+  Dimensions,
+  StatusBar,
+  Linking,
+  Share,
+  Platform,
+  Alert,
+  Clipboard,
+  StyleSheet,
 } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image as ExpoImage } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { 
-  ArrowLeft, 
-  Share2, 
-  Bookmark, 
-  BookMarked,
-  Calendar, 
-  Eye, 
-  Clock, 
-  MapPin, 
-  ChevronLeft, 
-  ChevronRight, 
-  X, 
-  Download,
-  Home,
-  ChevronUp
-} from 'lucide-react-native';
-import { Image } from 'expo-image';
-import { Image as RNImage } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedScrollHandler,
-  useAnimatedGestureHandler,
-  interpolate,
-  Extrapolate,
   withTiming,
   withSpring,
   runOnJS,
+  interpolate,
+  Extrapolate,
+  useAnimatedGestureHandler,
 } from 'react-native-reanimated';
-import { PanGestureHandler, PinchGestureHandler, State, GestureHandlerRootView } from 'react-native-gesture-handler';
-// import ImageViewing from 'react-native-image-viewing';
+import { PanGestureHandler, PinchGestureHandler } from 'react-native-gesture-handler';
+import RenderHtml from 'react-native-render-html';
+import {
+  ArrowLeft,
+  Share2,
+  Bookmark,
+  Heart,
+  Coffee,
+  Eye,
+  ChevronUp,
+  Volume2,
+} from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Importy komponentów i serwisów
 import { OptimizedLightbox } from '@/components/OptimizedLightbox';
-import * as Haptics from 'expo-haptics';
 import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { Article, MediaItem } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
+import GlobalTabBar from '@/components/GlobalTabBar';
+import VideoPlayer from '@/components/VideoPlayer';
+import CoffeeSupportCard from '@/components/CoffeeSupportCard';
+import { shareArticle } from '@/utils/share';
+import { useTTSStore } from '@/store/ttsStore';
 import { formatDateTime } from '@/utils/dateFormatter';
 import { cleanHtml, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlParser';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import GlobalTabBar from '@/components/GlobalTabBar';
-import VideoPlayer from '@/components/VideoPlayer';
-import RenderHtml from 'react-native-render-html';
-import CoffeeSupportCard from '@/components/CoffeeSupportCard';
+import { WebView } from 'react-native-webview';
+import { AudioPlayerBar } from '@/components/AudioPlayerBar';
+import { ReadingProgressBar } from '@/components/ReadingProgressBar';
+import * as Speech from 'expo-speech';
+import * as Audio from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 94 : 82;
@@ -102,12 +104,38 @@ const getTitleFontSize = (title: string) => {
   return 22;  // Minimalny rozmiar
 };
 
+// 1) mała pomoc do wykrycia "pogrubienia" na spanach
+const isBoldStyle = (style?: string) =>
+  !!style && /font-weight\s*:\s*(bold|6\d\d|7\d\d|8\d\d|9\d\d)/i.test(style);
+
 export default function ArticleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { theme } = useThemeStore();
+  const { theme, isDarkMode } = useThemeStore();
   const { isArticleSaved, saveArticle, removeArticle } = useArticlesStore();
   const insets = useSafeAreaInsets();
+
+  // Sprawdź uprawnienia audio na starcie
+  useEffect(() => {
+    const checkAudioPermissions = async () => {
+      try {
+        console.log('[TTS DEBUG] Checking audio permissions...');
+        console.log('[TTS DEBUG] Audio module loaded successfully');
+      } catch (error) {
+        console.error('[TTS DEBUG] Error checking audio permissions:', error);
+      }
+    };
+    
+    checkAudioPermissions();
+  }, []);
+
+  // Ensure Poppins is available for this screen (especially for RenderHtml)
+  const [fontsLoaded] = useFonts({
+    Poppins_Regular: require('../../assets/fonts/Poppins/Poppins_Regular.ttf'),
+    Poppins_Bold: require('../../assets/fonts/Poppins/Poppins_Bold.ttf'),
+    Poppins_SemiBold: require('../../assets/fonts/Poppins/Poppins_SemiBold.ttf'),
+    Poppins_Medium: require('../../assets/fonts/Poppins/Poppins_Medium.ttf'),
+  });
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,14 +150,162 @@ export default function ArticleScreen() {
   const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
   const [flickrUrl, setFlickrUrl] = useState<string | null>(null);
   const [allImages, setAllImages] = useState<MediaItem[]>([]);
+  const [cleanedContentHtml, setCleanedContentHtml] = useState<string>('');
+  const tts = useTTSStore();
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isLightboxVisible, setIsLightboxVisible] = useState(false);
   const [isLightboxReady, setIsLightboxReady] = useState(false);
+  
+  // Tooltip state dla ikony "czytaj na głos"
+  const [showTtsTooltip, setShowTtsTooltip] = useState(true); // Pokazuje się od razu
+  const tooltipOpacity = useSharedValue(1); // Zaczyna widoczny
+  const tooltipScale = useSharedValue(1); // Zaczyna w pełnym rozmiarze
+  
+  // Stan dla paska postępu czytania
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [showReadingProgress, setShowReadingProgress] = useState(false);
+
+  // Animowane style dla tooltip
+  const tooltipAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: tooltipOpacity.value,
+    transform: [{ scale: tooltipScale.value }],
+  }));
+
+  // Funkcje do obsługi tooltip
+  const showTooltip = useCallback(() => {
+    setShowTtsTooltip(true);
+    tooltipOpacity.value = withTiming(1, { duration: 200 });
+    tooltipScale.value = withSpring(1, { damping: 15, stiffness: 150 });
+  }, [tooltipOpacity, tooltipScale]);
+
+  const hideTooltip = useCallback(() => {
+    tooltipOpacity.value = withTiming(0, { duration: 200 });
+    tooltipScale.value = withTiming(0.8, { duration: 200 });
+    setTimeout(() => setShowTtsTooltip(false), 200);
+  }, [tooltipOpacity, tooltipScale]);
+
+  // Ukryj tooltip po 5 sekundach od wejścia do artykułu
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      hideTooltip();
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [hideTooltip]);
+
+  // Cleanup TTS only on unmount (avoid stopping on every state change)
+  useEffect(() => {
+    return () => {
+      try {
+        // ensure we stop any ongoing speech when leaving the screen
+        useTTSStore.getState().stop();
+      } catch {}
+    };
+  }, []);
+
+  const handleReadAloud = useCallback(() => {
+    console.log('[TTS DEBUG] handleReadAloud called');
+    console.log('[TTS DEBUG] TTS store state:', {
+      status: tts.status,
+      isVisible: tts.isVisible,
+      chunks: tts.chunks.length,
+      currentIndex: tts.currentIndex
+    });
+    
+    // Sprawdź czy Speech jest dostępny
+    if (typeof Speech === 'undefined' || !Speech.speak) {
+      console.error('[TTS DEBUG] Speech module not available');
+      Alert.alert('Błąd', 'Moduł syntezy mowy nie jest dostępny');
+      return;
+    }
+    
+    if (!article || !cleanedContentHtml) {
+      console.log('[TTS DEBUG] Missing article or content:', { 
+        hasArticle: !!article, 
+        hasContent: !!cleanedContentHtml,
+        contentLength: cleanedContentHtml?.length 
+      });
+      Alert.alert('Błąd', 'Brak treści do odczytania');
+      return;
+    }
+
+    // Debounce - prevent multiple rapid clicks
+    if (tts.status === 'loading' || tts.status === 'playing') {
+      console.log('[TTS DEBUG] TTS already active, ignoring click');
+      return;
+    }
+
+    console.log('[TTS DEBUG] article:', !!article);
+    console.log('[TTS DEBUG] cleanedContentHtml length:', cleanedContentHtml.length);
+
+    // Clean HTML properly for TTS
+    const plainText = cleanedContentHtml
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/https?:\/\/\S+/g, ' ')
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    console.log('[TTS DEBUG] Plain text length:', plainText.length);
+    console.log('[TTS DEBUG] Plain text preview:', plainText.substring(0, 200));
+
+    if (plainText.length < 50) {
+      console.log('[TTS DEBUG] Text too short for TTS');
+      Alert.alert('Błąd', 'Treść jest zbyt krótka do odczytania');
+      return;
+    }
+
+    // Split content into chunks (around 800 characters each)
+    const chunks = plainText
+      .split(/[.!?]+/)
+      .filter(chunk => chunk.trim().length > 10)
+      .map(chunk => chunk.trim())
+      .reduce((acc, chunk) => {
+        if (acc.length === 0) {
+          return [chunk];
+        }
+        const lastChunk = acc[acc.length - 1];
+        if (lastChunk.length + chunk.length < 800) {
+          acc[acc.length - 1] = lastChunk + '. ' + chunk;
+        } else {
+          acc.push(chunk);
+        }
+        return acc;
+      }, [] as string[]);
+
+    console.log('[TTS DEBUG] chunks count:', chunks.length);
+    console.log('[TTS DEBUG] first chunk:', chunks[0]?.substring(0, 200));
+    console.log('[TTS DEBUG] title:', article.title.rendered);
+
+    if (chunks.length === 0) {
+      console.log('[TTS DEBUG] No valid chunks created');
+      Alert.alert('Błąd', 'Nie można przetworzyć treści do odczytania');
+      return;
+    }
+
+    try {
+      console.log('[TTS DEBUG] Starting TTS with store...');
+      tts.start({
+        title: article.title.rendered,
+        chunks,
+        speakingRate: 1.0,
+        language: 'pl-PL',
+        useAlertsFallback: false,
+      });
+      console.log('[TTS DEBUG] TTS started successfully');
+    } catch (error) {
+      console.error('[TTS DEBUG] Error starting TTS:', error);
+      Alert.alert('Błąd', 'Nie udało się uruchomić czytania: ' + error);
+    }
+  }, [article, cleanedContentHtml, tts]);
 
   // Stabilne referencje dla lightboxa - zapobiegają przeładowaniu
   const lightboxImages = useMemo(() => 
     allImages.map(img => ({ 
-      uri: img.media_details?.sizes?.large?.source_url || img.source_url 
+      uri: img.media_details?.sizes?.large?.source_url || img.source_url,
+      caption: img.caption?.rendered || ''
     })), [allImages]
   );
 
@@ -140,7 +316,7 @@ export default function ArticleScreen() {
       const imagesToPreload = lightboxImages.slice(0, 3);
       imagesToPreload.forEach(img => {
         if (img.uri) {
-          RNImage.prefetch(img.uri).catch(() => {
+          ExpoImage.prefetch(img.uri).catch(() => {
             // Ignoruj błędy preloadowania
           });
         }
@@ -211,45 +387,57 @@ export default function ArticleScreen() {
 
         setArticle(articleData);
         setIsSaved(isArticleSaved(articleId));
+        // Clean content
+        const cleaned = cleanHtml(articleData.content.rendered || '', !!theme.isDarkMode || !!isDarkMode);
+        setCleanedContentHtml(cleaned);
         
         // NIE resetuj selectedImageIndex tutaj - pozwól na płynne przejścia
 
-        // Load gallery images in background (non-blocking)
-        const galleryIds = articleData.meta?.galeria ? processGalleryIds(articleData.meta.galeria) : [];
-        if (galleryIds.length > 0) {
-          fetchMediaByIds(galleryIds)
-            .then(galleryData => {
-              setGalleryImages(galleryData);
-              
-              // Featured image as MediaItem
-              let featuredMedia: MediaItem | null = null;
-              if (articleData.featured_media_url) {
-                featuredMedia = {
-                  id: 0,
-                  source_url: articleData.featured_media_url,
-                  media_details: { width: 800, height: 600 },
-                  caption: { rendered: '' },
-                  alt_text: '',
-                };
-              }
-              
-              // Combine featured + gallery
-              let allImgs: MediaItem[] = [];
-              if (featuredMedia) {
-                const isInGallery = galleryData.some(img => img.source_url === featuredMedia!.source_url);
-                allImgs = isInGallery ? galleryData : [featuredMedia, ...galleryData];
-              } else {
-                allImgs = galleryData;
-              }
-              
-              console.log('[LIGHTBOX DEBUG] Setting allImages with length:', allImgs.length);
-              // NIE resetuj selectedImageIndex - pozwól na płynne przejścia w lightboxie
-              setAllImages(allImgs);
-            })
-            .catch(err => {
-              console.warn('Failed to load gallery images:', err);
-            });
+          // Load gallery images in background (non-blocking)
+  const galleryIds = articleData.meta?.galeria ? processGalleryIds(articleData.meta.galeria) : [];
+  
+  // Featured image as MediaItem - zawsze dodaj zdjęcie główne
+  let featuredMedia: MediaItem | null = null;
+  if (articleData.featured_media_url) {
+    featuredMedia = {
+      id: 0,
+      source_url: articleData.featured_media_url,
+      media_details: { width: 800, height: 600 },
+      caption: { rendered: articleData.meta?.foto ? `fot. ${articleData.meta.foto}` : '' },
+      alt_text: '',
+    };
+  }
+  
+  if (galleryIds.length > 0) {
+    fetchMediaByIds(galleryIds)
+      .then(galleryData => {
+        setGalleryImages(galleryData);
+        
+        // Combine featured + gallery
+        let allImgs: MediaItem[] = [];
+        if (featuredMedia) {
+          const isInGallery = galleryData.some(img => img.source_url === featuredMedia!.source_url);
+          allImgs = isInGallery ? galleryData : [featuredMedia, ...galleryData];
+        } else {
+          allImgs = galleryData;
         }
+        
+        console.log('[LIGHTBOX DEBUG] Setting allImages with length:', allImgs.length);
+        setAllImages(allImgs);
+      })
+      .catch(err => {
+        console.warn('Failed to load gallery images:', err);
+        // Jeśli nie ma galerii, dodaj tylko zdjęcie główne
+        if (featuredMedia) {
+          setAllImages([featuredMedia]);
+        }
+      });
+  } else {
+    // Jeśli nie ma galerii, dodaj tylko zdjęcie główne
+    if (featuredMedia) {
+      setAllImages([featuredMedia]);
+    }
+  }
 
         // Extract YouTube URL if available
         if (articleData.meta?.youtube) {
@@ -294,28 +482,7 @@ export default function ArticleScreen() {
     return 'none';
   };
 
-  // Debug font loading - sprawdź czy czcionki są poprawnie załadowane
-  useEffect(() => {
-    console.log('Article Screen - Theme fonts:', {
-      regular: theme.fontFamily.regular,
-      bold: theme.fontFamily.bold,
-      medium: theme.fontFamily.medium,
-      semibold: theme.fontFamily.semibold,
-    });
-    
-    // Sprawdź czy czcionki są dostępne
-    if (Platform.OS === 'android') {
-      console.log('Android font check - Regular:', theme.fontFamily.regular);
-      console.log('Android font check - Bold:', theme.fontFamily.bold);
-    }
-    
-    // Sprawdź czy RenderHtml otrzymuje poprawne style
-    console.log('RenderHtml tagsStyles - strong:', {
-      fontFamily: theme.fontFamily.bold,
-      fontWeight: '700',
-      color: theme.colors.text,
-    });
-  }, [theme.fontFamily, theme.colors.text]);
+  // Debug font logs removed
 
   // Pinch gesture handler
   const pinchGestureHandler = useAnimatedGestureHandler({
@@ -440,16 +607,17 @@ export default function ArticleScreen() {
 
   const handleGoBack = () => router.back();
   const handleShare = async () => {
-    if (article) {
-      try {
-        await Share.share({
-          message: cleanTitle(article.title.rendered),
-          url: article.link,
-          title: cleanTitle(article.title.rendered),
-        });
-      } catch {}
+    if (!article) return;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const shareTitle = cleanTitle(article.title.rendered);
+      const shareUrl = article.link;
+      await shareArticle(shareTitle, shareUrl);
+    } catch (error) {
+      console.warn('Share failed:', error);
     }
   };
+
   const handleToggleSave = () => {
     if (!article) return;
     if (isSaved) {
@@ -471,6 +639,30 @@ export default function ArticleScreen() {
     );
   };
 
+  // Nowa funkcja dla animowanej sekcji wsparcia - uproszczona bez problematycznych animacji
+  const [coffeePressed, setCoffeePressed] = useState(false);
+  
+  const handleCoffeePress = () => {
+    // Prosta animacja stanu
+    setCoffeePressed(true);
+    setTimeout(() => setCoffeePressed(false), 300);
+    
+    // Haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Pokazuj alert z opóźnieniem dla lepszego UX
+    setTimeout(() => {
+      Alert.alert(
+        '☕ Postaw nam kawę!',
+        'Wesprzyj naszą pracę i pomóż nam tworzyć jeszcze lepsze treści dla Kaszub. Każda kawa to motywacja do dalszej pracy!',
+        [
+          { text: 'Później', style: 'cancel' },
+          { text: 'Wesprzyj', style: 'default' }
+        ]
+      );
+    }, 200);
+  };
+
   // Function to navigate between images in the modal - zoptymalizowana
   const navigateImage = (direction: 'prev' | 'next') => {
     if (selectedImageIndex === null || !allImages.length) return;
@@ -482,7 +674,7 @@ export default function ArticleScreen() {
       const prevIndex = selectedImageIndex - 2;
       if (prevIndex >= 0 && allImages[prevIndex]) {
         const prevImageUrl = allImages[prevIndex].media_details?.sizes?.large?.source_url || allImages[prevIndex].source_url;
-        RNImage.prefetch(prevImageUrl).catch(() => {});
+        ExpoImage.prefetch(prevImageUrl).catch(() => {});
       }
     } else if (direction === 'next' && selectedImageIndex < allImages.length - 1) {
       // Płynne przejście do następnego zdjęcia
@@ -491,7 +683,7 @@ export default function ArticleScreen() {
       const nextIndex = selectedImageIndex + 2;
       if (nextIndex < allImages.length && allImages[nextIndex]) {
         const nextImageUrl = allImages[nextIndex].media_details?.sizes?.large?.source_url || allImages[nextIndex].source_url;
-        RNImage.prefetch(nextImageUrl).catch(() => {});
+        ExpoImage.prefetch(nextImageUrl).catch(() => {});
       }
     }
   };
@@ -595,8 +787,21 @@ export default function ArticleScreen() {
       setShowHomeHint(false);
     }
     
-    // Oblicz overflow scroll
+    // Oblicz postęp czytania
     const maxScroll = contentHeight - scrollViewHeight;
+    const scrollableHeight = Math.max(0, maxScroll);
+    const currentProgress = scrollableHeight > 0 ? Math.min(100, (offsetY / scrollableHeight) * 100) : 0;
+    
+    setReadingProgress(currentProgress);
+    
+    // Pokaż pasek postępu po przewinięciu 10% treści
+    if (currentProgress > 10 && !showReadingProgress) {
+      setShowReadingProgress(true);
+    } else if (currentProgress <= 10 && showReadingProgress) {
+      setShowReadingProgress(false);
+    }
+    
+    // Oblicz overflow scroll
     const overflow = Math.max(0, offsetY - maxScroll);
     
     if (overflow > 0 && !isNavigatingHome.value) {
@@ -635,11 +840,10 @@ export default function ArticleScreen() {
     setScrollContentHeight(event.nativeEvent.layout.height);
   };
 
-  // Render gallery item
-  const renderGalleryItem = ({ item, index }: { item: MediaItem; index: number }) => {
-    // Calculate correct index for allImages array
-    // Since we're showing allImages.slice(1), the actual index is index + 1
-    const actualIndex = index + 1;
+  // Render gallery item - zoptymalizowane z memo
+  const renderGalleryItem = useCallback(({ item, index }: { item: MediaItem; index: number }) => {
+    const hasFeatured = !!article?.featured_media_url;
+    const actualIndex = (hasFeatured ? 1 : 0) + index;
     
     return (
       <TouchableOpacity
@@ -649,8 +853,11 @@ export default function ArticleScreen() {
           openImageModal(actualIndex);
         }}
         activeOpacity={0.9}
+        accessible={true}
+        accessibilityLabel={`Zdjęcie ${index + 1} z galerii`}
+        accessibilityHint="Kliknij aby powiększyć zdjęcie"
       >
-        <Image
+        <ExpoImage
           source={{ uri: item.media_details?.sizes?.medium?.source_url || item.source_url }}
           style={styles.galleryItemImage}
           contentFit="cover"
@@ -660,21 +867,26 @@ export default function ArticleScreen() {
         />
       </TouchableOpacity>
     );
-  };
+  }, [article?.featured_media_url, openImageModal]);
 
-  // Render related article item
-  const renderRelatedArticle = ({ item }: { item: Article }) => (
+  // Render related article item - zoptymalizowane z memo
+  const renderRelatedArticle = useCallback(({ item }: { item: Article }) => (
     <TouchableOpacity
       style={[styles.relatedArticleItem, { backgroundColor: theme.colors.card }]}
       onPress={() => router.push(`/article/${item.id}`)}
       activeOpacity={0.7}
+      accessible={true}
+      accessibilityLabel={`Powiązany artykuł: ${truncateRelatedTitle(item.title.rendered)}`}
+      accessibilityHint="Otwiera powiązany artykuł"
     >
       {item.featured_media_url && (
         <View style={styles.relatedArticleImageContainer}>
-          <Image
+          <ExpoImage
             source={{ uri: item.featured_media_url }}
             style={styles.relatedArticleImage}
             contentFit="cover"
+            priority="normal"
+            cachePolicy="memory-disk"
           />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.3)']}
@@ -694,7 +906,16 @@ export default function ArticleScreen() {
         </View>
       </View>
     </TouchableOpacity>
-  );
+  ), [theme.colors, theme.fontFamily, router]);
+
+  // Wait for fonts to load
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <LoadingIndicator />
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -714,6 +935,8 @@ export default function ArticleScreen() {
     );
   }
 
+
+
   return (
     <View style={[styles.rootContainer, { backgroundColor: theme.colors.background }]}>
       {/* StatusBar usunięty - dziedziczony z głównego _layout.tsx */}
@@ -726,7 +949,13 @@ export default function ArticleScreen() {
           colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0)']}
           style={styles.headerGradient}
         />
-        <TouchableOpacity style={styles.headerButton} onPress={handleGoBack}>
+        <TouchableOpacity 
+          style={styles.headerButton} 
+          onPress={handleGoBack}
+          accessible={true}
+          accessibilityLabel="Wróć do poprzedniej strony"
+          accessibilityHint="Nawiguje do poprzedniej strony"
+        >
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         
@@ -736,17 +965,51 @@ export default function ArticleScreen() {
         </View>
         
         <View style={styles.headerRightButtons}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleToggleSave}>
+          <TouchableOpacity 
+            style={styles.headerButton} 
+            onPress={handleToggleSave}
+            accessible={true}
+            accessibilityLabel={isSaved ? "Usuń z zapisanych" : "Zapisz artykuł"}
+            accessibilityHint="Zapisuje lub usuwa artykuł z listy zapisanych"
+          >
             <Bookmark 
               size={24} 
               color="#FFFFFF" 
               fill={isSaved ? "#FFFFFF" : "transparent"} 
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
+          <TouchableOpacity 
+            style={styles.headerButton} 
+            onPress={handleReadAloud}
+            accessible={true}
+            accessibilityLabel="Czytaj artykuł na głos"
+            accessibilityHint="Uruchamia czytanie całego artykułu przez syntezator mowy"
+            disabled={tts.status === 'loading' || tts.status === 'playing'}
+          >
+            <Volume2 
+              size={24} 
+              color={tts.status === 'loading' || tts.status === 'playing' ? "#CCCCCC" : "#FFFFFF"} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.headerButton} 
+            onPress={handleShare}
+            accessible={true}
+            accessibilityLabel="Udostępnij artykuł z obrazem"
+            accessibilityHint="Otwiera menu udostępniania artykułu z obrazem"
+          >
             <Share2 size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+        
+        {/* Tooltip dla ikony "czytaj na głos" */}
+        {showTtsTooltip && (
+          <Animated.View style={[styles.ttsTooltip, tooltipAnimatedStyle]}>
+            <Text style={styles.ttsTooltipText}>Po co czytać? Lepiej posłuchaj!</Text>
+            {/* Ogonek dymka */}
+            <View style={styles.tooltipArrow} />
+          </Animated.View>
+        )}
       </View>
 
       {/* WARSTWA 2: KONTENER TREŚCI (ANIMOWANY) */}
@@ -766,8 +1029,11 @@ export default function ArticleScreen() {
             style={styles.imageContainer}
             onPress={() => openImageModal(0)}
             activeOpacity={0.95}
+            accessible={true}
+            accessibilityLabel="Zdjęcie główne artykułu"
+            accessibilityHint="Kliknij aby powiększyć zdjęcie"
           >
-            <Image
+            <ExpoImage
               source={{ uri: String(article.featured_media_url || article.featured_media) }}
               style={styles.featuredImage}
               resizeMode="cover"
@@ -776,10 +1042,19 @@ export default function ArticleScreen() {
               colors={['transparent', 'rgba(0,0,0,0.7)']}
               style={styles.imageGradient}
             />
+            
+            {/* Photo credit overlay - nowy */}
+            {article?.meta?.foto && (
+              <View style={styles.photoCreditOverlay}>
+                <Text style={styles.photoCreditText}>
+                  fot. {article.meta.foto}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Content container with improved curved transition */}
-          <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]} onLayout={handleContentLayout}> 
+            <View style={[styles.contentContainer, { backgroundColor: theme.colors.card }]} onLayout={handleContentLayout}> 
             {/* Tytuł artykułu - przeniesiony nad metadata */}
             <Text
               style={[
@@ -822,361 +1097,97 @@ export default function ArticleScreen() {
             </View>
             
 
-            
-            <RenderHtml
-              contentWidth={width - 40}
-              source={{ html: cleanHtml(article.content.rendered, theme.isDarkMode) }}
-              onHTMLLoaded={(html) => {
-                console.log('[RENDER_HTML_DEBUG] HTML loaded successfully');
-                console.log('[RENDER_HTML_DEBUG] Content length:', html.length);
-                // Sprawdź czy są tagi strong/b w HTML
-                const hasStrongTags = html.includes('<strong>') || html.includes('<b>');
-                console.log('[RENDER_HTML_DEBUG] Has strong/b tags:', hasStrongTags);
-              }}
 
+            
+            {/* Video player nad treścią */}
+            {youtubeUrl && (
+              <VideoPlayer url={youtubeUrl} />
+            )}
+
+            <RenderHtml
+              source={{ html: cleanedContentHtml }}
+              contentWidth={width}
               baseStyle={{
                 color: theme.colors.text,
-                fontSize: 15,
-                lineHeight: 24,
+                fontSize: 15, // Zmniejszone z 16 na 15
+                lineHeight: 22, // Zmniejszone z 24 na 22
                 textAlign: 'left',
-                fontFamily: theme.fontFamily.regular,
-                // Usunięto fontWeight z baseStyle, aby nie nadpisywało tagów
+                fontFamily: 'Poppins_Regular',
               }}
-              systemFonts={[
-                theme.fontFamily.regular,
-                theme.fontFamily.medium,
-                theme.fontFamily.semibold,
-                theme.fontFamily.bold,
-                theme.fontFamily.light,
-                theme.fontFamily.extralight,
-                theme.fontFamily.thin,
-                theme.fontFamily.extrabold,
-                theme.fontFamily.black,
-                'Poppins_Regular',
-                'Poppins_Medium',
-                'Poppins_SemiBold',
-                'Poppins_Bold',
-                'Poppins_Light',
-                'Poppins_ExtraLight',
-                'Poppins_Thin',
-                'Poppins_ExtraBold',
-                'Poppins_Black',
-              ]}
-              enableExperimentalBRCollapsing={true}
-              enableExperimentalGhostLinesPrevention={true}
-              enableUserAgentStyles={true}
-              defaultTextProps={{
-                style: {
-                  fontFamily: theme.fontFamily.regular,
-                  color: theme.colors.text,
-                  // Usunięto fontWeight, aby nie nadpisywało tagów
-                }
+              systemFonts={['Poppins_Regular', 'Poppins_Bold', 'Poppins_SemiBold', 'Poppins_Medium', 'sans-serif', 'System']}
+              tagsStyles={getHtmlViewStyles(theme)}
+              renderers={{
+                iframe: ({ tnode, ...props }: { tnode: any; [key: string]: any }) => {
+                  const { src, width, height } = tnode.attributes;
+                  return (
+                    <View style={styles.iframeContainer}>
+                      <WebView
+                        source={{ uri: src }}
+                        style={{
+                          width: '100%',
+                          height: 200,
+                          borderRadius: 8,
+                        }}
+                        allowsFullscreenVideo={true}
+                        mediaPlaybackRequiresUserAction={false}
+                        {...props}
+                      />
+                    </View>
+                  );
+                },
               }}
-
-
-
-              tagsStyles={{
-                p: {
-                  color: theme.colors.text,
-                  fontSize: 15, // Zmniejszone dla lepszej czytelności
-                  lineHeight: 24, // Zmniejszone proporcjonalnie
-                  fontWeight: '400',
-                  textAlign: 'left',
-                  fontFamily: theme.fontFamily.regular,
-                  marginBottom: 16,
-                },
-                h1: {
-                  color: theme.colors.text,
-                  fontSize: 32,
-                  fontWeight: '700',
-                  marginBottom: 20,
-                  marginTop: 32,
-                  lineHeight: 40,
-                  fontFamily: theme.fontFamily.bold,
-                  textAlign: 'left',
-                  includeFontPadding: false,
-                },
-                h2: {
-                  color: theme.colors.text,
-                  fontSize: 22,
-                  fontWeight: '600',
-                  marginBottom: 16,
-                  marginTop: 20,
-                  lineHeight: 28,
-                  fontFamily: theme.fontFamily.semibold,
-                  textAlign: 'left',
-                  includeFontPadding: false,
-                },
-                h3: {
-                  color: theme.colors.text,
-                  fontSize: 19,
-                  fontWeight: '600',
-                  marginBottom: 14,
-                  marginTop: 16,
-                  lineHeight: 26,
-                  fontFamily: theme.fontFamily.semibold,
-                  textAlign: 'left',
-                  includeFontPadding: false,
-                },
-                h4: {
-                  color: theme.colors.text,
-                  fontSize: 20,
-                  fontWeight: '700',
-                  marginBottom: 14,
-                  marginTop: 18,
-                  lineHeight: 28,
-                  fontFamily: theme.fontFamily.bold,
-                  textAlign: 'left',
-                  includeFontPadding: false,
-                },
-                h5: {
-                  color: theme.colors.text,
-                  fontSize: 18,
-                  fontWeight: '700',
-                  marginBottom: 12,
-                  marginTop: 16,
-                  lineHeight: 26,
-                  fontFamily: theme.fontFamily.bold,
-                  textAlign: 'left',
-                  includeFontPadding: false,
-                },
-                h6: {
-                  color: theme.colors.text,
-                  fontSize: 16,
-                  fontWeight: '700',
-                  marginBottom: 12,
-                  marginTop: 14,
-                  lineHeight: 24,
-                  fontFamily: theme.fontFamily.bold,
-                  textAlign: 'left',
-                  includeFontPadding: false,
-                },
-                strong: {
-                  fontFamily: theme.fontFamily.bold,
-                  fontWeight: '700',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                  fontSize: 15,
-                  lineHeight: 24,
-                },
-                b: {
-                  fontFamily: theme.fontFamily.bold,
-                  fontWeight: '700',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                  fontSize: 15,
-                  lineHeight: 24,
-                },
-                em: {
-                  fontStyle: 'italic',
-                  fontFamily: theme.fontFamily.regular,
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                i: {
-                  fontStyle: 'italic',
-                  fontFamily: theme.fontFamily.regular,
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                u: {
-                  textDecorationLine: 'underline',
-                },
-                s: {
-                  textDecorationLine: 'line-through',
-                },
+              renderersProps={{
                 a: {
-                  color: theme.colors.primary,
-                  textDecorationLine: 'underline',
-                  fontFamily: theme.fontFamily.medium,
-                },
-                blockquote: {
-                  borderLeftWidth: 4,
-                  borderLeftColor: theme.colors.primary,
-                  paddingLeft: 16,
-                  marginBottom: 16,
-                  fontStyle: 'italic',
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.regular,
-                  fontSize: 15,
-                  lineHeight: 24,
-                  textAlign: 'left',
-                },
-                ul: {
-                  marginBottom: 16,
-                  paddingLeft: 24,
-                },
-                ol: {
-                  marginBottom: 16,
-                  paddingLeft: 24,
-                },
-                li: {
-                  color: theme.colors.text,
-                  fontSize: 15, // Zmniejszone dla lepszej czytelności
-                  lineHeight: 24, // Zmniejszone proporcjonalnie
-                  fontFamily: theme.fontFamily.regular,
-                  marginBottom: 8,
-                  textAlign: 'left',
-                },
-                code: {
-                  backgroundColor: theme.colors.card,
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: 6,
-                  fontFamily: 'monospace',
-                  fontSize: 16,
-                },
-                pre: {
-                  backgroundColor: theme.colors.card,
-                  padding: 16,
-                  borderRadius: 12,
-                  marginBottom: 16,
-                  fontFamily: 'monospace',
-                  fontSize: 16,
-                },
-                hr: {
-                  borderBottomWidth: 1,
-                  borderBottomColor: theme.colors.border,
-                  marginVertical: 16,
-                },
-                // Dodatkowe style dla span z różnymi font-weight
-                span: {
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.regular,
-                  includeFontPadding: false,
-                },
-                // Dodatkowe wsparcie dla różnych formatów pogrubienia
-                'span[style*="font-weight: bold"]': {
-                  fontFamily: theme.fontFamily.bold,
-                  fontWeight: '700',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                'span[style*="font-weight: 700"]': {
-                  fontFamily: theme.fontFamily.bold,
-                  fontWeight: '700',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                'span[style*="font-weight: 600"]': {
-                  fontFamily: theme.fontFamily.semibold,
-                  fontWeight: '600',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                'span[style*="font-weight: 800"]': {
-                  fontFamily: theme.fontFamily.extrabold,
-                  fontWeight: '800',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                'span[style*="font-weight: 900"]': {
-                  fontFamily: theme.fontFamily.black,
-                  fontWeight: '900',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                // Dodatkowe selektory dla różnych formatów
-                '[style*="font-weight: bold"]': {
-                  fontFamily: theme.fontFamily.bold,
-                  fontWeight: '700',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                '[style*="font-weight: 700"]': {
-                  fontFamily: theme.fontFamily.bold,
-                  fontWeight: '700',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                '[style*="font-weight: 600"]': {
-                  fontFamily: theme.fontFamily.semibold,
-                  fontWeight: '600',
-                  color: theme.colors.text,
-                  includeFontPadding: false,
-                },
-                table: {
-                  marginBottom: 24,
-                  marginTop: 24,
-                  width: '100%',
-                  borderWidth: 2,
-                  borderColor: theme.colors.border,
-                  borderRadius: 12,
-                  overflow: 'hidden',
-                  backgroundColor: theme.colors.card,
-                  elevation: 2,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-                thead: {
-                  backgroundColor: theme.colors.primary,
-                },
-                tbody: {
-                  backgroundColor: theme.colors.card,
-                },
-                th: {
-                  padding: 16,
-                  textAlign: 'left',
-                  backgroundColor: theme.colors.primary,
-                  color: '#FFFFFF',
-                  fontWeight: '700',
-                  fontFamily: theme.fontFamily.bold,
-                  fontSize: 15,
-                  borderRightWidth: 1,
-                  borderRightColor: 'rgba(255,255,255,0.2)',
-                  borderBottomWidth: 0,
-                },
-                td: {
-                  padding: 14,
-                  textAlign: 'left',
-                  fontFamily: theme.fontFamily.regular,
-                  fontSize: 15,
-                  color: theme.colors.text,
-                  borderRightWidth: 1,
-                  borderRightColor: theme.colors.border,
-                  borderBottomWidth: 1,
-                  borderBottomColor: theme.colors.border,
-                  lineHeight: 22,
-                },
-                tr: {
-                  backgroundColor: theme.colors.card,
-                },
-                img: {
-                  width: '100%',
-                  height: 240,
-                  borderRadius: 16,
-                  marginBottom: 16,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  onPress: (_event: any, href: string) => {
+                    if (href) {
+                      Linking.openURL(href).catch(() => {});
+                    }
+                  },
                 },
               }}
             />
+
+            {/* Źródło i informacje o zdjęciu - przeniesione pod treść artykułu */}
+            {(article?.meta?.zrudlo || article?.meta?.zrodlo || article?.meta?.foto) && (
+              <View style={styles.sourceContainer}>
+                {article?.meta?.foto && (
+                  <Text style={[styles.sourceText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+                    fot. {article.meta.foto}
+                  </Text>
+                )}
+                {(article?.meta?.zrudlo || article?.meta?.zrodlo) && (
+                  <Text style={[styles.sourceText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+                    źródło: {article.meta.zrudlo || article.meta.zrodlo}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
 
-          {/* YouTube Video */}
-          {youtubeUrl && (
-            <View style={styles.videoContainer}>
-                              <Text style={[styles.videoTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
-                  Wideo
-                </Text>
-              <VideoPlayer url={youtubeUrl} />
-            </View>
-          )}
+
 
           {/* Galeria - Przywrócona */}
-          {allImages.length > 1 && (
-            <View style={styles.galleryContainer}>
+          {galleryImages.length > 0 && (
+            <View style={[
+              styles.galleryContainer,
+              {
+                backgroundColor: theme.colors.card,
+                borderRadius: 16,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                elevation: 2,
+              }
+            ]}>
               <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
                 Galeria
               </Text>
               
               <FlatList
-                data={allImages.slice(1)}
+                data={galleryImages}
                 renderItem={renderGalleryItem}
                 keyExtractor={(item) => item.id.toString()}
                 numColumns={2}
@@ -1198,24 +1209,25 @@ export default function ArticleScreen() {
             </View>
           )}
 
-          {/* Źródło i informacje o zdjęciu */}
-          {(article?.meta?.zrudlo || article?.meta?.zrodlo || article?.meta?.foto) && (
-            <View style={styles.sourceContainer}>
-              {article?.meta?.foto && (
-                <Text style={[styles.sourceText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
-                  fot. {article.meta.foto}
-                </Text>
-              )}
-              {(article?.meta?.zrudlo || article?.meta?.zrodlo) && (
-                <Text style={[styles.sourceText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
-                  źródło: {article.meta.zrudlo || article.meta.zrodlo}
-                </Text>
-              )}
-            </View>
-          )}
+          {/* Mini-player usunięty z wnętrza ScrollView */}
 
-          {/* Sekcja wsparcia - Postaw nam kawę */}
-          <CoffeeSupportCard onPress={handleCoffeeSupport} />
+          {/* Baner wsparcia – pełna grafika klikalna */}
+          <View style={styles.supportHeroImageWrapper}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://buycoffee.to/kaszuby24')}
+              activeOpacity={0.9}
+              accessible={true}
+              accessibilityRole="link"
+              accessibilityLabel="Przejdź do strony wsparcia"
+            >
+              <ExpoImage
+                source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2025/08/Bez-nazwy-1-03-scaled.png' }}
+                style={styles.supportHeroImage}
+                contentFit="cover"
+                priority="high"
+              />
+            </TouchableOpacity>
+          </View>
 
           {/* Sprawdź również - Sekcja z powiązanymi artykułami - Ulepszona */}
           {relatedArticles.length > 0 && (
@@ -1255,7 +1267,38 @@ export default function ArticleScreen() {
         </ScrollView>
       </Animated.View>
 
-      {/* Global TabBar */}
+      {/* Pasek postępu czytania - ukryty gdy player jest aktywny */}
+      {showReadingProgress && !tts.isVisible && (
+        <ReadingProgressBar
+          progress={readingProgress}
+          currentPosition={0}
+          totalHeight={0}
+        />
+      )}
+
+      {/* Mini-player TTS – POD TAB BAREM Z BIAŁYM TŁEM */}
+      {tts.isVisible && (
+        <View style={[styles.articleTtsPlayerContainer, { 
+          zIndex: 1, 
+          elevation: 1 
+        }]}> 
+          <AudioPlayerBar
+            isPlaying={tts.status === 'playing'}
+            isLoading={tts.status === 'loading'}
+            duration={Math.max(1, tts.totalSecEst)}
+            position={Math.min(tts.elapsedSec, tts.totalSecEst)}
+            title={tts.title}
+            label={tts.categoryLabel}
+            onPlayPause={() => {
+              if (tts.status === 'playing') tts.pause();
+              else if (tts.status === 'paused') tts.resume();
+            }}
+            onStop={() => tts.stop()}
+          />
+        </View>
+      )}
+
+      {/* Global TabBar – na końcu drzewa, ale z niższym zIndex niż player */}
       <GlobalTabBar activeTab="home" />
 
       {/* Zoptymalizowany Lightbox - bez przeładowań */}
@@ -1273,6 +1316,194 @@ export default function ArticleScreen() {
     </View>
   );
 }
+
+const getHtmlViewStyles = (theme: any) => ({
+  // Główny styl dla całej treści
+  body: {
+    fontFamily: 'Poppins_Regular' as any,
+    fontSize: 15 as any,
+    lineHeight: 22 as any,
+    color: theme.colors.text as any,
+    backgroundColor: 'transparent' as any,
+    textAlign: 'left' as any,
+  },
+  ttsButton: {
+    alignSelf: 'flex-start' as const,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+  ttsButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  // Paragrafy - mniejsze odstępy
+  p: {
+    fontFamily: 'Poppins_Regular' as any,
+    fontSize: 15 as any,
+    lineHeight: 22 as any,
+    color: theme.colors.text as any,
+    marginBottom: 8,
+    marginTop: 0,
+  },
+  // Nagłówki - mniejsze odstępy
+  h2: {
+    fontFamily: 'Poppins_SemiBold' as any,
+    fontSize: 19 as any,
+    lineHeight: 26 as any,
+    marginTop: 12,
+    marginBottom: 6,
+    color: theme.colors.text as any,
+  },
+  h3: {
+    fontFamily: 'Poppins_SemiBold' as any,
+    fontSize: 17 as any,
+    lineHeight: 24 as any,
+    marginTop: 10,
+    marginBottom: 5,
+    color: theme.colors.text as any,
+  },
+  h4: {
+    fontFamily: 'Poppins_SemiBold' as any,
+    fontSize: 16 as any,
+    lineHeight: 22 as any,
+    marginTop: 8,
+    marginBottom: 4,
+    color: theme.colors.text as any,
+  },
+  // Listy - mniejsze odstępy
+  ul: {
+    paddingLeft: 16,
+    marginBottom: 8,
+    marginTop: 0,
+  },
+  ol: {
+    paddingLeft: 16,
+    marginBottom: 8,
+    marginTop: 0,
+  },
+  li: {
+    fontFamily: 'Poppins_Regular' as any,
+    fontSize: 15 as any,
+    lineHeight: 22 as any,
+    color: theme.colors.text as any,
+    marginBottom: 4,
+  },
+  // Linki - kolor aplikacji
+  a: {
+    color: '#224A96' as any,
+    textDecorationLine: 'underline' as any,
+    fontFamily: 'Poppins_Regular' as any,
+  },
+  // Obrazy - mniejsze marginesy
+  img: {
+    borderRadius: 8,
+    marginVertical: 6,
+    maxWidth: '100%' as any,
+  },
+  figure: {
+    marginVertical: 6,
+  },
+  figcaption: {
+    color: theme.colors.textSecondary as any,
+    fontSize: 11 as any, // Zmniejszone z 12 na 11
+    textAlign: 'center' as any,
+    marginTop: 2,
+    fontFamily: 'Poppins_Regular' as any,
+  },
+  // Blockquote - kompaktowy
+  blockquote: {
+    marginVertical: 0,
+    borderLeftWidth: 3,
+    borderLeftColor: '#224A96' as any,
+    paddingLeft: 16,
+    paddingRight: 12,
+    paddingVertical: 12,
+    marginBottom: 12,
+    marginTop: 12,
+    backgroundColor: (theme.colors.card + '10') as any,
+    borderRadius: 6,
+  },
+  // Pogrubienia
+  strong: {
+    fontFamily: 'Poppins_Bold' as any,
+  },
+  b: {
+    fontFamily: 'Poppins_Bold' as any,
+  },
+  // Kursywy
+  em: {
+    fontStyle: 'italic' as any,
+    fontFamily: 'Poppins_Regular' as any,
+  },
+  i: {
+    fontStyle: 'italic' as any,
+    fontFamily: 'Poppins_Regular' as any,
+  },
+  // Tabele
+  table: {
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#ddd' as any,
+    borderRadius: 6,
+    overflow: 'hidden' as any, // Dodane dla lepszego wyglądu
+  },
+  th: {
+    fontFamily: 'Poppins_SemiBold' as any,
+    fontSize: 13 as any, // Zmniejszone z 14 na 13
+    padding: 8,
+    backgroundColor: (theme.colors.card + '10') as any,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border as any,
+    textAlign: 'left' as any,
+  },
+  td: {
+    fontFamily: 'Poppins_Regular' as any,
+    fontSize: 13 as any, // Zmniejszone z 14 na 13
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border as any,
+    textAlign: 'left' as any,
+    color: theme.colors.text as any,
+  },
+  // Iframe - dla YouTube, map, etc.
+  iframe: {
+    width: '100%' as any,
+    height: 200 as any, // Domyślna wysokość
+    borderRadius: 8,
+    marginVertical: 8,
+    backgroundColor: (theme.colors.card + '10') as any,
+  },
+  // Div - dla kontenerów
+  div: {
+    marginVertical: 0,
+    color: theme.colors.text as any,
+  },
+  // Span - dla inline elementów
+  span: {
+    fontFamily: 'Poppins_Regular' as any,
+    color: theme.colors.text as any,
+  },
+  // Code - dla kodu
+  code: {
+    fontFamily: 'monospace' as any,
+    fontSize: 13 as any,
+    backgroundColor: (theme.colors.card + '10') as any,
+    padding: 4,
+    borderRadius: 4,
+  },
+  // Pre - dla bloków kodu
+  pre: {
+    fontFamily: 'monospace' as any,
+    fontSize: 13 as any,
+    backgroundColor: (theme.colors.card + '10') as any,
+    padding: 12,
+    borderRadius: 6,
+    marginVertical: 8,
+    overflow: 'scroll' as any,
+  },
+});
 
 const styles = StyleSheet.create({
   rootContainer: {
@@ -1373,6 +1604,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     marginLeft: 8,
+    marginTop: 35, // Dodany margines od góry
   },
   title: { 
     fontSize: 32,
@@ -1389,18 +1621,27 @@ const styles = StyleSheet.create({
  
   photoCreditOverlay: { 
     position: 'absolute', 
-    bottom: 20, // Odsunięte od dołu, by nie nachodzić na tytuł
+    bottom: 60, // Przywrócone do poprzedniej pozycji
     right: 20, 
-    backgroundColor: 'rgba(0,0,0,0.7)', 
-    paddingHorizontal: 8, 
-    paddingVertical: 4, 
-    borderRadius: 12 
+    backgroundColor: 'rgba(254, 204, 0, 0.9)', // Żółte tło zamiast czarnego
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)', // Jaśniejsza ramka
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 }, // Lżejszy cień
+    shadowOpacity: 0.2, // Mniejsza nieprzezroczystość cienia
+    shadowRadius: 3, // Mniejszy radius cienia
+    elevation: 2, // Mniejsza wysokość na Android
+    zIndex: 10, // Dodany z-index żeby był nad gradientem
   },
   photoCreditText: { 
-    color: '#FFFFFF', 
+    color: '#1a1a1a', // Ciemny tekst na żółtym tle
     fontSize: 13,
-    fontFamily: 'Poppins_Regular',
-    fontWeight: '500',
+    fontFamily: 'Poppins_Medium',
+    fontWeight: '600', // Nieco grubszy font dla lepszej czytelności
+    letterSpacing: 0.2,
   },
   relatedContainer: { 
     marginTop: 32, 
@@ -1526,16 +1767,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
   },
-  videoContainer: {
-    marginTop: 40,
-    marginBottom: 40,
-    paddingHorizontal: 20,
-  },
-  videoTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
+  // Uwaga: style wideo zostały zdefiniowane niżej jako część globalnych stylów
   morePhotosButton: {
     marginTop: 16,
     alignSelf: 'center',
@@ -1611,11 +1843,15 @@ const styles = StyleSheet.create({
     height: 120,
   },
   sourceContainer: {
-    marginTop: 12,
-    paddingHorizontal: 20,
+    marginTop: 16, // Dodane 16px odstępu od treści
+    marginBottom: 8, // Dodane 8px odstępu do galerii
+    paddingHorizontal: 0,
   },
   sourceText: {
-    fontSize: 13,
+    fontSize: 13, // Zmniejszone z 16 na 13
+    fontStyle: 'italic',
+    lineHeight: 18, // Dodane line-height
+    marginBottom: 4, // Dodane odstępy między elementami
   },
   
   // Nowe style dla sekcji powiązanych artykułów
@@ -1721,6 +1957,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontWeight: '500',
   },
+
   categoryText: {
     fontSize: 12, // Mniejszy font
     fontWeight: '600',
@@ -1769,7 +2006,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16, // Zmniejszone z 30 na 16
+    marginBottom: 24, // Zwiększone z 8 na 24
+    marginTop: 8, // Dodane 8px od góry
     paddingHorizontal: 0,
   },
   metadataLeft: {
@@ -1863,5 +2101,400 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     fontFamily: 'Poppins_Medium',
+  },
+  blockquoteContainer: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#224A96',
+    paddingLeft: 20,
+    paddingRight: 16,
+    paddingVertical: 16,
+    marginBottom: 20,
+    marginTop: 20,
+    backgroundColor: 'rgba(34, 74, 150, 0.04)',
+    borderRadius: 8,
+  },
+  footnotesContainer: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  footnotesTitle: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  // Nowe style dla sekcji wsparcia - ulepszone
+  supportSection: {
+    marginTop: 32,
+    marginBottom: 32,
+    marginHorizontal: 20,
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(254, 204, 0, 0.2)',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  supportGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 24,
+  },
+  supportContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 1,
+  },
+  supportLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: 16,
+  },
+  supportIconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 80,
+    height: 80,
+    marginTop: -10,
+  },
+  coffeeIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    overflow: 'visible',
+    backgroundColor: 'rgba(254, 204, 0, 0.1)',
+    position: 'relative',
+  },
+  coffeeImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    position: 'relative',
+    zIndex: 2,
+  },
+  coffeeGlow: {
+    position: 'absolute',
+    top: -15,
+    left: -15,
+    right: -15,
+    bottom: -15,
+    borderRadius: 50,
+    backgroundColor: 'rgba(254, 204, 0, 0.4)',
+    zIndex: 1,
+  },
+  coffeeSteam: {
+    position: 'absolute',
+    top: -8,
+    left: 20,
+    flexDirection: 'row',
+    gap: 2,
+  },
+  steamLine: {
+    width: 2,
+    height: 8,
+    borderRadius: 1,
+    opacity: 0.6,
+  },
+  supportTextContainer: {
+    flex: 1,
+    marginRight: 16,
+    paddingTop: 8,
+  },
+  supportTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 8,
+    lineHeight: 28,
+    letterSpacing: -0.3,
+  },
+  supportSubtitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    opacity: 0.7,
+    letterSpacing: -0.1,
+    marginBottom: 4,
+  },
+  supportNoAds: {
+    fontSize: 13,
+    lineHeight: 18,
+    opacity: 0.6,
+    marginTop: 8,
+    letterSpacing: -0.1,
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  supportButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  // Uwaga: style galerii i źródeł istnieją wyżej w obiekcie; duplikaty usunięte
+  cupsWrapper: {
+    position: 'absolute',
+    top: -50, // Wystaje ponad kartę
+    left: -50,
+    right: -50,
+    bottom: -50,
+    zIndex: -1, // Umieść za kartą
+  },
+  cupsImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20, // Zaokrąglenie kartki
+  },
+  supportText: {
+    flex: 1,
+    marginRight: 16,
+  },
+  supportBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  badge: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  badgePrimary: {
+    backgroundColor: '#224996',
+    borderColor: '#224996',
+  },
+  badgeNeutral: {
+    backgroundColor: '#E0E0E0',
+    borderColor: '#E0E0E0',
+  },
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Nowe style dla sekcji wsparcia - nowy layout
+  supportCard: {
+    marginTop: 32,
+    marginBottom: 32,
+    marginHorizontal: 20,
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(254, 204, 0, 0.2)',
+    position: 'relative',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  supportBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  supportBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  supportContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flex: 1,
+  },
+  supportLeftCol: {
+    flex: 1,
+  },
+  supportHeadline: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 8,
+    lineHeight: 28,
+    letterSpacing: -0.3,
+  },
+  supportSubline: {
+    fontSize: 16,
+    lineHeight: 24,
+    opacity: 0.7,
+    letterSpacing: -0.1,
+    marginBottom: 4,
+  },
+  supportActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  supportCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  supportCTAtext: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  supportCTASecondary: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  supportCTASecondaryText: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  supportCups: {
+    width: 120,
+    height: 120,
+    borderRadius: 20,
+    position: 'relative',
+    zIndex: 1,
+  },
+  supportHeroImageWrapper: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 32,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  supportHeroImage: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 768 / 865, // proporcje dostarczonej grafiki
+  },
+  // Style dla dodatkowego przycisku share
+  articleShareContainer: {
+    marginTop: 24,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  articleShareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    gap: 8,
+  },
+  articleShareText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  iframeContainer: {
+    marginVertical: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+  },
+
+  articleTtsPlayerContainer: {
+    position: 'absolute',
+    bottom: 100, // Pozycja nad tab barem - podniesione o 10px
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff', // Białe tło
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    zIndex: 10, // Niski z-index żeby tab bar mógł go przykryć
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+  },
+  ttsTooltip: {
+    position: 'absolute',
+    top: 110, // Pozycja jeszcze niżej (było 90)
+    right: 80, // Przesunięte bardziej w lewo, żeby ogonek wskazywał na ikonę głośnika
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    zIndex: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    minWidth: 140, // Minimalna szerokość dla lepszego wyglądu
+  },
+  ttsTooltipText: {
+    color: '#333333',
+    fontSize: 12,
+    fontFamily: 'Poppins_Medium',
+    textAlign: 'center',
+  },
+  tooltipArrow: {
+    position: 'absolute',
+    top: -6,
+    right: 10, // Wycentruj względem tooltip - przesunięte w lewo
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#FFFFFF',
+    // Dodaj cień dla ogonka
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

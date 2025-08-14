@@ -70,12 +70,17 @@ class Kaszuby24_Expo_Push {
         $subtitle = isset($options['subtitle']) ? $options['subtitle'] : '';
         $category_id = isset($options['category_id']) ? $options['category_id'] : null;
         $scheduled_time = isset($options['scheduled_time']) ? $options['scheduled_time'] : null;
+		
+		// Normalize textual fields to handle quotes, entities and whitespace
+		$normalized_title = $this->normalize_text($title);
+		$normalized_body = $this->normalize_text($body);
+		$normalized_subtitle = $this->normalize_text($subtitle);
         
         foreach ($tokens as $token_data) {
             $message = array(
                 'to' => $token_data->push_token,
-                'title' => $title,
-                'body' => $body,
+				'title' => $normalized_title,
+				'body' => $normalized_body,
                 'sound' => 'default',
                 'badge' => 1,
                 'priority' => $priority,
@@ -84,8 +89,8 @@ class Kaszuby24_Expo_Push {
             );
             
             // Add subtitle if provided
-            if (!empty($subtitle)) {
-                $message['subtitle'] = $subtitle;
+			if (!empty($normalized_subtitle)) {
+				$message['subtitle'] = $normalized_subtitle;
             }
             
             // Add image if provided (with size optimization)
@@ -191,7 +196,7 @@ class Kaszuby24_Expo_Push {
     }
     
     private function call_expo_api($messages) {
-        $args = array(
+		$args = array(
             'method' => 'POST',
             'headers' => array(
                 'Content-Type' => 'application/json',
@@ -199,7 +204,7 @@ class Kaszuby24_Expo_Push {
                 'Accept-Encoding' => 'gzip, deflate',
                 'User-Agent' => 'Kaszuby24-WordPress-Plugin/1.0'
             ),
-            'body' => json_encode($messages),
+			'body' => wp_json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'timeout' => 30,
             'sslverify' => true
         );
@@ -236,7 +241,8 @@ class Kaszuby24_Expo_Push {
                     $title,
                     $body,
                     'failed',
-                    'API call failed'
+                    'API call failed',
+                    null
                 );
                 $failed_count++;
             }
@@ -256,7 +262,8 @@ class Kaszuby24_Expo_Push {
                     $title,
                     $body,
                     'sent',
-                    $result
+                    $result,
+                    isset($result['id']) ? $result['id'] : null
                 );
                 $sent_count++;
                 
@@ -277,7 +284,8 @@ class Kaszuby24_Expo_Push {
                     $title,
                     $body,
                     'failed',
-                    $result
+                    $result,
+                    isset($result['id']) ? $result['id'] : null
                 );
                 $failed_count++;
                 
@@ -307,6 +315,37 @@ class Kaszuby24_Expo_Push {
         $token_data = (object) array('push_token' => $token, 'platform' => 'unknown');
         return $this->send_batch(array($token_data), $title, $body, $article_id, $image, $icon);
     }
+
+    /**
+     * Send a batch of notifications given a list of token strings and a generic notification payload
+     * This is a convenience wrapper used by events notifications module.
+     */
+    public function send_batch_notifications($token_strings, $notification_data) {
+        if (empty($token_strings)) {
+            return array('sent' => 0, 'failed' => 0, 'receipt_ids' => array());
+        }
+
+        // Normalize tokens into the expected object shape
+        $tokens = array_map(function($t) {
+            return (object) array('push_token' => $t, 'platform' => 'unknown');
+        }, $token_strings);
+
+        $title = isset($notification_data['title']) ? $notification_data['title'] : '';
+        $body = isset($notification_data['body']) ? $notification_data['body'] : '';
+        $image = isset($notification_data['image']) ? $notification_data['image'] : '';
+        $icon = isset($notification_data['icon']) ? $notification_data['icon'] : '';
+        $options = isset($notification_data['options']) ? $notification_data['options'] : array();
+
+        // Try to infer related content id (articleId) if present
+        $article_id = null;
+        if (isset($notification_data['article_id'])) {
+            $article_id = intval($notification_data['article_id']);
+        } elseif (isset($notification_data['data']) && isset($notification_data['data']['articleId'])) {
+            $article_id = intval($notification_data['data']['articleId']);
+        }
+
+        return $this->send_notifications($tokens, $title, $body, $article_id, $image, $icon, $options);
+    }
     
     public function test_connection() {
         $test_message = array(
@@ -329,7 +368,7 @@ class Kaszuby24_Expo_Push {
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ),
-            'body' => json_encode(array('ids' => array($receipt_id))),
+			'body' => wp_json_encode(array('ids' => array($receipt_id)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'timeout' => 15
         );
         
@@ -350,6 +389,27 @@ class Kaszuby24_Expo_Push {
         if (empty($image_url)) {
             return $image_url;
         }
+
+	/**
+	 * Normalize text for push notifications.
+	 * - Decode HTML entities
+	 * - Strip tags
+	 * - Normalize whitespace
+	 * - Trim
+	 */
+	private function normalize_text($text) {
+		if (!is_string($text)) {
+			return $text;
+		}
+		// Decode common HTML entities without affecting quotes in a harmful way
+		$decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
+		// Remove HTML tags
+		$stripped = wp_strip_all_tags($decoded, true);
+		// Replace multiple whitespace (including newlines) with single spaces
+		$normalized = preg_replace('/\s+/u', ' ', $stripped);
+		// Trim
+		return trim($normalized);
+	}
         
         // If it's a WordPress attachment, get optimized size
         if (strpos($image_url, wp_get_upload_dir()['baseurl']) !== false) {
@@ -400,13 +460,13 @@ class Kaszuby24_Expo_Push {
         
         $receipt_url = 'https://exp.host/--/api/v2/push/getReceipts';
         
-        $args = array(
+		$args = array(
             'method' => 'POST',
             'headers' => array(
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ),
-            'body' => json_encode(array('ids' => $receipt_ids)),
+			'body' => wp_json_encode(array('ids' => $receipt_ids), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'timeout' => 30
         );
         

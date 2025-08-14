@@ -2,7 +2,7 @@ import React, { memo, useCallback, useRef, useMemo } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Bookmark, Clock } from 'lucide-react-native';
+import { Bookmark, Clock, Image as ImageIcon, Play } from 'lucide-react-native';
 import { Article } from '@/types/article';
 import { getRelativeTime } from '@/utils/dateFormatter';
 import { useArticlesStore } from '@/store/articlesStore';
@@ -96,6 +96,21 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     }
   }
   
+  // Sprawdzanie czy artykuł ma galerię lub wideo
+  const hasGallery = useMemo(() => {
+    return (
+      (article.meta?.galeria && article.meta.galeria.length > 0) ||
+      article.meta?.["czy-slider-galeria"] === "1" ||
+      article.meta?.["czy-fotogaleria"] === "1"
+    );
+  }, [article.meta]);
+  
+  const hasVideo = useMemo(() => {
+    return article.meta?.youtube && article.meta.youtube.trim() !== "";
+  }, [article.meta]);
+  
+  // Usuwam stary komponent MediaIcons - ikonki są teraz na zdjęciu
+  
   const renderImage = useMemo(() => {
     if (article.featured_media_url) {
       const imageProps = getProgressiveImageProps(
@@ -104,17 +119,35 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
       );
       
       return (
-        <Image
-          source={imageProps.source}
-          placeholder={imageProps.placeholder}
-          style={compact ? styles.compactImage : styles.image}
-          contentFit={imageProps.contentFit}
-          priority={imageProps.priority}
-          cachePolicy={imageProps.cachePolicy as "memory-disk" | "memory"}
-          transition={imageProps.transition}
-          allowDownscaling={imageProps.allowDownscaling}
-          recyclingKey={imageProps.recyclingKey}
-        />
+        <View style={compact ? styles.compactImageContainer : styles.imageContainer}>
+          <Image
+            source={imageProps.source}
+            placeholder={imageProps.placeholder}
+            style={compact ? styles.compactImage : styles.image}
+            contentFit={imageProps.contentFit}
+            priority={imageProps.priority}
+            cachePolicy={imageProps.cachePolicy as "memory-disk" | "memory"}
+            transition={imageProps.transition}
+            allowDownscaling={imageProps.allowDownscaling}
+            recyclingKey={imageProps.recyclingKey}
+          />
+          
+          {/* Ikonki galerii i wideo na zdjęciu */}
+          {(hasGallery || hasVideo) && (
+            <View style={styles.mediaIconsOverlay}>
+              {hasGallery && (
+                <View style={[styles.mediaIconOverlay, { backgroundColor: 'rgba(34, 73, 150, 0.8)' }]}>
+                  <ImageIcon size={12} color="#FFFFFF" />
+                </View>
+              )}
+              {hasVideo && (
+                <View style={[styles.mediaIconOverlay, { backgroundColor: 'rgba(255, 0, 0, 0.8)' }]}>
+                  <Play size={12} color="#FFFFFF" />
+                </View>
+              )}
+            </View>
+          )}
+        </View>
       );
     } else {
       return (
@@ -126,7 +159,7 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
         />
       );
     }
-  }, [article.featured_media_url, compact, theme.colors.subtle]);
+  }, [article.featured_media_url, compact, theme.colors.subtle, hasGallery, hasVideo]);
   
   if (compact) {
     return (
@@ -183,6 +216,8 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
               </View>
             )}
           </View>
+          
+          {/* Ikonki są teraz na zdjęciu */}
         </View>
       </TouchableOpacity>
     );
@@ -260,6 +295,8 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
             </TouchableOpacity>
           )}
         </View>
+        
+        {/* Usuwam stare ikonki - teraz są na zdjęciu */}
       </View>
     </TouchableOpacity>
   );
@@ -407,6 +444,33 @@ const styles = StyleSheet.create({
     fontSize: Platform.OS === 'android' ? 11 : 10, // Larger font on Android
     fontWeight: '600',
     letterSpacing: Platform.OS === 'android' ? 0.4 : 0.3, // Better letter spacing on Android
+  },
+  // Usuwam stare style - ikonki są teraz na zdjęciu z nowymi stylami
+  imageContainer: {
+    position: 'relative',
+    width: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+  },
+  compactImageContainer: {
+    position: 'relative',
+    width: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+  },
+  mediaIconsOverlay: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  mediaIconOverlay: {
+    padding: Platform.OS === 'android' ? 6 : 5, // Mniejszy padding na Androidzie
+    borderRadius: Platform.OS === 'android' ? 12 : 10, // Mniejszy radius na Androidzie
   },
 });
 

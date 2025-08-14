@@ -222,10 +222,9 @@ class TextToSpeechService {
             if (status.didJustFinish) {
               this.isPlaying = false;
               this.sound = null;
-            } else if (status.error) {
-              console.error('Audio playback error:', status.error);
-              this.isPlaying = false;
-              this.sound = null;
+            } else if (status.isLoaded && !status.isPlaying) {
+              // Audio finished playing
+              console.log('Audio playback completed');
             }
           }
         }

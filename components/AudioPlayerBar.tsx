@@ -1,23 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, Platform } from 'react-native';
-import { Pause, Play, X as CloseIcon } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Pause, Play, X, Volume2 } from 'lucide-react-native';
 
 interface AudioPlayerBarProps {
   isPlaying: boolean;
   duration: number; // w sekundach
   position: number; // w sekundach
   onPlayPause: () => void;
-  onSeek?: (seconds: number) => void;
-  onClose?: () => void;
-  isLoading?: boolean; // Dodane: czy trwa generowanie głosu
+  onStop?: () => void;
+  isLoading?: boolean; // czy trwa generowanie głosu
+  title?: string;
+  label?: string; // np. "Czytanie"
 }
 
-const GRANT = '#1a237e'; // granat
-const YELLOW = '#ffd600'; // żółty
+const YELLOW = '#fecc00'; // żółty Kaszub
 const WHITE = '#fff';
-const GLASS = 'rgba(255,255,255,0.7)';
-const BLUR = 'rgba(255,255,255,0.25)';
+const BLACK = '#1a1a1a';
+const GRAY = '#666666';
 
 function formatTime(sec: number) {
   const m = Math.floor(sec / 60)
@@ -29,179 +28,149 @@ function formatTime(sec: number) {
   return `${m}:${s}`;
 }
 
-export const AudioPlayerBar = ({ isPlaying, duration, position, onPlayPause, onSeek, onClose, isLoading }: AudioPlayerBarProps) => {
+export const AudioPlayerBar = ({ isPlaying, duration, position, onPlayPause, onStop, isLoading, title, label = 'Czytanie' }: AudioPlayerBarProps) => {
+  console.log('[AUDIO PLAYER] Rendering with:', { isPlaying, duration, position, title, label, isLoading });
+  
   // Animacja pojawiania się
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    console.log('[AUDIO PLAYER] Starting fade animation');
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 400,
+      duration: 300,
       useNativeDriver: true,
     }).start();
   }, []);
 
-  // Shimmer efekt dla ładowania
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (isLoading) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(shimmerAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-          Animated.timing(shimmerAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
-        ])
-      ).start();
-    } else {
-      shimmerAnim.stopAnimation();
-    }
-  }, [isLoading]);
-
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-100%', '100%'],
-  });
-
   return (
-    <Animated.View style={[styles.wrapper, { opacity: fadeAnim }] } pointerEvents="box-none">
-      <LinearGradient
-        colors={[WHITE, 'rgba(255,255,255,0.0)']}
-        style={styles.gradientBg}
-        pointerEvents="none"
-      />
-      <View style={styles.glassBg} />
-      <View style={styles.playerBar}>
-        <TouchableOpacity onPress={onPlayPause} style={styles.playPauseBtn} activeOpacity={0.8}>
-          {isLoading ? (
-            <ActivityIndicator size={32} color={GRANT} />
-          ) : isPlaying ? (
-            <Pause size={32} color={GRANT} />
-          ) : (
-            <Play size={32} color={GRANT} />
-          )}
-        </TouchableOpacity>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+      {/* Główny przycisk play/pause */}
+      <TouchableOpacity 
+        onPress={onPlayPause} 
+        style={styles.playButton} 
+        activeOpacity={0.8} 
+        accessibilityLabel={isPlaying ? 'Pauza' : 'Odtwórz'}
+      >
+        {isLoading ? (
+          <ActivityIndicator size={24} color={WHITE} />
+        ) : isPlaying ? (
+          <Pause size={24} color={WHITE} />
+        ) : (
+          <Play size={24} color={WHITE} />
+        )}
+      </TouchableOpacity>
+
+      {/* Informacje o treści */}
+      <View style={styles.contentContainer}>
+        <View style={styles.titleRow}>
+          <Volume2 size={16} color={BLACK} style={styles.volumeIcon} />
+          <Text style={styles.title} numberOfLines={1}>
+            {title && title.length > 35 ? `${title.substring(0, 35)}...` : title || 'Czytanie artykułu'}
+          </Text>
+        </View>
+        
+        {/* Progress bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBarBg}>
-            <View style={[styles.progressBar, { width: `${duration ? (position / duration) * 100 : 0}%` }]} />
-            {isLoading && (
-              <Animated.View
-                style={[
-                  styles.shimmer,
-                  { transform: [{ translateX: shimmerTranslate }] },
-                ]}
-              />
-            )}
+            <View 
+              style={[
+                styles.progressBar, 
+                { width: `${duration ? (position / duration) * 100 : 0}%` }
+              ]} 
+            />
           </View>
-          <View style={styles.timeRow}>
-            <Text style={styles.time}>{formatTime(position)}</Text>
-            <Text style={styles.time}>{formatTime(duration)}</Text>
+          <View style={styles.timeContainer}>
+            <Text style={styles.timeText}>{formatTime(position)}</Text>
+            <Text style={styles.timeText}>{formatTime(duration)}</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-          <CloseIcon size={24} color={GRANT} />
-        </TouchableOpacity>
       </View>
+
+      {/* Przycisk zamknięcia */}
+      <TouchableOpacity 
+        onPress={onStop} 
+        style={styles.stopButton} 
+        activeOpacity={0.8}
+        accessibilityLabel="Zamknij"
+      >
+        <X size={20} color={BLACK} />
+      </TouchableOpacity>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 60, // większy margines nad tab barem
-    zIndex: 1000,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    pointerEvents: 'box-none',
-  },
-  gradientBg: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 90,
-  },
-  glassBg: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 8,
-    height: Platform.OS === 'android' ? 60 : 68, // Mniejsza wysokość na Android
-    borderRadius: 28,
-    backgroundColor: BLUR,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  playerBar: {
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 24,
-    margin: 8,
-    paddingHorizontal: Platform.OS === 'android' ? 16 : 18, // Mniejszy padding na Android
-    paddingVertical: Platform.OS === 'android' ? 10 : 12, // Mniejszy padding na Android
-    minWidth: 320,
-    maxWidth: 500,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: '100%',
   },
-  playPauseBtn: {
-    width: Platform.OS === 'android' ? 48 : 54, // Mniejszy rozmiar na Android
-    height: Platform.OS === 'android' ? 48 : 54, // Mniejszy rozmiar na Android
-    borderRadius: Platform.OS === 'android' ? 24 : 27, // Mniejszy radius na Android
+  playButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Platform.OS === 'android' ? 12 : 14, // Mniejszy margin na Android
-    shadowColor: YELLOW,
+    marginRight: 12,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  contentContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  volumeIcon: {
+    marginRight: 6,
+  },
+  title: {
+    fontSize: 14,
+    color: BLACK,
+    fontFamily: 'Poppins_SemiBold',
+    flex: 1,
   },
   progressContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    width: '100%',
   },
   progressBarBg: {
-    height: 7,
-    backgroundColor: '#eee',
-    borderRadius: 3.5,
-    overflow: 'hidden',
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 2,
     marginBottom: 6,
+    overflow: 'hidden',
   },
   progressBar: {
-    height: 7,
-    backgroundColor: GRANT,
-    borderRadius: 3.5,
+    height: 4,
+    backgroundColor: YELLOW,
+    borderRadius: 2,
   },
-  shimmer: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    opacity: 0.7,
-  },
-  timeRow: {
+  timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  time: {
-    fontSize: Platform.OS === 'android' ? 12 : 13, // Zwiększona czcionka na Android dla lepszej czytelności
-    color: GRANT,
-    fontFamily: Platform.OS === 'ios' ? 'Poppins_Bold' : 'Poppins_Bold',
-    fontWeight: Platform.OS === 'android' ? '700' : 'normal',
+  timeText: {
+    fontSize: 11,
+    color: GRAY,
+    fontFamily: 'Poppins_Medium',
   },
-  closeBtn: {
-    marginLeft: Platform.OS === 'android' ? 12 : 14, // Mniejszy margin na Android
-    padding: Platform.OS === 'android' ? 6 : 8, // Mniejszy padding na Android
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+  stopButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
 }); 

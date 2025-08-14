@@ -12,6 +12,7 @@ import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { useRouter } from 'expo-router';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { handleDeepLinkWithValidation } from '@/utils/linkHandler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -21,11 +22,12 @@ export default function RootLayout() {
   const router = useRouter();
   const [appIsReady, setAppIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [themeReady, setThemeReady] = useState(false);
 
   // Performance monitoring
-  usePerformanceMonitor();
+  usePerformanceMonitor('RootLayout');
 
-  // Load fonts
+  // Load fonts - must be before any conditional returns
   const [fontsLoaded, fontError] = useFonts({
     'Poppins_Thin': require('../assets/fonts/Poppins/Poppins_Thin.ttf'),
     'Poppins_ThinItalic': require('../assets/fonts/Poppins/Poppins_ThinItalic.ttf'),
@@ -47,6 +49,21 @@ export default function RootLayout() {
     'Poppins_BlackItalic': require('../assets/fonts/Poppins/Poppins_BlackItalic.ttf'),
   });
 
+  // Wait for theme to be ready with timeout
+  useEffect(() => {
+    if (theme && theme.colors) {
+      setThemeReady(true);
+    } else {
+      // Add timeout to prevent infinite waiting
+      const timeout = setTimeout(() => {
+        console.warn('RootLayout: theme timeout, using fallback');
+        setThemeReady(true);
+      }, 5000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [theme]);
+
   // Handle font loading errors
   useEffect(() => {
     if (fontError) {
@@ -62,8 +79,7 @@ export default function RootLayout() {
         // Initialize notification service
         await notificationService.setupNotificationHandlers();
         
-        // Memory optimization
-        MemoryOptimizer.initialize();
+        // Memory optimization - no initialization needed
         
         // Preload critical assets
         await Promise.all([
@@ -91,7 +107,7 @@ export default function RootLayout() {
   // Add deep linking handler with improved error handling
   useEffect(() => {
     const handleDeepLink = (url: string) => {
-      console.log('Deep link received in _layout:', url);
+      // console.log('Deep link received in _layout:', url);
       
       try {
         // Use the enhanced link handler with validation
@@ -108,7 +124,7 @@ export default function RootLayout() {
       try {
         const initialUrl = await Linking.getInitialURL();
         if (initialUrl) {
-          console.log('Initial URL:', initialUrl);
+          // console.log('Initial URL:', initialUrl);
           // Add a small delay to ensure the app is fully loaded
           setTimeout(() => {
             handleDeepLink(initialUrl);
@@ -134,6 +150,46 @@ export default function RootLayout() {
     };
   }, [appIsReady, router]);
 
+  // Early return if theme is not ready
+  if (!theme || !theme.colors || !themeReady) {
+    console.log('RootLayout: theme not ready, waiting...', { 
+      hasTheme: !!theme, 
+      hasColors: !!(theme && theme.colors),
+      themeReady 
+    });
+    return null;
+  }
+
+  // Additional safety check for theme structure
+  if (!theme.colors || typeof theme.colors !== 'object') {
+    console.error('RootLayout: theme.colors is invalid:', theme.colors);
+    return null;
+  }
+
+  // Check if all required theme properties exist
+  const requiredThemeProps = ['background', 'text', 'primary', 'secondary'];
+  const hasRequiredProps = requiredThemeProps.every(prop => {
+    const value = theme.colors[prop as keyof typeof theme.colors];
+    return value !== undefined && value !== null && typeof value === 'string';
+  });
+
+  if (!hasRequiredProps) {
+    console.error('RootLayout: missing required theme properties');
+    return null;
+  }
+
+  // Validate hex color format
+  const isValidHexColor = (color: string) => /^#[0-9A-F]{6}$/i.test(color);
+  const hasValidColors = requiredThemeProps.every(prop => {
+    const value = theme.colors[prop as keyof typeof theme.colors];
+    return isValidHexColor(value);
+  });
+
+  if (!hasValidColors) {
+    console.error('RootLayout: invalid color format detected');
+    return null;
+  }
+
   // Show nothing until fonts are loaded or failed to load
   if (!appIsReady) {
     return null;
@@ -146,74 +202,47 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <SafeAreaProvider>
-        <StatusBar 
-          style={isDarkMode ? "light" : "dark"} 
-          backgroundColor="transparent"
-          translucent={Platform.OS === 'android'} // Only translucent on Android
-        />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.colors.background },
-            animation: Platform.select({
-              ios: 'default',
-              android: 'slide_from_right', // Changed from 'fade' to 'slide_from_right' for better Android experience
-              web: 'default',
-              default: 'default',
-            }),
-            animationDuration: Platform.select({
-              android: 200, // Increased from 150 to 200 for smoother animations
-              default: undefined,
-            }),
-            ...(Platform.OS === 'android' && {
-              gestureEnabled: true,
-              gestureDirection: 'horizontal',
-              gestureResponseDistance: 50, // Added for better gesture handling on Android
-            }),
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen 
-            name="article/[id]" 
-            options={{ 
-              headerShown: false,
-              presentation: 'card',
-              gestureEnabled: true,
-              ...(Platform.OS === 'android' && {
-                animationTypeForReplace: 'push',
-                gestureResponseDistance: 50,
-              }),
-            }} 
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <StatusBar 
+            style={isDarkMode ? "light" : "dark"} 
+            backgroundColor="transparent"
+            translucent={Platform.OS === 'android'} // Only translucent on Android
           />
-          <Stack.Screen 
-            name="article/[slug]" 
-            options={{ 
-              headerShown: false,
-              presentation: 'card',
-              gestureEnabled: true,
-              ...(Platform.OS === 'android' && {
-                animationTypeForReplace: 'push',
-                gestureResponseDistance: 50,
-              }),
-            }} 
-          />
-          <Stack.Screen 
-            name="event/[id]" 
-            options={{ 
-              headerShown: false,
-              presentation: 'card',
-              gestureEnabled: true,
-              ...(Platform.OS === 'android' && {
-                animationTypeForReplace: 'push',
-                gestureResponseDistance: 50,
-              }),
-            }} 
-          />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </SafeAreaProvider>
+                      <Stack
+              screenOptions={{
+                gestureEnabled: true,
+                gestureDirection: 'horizontal',
+                headerShown: false,
+                contentStyle: { backgroundColor: theme.colors.background },
+                animation: 'default',
+                animationDuration: 300
+              }}
+            >
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="article/[id]" 
+                options={{ 
+                  animationTypeForReplace: 'push',
+                  headerShown: false,
+                  presentation: 'card',
+                  gestureEnabled: true,
+                }} 
+              />
+              <Stack.Screen 
+                name="event/[id]" 
+                options={{ 
+                  animationTypeForReplace: 'push',
+                  headerShown: false,
+                  presentation: 'card',
+                  gestureEnabled: true,
+                }} 
+              />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     </ErrorBoundary>
   );
 }
