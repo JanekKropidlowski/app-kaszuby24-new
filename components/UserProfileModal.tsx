@@ -201,7 +201,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               { backgroundColor: avatar ? 'transparent' : theme.colors.subtle }
             ]}>
               {avatar ? (
-                <Image source={{ uri: avatar }} style={styles.avatarImage} />
+                <Image 
+                  source={{ uri: avatar }} 
+                  style={styles.avatarImage}
+                  onError={() => {
+                    // Fallback do ikony użytkownika jeśli grafika się nie załaduje
+                    console.warn('Avatar image failed to load');
+                  }}
+                />
               ) : (
                 <User size={40} color={theme.colors.textSecondary} />
               )}

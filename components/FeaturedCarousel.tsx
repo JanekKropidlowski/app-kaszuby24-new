@@ -15,6 +15,7 @@ import { TrendingUp, Eye, Clock, MapPin } from 'lucide-react-native';
 import { Article } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
 import { formatDateTime } from '@/utils/dateFormatter';
+import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -22,20 +23,6 @@ interface FeaturedCarouselProps {
   articles: Article[];
   onArticlePress: (article: Article) => void;
 }
-
-const cleanTitle = (title: string): string => {
-  return title
-    .replace(/&#8211;/g, '–')
-    .replace(/&#8217;/g, "'")
-    .replace(/&#8230;/g, '...')
-    .replace(/&#8216;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&nbsp;/g, ' ');
-};
 
 const getArticleRegion = (article: Article) => {
   if (!article.categories || article.categories.length === 0) return null;
@@ -89,6 +76,7 @@ export const FeaturedCarousel: React.FC<FeaturedCarouselProps> = ({
       parallaxAdjacentItemScale: 0.8,
     },
     data: articles,
+    keyExtractor: (item: Article) => `featured_carousel_${item.id}`,
     onScrollEnd: (index: number) => {
       setActiveIndex(index);
     },
@@ -130,14 +118,14 @@ export const FeaturedCarousel: React.FC<FeaturedCarouselProps> = ({
           {/* Badges */}
           <View style={styles.badgeContainer}>
             <View style={styles.weeklyBadge}>
-              <TrendingUp size={12} color="#FFFFFF" />
+              <TrendingUp size={16} color="#FFFFFF" />
               <Text style={[styles.weeklyBadgeText, { fontFamily: theme.fontFamily.semibold }]}>
                 Najpopularniejsze
               </Text>
             </View>
 
             <View style={styles.viewCounter}>
-              <Eye size={12} color="#FFFFFF" />
+              <Eye size={16} color="#FFFFFF" />
               <Text style={[styles.viewCountText, { fontFamily: theme.fontFamily.medium }]}>
                 {viewCount}
               </Text>
@@ -148,7 +136,7 @@ export const FeaturedCarousel: React.FC<FeaturedCarouselProps> = ({
           <View style={styles.contentContainer}>
             {region && (
               <View style={styles.regionBadge}>
-                <MapPin size={10} color="#FFFFFF" />
+                <MapPin size={16} color="#FFFFFF" />
                 <Text style={[styles.regionText, { fontFamily: theme.fontFamily.medium }]}>
                   {region}
                 </Text>
@@ -159,11 +147,11 @@ export const FeaturedCarousel: React.FC<FeaturedCarouselProps> = ({
               style={[styles.title, { fontFamily: theme.fontFamily.bold }]}
               numberOfLines={3}
             >
-              {cleanTitle(item.title.rendered)}
+              {cleanArticleTitle(item.title.rendered)}
             </Text>
 
             <View style={styles.metaContainer}>
-              <Clock size={12} color="#FFFFFF" />
+              <Clock size={16} color="#FFFFFF" />
               <Text style={[styles.dateText, { fontFamily: theme.fontFamily.regular }]}>
                 {formatDateTime(item.date)}
               </Text>

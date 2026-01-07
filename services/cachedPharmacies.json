@@ -1,0 +1,6661 @@
+[
+  {
+    "id": "321740984",
+    "lat": 54.5391409,
+    "lon": 18.46544,
+    "name": "Chylonia I",
+    "address": "Adres nieznany",
+    "phone": "+4858623 41 41",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "442256675",
+    "lat": 54.360913,
+    "lon": 18.7119378,
+    "name": "Dr. Max",
+    "address": "Wilhelma Stryjewskiego 27",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "442257163",
+    "lat": 54.3612265,
+    "lon": 18.7147517,
+    "name": "Dom Leków",
+    "address": "Wilhelma Stryjewskiego 29C",
+    "phone": "+48 58 301 73 64",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "471843083",
+    "lat": 54.3455802,
+    "lon": 18.6493354,
+    "name": "Eljax",
+    "address": "Kocurki 2"
+  },
+  {
+    "id": "471880830",
+    "lat": 53.6916204,
+    "lon": 17.5708941,
+    "name": "Wracam Do Zdrowia",
+    "address": "Świętopełka 16",
+    "phone": "+48 52 397 03 03"
+  },
+  {
+    "id": "476216289",
+    "lat": 53.4243589,
+    "lon": 19.5875746,
+    "name": "Panaceum",
+    "address": "Adama Mickiewicza 11B",
+    "phone": "+48564742324"
+  },
+  {
+    "id": "476216401",
+    "lat": 53.4242714,
+    "lon": 19.5929011,
+    "name": "Pod Orłem",
+    "address": "Rynek 12",
+    "phone": "+48564742918",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-17:00; Su 09:00-13:00"
+  },
+  {
+    "id": "476216454",
+    "lat": 53.4227879,
+    "lon": 19.5926837,
+    "name": "Jola",
+    "address": "19 Stycznia 6",
+    "phone": "+48564743171"
+  },
+  {
+    "id": "476219235",
+    "lat": 53.4297226,
+    "lon": 19.5890029,
+    "name": "Malwa",
+    "address": "Grunwaldzka 11",
+    "phone": "+48564743106"
+  },
+  {
+    "id": "478544554",
+    "lat": 54.3585041,
+    "lon": 19.6805399,
+    "name": "Dbam o Zdrowie",
+    "address": "Rybacka 6A",
+    "opening_hours": "Mo-Fr 08:00-17:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "497836596",
+    "lat": 54.1314198,
+    "lon": 18.200137,
+    "name": "Apteka Przyjazna",
+    "address": "Aleksandra Majkowskiego 23"
+  },
+  {
+    "id": "587598882",
+    "lat": 53.4773086,
+    "lon": 18.7463305,
+    "name": "Farmacja24",
+    "address": "Chełmińska 68",
+    "opening_hours": "Mo-Fr 07:30-20:00; Sa 07:30-15:00"
+  },
+  {
+    "id": "597326243",
+    "lat": 54.7941615,
+    "lon": 18.4097379,
+    "name": "Pod Filarami",
+    "address": "Generała Józefa Hallera 19",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 10:00-18:00"
+  },
+  {
+    "id": "597326274",
+    "lat": 54.7903428,
+    "lon": 18.4053131,
+    "name": "Domowa",
+    "address": "Niepodległości 17"
+  },
+  {
+    "id": "599466884",
+    "lat": 53.4066572,
+    "lon": 18.4357386,
+    "name": "Centrum Zdrowia",
+    "address": "Adres nieznany",
+    "phone": "+48523324611"
+  },
+  {
+    "id": "599467015",
+    "lat": 53.4073035,
+    "lon": 18.4510954,
+    "name": "Pod Orłem",
+    "address": "Księcia Grzymisława 4",
+    "phone": "+48523311180",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "599467024",
+    "lat": 53.4090273,
+    "lon": 18.4517213,
+    "name": "Pod Lwem",
+    "address": "Duży Rynek 1",
+    "phone": "+48523314362"
+  },
+  {
+    "id": "604705002",
+    "lat": 54.4401141,
+    "lon": 18.5726121,
+    "name": "Dbam o Zdrowie",
+    "address": "Grunwaldzka 64",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-20:00; Su 09:00-20:00"
+  },
+  {
+    "id": "611856601",
+    "lat": 53.717439,
+    "lon": 19.3362726,
+    "name": "Hubertus",
+    "address": "Słowiańska 21"
+  },
+  {
+    "id": "746496114",
+    "lat": 54.3490486,
+    "lon": 18.6517408,
+    "name": "Ratuszowa",
+    "address": "Długa 54/55"
+  },
+  {
+    "id": "748345991",
+    "lat": 54.3487187,
+    "lon": 18.6197874,
+    "name": "Kartuska",
+    "address": "Kartuska 114",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "841219317",
+    "lat": 54.7570334,
+    "lon": 17.5572286,
+    "name": "Słowińska",
+    "address": "Tadeusza Kościuszki 70A"
+  },
+  {
+    "id": "876380540",
+    "lat": 54.3769011,
+    "lon": 18.6075899,
+    "name": "Manhattan",
+    "address": "Aleja Grunwaldzka 82",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "913726440",
+    "lat": 53.6675152,
+    "lon": 18.8788502,
+    "name": "Apteka",
+    "address": "Kwidzyńska 20A"
+  },
+  {
+    "id": "939080160",
+    "lat": 54.3248767,
+    "lon": 18.6116643,
+    "name": "Sanitas",
+    "address": "Generała Leopolda Okulickiego 2E"
+  },
+  {
+    "id": "974817756",
+    "lat": 54.2603304,
+    "lon": 18.6493218,
+    "name": "Apteka Medica",
+    "address": "Fryderyka Chopina 36"
+  },
+  {
+    "id": "974826750",
+    "lat": 54.2573596,
+    "lon": 18.6510761,
+    "name": "Pod Lampionami",
+    "address": "Powstańców Warszawy 21"
+  },
+  {
+    "id": "1015333598",
+    "lat": 54.3809625,
+    "lon": 18.6146729,
+    "name": "Przy Rynku",
+    "address": "Danusi 4A"
+  },
+  {
+    "id": "1046711864",
+    "lat": 54.4712464,
+    "lon": 18.4961219,
+    "name": "Dom Leków",
+    "address": "Adres nieznany",
+    "phone": "+4858 629 14 40",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-13:00"
+  },
+  {
+    "id": "1068468699",
+    "lat": 53.6844856,
+    "lon": 16.9400823,
+    "name": "Wracam Do Zdrowia",
+    "address": "Plac Wolności 7"
+  },
+  {
+    "id": "1103195007",
+    "lat": 54.5613787,
+    "lon": 18.490766,
+    "name": "Apteka Dbam O Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "1159525373",
+    "lat": 54.4580325,
+    "lon": 16.990568,
+    "name": "Dom Leków",
+    "address": "Szczecińska 36K"
+  },
+  {
+    "id": "1193853702",
+    "lat": 54.7158037,
+    "lon": 18.4111528,
+    "name": "Dyżurna",
+    "address": "Wejhera 9",
+    "phone": "+48587815130"
+  },
+  {
+    "id": "1234094435",
+    "lat": 53.7983177,
+    "lon": 18.5293022,
+    "name": "Pod Orłem",
+    "address": "Jana III Sobieskiego 22"
+  },
+  {
+    "id": "1280356385",
+    "lat": 53.7953695,
+    "lon": 17.9756955,
+    "name": "Wracam Do Zdrowia",
+    "address": "Tadeusza Kościuszki 39"
+  },
+  {
+    "id": "1307223185",
+    "lat": 54.4479829,
+    "lon": 18.5436808,
+    "name": "Vitalis",
+    "address": "23 Marca 79A",
+    "opening_hours": "Mo-Fr 09:00-19:00; Sa 09:00-13:00; Su off"
+  },
+  {
+    "id": "1307223191",
+    "lat": 54.4434999,
+    "lon": 18.5639897,
+    "name": "Dom Leków",
+    "address": "Bohaterów Monte Cassino 37",
+    "phone": "+48 585511018",
+    "opening_hours": "Mo-Su 08:00-21:00"
+  },
+  {
+    "id": "1346258039",
+    "lat": 54.4970867,
+    "lon": 18.5417598,
+    "name": "Apteka św. Jana",
+    "address": "Redłowska 39A"
+  },
+  {
+    "id": "1354571291",
+    "lat": 54.794045,
+    "lon": 18.4027675,
+    "name": "Apteka Dr. Max",
+    "address": "Generała Józefa Hallera 1A",
+    "opening_hours": "Mo-Su,PH 08:00-20:00"
+  },
+  {
+    "id": "1380946741",
+    "lat": 54.5864789,
+    "lon": 16.8607849,
+    "name": "Dbam o Zdrowie",
+    "address": "Stefana Żeromskiego 5",
+    "phone": "+48 59 814 98 17",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00; Su off"
+  },
+  {
+    "id": "1380946754",
+    "lat": 54.5812529,
+    "lon": 16.869033,
+    "name": "Jantar",
+    "address": "Grunwaldzka 27A"
+  },
+  {
+    "id": "1396117819",
+    "lat": 54.6033159,
+    "lon": 18.8039756,
+    "name": "Helska",
+    "address": "Wiejska 97",
+    "phone": "+48 58 675 05 63",
+    "opening_hours": "Mo-Sa 09:00-20:00; Su 09:00-19:00"
+  },
+  {
+    "id": "1416905318",
+    "lat": 54.4723464,
+    "lon": 17.0277643,
+    "name": "Dom Leków",
+    "address": "Mikołaja Kopernika 28",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "1416908706",
+    "lat": 54.4693046,
+    "lon": 17.0209423,
+    "name": "Miraculum",
+    "address": "Wileńska 12"
+  },
+  {
+    "id": "1428578314",
+    "lat": 53.9232713,
+    "lon": 17.8629626,
+    "name": "Wielewska",
+    "address": "Główna 10",
+    "opening_hours": "Mo,We,Th 09:00-16:00; Tu,Fr 09:00-17:00"
+  },
+  {
+    "id": "1434163381",
+    "lat": 54.2608495,
+    "lon": 18.6381377,
+    "name": "Panaceum",
+    "address": "Aleja Księdza Józefa Waląga 5"
+  },
+  {
+    "id": "1458087315",
+    "lat": 54.3552384,
+    "lon": 18.6065486,
+    "name": "Po Zdrowie",
+    "address": "Otwarta 4",
+    "opening_hours": "Mo-Fr 08:00-19:00"
+  },
+  {
+    "id": "1515856046",
+    "lat": 54.3650159,
+    "lon": 18.6353441,
+    "name": "Dbam o Zdrowie",
+    "address": "Aleja Zwycięstwa 49",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "1538112315",
+    "lat": 54.4182911,
+    "lon": 18.5664362,
+    "name": "Avena",
+    "address": "Bitwy Oliwskiej 34",
+    "opening_hours": "Mo-Fr 08:00-20:00, Sa 08:00-16:00"
+  },
+  {
+    "id": "1538859537",
+    "lat": 54.4032316,
+    "lon": 18.5885055,
+    "name": "Dr. Max Apteka",
+    "address": "Kołobrzeska 32",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "1577478306",
+    "lat": 54.4849264,
+    "lon": 18.5377806,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "1577478689",
+    "lat": 54.482659,
+    "lon": 18.5372256,
+    "name": "Multi Apteka",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "1606242352",
+    "lat": 54.3018138,
+    "lon": 18.5783396,
+    "name": "Tęczowa",
+    "address": "Współczesna 1E"
+  },
+  {
+    "id": "1606483284",
+    "lat": 53.9057902,
+    "lon": 17.9224335,
+    "name": "Apteka",
+    "address": "Świerkowa 2"
+  },
+  {
+    "id": "1608446887",
+    "lat": 54.2645601,
+    "lon": 18.658604,
+    "name": "Anafarm",
+    "address": "Henryka Sienkiewicza 7a",
+    "opening_hours": "08:00-22:00"
+  },
+  {
+    "id": "1641456768",
+    "lat": 54.3514025,
+    "lon": 18.6363676,
+    "name": "Dom Leków",
+    "address": "Kartuska 5",
+    "phone": "+48 58 721 40 00",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "1667957599",
+    "lat": 53.6984322,
+    "lon": 17.5780214,
+    "name": "Wracam Do Zdrowia",
+    "address": "Jana Pawła II 2D"
+  },
+  {
+    "id": "1738391381",
+    "lat": 54.5483362,
+    "lon": 18.5324989,
+    "name": "Dr. Max+",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 09:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "1744311955",
+    "lat": 53.9700161,
+    "lon": 18.5289104,
+    "name": "Wracam Do Zdrowia",
+    "address": "Generała Józefa Hallera 21b",
+    "phone": "+48 58 775 53 13",
+    "opening_hours": "Mo-Fr 08:00-18:30; Sa 09:00 - 13:30; Su off"
+  },
+  {
+    "id": "1752588386",
+    "lat": 54.4673374,
+    "lon": 18.4872674,
+    "name": "Pod Gryfem Pomorskim",
+    "address": "Gryfa Pomorskiego 79D"
+  },
+  {
+    "id": "1755971248",
+    "lat": 54.3263457,
+    "lon": 18.6222019,
+    "name": "Oruńska II",
+    "address": "Krzemowa 16",
+    "opening_hours": "Mo-Fr 08:00-19:30; Sa 09:00-14:00"
+  },
+  {
+    "id": "1755971319",
+    "lat": 54.3252682,
+    "lon": 18.6180528,
+    "name": "Krzemowa",
+    "address": "Krzemowa 1",
+    "phone": "+48587604094",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 09:00-22:30; Su 09:00-15:00"
+  },
+  {
+    "id": "1761940773",
+    "lat": 54.3456706,
+    "lon": 18.3659316,
+    "name": "Dbam o Zdrowie",
+    "address": "Pożarna 6",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-14:00; Su,PH off"
+  },
+  {
+    "id": "1766018003",
+    "lat": 54.5545783,
+    "lon": 18.5232166,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "1766018008",
+    "lat": 54.5494975,
+    "lon": 18.5232419,
+    "name": "Apteka Gemini",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "1766488222",
+    "lat": 54.5498635,
+    "lon": 18.513321,
+    "name": "Dom Leków",
+    "address": "Adres nieznany",
+    "phone": "+4858 625 02 76",
+    "opening_hours": "Mo-Fr 08:00 - 22:00; Sa 08:00-20:00; Su 09:00-15:00"
+  },
+  {
+    "id": "1769069364",
+    "lat": 54.3595309,
+    "lon": 18.5838419,
+    "name": "Prima",
+    "address": "Piecewska 26",
+    "opening_hours": "Mo-Sa 08:00-20:00"
+  },
+  {
+    "id": "1769082976",
+    "lat": 54.3584665,
+    "lon": 18.5830722,
+    "name": "Dr. Max",
+    "address": "Franciszka Rakoczego 13",
+    "opening_hours": "Mo-Fr 8:00-20:00, Sa 8:00-15:00"
+  },
+  {
+    "id": "1772800146",
+    "lat": 54.4715851,
+    "lon": 18.4893177,
+    "name": "U Źródła Marii",
+    "address": "Adres nieznany",
+    "phone": "+48 58 629 16 28",
+    "opening_hours": "Mo-Su 08:00-22:00"
+  },
+  {
+    "id": "1772853396",
+    "lat": 54.5033184,
+    "lon": 18.5415741,
+    "name": "Dom Leków",
+    "address": "Adres nieznany",
+    "phone": "+4858 622 68 24",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "1773673808",
+    "lat": 54.5146308,
+    "lon": 18.5376442,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 09:00-21:00; Su 10:00-18:00"
+  },
+  {
+    "id": "1773912090",
+    "lat": 54.5144671,
+    "lon": 18.5385113,
+    "name": "Apteka Dyżurna",
+    "address": "Antoniego Abrahama 70",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "1774349557",
+    "lat": 54.347687,
+    "lon": 18.6619137,
+    "name": "DOZ Apteka",
+    "address": "Długie Ogrody 11C"
+  },
+  {
+    "id": "1778863103",
+    "lat": 54.1543329,
+    "lon": 19.4121958,
+    "name": "Dom Leków",
+    "address": "Aleja Grunwaldzka 27"
+  },
+  {
+    "id": "1778944872",
+    "lat": 54.1537198,
+    "lon": 19.4197127,
+    "name": "Centrum",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "1783363386",
+    "lat": 54.2734612,
+    "lon": 18.4750482,
+    "name": "Rodzinna",
+    "address": "Przedszkolna 34"
+  },
+  {
+    "id": "1785907058",
+    "lat": 54.5184291,
+    "lon": 18.5289524,
+    "name": "Dom Leków",
+    "address": "Warszawska 14",
+    "opening_hours": "Mo-Fr 08:00-19:00"
+  },
+  {
+    "id": "1785941268",
+    "lat": 54.5163841,
+    "lon": 18.5302711,
+    "name": "Dla Zdrowia",
+    "address": "Warszawska 34"
+  },
+  {
+    "id": "1787520471",
+    "lat": 54.5047391,
+    "lon": 18.5369403,
+    "name": "Przy Alei",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "1796267993",
+    "lat": 54.3720804,
+    "lon": 18.5183875,
+    "name": "Super-Pharm",
+    "address": "Złota Karczma 26",
+    "phone": "+48 58 522 67 08",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "1806878957",
+    "lat": 54.5448809,
+    "lon": 18.4623649,
+    "name": "Centrum Leków Chylonia",
+    "address": "Adres nieznany",
+    "phone": "+48586206598",
+    "opening_hours": "Mo-Fr 08:00-20:00;Sa 08:00-15:00"
+  },
+  {
+    "id": "1806879037",
+    "lat": 54.5449203,
+    "lon": 18.4629482,
+    "name": "Medapteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "1823318076",
+    "lat": 54.4915582,
+    "lon": 18.5133473,
+    "name": "Apteka Paracelsus",
+    "address": "Adres nieznany",
+    "phone": "+48 58 624 68 07"
+  },
+  {
+    "id": "1833105927",
+    "lat": 54.0977756,
+    "lon": 18.769483,
+    "name": "Dbam o Zdrowie",
+    "address": "Jodłowa 13A",
+    "phone": "+48 58 531 67 55",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "1857946762",
+    "lat": 54.2057591,
+    "lon": 18.7682018,
+    "name": "Punkt Apteczny Medical",
+    "address": "Gdańska 32"
+  },
+  {
+    "id": "1899743142",
+    "lat": 54.3217938,
+    "lon": 18.5513856,
+    "name": "Viktoria",
+    "address": "Przywidzka 6"
+  },
+  {
+    "id": "1901951180",
+    "lat": 54.3583869,
+    "lon": 18.5877225,
+    "name": "Farmacja 24",
+    "address": "Jaśkowa Dolina 132",
+    "opening_hours": "Mo-Fr 06:00-20:00; Sa 10:00-15:00"
+  },
+  {
+    "id": "1907502270",
+    "lat": 54.5340355,
+    "lon": 18.4858069,
+    "name": "Apteka Dyżurna",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "1910270249",
+    "lat": 54.5211247,
+    "lon": 18.5428839,
+    "name": "Dom Leków",
+    "address": "Adres nieznany",
+    "phone": "+48 58 620 44 20",
+    "opening_hours": "Mo-Fr 07:30-20:30; Sa 09:00-14:30"
+  },
+  {
+    "id": "1910270250",
+    "lat": 54.5428021,
+    "lon": 18.4655205,
+    "name": "Dom Leków",
+    "address": "Wejherowska 59",
+    "phone": "+4858 623 02 21",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "1910270251",
+    "lat": 54.4997229,
+    "lon": 18.514877,
+    "name": "Dom Leków",
+    "address": "Narcyzowa 1/9",
+    "phone": "+48 58 621 44 75",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "1910277880",
+    "lat": 54.3831179,
+    "lon": 18.6242233,
+    "name": "Dom Leków",
+    "address": "Adama Mickiewicza 27A",
+    "phone": "+48 58 341 63 62",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "1916866971",
+    "lat": 53.4903476,
+    "lon": 18.7565515,
+    "name": "Dr. Max",
+    "address": "Adama Mickiewicza 47",
+    "phone": "+48 56 461 31 40",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "1991232145",
+    "lat": 54.5508563,
+    "lon": 18.536563,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 10:00-13:00"
+  },
+  {
+    "id": "2018424894",
+    "lat": 54.7199837,
+    "lon": 18.4109082,
+    "name": "Dbam o Zdrowie",
+    "address": "Stary Rynek 12",
+    "phone": "+48 800 110 110"
+  },
+  {
+    "id": "2082217475",
+    "lat": 54.4699693,
+    "lon": 18.5011206,
+    "name": "Korzenna",
+    "address": "Adres nieznany",
+    "phone": "+48 58 629 34 84",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:30-15:00"
+  },
+  {
+    "id": "2112590191",
+    "lat": 54.4644945,
+    "lon": 17.02434,
+    "name": "Dr. Max",
+    "address": "Juliana Tuwima 32-33"
+  },
+  {
+    "id": "2161919218",
+    "lat": 54.430188,
+    "lon": 18.5623801,
+    "name": "Przy Pętli",
+    "address": "Aleja Niepodległości 675",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "2165311326",
+    "lat": 54.032504,
+    "lon": 19.0339609,
+    "name": "Akacjowa",
+    "address": "Henryka Sienkiewicza 37"
+  },
+  {
+    "id": "2165311610",
+    "lat": 54.0315234,
+    "lon": 19.0346208,
+    "name": "Farmacja24",
+    "address": "Marii Konopnickiej 12",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "2178342142",
+    "lat": 54.0219867,
+    "lon": 19.0426332,
+    "name": "Melisa",
+    "address": "Kazimierza Michałowskiego 23C"
+  },
+  {
+    "id": "2178343975",
+    "lat": 54.0229484,
+    "lon": 19.0410736,
+    "name": "Gemini",
+    "address": "Tadeusza Kotarbińskiego 10"
+  },
+  {
+    "id": "2184995344",
+    "lat": 54.46039,
+    "lon": 16.9899128,
+    "name": "Nowomiejska",
+    "address": "11 Listopada 5",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "2188533489",
+    "lat": 54.7555562,
+    "lon": 18.2625352,
+    "name": "Medyk",
+    "address": "Długa 2"
+  },
+  {
+    "id": "2208197216",
+    "lat": 54.5829042,
+    "lon": 16.8661299,
+    "name": "Panaceum 013",
+    "address": "Mikołaja Kopernika 18"
+  },
+  {
+    "id": "2208461316",
+    "lat": 54.45538,
+    "lon": 18.02468,
+    "name": "Lipowa",
+    "address": "Księdza Józefa Rotty 9",
+    "opening_hours": "Mo-Fr 09:00-18:00; Sa 09:00-13:00"
+  },
+  {
+    "id": "2208753252",
+    "lat": 54.39281,
+    "lon": 18.40736,
+    "name": "W Baninie",
+    "address": "Klonowa 25",
+    "phone": "+48 58 681 89 91",
+    "opening_hours": "Mo-Fr 08:30-18:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "2250178132",
+    "lat": 54.2891539,
+    "lon": 18.220049,
+    "name": "Św. Pawła",
+    "address": "Długa 36d"
+  },
+  {
+    "id": "2251195704",
+    "lat": 54.1592907,
+    "lon": 19.4040709,
+    "name": "Dom Leków",
+    "address": "Hetmańska 6"
+  },
+  {
+    "id": "2288102107",
+    "lat": 54.5493868,
+    "lon": 18.5336236,
+    "name": "Datura",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "2296994851",
+    "lat": 54.3208091,
+    "lon": 19.5257734,
+    "name": "Nowa",
+    "address": "Świętojańska 21",
+    "opening_hours": "Mo-Fr 09:00-16:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "2318610363",
+    "lat": 54.5179921,
+    "lon": 18.5369325,
+    "name": "Apteka Chabrowa",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "2318706241",
+    "lat": 54.327175,
+    "lon": 18.5956308,
+    "name": "Apteka Gemini",
+    "address": "Płocka 5",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00; Su 09:00-15:00"
+  },
+  {
+    "id": "2318724648",
+    "lat": 54.3308561,
+    "lon": 18.5866398,
+    "name": "Dbam o Zdrowie",
+    "address": "Ostrołęcka 3"
+  },
+  {
+    "id": "2324099167",
+    "lat": 53.733323,
+    "lon": 18.9274784,
+    "name": "MedApteka",
+    "address": "Marszałka Józefa Piłsudskiego 22"
+  },
+  {
+    "id": "2333553777",
+    "lat": 53.6098786,
+    "lon": 18.943382,
+    "name": "Św. Franciszka",
+    "address": "Kwidzyńska 7"
+  },
+  {
+    "id": "2339644807",
+    "lat": 54.5226743,
+    "lon": 18.5426282,
+    "name": "Apteka Dyżurna",
+    "address": "Adres nieznany",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "2353787454",
+    "lat": 54.4865405,
+    "lon": 18.2185022,
+    "name": "Premium",
+    "address": "Wejherowska 26",
+    "opening_hours": "Mo-Fr 08:00-18:00"
+  },
+  {
+    "id": "2356709409",
+    "lat": 54.5691452,
+    "lon": 18.3915685,
+    "name": "Starowiejska",
+    "address": "Starowiejska 4A",
+    "opening_hours": "Mo-Su,PH 08:00-21:00"
+  },
+  {
+    "id": "2358417770",
+    "lat": 54.5219102,
+    "lon": 18.5323066,
+    "name": "Dbam o Zdrowie",
+    "address": "Wójta Radtkego 49",
+    "opening_hours": "Mo-Fr 07:00-18:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "2359033393",
+    "lat": 54.5446055,
+    "lon": 18.4634282,
+    "name": "Apteka Gemini",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "2364348727",
+    "lat": 54.6091297,
+    "lon": 18.801913,
+    "name": "Wracam Do Zdrowia",
+    "address": "Dworcowa 1",
+    "phone": "+48 58 675 00 03; +48 798 002 336",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-15:00; Su off"
+  },
+  {
+    "id": "2368848499",
+    "lat": 54.7388456,
+    "lon": 17.8897392,
+    "name": "Remedium",
+    "address": "Pierwszych Osadników 37a"
+  },
+  {
+    "id": "2378268935",
+    "lat": 54.3302351,
+    "lon": 18.6074949,
+    "name": "Dbam o Zdrowie",
+    "address": "Wawelska 23",
+    "opening_hours": "Mo-Fr 09:00-17:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "2402208620",
+    "lat": 54.3664472,
+    "lon": 18.6277917,
+    "name": "Dr. Max",
+    "address": "Marii Skłodowskiej-Curie 5",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "2420611409",
+    "lat": 54.4065412,
+    "lon": 18.6341252,
+    "name": "Gemini",
+    "address": "Konrada Korzeniowskiego 13",
+    "opening_hours": "Mo-Fr 09:00-19:30; Sa 09:00-14:30"
+  },
+  {
+    "id": "2424575294",
+    "lat": 54.3778914,
+    "lon": 18.605611,
+    "name": "Dr. Max",
+    "address": "Partyzantów 5",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "2455128137",
+    "lat": 54.416074,
+    "lon": 18.5577735,
+    "name": "Słowiańska",
+    "address": "Józefa Czyżewskiego 14",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "2473137458",
+    "lat": 54.66757,
+    "lon": 17.21157,
+    "name": "Calendula",
+    "address": "Ogrodowa 12"
+  },
+  {
+    "id": "2473164340",
+    "lat": 54.0868867,
+    "lon": 18.7914959,
+    "name": "Dbam o Zdrowie",
+    "address": "Mikołaja Kopernika 1",
+    "opening_hours": "Mo-Fr 08:00-19:00; Su 08:00-13:00"
+  },
+  {
+    "id": "2488546040",
+    "lat": 53.9653363,
+    "lon": 18.5072166,
+    "name": "Pharmacon",
+    "address": "Droga Nowowiejska 26c",
+    "phone": "+48 58 561 75 63"
+  },
+  {
+    "id": "2489960825",
+    "lat": 54.5213432,
+    "lon": 18.5419234,
+    "name": "Aptecus",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "2507531386",
+    "lat": 54.4530409,
+    "lon": 18.3315291,
+    "name": "Punkt Apteczny Na Zdrowie",
+    "address": "Leśna 6"
+  },
+  {
+    "id": "2527838369",
+    "lat": 54.3495191,
+    "lon": 17.8902756,
+    "name": "Nova",
+    "address": "Lęborska 27"
+  },
+  {
+    "id": "2602175697",
+    "lat": 54.3829785,
+    "lon": 18.6162001,
+    "name": "Dbam o Zdrowie",
+    "address": "Adama Mickiewicza 1",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "2604078134",
+    "lat": 53.9637335,
+    "lon": 18.4959134,
+    "name": "Nad Jarem",
+    "address": "Nad Jarem 93",
+    "phone": "+48 585 617 410"
+  },
+  {
+    "id": "2614888942",
+    "lat": 54.4186716,
+    "lon": 18.4784377,
+    "name": "Farmacja24",
+    "address": "Junony 98",
+    "opening_hours": "Mo-Sa 07:00-22:00; Su 08:00-20:00"
+  },
+  {
+    "id": "2616576988",
+    "lat": 54.4255303,
+    "lon": 18.4732062,
+    "name": "Rodzinna",
+    "address": "Koziorożca 2"
+  },
+  {
+    "id": "2622577085",
+    "lat": 54.3817936,
+    "lon": 18.6085322,
+    "name": "Dbam o Zdrowie",
+    "address": "Wajdeloty 12",
+    "opening_hours": "Mo-Sa 08:00-20:00; Su 09:00-17:00"
+  },
+  {
+    "id": "2624732955",
+    "lat": 54.5464798,
+    "lon": 18.4419951,
+    "name": "Eskulap",
+    "address": "Morska 230"
+  },
+  {
+    "id": "2632995598",
+    "lat": 54.3805418,
+    "lon": 18.6046897,
+    "name": "Dr. Max",
+    "address": "Klonowa 4A",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa 08:00-18:00"
+  },
+  {
+    "id": "2639980645",
+    "lat": 53.7972142,
+    "lon": 17.9662556,
+    "name": "Wracam Do Zdrowia",
+    "address": "Jana Pawła II 1"
+  },
+  {
+    "id": "2657832477",
+    "lat": 54.4707395,
+    "lon": 18.4876866,
+    "name": "Dr. Max",
+    "address": "Chwaszczyńska 21c",
+    "phone": "+48 58 660 80 80",
+    "opening_hours": "Mo-Su 07:00-22:00"
+  },
+  {
+    "id": "2670452048",
+    "lat": 54.5211425,
+    "lon": 18.5380349,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany",
+    "phone": "+48 58 6606209",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00; PH off"
+  },
+  {
+    "id": "2676684856",
+    "lat": 54.3554191,
+    "lon": 18.6834824,
+    "name": "Nad Wisłą",
+    "address": "Kryniczna 20",
+    "phone": "+48 58 303 84 64",
+    "opening_hours": "Mo-Fr 8:00-20:00; Sa 8:00-15:00"
+  },
+  {
+    "id": "2684230501",
+    "lat": 54.4031919,
+    "lon": 18.6123282,
+    "name": "Dr. Max",
+    "address": "Aleja Jana Pawła II 50"
+  },
+  {
+    "id": "2685543689",
+    "lat": 54.3564489,
+    "lon": 18.6300457,
+    "name": "Tradycyjna",
+    "address": "Jana Kozietulskiego 1"
+  },
+  {
+    "id": "2685967926",
+    "lat": 54.5587675,
+    "lon": 18.5131286,
+    "name": "Forte",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 09:00-20:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "2706762386",
+    "lat": 54.4944867,
+    "lon": 18.5513454,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "2708594664",
+    "lat": 54.4432243,
+    "lon": 18.4188151,
+    "name": "w Chwaszczynie",
+    "address": "Oliwska 135"
+  },
+  {
+    "id": "2901475585",
+    "lat": 54.3391366,
+    "lon": 18.5653384,
+    "name": "Damroki",
+    "address": "Damroki 1A"
+  },
+  {
+    "id": "2919877435",
+    "lat": 54.3351177,
+    "lon": 18.2013496,
+    "name": "Dr Majkowskiego",
+    "address": "3 Maja 13",
+    "phone": "+48 58 684 07 09",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 08:00-15:00; Su,PH off"
+  },
+  {
+    "id": "2943513584",
+    "lat": 53.4866017,
+    "lon": 18.7494348,
+    "name": "Apteka Społeczna",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "2961962042",
+    "lat": 54.3605433,
+    "lon": 18.5908442,
+    "name": "Med",
+    "address": "Zofii Nałkowskiej 1",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "2969078086",
+    "lat": 54.3748311,
+    "lon": 18.6118581,
+    "name": "Recepturowa",
+    "address": "Jana Matejki 3",
+    "phone": "+48583453572"
+  },
+  {
+    "id": "2972655664",
+    "lat": 53.6675863,
+    "lon": 17.3572094,
+    "name": "Wracam Do Zdrowia",
+    "address": "Plac Wolności 1",
+    "opening_hours": "Mo-Fr 8:00 - 20:00, Sa 8:00 - 16:00"
+  },
+  {
+    "id": "3002413559",
+    "lat": 54.6634314,
+    "lon": 17.0496661,
+    "name": "Punkt Apteczny Wczasowa",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Sa 09:00-22:00"
+  },
+  {
+    "id": "3024958079",
+    "lat": 54.5406464,
+    "lon": 18.4779045,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany",
+    "phone": "+48 58 623 45 34",
+    "opening_hours": "Mo-Sa 07:00-21:00; Su 08:00-20:00"
+  },
+  {
+    "id": "3027247419",
+    "lat": 54.3937281,
+    "lon": 18.3961073,
+    "name": "Kaszubska",
+    "address": "Lotnicza 62",
+    "phone": "+48583334311",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00; Su,PH off"
+  },
+  {
+    "id": "3028033886",
+    "lat": 54.509592,
+    "lon": 18.5380842,
+    "name": "EuroApteka",
+    "address": "Świętojańska 122"
+  },
+  {
+    "id": "3029441634",
+    "lat": 54.3586336,
+    "lon": 18.6269912,
+    "name": "Słoneczna",
+    "address": "Marszałka Ferdynanda Focha 8/7",
+    "opening_hours": "Mo-Fr 09:00-20:00;Sa 09:00-14:00;Su off"
+  },
+  {
+    "id": "3047150379",
+    "lat": 54.5624109,
+    "lon": 17.7325151,
+    "name": "Dbam o Zdrowie",
+    "address": "Grunwaldzka 24A",
+    "phone": "+48 59 861 21 00"
+  },
+  {
+    "id": "3050152984",
+    "lat": 53.4946067,
+    "lon": 18.7557412,
+    "name": "Cito",
+    "address": "Generała Władysława Sikorskiego 18"
+  },
+  {
+    "id": "3061657794",
+    "lat": 54.5531548,
+    "lon": 18.5059045,
+    "name": "Gemini",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "3080221604",
+    "lat": 53.4363815,
+    "lon": 18.9400985,
+    "name": "Punkt Apteczny",
+    "address": "57A",
+    "opening_hours": "Mo-Fr 08:30-16:00"
+  },
+  {
+    "id": "3111586260",
+    "lat": 54.3523519,
+    "lon": 18.5135875,
+    "name": "Kalina",
+    "address": "Kalinowa 4",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-16:00"
+  },
+  {
+    "id": "3145251851",
+    "lat": 54.3781809,
+    "lon": 18.608035,
+    "name": "Dbam o Zdrowie",
+    "address": "Aleja Grunwaldzka 83",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00; Su off"
+  },
+  {
+    "id": "3159978623",
+    "lat": 54.3662556,
+    "lon": 18.6285036,
+    "name": "Przy Akademii",
+    "address": "Marii Skłodowskiej-Curie 3",
+    "opening_hours": "Mo-Fr 07:00-19:00; Sa 09:00-16:00; Su 09:00-15:00"
+  },
+  {
+    "id": "3160115496",
+    "lat": 53.7130062,
+    "lon": 17.5472355,
+    "name": "Dbam o Zdrowie",
+    "address": "Leśna 6A"
+  },
+  {
+    "id": "3160118496",
+    "lat": 53.69505,
+    "lon": 17.56101,
+    "name": "Gemini",
+    "address": "Stary Rynek 11",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa 08:00-14:00; Su off"
+  },
+  {
+    "id": "3160119966",
+    "lat": 53.7001416,
+    "lon": 17.5620946,
+    "name": "Dbam o Zdrowie",
+    "address": "Adama Mickiewicza 39"
+  },
+  {
+    "id": "3160120761",
+    "lat": 53.7123956,
+    "lon": 17.5480639,
+    "name": "Dbam o Zdrowie",
+    "address": "Leśna 10"
+  },
+  {
+    "id": "3218457488",
+    "lat": 53.8455813,
+    "lon": 19.6059311,
+    "name": "Błękitna",
+    "address": "Częstochowska 13"
+  },
+  {
+    "id": "3260603459",
+    "lat": 53.4546427,
+    "lon": 18.9609792,
+    "name": "Apteka \"Św. Jana\"",
+    "address": "288",
+    "phone": "+48 56 468 33 33",
+    "opening_hours": "Mo-Fr 08:00-16:30; Sa 09:00-11:00"
+  },
+  {
+    "id": "3407028916",
+    "lat": 53.7055764,
+    "lon": 17.5463999,
+    "name": "Słoneczna",
+    "address": "Wiśniowa 1B"
+  },
+  {
+    "id": "3420463622",
+    "lat": 54.1847603,
+    "lon": 19.4060291,
+    "name": "Centrum",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "3473244756",
+    "lat": 54.1691773,
+    "lon": 17.4867242,
+    "name": "Dbam o Zdrowie",
+    "address": "Wojska Polskiego 27"
+  },
+  {
+    "id": "3507201254",
+    "lat": 54.5941018,
+    "lon": 18.3575677,
+    "name": "Rodzinna",
+    "address": "Obwodowa 35E"
+  },
+  {
+    "id": "3542566083",
+    "lat": 54.1659372,
+    "lon": 19.4057398,
+    "name": "Dom Leków",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "3559250588",
+    "lat": 54.5228285,
+    "lon": 18.5218318,
+    "name": "Apteka Morska",
+    "address": "Morska 49",
+    "phone": "+48586207062",
+    "opening_hours": "Mo-Fr 09:00-18:30; Sa 09:00-14:00; Su 10:00-13:00"
+  },
+  {
+    "id": "3559560441",
+    "lat": 54.5300243,
+    "lon": 18.4994095,
+    "name": "Dom Leków",
+    "address": "Adres nieznany",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "3602178495",
+    "lat": 53.7565161,
+    "lon": 19.2045872,
+    "name": "Jabłońskich",
+    "address": "Ignacego Daszyńskiego 1A",
+    "opening_hours": "Mo-Fr 08:00-18:00,Sa 08:00-13:00"
+  },
+  {
+    "id": "3604478423",
+    "lat": 54.4882008,
+    "lon": 18.3414943,
+    "name": "Rodzinna",
+    "address": "Wejherowska 16",
+    "phone": "+48 58 677 00 80",
+    "opening_hours": "Mo-Fr 8:00-19:00, Sa 9:00-14:00"
+  },
+  {
+    "id": "3604731020",
+    "lat": 53.9982399,
+    "lon": 16.9716567,
+    "name": "Wracam Do Zdrowia",
+    "address": "Dworcowa 3"
+  },
+  {
+    "id": "3605735174",
+    "lat": 54.6997728,
+    "lon": 18.6748466,
+    "name": "Wiktoria",
+    "address": "Mariana Stelmaszczyka 5A",
+    "phone": "+48 885 444 546",
+    "opening_hours": "Mo-Fr 08:30-21:30; Sa 08:30-21:30; Su off"
+  },
+  {
+    "id": "3618181089",
+    "lat": 54.4718582,
+    "lon": 18.3842379,
+    "name": "Bojano",
+    "address": "Józefa Wybickiego 20"
+  },
+  {
+    "id": "3621546805",
+    "lat": 54.3501515,
+    "lon": 18.6292086,
+    "name": "Antidotum",
+    "address": "Generała Józefa Sowińskiego 2",
+    "phone": "+48 58 302 01 92",
+    "opening_hours": "Mo-Fr 08:30-19:00; Sa 09:00-14:00; Su off"
+  },
+  {
+    "id": "3637115154",
+    "lat": 54.2697301,
+    "lon": 18.468728,
+    "name": "Apteka Rodzinna II",
+    "address": "Leśna 2"
+  },
+  {
+    "id": "3658887953",
+    "lat": 54.3262444,
+    "lon": 19.1797792,
+    "name": "Pod Lipami",
+    "address": "Gdańska 63",
+    "phone": "+48 55 247 94 61",
+    "opening_hours": "Mo-Fr 09:00-18:00; Sa 09:00-14:00; Su off; Jun-Aug 24/7"
+  },
+  {
+    "id": "3665450102",
+    "lat": 54.6193376,
+    "lon": 17.3709832,
+    "name": "Pod Wagą",
+    "address": "Tadeusza Kościuszki 1"
+  },
+  {
+    "id": "3673897023",
+    "lat": 54.12281,
+    "lon": 17.9693957,
+    "name": "Dr. Max",
+    "address": "Adama Mickiewicza 2c",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-18:00"
+  },
+  {
+    "id": "3673899366",
+    "lat": 54.121587,
+    "lon": 17.9693301,
+    "name": "Od Serca",
+    "address": "Stanisława Staszica 2",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "3673913181",
+    "lat": 54.3413047,
+    "lon": 18.6167835,
+    "name": "Polska",
+    "address": "Marcina Dragana 15D"
+  },
+  {
+    "id": "3673913188",
+    "lat": 54.3401013,
+    "lon": 18.6189089,
+    "name": "Dbam o Zdrowie",
+    "address": "Tytusa Chałubińskiego 29"
+  },
+  {
+    "id": "3675660619",
+    "lat": 54.5143266,
+    "lon": 18.5325443,
+    "name": "Apteka Dyżurna",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:15; Sa 08:00-15:00"
+  },
+  {
+    "id": "3686752444",
+    "lat": 54.3266714,
+    "lon": 18.1958102,
+    "name": "Św. Huberta",
+    "address": "Osiedle Generała Józefa Wybickiego 3A",
+    "phone": "+48 58 681 45 60",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00; Su 09:00-15:00"
+  },
+  {
+    "id": "3686752450",
+    "lat": 54.3311488,
+    "lon": 18.2016129,
+    "name": "Dom Leków",
+    "address": "Gdańska 14",
+    "opening_hours": "Mo-Sa 07:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "3686752451",
+    "lat": 54.3330693,
+    "lon": 18.2021137,
+    "name": "Tadeusza Kościuszki",
+    "address": "Tadeusza Kościuszki 17",
+    "phone": "+48 58 681 32 13",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00; Su 09:00-15:00"
+  },
+  {
+    "id": "3686752453",
+    "lat": 54.3339826,
+    "lon": 18.2015657,
+    "name": "Dbam o Zdrowie",
+    "address": "Rynek 10",
+    "phone": "+48 58 6810484",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "3686752454",
+    "lat": 54.34073,
+    "lon": 18.2019892,
+    "name": "Mściwoja II",
+    "address": "Mściwoja II 13",
+    "phone": "+48 58 736 61 34",
+    "opening_hours": "Mo-Fr 07:00-22:00; Sa 08:00-22:00; Su 09:00-22:00"
+  },
+  {
+    "id": "3686785787",
+    "lat": 54.5823213,
+    "lon": 18.4938872,
+    "name": "Przystanek",
+    "address": "Stefana Żeromskiego 34"
+  },
+  {
+    "id": "3692354461",
+    "lat": 53.7222087,
+    "lon": 18.4985798,
+    "name": "Apteka",
+    "address": "Wyzwolenia 23"
+  },
+  {
+    "id": "3702839397",
+    "lat": 54.3373596,
+    "lon": 18.1982165,
+    "name": "Dom Leków",
+    "address": "Floriana Ceynowy 8",
+    "phone": "+48 58 684 08 79",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "3711687786",
+    "lat": 54.2119214,
+    "lon": 19.109452,
+    "name": "Wracam Do Zdrowia",
+    "address": "Morska 1"
+  },
+  {
+    "id": "3721812875",
+    "lat": 53.7972168,
+    "lon": 17.9792182,
+    "name": "Wracam Do Zdrowia",
+    "address": "Cmentarna 4"
+  },
+  {
+    "id": "3776488560",
+    "lat": 54.5754157,
+    "lon": 18.4707462,
+    "name": "Punkt Apteczny Punkt Zdrowia",
+    "address": "Sowia 1",
+    "opening_hours": "Mo-Fr 08:30-20:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "3785376588",
+    "lat": 54.5211749,
+    "lon": 18.5324516,
+    "name": "Apteka Gdyńska",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "3790593677",
+    "lat": 54.5212972,
+    "lon": 18.5368817,
+    "name": "Gemini",
+    "address": "Adres nieznany",
+    "phone": "+48586220199",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 08:00-15:00; Su off"
+  },
+  {
+    "id": "3830036253",
+    "lat": 53.9651614,
+    "lon": 18.527022,
+    "name": "Gemini",
+    "address": "Lubichowska 14",
+    "phone": "+48 58 562 71 09",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-20:00; Su 10:00-18:00"
+  },
+  {
+    "id": "3830130773",
+    "lat": 53.9616721,
+    "lon": 18.5252159,
+    "name": "Dbam o Zdrowie",
+    "address": "Mikołaja Kopernika 21",
+    "phone": "+48 58 5633631",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00; Su off"
+  },
+  {
+    "id": "3830130774",
+    "lat": 53.9614187,
+    "lon": 18.530283,
+    "name": "Medpharma",
+    "address": "Aleja Jana Pawła II 5",
+    "phone": "+48 58 560 05 03",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-13:00; Su off"
+  },
+  {
+    "id": "3830130776",
+    "lat": 53.9653842,
+    "lon": 18.5242624,
+    "name": "Ponik",
+    "address": "Aleja Niepodległości 2A",
+    "phone": "+48 58 561 48 48",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 10:00 - 20:00"
+  },
+  {
+    "id": "3830697698",
+    "lat": 53.9667386,
+    "lon": 18.5264969,
+    "name": "Przy Rondzie",
+    "address": "Chojnicka 44",
+    "phone": "+48 58 562 25 25",
+    "opening_hours": "Mo-Fr 08:00-20:00;Sa 09:00 - 13:00; Su off"
+  },
+  {
+    "id": "3830697699",
+    "lat": 53.962681,
+    "lon": 18.5074906,
+    "name": "Wracam Do Zdrowia",
+    "address": "Juranda ze Spychowa 2",
+    "phone": "+48 58 560 07 55"
+  },
+  {
+    "id": "3830697700",
+    "lat": 53.9772993,
+    "lon": 18.5360365,
+    "name": "Wracam Do Zdrowia",
+    "address": "Romualda Traugutta 30",
+    "phone": "+48 58 560 03 35",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "3830697701",
+    "lat": 53.9645916,
+    "lon": 18.5291208,
+    "name": "Dbam o Zdrowie",
+    "address": "Pomorska 7"
+  },
+  {
+    "id": "3830941078",
+    "lat": 54.0771583,
+    "lon": 18.7998879,
+    "name": "Dbam o Zdrowie",
+    "address": "Czyżykowska 37",
+    "phone": "+48 58 530 10 23",
+    "opening_hours": "Mo-Fr 08:00 - 20:00, Sa 08:00 - 14:00"
+  },
+  {
+    "id": "3842670296",
+    "lat": 54.3514725,
+    "lon": 18.651917,
+    "name": "Dbam o Zdrowie",
+    "address": "Szeroka 21",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-16:00"
+  },
+  {
+    "id": "3854062777",
+    "lat": 53.9265651,
+    "lon": 18.7003298,
+    "name": "Wracam Do Zdrowia",
+    "address": "Adama Mickiewicza 21a"
+  },
+  {
+    "id": "3865324304",
+    "lat": 54.1032487,
+    "lon": 18.7763919,
+    "name": "Dbam o Zdrowie",
+    "address": "Aleja Solidarności 11",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 07:00-22:00; Su 07:00-22:00"
+  },
+  {
+    "id": "3870489178",
+    "lat": 54.2555404,
+    "lon": 18.6329231,
+    "name": "Centralna",
+    "address": "Wojska Polskiego 11"
+  },
+  {
+    "id": "3879021091",
+    "lat": 54.0869163,
+    "lon": 18.7939701,
+    "name": "Dr. Max",
+    "address": "Generała Jarosława Dąbrowskiego 10"
+  },
+  {
+    "id": "3882087192",
+    "lat": 54.3561455,
+    "lon": 18.6135687,
+    "name": "Dbam o Zdrowie",
+    "address": "Ludwika Beethovena 22A",
+    "opening_hours": "Mo-Fr 07:45-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "3886621180",
+    "lat": 54.0870963,
+    "lon": 18.79947,
+    "name": "Dbam o Zdrowie",
+    "address": "Plac Generała Józefa Hallera 24",
+    "opening_hours": "Mo-Sa 08:00-20:00, Su 09:00-19:00"
+  },
+  {
+    "id": "3935100343",
+    "lat": 54.2610934,
+    "lon": 18.6335104,
+    "name": "Rodzinna",
+    "address": "Wojska Polskiego 14"
+  },
+  {
+    "id": "3935717910",
+    "lat": 53.8971007,
+    "lon": 16.8363099,
+    "name": "Nova",
+    "address": "Nadrzeczna 2A"
+  },
+  {
+    "id": "3940166057",
+    "lat": 54.3111498,
+    "lon": 18.5667908,
+    "name": "Dr. Max",
+    "address": "Staropolska 32A"
+  },
+  {
+    "id": "3942549035",
+    "lat": 54.0953589,
+    "lon": 18.7873249,
+    "name": "Dbam o Zdrowie",
+    "address": "Gdańska 8C",
+    "opening_hours": "Mo-Su 08:00-22:00"
+  },
+  {
+    "id": "3970171536",
+    "lat": 53.694962,
+    "lon": 16.7028983,
+    "name": "Pod Złotym Moździerzem",
+    "address": "Warcisława IV 60"
+  },
+  {
+    "id": "4012266709",
+    "lat": 54.380614,
+    "lon": 18.5995936,
+    "name": "Jesionowa",
+    "address": "Jesionowa 2",
+    "opening_hours": "Mo-Fr 09:00-18:00"
+  },
+  {
+    "id": "4113400684",
+    "lat": 54.572981,
+    "lon": 18.4176754,
+    "name": "EKOzdrowie",
+    "address": "Dębogórska 132",
+    "phone": "+48 58 670 48 48",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "4116162991",
+    "lat": 54.3255485,
+    "lon": 18.6063549,
+    "name": "Gemini",
+    "address": "Królowej Jadwigi 137D"
+  },
+  {
+    "id": "4122606993",
+    "lat": 54.4660352,
+    "lon": 17.0292362,
+    "name": "Dbam o Zdrowie",
+    "address": "Nowobramska 4",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "4151750839",
+    "lat": 53.6663454,
+    "lon": 17.3572825,
+    "name": "Oberland",
+    "address": "Jana Długosza 29"
+  },
+  {
+    "id": "4151750844",
+    "lat": 53.6654737,
+    "lon": 17.3568742,
+    "name": "Rodzinna",
+    "address": "Jana Długosza 5"
+  },
+  {
+    "id": "4152753070",
+    "lat": 53.6657084,
+    "lon": 17.3569895,
+    "name": "Prima",
+    "address": "Jana Długosza 11"
+  },
+  {
+    "id": "4152753074",
+    "lat": 53.6613706,
+    "lon": 17.3546004,
+    "name": "Dbam o Zdrowie",
+    "address": "Jana III Sobieskiego 1"
+  },
+  {
+    "id": "4152753075",
+    "lat": 53.6617702,
+    "lon": 17.3525683,
+    "name": "Aspirynka",
+    "address": "Jana III Sobieskiego 5"
+  },
+  {
+    "id": "4152782372",
+    "lat": 53.6615857,
+    "lon": 17.3555495,
+    "name": "Centrum Zdrowia",
+    "address": "Szczecińska 13"
+  },
+  {
+    "id": "4155926391",
+    "lat": 54.0365221,
+    "lon": 19.0347402,
+    "name": "Dr. Max",
+    "address": "Tadeusza Kościuszki 16",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "4170217922",
+    "lat": 54.4412406,
+    "lon": 18.5627371,
+    "name": "Cosmedica",
+    "address": "Tadeusza Kościuszki 14",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "4185068989",
+    "lat": 54.5959041,
+    "lon": 18.3551232,
+    "name": "Starowiejska",
+    "address": "Franciszka Fenikowskiego 14",
+    "phone": "+48 58 740 60 46",
+    "opening_hours": "Mo-Sa 08:00-20:00; Su 09:00-16:00"
+  },
+  {
+    "id": "4228131274",
+    "lat": 53.4530306,
+    "lon": 18.7206023,
+    "name": "Rodzinna",
+    "address": "Kazimierza Mastalerza 5/7"
+  },
+  {
+    "id": "4228147422",
+    "lat": 53.4635302,
+    "lon": 18.730076,
+    "name": "Rodzinna",
+    "address": "Janusza Korczaka 25"
+  },
+  {
+    "id": "4228178746",
+    "lat": 53.4531131,
+    "lon": 18.7858856,
+    "name": "Dbam o Zdrowie",
+    "address": "Doktora Ludwika Rydygiera 15"
+  },
+  {
+    "id": "4272206489",
+    "lat": 54.3790793,
+    "lon": 19.440332,
+    "name": "Jarari",
+    "address": "Gdańska 89",
+    "phone": "+48 55 247 66 11",
+    "opening_hours": "Mo-Sa 08:00-20:00; Su 13:00-20:00"
+  },
+  {
+    "id": "4278800483",
+    "lat": 54.0341457,
+    "lon": 19.0334712,
+    "name": "Dbam o Zdrowie",
+    "address": "Jasna 10",
+    "phone": "+48552722212",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "4314056318",
+    "lat": 54.5196552,
+    "lon": 18.5286503,
+    "name": "Nowa Farmacja",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-18:30; Sa 09:00-15:00"
+  },
+  {
+    "id": "4314228285",
+    "lat": 54.5102462,
+    "lon": 18.5383725,
+    "name": "Świętego Alberta",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "4314287010",
+    "lat": 54.5032895,
+    "lon": 18.5325115,
+    "name": "Super-Pharm",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "4322762589",
+    "lat": 54.7895821,
+    "lon": 18.4072272,
+    "name": "Wracam Do Zdrowia",
+    "address": "Gdańska 2A",
+    "phone": "+48 798 002 397",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00; Su off"
+  },
+  {
+    "id": "4331835891",
+    "lat": 54.4940513,
+    "lon": 18.5416141,
+    "name": "Pod Korabiem",
+    "address": "Legionów 115D"
+  },
+  {
+    "id": "4338892113",
+    "lat": 54.5211259,
+    "lon": 18.5434513,
+    "name": "Dbam o Zdrowie",
+    "address": "Świętojańska 5",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-18:00"
+  },
+  {
+    "id": "4346611238",
+    "lat": 54.3564905,
+    "lon": 18.6484742,
+    "name": "Rajska",
+    "address": "Rajska 10"
+  },
+  {
+    "id": "4346611273",
+    "lat": 54.3572121,
+    "lon": 18.6515082,
+    "name": "Aksamitna",
+    "address": "Łagiewniki 52",
+    "phone": "+48 58 305 15 22",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 09:00-20:00; Su 09:00-18:00"
+  },
+  {
+    "id": "4372108711",
+    "lat": 54.402238,
+    "lon": 18.5744355,
+    "name": "Farmacja 24",
+    "address": "Aleja Grunwaldzka 471",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 08:00-20:00"
+  },
+  {
+    "id": "4387235758",
+    "lat": 54.4026279,
+    "lon": 18.5703794,
+    "name": "Medicover",
+    "address": "Aleja Grunwaldzka 472A",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "4398981478",
+    "lat": 54.4206779,
+    "lon": 18.5833035,
+    "name": "Dbam o Zdrowie",
+    "address": "Gospody 3A",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-18:00; Su 09:00-15:00"
+  },
+  {
+    "id": "4398981479",
+    "lat": 54.4209635,
+    "lon": 18.5841012,
+    "name": "Natura",
+    "address": "Gospody 3B",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "4403823196",
+    "lat": 54.5900648,
+    "lon": 17.862477,
+    "name": "Nowa",
+    "address": "Długa 42B",
+    "phone": "+48 58 888 20 37"
+  },
+  {
+    "id": "4413926789",
+    "lat": 53.8448948,
+    "lon": 18.0890188,
+    "name": "Wracam Do Zdrowia",
+    "address": "Okrężna 10A",
+    "phone": "+48 58 587 79 66",
+    "opening_hours": "Mo-Fr 08:00-16:00"
+  },
+  {
+    "id": "4417354719",
+    "lat": 54.1351546,
+    "lon": 18.7215881,
+    "name": "Punkt Apteczny",
+    "address": "Pamięci Narodowej 10"
+  },
+  {
+    "id": "4453037005",
+    "lat": 54.3469283,
+    "lon": 18.5098611,
+    "name": "Bałtycka",
+    "address": "Otomińska 15C",
+    "opening_hours": "Mo-Fr 07:30-20:00"
+  },
+  {
+    "id": "4453037006",
+    "lat": 54.352422,
+    "lon": 18.5129025,
+    "name": "Bałtycka",
+    "address": "Kalinowa 11",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 08:00-19:00; Su 10:00-16:00"
+  },
+  {
+    "id": "4457844271",
+    "lat": 54.4912702,
+    "lon": 18.5421603,
+    "name": "Cosmedica",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 09:00-21:00; Sa 09:00-19:00"
+  },
+  {
+    "id": "4460747319",
+    "lat": 54.3512733,
+    "lon": 18.5239512,
+    "name": "Dla Ciebie",
+    "address": "Szczęśliwa 3",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "4466937369",
+    "lat": 54.0987424,
+    "lon": 18.7640349,
+    "name": "Gemini",
+    "address": "Armii Krajowej 74"
+  },
+  {
+    "id": "4470336607",
+    "lat": 53.6999344,
+    "lon": 17.5536146,
+    "name": "Wracam Do Zdrowia",
+    "address": "Bytowska 7"
+  },
+  {
+    "id": "4470336608",
+    "lat": 53.6941648,
+    "lon": 17.557549,
+    "name": "Centrum Zdrowia",
+    "address": "Plac Piastowski 30",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "4472590846",
+    "lat": 54.3882267,
+    "lon": 18.3836073,
+    "name": "Św. Jana",
+    "address": "Pszenna 112A",
+    "phone": "+48583556766",
+    "opening_hours": "Mo-Fr 08:30-18:00"
+  },
+  {
+    "id": "4489338990",
+    "lat": 54.3998845,
+    "lon": 18.6607852,
+    "name": "Puls Farm",
+    "address": "Wyzwolenia 29"
+  },
+  {
+    "id": "4507132504",
+    "lat": 54.3793095,
+    "lon": 18.2890122,
+    "name": "Przystanek",
+    "address": "Gdańska 16B",
+    "phone": "+48 58 680 00 20",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00; Su 09:00-13:00"
+  },
+  {
+    "id": "4520414867",
+    "lat": 54.5647487,
+    "lon": 18.5040741,
+    "name": "Multiapteka",
+    "address": "Pułkownika Stanisława Dąbka 338",
+    "phone": "+48587282341",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "4552341145",
+    "lat": 54.7176032,
+    "lon": 18.4117695,
+    "name": "Pod Wieżą",
+    "address": "Wojska Polskiego 7"
+  },
+  {
+    "id": "4552751589",
+    "lat": 54.7205726,
+    "lon": 18.4134546,
+    "name": "Na Zdrowie",
+    "address": "Jana III Sobieskiego 1"
+  },
+  {
+    "id": "4582938011",
+    "lat": 54.2872061,
+    "lon": 18.9595582,
+    "name": "Pod Lipą",
+    "address": "Wiślana 23",
+    "phone": "+48 55 245 08 98"
+  },
+  {
+    "id": "4688818011",
+    "lat": 54.4731063,
+    "lon": 17.012177,
+    "name": "SzybkaApteka.pl",
+    "address": "3 Maja 82",
+    "opening_hours": "08:00-19:00"
+  },
+  {
+    "id": "4752448391",
+    "lat": 54.5199714,
+    "lon": 18.5425842,
+    "name": "Gemini",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa,Su 09:00-18:00"
+  },
+  {
+    "id": "4755575995",
+    "lat": 53.537185,
+    "lon": 16.8504671,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "4756880021",
+    "lat": 53.4195334,
+    "lon": 16.8172242,
+    "name": "Hipokrates",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "4780538169",
+    "lat": 54.6034292,
+    "lon": 18.350531,
+    "name": "Łąkowa",
+    "address": "Łąkowa 1"
+  },
+  {
+    "id": "4809194755",
+    "lat": 54.3382605,
+    "lon": 18.626395,
+    "name": "Cosmedica",
+    "address": "Stanisława Worcella 44"
+  },
+  {
+    "id": "4815349072",
+    "lat": 54.4093352,
+    "lon": 18.5990951,
+    "name": "Apteka na Obrońców Wybrzeża 2",
+    "address": "Obrońców Wybrzeża 2",
+    "phone": "+48 58 340 93 75",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "4832218754",
+    "lat": 54.4731565,
+    "lon": 18.4646724,
+    "name": "Dr. Max",
+    "address": "Rdestowa 4 A",
+    "phone": "+48 58 620 11 66",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "4832360169",
+    "lat": 54.2189788,
+    "lon": 18.1014097,
+    "name": "Pod Wieżycą",
+    "address": "Księdza Franciszka Motylewskiego 17",
+    "phone": "+48 58 684 6904"
+  },
+  {
+    "id": "4841202081",
+    "lat": 54.275108,
+    "lon": 18.5850554,
+    "name": "Rodzinna",
+    "address": "Komandora Kazimierza Kraszewskiego 1"
+  },
+  {
+    "id": "4849370544",
+    "lat": 54.265421,
+    "lon": 18.6587027,
+    "name": "Familijna",
+    "address": "Henryka Sienkiewicza 13"
+  },
+  {
+    "id": "4854051123",
+    "lat": 53.4218917,
+    "lon": 16.818289,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "4875883882",
+    "lat": 53.7053217,
+    "lon": 16.7041655,
+    "name": "Dbam o Zdrowie",
+    "address": "Spółdzielcza 6",
+    "phone": "+48 94 372 13 71",
+    "opening_hours": "Mo-Fr 08:00-18:00;Sa 09:00-13:00"
+  },
+  {
+    "id": "4904750521",
+    "lat": 54.5647285,
+    "lon": 18.4102872,
+    "name": "Starowiejska",
+    "address": "Gdańska 25",
+    "opening_hours": "Mo-Sa 08:00-20:00; Su 10:00-17:00"
+  },
+  {
+    "id": "4958261339",
+    "lat": 54.486817,
+    "lon": 18.2234107,
+    "name": "Geranium",
+    "address": "Wejherowska 35"
+  },
+  {
+    "id": "4979819351",
+    "lat": 54.75017,
+    "lon": 17.5751142,
+    "name": "Eskulap",
+    "address": "Łebska 54"
+  },
+  {
+    "id": "4988257518",
+    "lat": 54.7796448,
+    "lon": 18.1605034,
+    "name": "Dbam o Zdrowie",
+    "address": "Żarnowiecka 4"
+  },
+  {
+    "id": "4988258521",
+    "lat": 54.7788082,
+    "lon": 18.1612954,
+    "name": "Słoneczna",
+    "address": "Żarnowiecka 25",
+    "phone": "+48 58673 7639",
+    "opening_hours": "Mo-Fr 09:00-18:00, Sa 9:00-12:00"
+  },
+  {
+    "id": "4989687960",
+    "lat": 54.325042,
+    "lon": 17.7949471,
+    "name": "Punkt Apteczny",
+    "address": "Kościelna 6",
+    "opening_hours": "Mo-Fr 09:00-18:00; Sa 09:00-14:00; PH closed"
+  },
+  {
+    "id": "5006664923",
+    "lat": 54.4712168,
+    "lon": 17.0180645,
+    "name": "Vitae",
+    "address": "Hugona Kołłątaja 25",
+    "opening_hours": "Mo-Fr 08:00-18:00"
+  },
+  {
+    "id": "5010206598",
+    "lat": 54.3399896,
+    "lon": 19.2297909,
+    "name": "Punkt Apteczny Verbena",
+    "address": "Rybacka 61",
+    "opening_hours": "Mo-Fr 09:00-16:00; Sa 09:00-14:00; Su 10:00-15:00"
+  },
+  {
+    "id": "5022695603",
+    "lat": 54.1188364,
+    "lon": 17.9769479,
+    "name": "Dom Leków",
+    "address": "Mazurka Dąbrowskiego 1"
+  },
+  {
+    "id": "5032377562",
+    "lat": 54.6024426,
+    "lon": 18.2333325,
+    "name": "W Pastorówce",
+    "address": "Jana III Sobieskiego 237"
+  },
+  {
+    "id": "5045991041",
+    "lat": 54.3290601,
+    "lon": 18.6343493,
+    "name": "Stare Szkoty",
+    "address": "Trakt Świętego Wojciecha 85",
+    "opening_hours": "Mo-Fr 08:30-20:00; Sa 08:00-16:00; Su 10:00-14:00"
+  },
+  {
+    "id": "5046408991",
+    "lat": 54.3205745,
+    "lon": 18.294912,
+    "name": "Nad Jarem",
+    "address": "Piwna 2A"
+  },
+  {
+    "id": "5046462947",
+    "lat": 54.3269435,
+    "lon": 18.6316233,
+    "name": "Diamentowa",
+    "address": "Diamentowa 3"
+  },
+  {
+    "id": "5046462948",
+    "lat": 54.3227776,
+    "lon": 18.6317615,
+    "name": "Gemini",
+    "address": "Gościnna 3"
+  },
+  {
+    "id": "5049626395",
+    "lat": 54.2656073,
+    "lon": 18.6314665,
+    "name": "Dbam o Zdrowie",
+    "address": "Antoniego Dobrowolskiego 8"
+  },
+  {
+    "id": "5050346210",
+    "lat": 54.5849057,
+    "lon": 18.3741739,
+    "name": "Starowiejska",
+    "address": "Grunwaldzka 108",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 09:30-20:00"
+  },
+  {
+    "id": "5077729936",
+    "lat": 54.352596,
+    "lon": 18.6487582,
+    "name": "Gemini",
+    "address": "Targ Drzewny 3",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa-Su 09:00-18:00; PH off"
+  },
+  {
+    "id": "5086972162",
+    "lat": 54.3593279,
+    "lon": 18.5777862,
+    "name": "Cosmedica",
+    "address": "Józefa Żylewicza 2",
+    "opening_hours": "Mo-Sa 09:00-20:00; Su 10:00-15:00"
+  },
+  {
+    "id": "5139736518",
+    "lat": 54.5192814,
+    "lon": 18.5412708,
+    "name": "Dr. Max",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-18:00; Su 09:00-18:00"
+  },
+  {
+    "id": "5177655435",
+    "lat": 54.4429008,
+    "lon": 18.4162017,
+    "name": "Przystanek",
+    "address": "Oliwska 145"
+  },
+  {
+    "id": "5216823242",
+    "lat": 54.516045,
+    "lon": 18.5392485,
+    "name": "Millennium",
+    "address": "Antoniego Abrahama 48",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "5221225781",
+    "lat": 54.3554313,
+    "lon": 18.646842,
+    "name": "Grodzieńska",
+    "address": "Podwale Grodzkie 8",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-16:00; Su 10:00-17:00; PH off"
+  },
+  {
+    "id": "5260076820",
+    "lat": 53.6980524,
+    "lon": 17.5793884,
+    "name": "Dbam o Zdrowie",
+    "address": "Gdańska 49"
+  },
+  {
+    "id": "5260315654",
+    "lat": 53.6958455,
+    "lon": 17.57428,
+    "name": "Kasztelańska",
+    "address": "Gdańska 26A",
+    "phone": "+48 52 397 44 68",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "5265548486",
+    "lat": 54.6026243,
+    "lon": 18.3503747,
+    "name": "Wracam Do Zdrowia",
+    "address": "Gdańska 7",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "5280256478",
+    "lat": 53.9995849,
+    "lon": 18.7693864,
+    "name": "Punkt Apteczny Czyżykowska",
+    "address": "Józefa Wybickiego 17"
+  },
+  {
+    "id": "5315181193",
+    "lat": 54.4259039,
+    "lon": 18.4712214,
+    "name": "Apteki Dla Was",
+    "address": "Biwakowa 3"
+  },
+  {
+    "id": "5361893490",
+    "lat": 54.4419066,
+    "lon": 18.5637468,
+    "name": "Dr. Max",
+    "address": "Tadeusza Kościuszki 7",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 08:00-20:00"
+  },
+  {
+    "id": "5361893501",
+    "lat": 54.4439336,
+    "lon": 18.5666353,
+    "name": "Cosmedica",
+    "address": "Bohaterów Monte Cassino 44",
+    "opening_hours": "Mo-Fr 09:00-21:00; Sa 09:00-17:00; Su 10:00-16:00"
+  },
+  {
+    "id": "5425462230",
+    "lat": 54.7176994,
+    "lon": 18.3913954,
+    "name": "Rodzinna",
+    "address": "Żarnowiecka 1",
+    "phone": "+48 57 284 63 00"
+  },
+  {
+    "id": "5486336512",
+    "lat": 54.1600755,
+    "lon": 19.418774,
+    "name": "Racławicka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "5557866294",
+    "lat": 53.7709488,
+    "lon": 18.2004418,
+    "name": "Słoneczna",
+    "address": "Czerska 1"
+  },
+  {
+    "id": "5619084271",
+    "lat": 54.3505542,
+    "lon": 18.3668803,
+    "name": "Rodzinna",
+    "address": "Gdyńska 50",
+    "phone": "+48 58 685 89 48"
+  },
+  {
+    "id": "5653894070",
+    "lat": 54.6046446,
+    "lon": 18.2521731,
+    "name": "Centrum",
+    "address": "I Brygady Pancernej Wojska Polskiego 28"
+  },
+  {
+    "id": "5665806251",
+    "lat": 54.3498349,
+    "lon": 18.6432373,
+    "name": "Super-Pharm",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "5673253859",
+    "lat": 54.1655964,
+    "lon": 19.4067043,
+    "name": "Gemini",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00, Sa 08:00-16:00, Su 08:00-14:00"
+  },
+  {
+    "id": "5696556015",
+    "lat": 54.1498192,
+    "lon": 19.4259704,
+    "name": "Sadowa",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "5713667123",
+    "lat": 54.1502346,
+    "lon": 19.433648,
+    "name": "Za Politechniką",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "5717696405",
+    "lat": 54.6037438,
+    "lon": 18.2278916,
+    "name": "Gemini",
+    "address": "Dworcowa 3",
+    "phone": "+48 58 677 06 60"
+  },
+  {
+    "id": "5736839730",
+    "lat": 54.601465,
+    "lon": 18.2403769,
+    "name": "Dbam o Zdrowie",
+    "address": "Plac Jakuba Wejhera 3",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "5746958255",
+    "lat": 53.9033414,
+    "lon": 18.2226004,
+    "name": "Centrum",
+    "address": "Długa 9",
+    "phone": "+48511970969",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 07:30-14:00"
+  },
+  {
+    "id": "5759030779",
+    "lat": 54.4570161,
+    "lon": 18.5520221,
+    "name": "Dom Leków",
+    "address": "Małopolska 7"
+  },
+  {
+    "id": "5762357886",
+    "lat": 54.4671006,
+    "lon": 17.0234623,
+    "name": "Dr. Max",
+    "address": "Wojska Polskiego 44",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "5796951379",
+    "lat": 54.5332411,
+    "lon": 17.7535789,
+    "name": "Dbam o Zdrowie",
+    "address": "Toruńska 6"
+  },
+  {
+    "id": "5803853387",
+    "lat": 53.7549117,
+    "lon": 19.2029055,
+    "name": "Wracam Do Zdrowia",
+    "address": "Łąkowa 27"
+  },
+  {
+    "id": "5824906956",
+    "lat": 54.3217894,
+    "lon": 18.6051274,
+    "name": "Gemini",
+    "address": "Świętokrzyska 21"
+  },
+  {
+    "id": "5833109287",
+    "lat": 54.2392609,
+    "lon": 17.2302986,
+    "name": "Helios",
+    "address": "Słupska 24"
+  },
+  {
+    "id": "5836985469",
+    "lat": 54.5845183,
+    "lon": 16.8593423,
+    "name": "Pod Smokiem",
+    "address": "Jana Kilińskiego 8",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa-Su 08:00-20:00"
+  },
+  {
+    "id": "5851194537",
+    "lat": 54.0002154,
+    "lon": 16.9768572,
+    "name": "Centralna",
+    "address": "Armii Krajowej 22"
+  },
+  {
+    "id": "5867157134",
+    "lat": 54.0890449,
+    "lon": 18.7854654,
+    "name": "Dbam o Zdrowie",
+    "address": "Wojska Polskiego 16A",
+    "opening_hours": "Mo-Fr 08:00-18:00, Sa 08:00-14:00"
+  },
+  {
+    "id": "5867189265",
+    "lat": 54.1003527,
+    "lon": 18.7670707,
+    "name": "Dbam o Zdrowie",
+    "address": "Armii Krajowej 19E",
+    "phone": "+48 585 316 531",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "5867235626",
+    "lat": 54.0960625,
+    "lon": 18.7672577,
+    "name": "Dbam o Zdrowie",
+    "address": "Franciszka Żwirki 49",
+    "phone": "+48 58 531 54 56",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "5867244092",
+    "lat": 54.0970947,
+    "lon": 18.7811093,
+    "name": "Dbam o Zdrowie",
+    "address": "Jedności Narodu 16",
+    "phone": "+48 58 531 44 61",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "5867263587",
+    "lat": 54.0920944,
+    "lon": 18.7876078,
+    "name": "Dbam o Zdrowie",
+    "address": "Króla Jana III Sobieskiego 38A",
+    "phone": "+48 58 777 01 96",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "5890591694",
+    "lat": 54.719028,
+    "lon": 18.392355,
+    "name": "Dbam o Zdrowie",
+    "address": "10 Lutego 52",
+    "phone": "+48 501 865 136"
+  },
+  {
+    "id": "5908737802",
+    "lat": 54.5824833,
+    "lon": 16.8593751,
+    "name": "Remedium",
+    "address": "Księdza Kardynała Stefana Wyszyńskiego 1b"
+  },
+  {
+    "id": "5908737803",
+    "lat": 54.5787467,
+    "lon": 16.873796,
+    "name": "Centrum Leków",
+    "address": "Grunwaldzka 26",
+    "phone": "+48 692 761 116",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00; Su off"
+  },
+  {
+    "id": "5908737804",
+    "lat": 54.5782548,
+    "lon": 16.8553122,
+    "name": "Stokrotka",
+    "address": "Darłowska 7A",
+    "phone": "+48 605 352 090",
+    "opening_hours": "Sa 09:00-15:00; Su off; Mo-Fr 09:00-20:00"
+  },
+  {
+    "id": "5908778052",
+    "lat": 54.7588928,
+    "lon": 17.5572973,
+    "name": "Łebska",
+    "address": "10 Marca 2",
+    "opening_hours": "Mo-Su 07:00-23:00"
+  },
+  {
+    "id": "5908812315",
+    "lat": 54.7998461,
+    "lon": 18.3927926,
+    "name": "Klifowa",
+    "address": "Słoneczna 16A"
+  },
+  {
+    "id": "5912313668",
+    "lat": 54.4404739,
+    "lon": 18.568508,
+    "name": "Gemini",
+    "address": "Bolesława Chrobrego 1"
+  },
+  {
+    "id": "6051754754",
+    "lat": 54.4209572,
+    "lon": 18.5718324,
+    "name": "Gemini",
+    "address": "Subisława 30",
+    "phone": "+48 58 340 82 44",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa 08:00-18:00; Su 09:00-15:00"
+  },
+  {
+    "id": "6126606124",
+    "lat": 54.1713826,
+    "lon": 19.4018319,
+    "name": "Dyżurna",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "6138890517",
+    "lat": 54.1761798,
+    "lon": 19.4042617,
+    "name": "Przy Rynku",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "6154196928",
+    "lat": 54.1657486,
+    "lon": 19.4015591,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "6170045584",
+    "lat": 53.6997803,
+    "lon": 17.5734043,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Sa 07:00-21:00"
+  },
+  {
+    "id": "6179039577",
+    "lat": 54.2727449,
+    "lon": 18.6122107,
+    "name": "Anafarm",
+    "address": "Bajki 6"
+  },
+  {
+    "id": "6203232739",
+    "lat": 54.4348583,
+    "lon": 18.5617899,
+    "name": "Kuracyjna",
+    "address": "Aleja Niepodległości 715",
+    "phone": "+48 58 551 2276",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "6236625792",
+    "lat": 54.1664478,
+    "lon": 19.4108441,
+    "name": "Bios",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "6251051511",
+    "lat": 54.4029807,
+    "lon": 18.6100343,
+    "name": "Dom Leków",
+    "address": "Janusza Meissnera 20"
+  },
+  {
+    "id": "6258079039",
+    "lat": 54.3902493,
+    "lon": 18.5930762,
+    "name": "Cosmedica",
+    "address": "Franciszka Hynka 65",
+    "phone": "+48 58 761 38 80",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "6328736708",
+    "lat": 54.351265,
+    "lon": 18.6344386,
+    "name": "Dbam o Zdrowie",
+    "address": "Kartuska 17",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "6341075496",
+    "lat": 54.3113132,
+    "lon": 18.5973624,
+    "name": "Bałtycka",
+    "address": "Niepołomicka 32"
+  },
+  {
+    "id": "6357831444",
+    "lat": 54.1849733,
+    "lon": 19.4043749,
+    "name": "Apteka Centrum",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "6360549579",
+    "lat": 54.6039571,
+    "lon": 18.2421552,
+    "name": "Bursztynowa",
+    "address": "Pucka 20",
+    "phone": "+48 58 672 03 22"
+  },
+  {
+    "id": "6381951271",
+    "lat": 54.3893169,
+    "lon": 18.5689212,
+    "name": "VII Dwór",
+    "address": "Piotra Norblina 28",
+    "opening_hours": "Mo-Fr 10:00-20:00"
+  },
+  {
+    "id": "6418069135",
+    "lat": 54.1801343,
+    "lon": 19.4053561,
+    "name": "Przy Gildii",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "6426151444",
+    "lat": 54.355672,
+    "lon": 18.6142744,
+    "name": "Dom Leków",
+    "address": "Zygmunta Noskowskiego 1",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "6426799815",
+    "lat": 54.3547847,
+    "lon": 18.6459412,
+    "name": "Dbam o Zdrowie",
+    "address": "Karmelicka 1",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 09:00-20:00"
+  },
+  {
+    "id": "6426799816",
+    "lat": 54.3590279,
+    "lon": 18.6543172,
+    "name": "Dbam o Zdrowie",
+    "address": "Wałowa 27a",
+    "opening_hours": "Mo-Fr 07:30-19:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "6453106917",
+    "lat": 53.8513171,
+    "lon": 18.4025953,
+    "name": "Aspirynka",
+    "address": "Starogardzka 29"
+  },
+  {
+    "id": "6501903345",
+    "lat": 54.183438,
+    "lon": 19.4201696,
+    "name": "Dyżurna",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "6509053868",
+    "lat": 53.9225952,
+    "lon": 19.170417,
+    "name": "Akacjowa",
+    "address": "Nowotarska 1"
+  },
+  {
+    "id": "6528059287",
+    "lat": 54.2613254,
+    "lon": 18.6380426,
+    "name": "Apteka Gemini",
+    "address": "Aleja Księdza Józefa Waląga 4"
+  },
+  {
+    "id": "6551126159",
+    "lat": 54.4666113,
+    "lon": 17.0307304,
+    "name": "Gemini",
+    "address": "Stary Rynek 5",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa 08:00-17:00"
+  },
+  {
+    "id": "6575454394",
+    "lat": 54.3524576,
+    "lon": 18.5930324,
+    "name": "Mini",
+    "address": "Franciszka Schuberta 102A"
+  },
+  {
+    "id": "6575474938",
+    "lat": 54.355181,
+    "lon": 18.5936466,
+    "name": "Gemini",
+    "address": "Trzy Lipy 3",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "6584956396",
+    "lat": 54.4653311,
+    "lon": 17.0257223,
+    "name": "Dom Leków Ratuszowa",
+    "address": "Juliana Tuwima 4",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "6592857181",
+    "lat": 53.5373862,
+    "lon": 17.2360048,
+    "name": "Nowa",
+    "address": "Tadeusza Kościuszki 3-5",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "6620396170",
+    "lat": 54.1792899,
+    "lon": 19.4260345,
+    "name": "Dyżurna",
+    "address": "Królewiecka 195C"
+  },
+  {
+    "id": "6645657649",
+    "lat": 54.1325156,
+    "lon": 18.2008382,
+    "name": "Apteka Pëla",
+    "address": "Kościerska 7"
+  },
+  {
+    "id": "6677227719",
+    "lat": 54.187277,
+    "lon": 19.4163544,
+    "name": "Centrum Leków",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "6736736318",
+    "lat": 54.5129147,
+    "lon": 18.539442,
+    "name": "Apteka Świętojańska",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "6761526578",
+    "lat": 54.4943021,
+    "lon": 18.5510662,
+    "name": "Apteka Słowiańska",
+    "address": "Bohaterów Starówki Warszawskiej 5"
+  },
+  {
+    "id": "6780662375",
+    "lat": 54.1887867,
+    "lon": 19.4256747,
+    "name": "Regenium",
+    "address": "Jana Myliusa 20",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "6795940120",
+    "lat": 54.3265747,
+    "lon": 19.1191261,
+    "name": "Medfarm",
+    "address": "Gdańska 36",
+    "phone": "+48 55 277 64 64",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "6798213456",
+    "lat": 54.3762113,
+    "lon": 18.6124086,
+    "name": "Calamus",
+    "address": "Aleja Grunwaldzka 52",
+    "opening_hours": "Mo-Fr 08:00-22:00; Sa 09:00-19:00"
+  },
+  {
+    "id": "6918362957",
+    "lat": 54.3886579,
+    "lon": 18.0885032,
+    "name": "Punkt Apteczny Dbam O Zdrowie",
+    "address": "11"
+  },
+  {
+    "id": "6918423156",
+    "lat": 54.3460618,
+    "lon": 17.8909686,
+    "name": "Starowiejska",
+    "address": "Słupska 4",
+    "phone": "+48 58 681 92 18",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "6975837834",
+    "lat": 54.6050995,
+    "lon": 18.2533803,
+    "name": "Gdańska",
+    "address": "Kociewska 10"
+  },
+  {
+    "id": "6993504354",
+    "lat": 53.7002224,
+    "lon": 17.571637,
+    "name": "Apteka Promedica",
+    "address": "Młodzieżowa 35",
+    "opening_hours": "Mo-Fr 07:30-19:30; Sa 08:00-14:00"
+  },
+  {
+    "id": "7074467667",
+    "lat": 54.3537687,
+    "lon": 18.6071519,
+    "name": "Cosmedica",
+    "address": "Ignacego Paderewskiego 9",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "7080102981",
+    "lat": 54.5299874,
+    "lon": 18.5044248,
+    "name": "Dr. Max",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 08:00-20:00; Su 09:00-19:00"
+  },
+  {
+    "id": "7102037227",
+    "lat": 54.5681313,
+    "lon": 18.3964086,
+    "name": "Gemini",
+    "address": "Henryka Dąbrowskiego 20",
+    "phone": "+48 58 572 10 91",
+    "opening_hours": "Mo-Fr 08:00-20:00, Sa 08:00-16:00, Su 09:00-15:00"
+  },
+  {
+    "id": "7123888906",
+    "lat": 54.4418487,
+    "lon": 16.99973,
+    "name": "W Kobylnicy",
+    "address": "Główna 43",
+    "phone": "+48 59 843 37 11",
+    "opening_hours": "Mo-Fr 08:00-21:00,Sa 09:00-16:00"
+  },
+  {
+    "id": "7156137385",
+    "lat": 54.3439948,
+    "lon": 18.6486408,
+    "name": "Cosmedica",
+    "address": "Żabi Kruk 10",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-17:00"
+  },
+  {
+    "id": "7194006896",
+    "lat": 54.0248221,
+    "lon": 18.3173018,
+    "name": "Słoneczna",
+    "address": "Cystersów 4"
+  },
+  {
+    "id": "7218831971",
+    "lat": 54.376611,
+    "lon": 18.6112247,
+    "name": "Dbam o Zdrowie",
+    "address": "Aleja Grunwaldzka 60",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00; Su off"
+  },
+  {
+    "id": "7222921990",
+    "lat": 54.3896467,
+    "lon": 18.6033144,
+    "name": "Vena",
+    "address": "Dywizjonu 303 23",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "7288557296",
+    "lat": 54.3769437,
+    "lon": 18.2869669,
+    "name": "Św. Marcina",
+    "address": "Kartuska 24",
+    "phone": "+48 58 355 51 04",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa,Su,PH off"
+  },
+  {
+    "id": "7340473337",
+    "lat": 53.6883737,
+    "lon": 17.5750768,
+    "name": "Alba",
+    "address": "Towarowa 2A"
+  },
+  {
+    "id": "7463558787",
+    "lat": 54.0312573,
+    "lon": 19.0238261,
+    "name": "Alba",
+    "address": "Juliusza Słowackiego 71"
+  },
+  {
+    "id": "7623631688",
+    "lat": 54.435562,
+    "lon": 17.734819,
+    "name": "Twoja Apteka",
+    "address": "Wincentego Witosa 42",
+    "opening_hours": "Mo-Fr 08:30-18:00; Sa 08:00-14:00; PH closed"
+  },
+  {
+    "id": "7636442385",
+    "lat": 54.4568841,
+    "lon": 17.0610235,
+    "name": "Na Hubalczyków",
+    "address": "Hubalczyków 13B",
+    "phone": "+487153152"
+  },
+  {
+    "id": "7636454487",
+    "lat": 54.4486692,
+    "lon": 17.0602784,
+    "name": "Jodłowa",
+    "address": "Jodłowa 53A",
+    "opening_hours": "Mo-Fr 09:00-20:00; Sa 10:00-14:00"
+  },
+  {
+    "id": "7638373086",
+    "lat": 54.4713432,
+    "lon": 17.0251193,
+    "name": "Dbam o Zdrowie",
+    "address": "Wolności 6",
+    "opening_hours": "Mo-Th 08:00-19:00; Sa 08:00-16:00"
+  },
+  {
+    "id": "7667837462",
+    "lat": 53.6944863,
+    "lon": 17.5732914,
+    "name": "Centrum Zdrowia",
+    "address": "Michała Drzymały 33"
+  },
+  {
+    "id": "7911932740",
+    "lat": 54.4694831,
+    "lon": 18.4702394,
+    "name": "Dom Leków",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "7929289085",
+    "lat": 54.4971308,
+    "lon": 18.4393019,
+    "name": "Apteka Serdeczna",
+    "address": "Adres nieznany",
+    "phone": "+48 58 711 89 89",
+    "opening_hours": "Mo-Fr 08:00-20:30; Sa 09:00-16:00"
+  },
+  {
+    "id": "8004097229",
+    "lat": 54.3930126,
+    "lon": 18.6103012,
+    "name": "Dbam o Zdrowie",
+    "address": "Żwirki i Wigury 12",
+    "phone": "+48 800 110 110",
+    "opening_hours": "Mo-Fr 08:00-17:00; Sa 09:00-13:00"
+  },
+  {
+    "id": "8032794352",
+    "lat": 54.3898317,
+    "lon": 18.6092688,
+    "name": "Dbam o Zdrowie",
+    "address": "Aleja Rzeczypospolitej 33",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 09:00-19:00"
+  },
+  {
+    "id": "8037675699",
+    "lat": 54.3910886,
+    "lon": 18.609915,
+    "name": "Dbam o Zdrowie",
+    "address": "Żwirki i Wigury 6",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "8037675703",
+    "lat": 54.391579,
+    "lon": 18.6098326,
+    "name": "Gemini",
+    "address": "Żwirki i Wigury 8",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-18:00; Su 09:00-15:00"
+  },
+  {
+    "id": "8192459553",
+    "lat": 53.5896464,
+    "lon": 19.5672474,
+    "name": "Nova",
+    "address": "Mikołaja Kopernika 3",
+    "phone": "+48 89 6488381",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "8364194682",
+    "lat": 53.5985795,
+    "lon": 18.3490125,
+    "name": "Pod Łabędziem",
+    "address": "Henryka Sienkiewicza 5"
+  },
+  {
+    "id": "8423500500",
+    "lat": 54.4129108,
+    "lon": 18.5929178,
+    "name": "Gemini",
+    "address": "Jagiellońska 4"
+  },
+  {
+    "id": "8423500515",
+    "lat": 54.4054899,
+    "lon": 18.5991255,
+    "name": "Gemini",
+    "address": "Kołobrzeska 63F"
+  },
+  {
+    "id": "8520913906",
+    "lat": 53.9852336,
+    "lon": 18.1715828,
+    "name": "Od Serca",
+    "address": "Wyzwolenia 12"
+  },
+  {
+    "id": "8522542820",
+    "lat": 53.5861007,
+    "lon": 19.5676294,
+    "name": "Apteka",
+    "address": "Generała Władysława Andersa 3"
+  },
+  {
+    "id": "8694924036",
+    "lat": 53.7554519,
+    "lon": 17.7712966,
+    "name": "Dbam o Zdrowie",
+    "address": "Ostrowska 18A"
+  },
+  {
+    "id": "8806197748",
+    "lat": 54.3525972,
+    "lon": 18.646392,
+    "name": "Dr. Max",
+    "address": "Wały Jagiellońskie 28/30",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa,Su 08:00-18:00"
+  },
+  {
+    "id": "8859915727",
+    "lat": 54.5656309,
+    "lon": 18.4119933,
+    "name": "Dbam o Zdrowie",
+    "address": "Gdańska 40"
+  },
+  {
+    "id": "8883169003",
+    "lat": 54.487227,
+    "lon": 18.2207142,
+    "name": "W Szemudzie",
+    "address": "Szkolna 2",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 08:00-13:00"
+  },
+  {
+    "id": "8884268949",
+    "lat": 54.3475337,
+    "lon": 18.6609867,
+    "name": "Dr. Max",
+    "address": "Szafarnia 11",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-17:00; Su 10:00-16:00"
+  },
+  {
+    "id": "8890292982",
+    "lat": 54.4845104,
+    "lon": 18.5384663,
+    "name": "Apteka ''Wracam do zdrowia''",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "8890765272",
+    "lat": 54.4540052,
+    "lon": 18.3345228,
+    "name": "W Kielnie",
+    "address": "Szkolna 1"
+  },
+  {
+    "id": "8914401851",
+    "lat": 54.3580661,
+    "lon": 18.5808985,
+    "name": "Gemini",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 07:00-21:00"
+  },
+  {
+    "id": "8991454469",
+    "lat": 54.1598492,
+    "lon": 19.3960228,
+    "name": "Na Starówce",
+    "address": "Adres nieznany",
+    "phone": "+48 55 232 83 81",
+    "opening_hours": "Mo-Fr 09:00-19:00; Sa 09:00-14:00; Su off"
+  },
+  {
+    "id": "9049461218",
+    "lat": 54.3572646,
+    "lon": 17.5654873,
+    "name": "Centrum Zdrowia",
+    "address": "Lęborska 9"
+  },
+  {
+    "id": "9178826290",
+    "lat": 53.9202644,
+    "lon": 19.0308657,
+    "name": "Centralna",
+    "address": "Adama Mickiewicza 50"
+  },
+  {
+    "id": "9179224043",
+    "lat": 53.9151948,
+    "lon": 19.0380359,
+    "name": "Św. Anny",
+    "address": "Galla Anonima 12"
+  },
+  {
+    "id": "9179243954",
+    "lat": 53.9211866,
+    "lon": 19.3479282,
+    "name": "Dbam o Zdrowie",
+    "address": "Odrodzenia 5"
+  },
+  {
+    "id": "9179260830",
+    "lat": 53.9213108,
+    "lon": 19.3470115,
+    "name": "Herbowa",
+    "address": "Juliusza Słowackiego 1"
+  },
+  {
+    "id": "9179269974",
+    "lat": 53.9167424,
+    "lon": 19.0347702,
+    "name": "Centrum Zdrowia",
+    "address": "Krzysztofa Kamila Baczyńskiego 1"
+  },
+  {
+    "id": "9179275778",
+    "lat": 53.9094958,
+    "lon": 19.5033052,
+    "name": "Punkt Apteczny Arnika",
+    "address": "5"
+  },
+  {
+    "id": "9179279562",
+    "lat": 53.985622,
+    "lon": 19.1523161,
+    "name": "Punkt Apteczny",
+    "address": "9c"
+  },
+  {
+    "id": "9180997034",
+    "lat": 54.0440042,
+    "lon": 19.0212125,
+    "name": "Apteka",
+    "address": "Ludwika Solskiego 1"
+  },
+  {
+    "id": "9180997788",
+    "lat": 54.0140608,
+    "lon": 18.9181426,
+    "name": "Verbena",
+    "address": "Żuławska 14",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-14:00; Su off"
+  },
+  {
+    "id": "9181004408",
+    "lat": 54.031802,
+    "lon": 19.0237795,
+    "name": "Malborska",
+    "address": "Juliusza Słowackiego 75"
+  },
+  {
+    "id": "9181011803",
+    "lat": 54.1142368,
+    "lon": 18.9150635,
+    "name": "Punkt apteczny",
+    "address": "Lachowicza 29c"
+  },
+  {
+    "id": "9181013514",
+    "lat": 54.05394,
+    "lon": 19.2012772,
+    "name": "Rodzinna",
+    "address": "Marynarki Wojennej 6"
+  },
+  {
+    "id": "9181025796",
+    "lat": 54.0316475,
+    "lon": 19.0335351,
+    "name": "Centrum Zdrowia",
+    "address": "Marii Konopnickiej 4"
+  },
+  {
+    "id": "9181028920",
+    "lat": 54.0362649,
+    "lon": 19.0626219,
+    "name": "Dbam o Zdrowie",
+    "address": "Koszykowa 2"
+  },
+  {
+    "id": "9181035126",
+    "lat": 54.0366583,
+    "lon": 19.0355551,
+    "name": "Gemini",
+    "address": "Tadeusza Kościuszki 48"
+  },
+  {
+    "id": "9183723777",
+    "lat": 54.0358533,
+    "lon": 19.0426496,
+    "name": "Medical",
+    "address": "Dworcowa 17"
+  },
+  {
+    "id": "9183865034",
+    "lat": 53.9215891,
+    "lon": 19.0296465,
+    "name": "Apteka Alfa",
+    "address": "Henryka Sienkiewicza 10"
+  },
+  {
+    "id": "9183909660",
+    "lat": 53.8509459,
+    "lon": 19.1638065,
+    "name": "Pomorska",
+    "address": "Dworcowa 4"
+  },
+  {
+    "id": "9184495709",
+    "lat": 53.7551432,
+    "lon": 19.2026284,
+    "name": "Mandragora",
+    "address": "Łąkowa 33"
+  },
+  {
+    "id": "9184548510",
+    "lat": 53.8456223,
+    "lon": 18.9615378,
+    "name": "Medfarm",
+    "address": "Grunwaldzka 76"
+  },
+  {
+    "id": "9184892437",
+    "lat": 53.7311702,
+    "lon": 18.9289515,
+    "name": "Wracam Do Zdrowia",
+    "address": "Mikołaja Kopernika 25A"
+  },
+  {
+    "id": "9184980948",
+    "lat": 53.7320791,
+    "lon": 18.9316962,
+    "name": "Gemini",
+    "address": "Fryderyka Chopina 27"
+  },
+  {
+    "id": "9185105092",
+    "lat": 53.7274976,
+    "lon": 19.0223273,
+    "name": "Apteka",
+    "address": "Parkowa 1"
+  },
+  {
+    "id": "9185145989",
+    "lat": 53.7333394,
+    "lon": 18.9305581,
+    "name": "Społeczna",
+    "address": "Mikołaja Kopernika 12"
+  },
+  {
+    "id": "9185157675",
+    "lat": 53.7239151,
+    "lon": 18.9380217,
+    "name": "Apteka Alba",
+    "address": "Janusza Korczaka 10B"
+  },
+  {
+    "id": "9185239562",
+    "lat": 53.7346738,
+    "lon": 18.933668,
+    "name": "Dbam o Zdrowie",
+    "address": "3 Maja 26"
+  },
+  {
+    "id": "9185242521",
+    "lat": 53.7393128,
+    "lon": 18.9394278,
+    "name": "Euro Apteka",
+    "address": "Krótka 4"
+  },
+  {
+    "id": "9185247294",
+    "lat": 53.7364162,
+    "lon": 18.9283828,
+    "name": "Farmacja24",
+    "address": "Braterstwa Narodów 52",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-12:00"
+  },
+  {
+    "id": "9321728462",
+    "lat": 53.4691899,
+    "lon": 18.7565854,
+    "name": "Dr.Max",
+    "address": "Stanisława Konarskiego 45"
+  },
+  {
+    "id": "9337357151",
+    "lat": 54.1769112,
+    "lon": 17.4989848,
+    "name": "Centrum Zdrowia",
+    "address": "Księdza doktora Bernarda Sychty 3",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "9351960364",
+    "lat": 54.3205254,
+    "lon": 18.2517145,
+    "name": "Pëla",
+    "address": "Kartuska 2D",
+    "phone": "+48 575 732 888",
+    "opening_hours": "Mo-Fr 07:00-21:00; Sa 08:00-20:00"
+  },
+  {
+    "id": "9385590364",
+    "lat": 54.3422289,
+    "lon": 18.3653013,
+    "name": "Dbam o Zdrowie",
+    "address": "Gdańska 40",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-14:00; Su,PH off"
+  },
+  {
+    "id": "9391611033",
+    "lat": 54.1775388,
+    "lon": 17.4858137,
+    "name": "Rodzinna",
+    "address": "Lęborska 11"
+  },
+  {
+    "id": "9410617003",
+    "lat": 54.3838213,
+    "lon": 18.5885114,
+    "name": "Szymanowskiego",
+    "address": "Karola Szymanowskiego 14",
+    "opening_hours": "Mo-Fr 08:30-19:30; Sa 09:00-15:00"
+  },
+  {
+    "id": "9425689927",
+    "lat": 54.4267854,
+    "lon": 18.4907031,
+    "name": "Multi Pharm",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "9457948841",
+    "lat": 54.4647319,
+    "lon": 16.9889404,
+    "name": "Prima",
+    "address": "11 Listopada 17"
+  },
+  {
+    "id": "9530690516",
+    "lat": 54.1693901,
+    "lon": 17.4897626,
+    "name": "Pod Aniołem",
+    "address": "Jana Pawła II 5"
+  },
+  {
+    "id": "9542738606",
+    "lat": 54.2854167,
+    "lon": 18.2041065,
+    "name": "Przystanek",
+    "address": "Spółdzielców 1"
+  },
+  {
+    "id": "9542738608",
+    "lat": 54.2718576,
+    "lon": 18.1942756,
+    "name": "Dr Ceynowy",
+    "address": "Floriana Ceynowy 20"
+  },
+  {
+    "id": "9542738609",
+    "lat": 54.2716602,
+    "lon": 17.9465315,
+    "name": "Pod Wieżycą",
+    "address": "Długa 19"
+  },
+  {
+    "id": "9542738610",
+    "lat": 54.2405486,
+    "lon": 17.8968174,
+    "name": "Punkt Apteczny",
+    "address": "Generała Józefa Wybickiego 4"
+  },
+  {
+    "id": "9542738611",
+    "lat": 54.2101325,
+    "lon": 17.9466437,
+    "name": "Przy Przychodni",
+    "address": "Bernarda Sychty 32"
+  },
+  {
+    "id": "9542738612",
+    "lat": 54.2127436,
+    "lon": 18.0297722,
+    "name": "Nad Strugą",
+    "address": "Młyńska 5"
+  },
+  {
+    "id": "9542738613",
+    "lat": 54.2309698,
+    "lon": 17.7746794,
+    "name": "Kaszubska",
+    "address": "Kaszubska 22B"
+  },
+  {
+    "id": "9542738614",
+    "lat": 54.3673532,
+    "lon": 18.3969968,
+    "name": "Punkt Apteczny Pod Gryfem",
+    "address": "Armii Krajowej 2"
+  },
+  {
+    "id": "9542738615",
+    "lat": 54.3336987,
+    "lon": 18.2006808,
+    "name": "Na Deptaku",
+    "address": "Dworcowa 4"
+  },
+  {
+    "id": "9542738616",
+    "lat": 54.3453575,
+    "lon": 18.3651196,
+    "name": "od Serca",
+    "address": "Pożarna 2A"
+  },
+  {
+    "id": "9542749119",
+    "lat": 54.3468177,
+    "lon": 18.3655541,
+    "name": "Od Serca",
+    "address": "Gdyńska 22D"
+  },
+  {
+    "id": "9542749120",
+    "lat": 54.327379,
+    "lon": 18.1019829,
+    "name": "Kartuska",
+    "address": "Plac Trojana 1"
+  },
+  {
+    "id": "9542749121",
+    "lat": 54.3458307,
+    "lon": 17.8912033,
+    "name": "Pod Orłem",
+    "address": "Słupska 3"
+  },
+  {
+    "id": "9542749123",
+    "lat": 54.3435635,
+    "lon": 17.8941024,
+    "name": "Aleppo",
+    "address": "Kartuska 14A"
+  },
+  {
+    "id": "9543572490",
+    "lat": 54.2316463,
+    "lon": 18.6348511,
+    "name": "Wracam Do Zdrowia",
+    "address": "Długa 101A"
+  },
+  {
+    "id": "9543572491",
+    "lat": 54.2645501,
+    "lon": 18.6641392,
+    "name": "Multipharm",
+    "address": "Jana Kasprowicza 52"
+  },
+  {
+    "id": "9543572493",
+    "lat": 54.1729872,
+    "lon": 18.6901525,
+    "name": "Medical",
+    "address": "Sportowa 1B"
+  },
+  {
+    "id": "9543572494",
+    "lat": 54.259917,
+    "lon": 18.6732781,
+    "name": "Magnolia",
+    "address": "Józefa Konrada Korzeniowskiego 66"
+  },
+  {
+    "id": "9543572495",
+    "lat": 54.2706078,
+    "lon": 18.6265051,
+    "name": "Bursztynowa",
+    "address": "Stefana Rogozińskiego 6",
+    "phone": "+48 58 670 42 22"
+  },
+  {
+    "id": "9543572496",
+    "lat": 54.2599152,
+    "lon": 18.6335179,
+    "name": "Społeczna",
+    "address": "Wojska Polskiego 18"
+  },
+  {
+    "id": "9543572498",
+    "lat": 54.1431806,
+    "lon": 18.6040849,
+    "name": "Na Zdrowie",
+    "address": "Dworcowa 3"
+  },
+  {
+    "id": "9543572499",
+    "lat": 54.1728902,
+    "lon": 18.5341465,
+    "name": "Centrum",
+    "address": "Gdańska 27J",
+    "phone": "+48 797 795 339",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "9543572500",
+    "lat": 54.1938616,
+    "lon": 18.3187246,
+    "name": "Apteka",
+    "address": "Cisowa 4"
+  },
+  {
+    "id": "9543572501",
+    "lat": 54.2586231,
+    "lon": 18.628271,
+    "name": "Apteka",
+    "address": "Obrońców Wybrzeża 9"
+  },
+  {
+    "id": "9544820943",
+    "lat": 54.5373032,
+    "lon": 17.7496708,
+    "name": "Miraculum",
+    "address": "Grunwaldzka 18"
+  },
+  {
+    "id": "9544820944",
+    "lat": 54.5407322,
+    "lon": 17.7425816,
+    "name": "cef@rm 36,6",
+    "address": "Armii Krajowej 32"
+  },
+  {
+    "id": "9544820945",
+    "lat": 54.5352217,
+    "lon": 17.7484754,
+    "name": "Dr. Max",
+    "address": "Bohaterów Monte Cassino 16A"
+  },
+  {
+    "id": "9544820946",
+    "lat": 54.5402109,
+    "lon": 17.7464821,
+    "name": "Dr. Max",
+    "address": "1 Maja 1A"
+  },
+  {
+    "id": "9544820947",
+    "lat": 54.5417748,
+    "lon": 17.744756,
+    "name": "Gemini",
+    "address": "Aleja Wolności 30"
+  },
+  {
+    "id": "9544820948",
+    "lat": 54.6709855,
+    "lon": 17.6189704,
+    "name": "Pod Agawą",
+    "address": "Radosna 7C"
+  },
+  {
+    "id": "9544820949",
+    "lat": 54.5403114,
+    "lon": 17.7476328,
+    "name": "Gemini",
+    "address": "Staromiejska 17"
+  },
+  {
+    "id": "9544820950",
+    "lat": 54.5406735,
+    "lon": 17.7458388,
+    "name": "Dbam o Zdrowie",
+    "address": "Aleja Wolności 40"
+  },
+  {
+    "id": "9544820951",
+    "lat": 54.4337589,
+    "lon": 17.730761,
+    "name": "Dbam o Zdrowie",
+    "address": "Osiedle Na Wzgórzu 35"
+  },
+  {
+    "id": "9545802960",
+    "lat": 54.5878166,
+    "lon": 18.4926479,
+    "name": "Jantar",
+    "address": "Stefana Żeromskiego 51A",
+    "opening_hours": "Mo-Fr 08:30-19:00"
+  },
+  {
+    "id": "9545802961",
+    "lat": 54.7179726,
+    "lon": 18.4056103,
+    "name": "Wracam Do Zdrowia",
+    "address": "Mikołaja Kopernika 4"
+  },
+  {
+    "id": "9545802962",
+    "lat": 54.7160624,
+    "lon": 18.4053732,
+    "name": "Dyżurna",
+    "address": "Wejherowska 16"
+  },
+  {
+    "id": "9545802964",
+    "lat": 54.6751698,
+    "lon": 18.418444,
+    "name": "Kaszub",
+    "address": "Sportowa 1"
+  },
+  {
+    "id": "9545802966",
+    "lat": 54.7864354,
+    "lon": 18.326292,
+    "name": "Rumianek",
+    "address": "Kościelna 10"
+  },
+  {
+    "id": "9545974064",
+    "lat": 54.0043058,
+    "lon": 16.9854716,
+    "name": "Apteka Piastowska",
+    "address": "Długa 10"
+  },
+  {
+    "id": "9545974065",
+    "lat": 54.1974286,
+    "lon": 17.0862629,
+    "name": "Pod Lwem",
+    "address": "Pomorska 12"
+  },
+  {
+    "id": "9545974066",
+    "lat": 53.9978793,
+    "lon": 16.9729519,
+    "name": "Nova",
+    "address": "Kazimierza Wielkiego 24"
+  },
+  {
+    "id": "9545974068",
+    "lat": 54.0029586,
+    "lon": 16.9816589,
+    "name": "Królowej Jadwigi",
+    "address": "Królowej Jadwigi 12B"
+  },
+  {
+    "id": "9545974069",
+    "lat": 54.1700026,
+    "lon": 17.4902994,
+    "name": "Helios",
+    "address": "Wojska Polskiego 36E"
+  },
+  {
+    "id": "9545974070",
+    "lat": 53.9989744,
+    "lon": 17.4068308,
+    "name": "Im. Kazimierza Ogiejko",
+    "address": "Józefa Słomińskiego 35"
+  },
+  {
+    "id": "9545974071",
+    "lat": 54.1994927,
+    "lon": 17.3676702,
+    "name": "Punkt Apteczny",
+    "address": "Zwycięstwa 54"
+  },
+  {
+    "id": "9545974072",
+    "lat": 54.115307,
+    "lon": 17.3365189,
+    "name": "Helios Punkt Apteczny",
+    "address": "Jana III Sobieskiego 18"
+  },
+  {
+    "id": "9545974073",
+    "lat": 54.206779,
+    "lon": 17.6667694,
+    "name": "Punkt Apteczny",
+    "address": "Kościelna 3"
+  },
+  {
+    "id": "9545974074",
+    "lat": 54.0907253,
+    "lon": 17.5801503,
+    "name": "Apteka Nad Jeziorem",
+    "address": "Brzozowa 6",
+    "opening_hours": "Mo-Fr 08:00-16:00; Sa,PH off"
+  },
+  {
+    "id": "9548253946",
+    "lat": 53.8854059,
+    "lon": 17.7186247,
+    "name": "Dr. Optima",
+    "address": "Gdańska 18"
+  },
+  {
+    "id": "9548253949",
+    "lat": 53.8845349,
+    "lon": 17.7265541,
+    "name": "Zaborska",
+    "address": "Dworcowa 20"
+  },
+  {
+    "id": "9548253950",
+    "lat": 53.6886466,
+    "lon": 17.5703974,
+    "name": "Pod Świerkami",
+    "address": "Aleja Brzozowa 5"
+  },
+  {
+    "id": "9548253951",
+    "lat": 53.8872436,
+    "lon": 17.7193255,
+    "name": "Pod Modrakiem",
+    "address": "Gdańska 3B"
+  },
+  {
+    "id": "9548253953",
+    "lat": 53.95001,
+    "lon": 17.6981482,
+    "name": "Św. Łukasza",
+    "address": "Królowej Marii Ludwiki 2A"
+  },
+  {
+    "id": "9548253954",
+    "lat": 53.8236321,
+    "lon": 17.377434,
+    "name": "Św. Piotra i Pawła",
+    "address": "Szeroka 7"
+  },
+  {
+    "id": "9548253955",
+    "lat": 53.7005296,
+    "lon": 17.5721488,
+    "name": "Dbam o Zdrowie",
+    "address": "Kościerska 9"
+  },
+  {
+    "id": "9548269799",
+    "lat": 53.6839004,
+    "lon": 16.9408382,
+    "name": "Centrum Zdrowia",
+    "address": "Plac Wolności 10"
+  },
+  {
+    "id": "9548269800",
+    "lat": 53.757811,
+    "lon": 17.1128215,
+    "name": "Pomorski",
+    "address": "Przechlewska 19"
+  },
+  {
+    "id": "9548269801",
+    "lat": 53.9078578,
+    "lon": 17.0609588,
+    "name": "Apteka",
+    "address": "Zielona 2"
+  },
+  {
+    "id": "9548269803",
+    "lat": 53.7995583,
+    "lon": 17.2522153,
+    "name": "Panaceum",
+    "address": "Człuchowska 12A"
+  },
+  {
+    "id": "9548269804",
+    "lat": 53.5382555,
+    "lon": 17.2387216,
+    "name": "Centrum Zdrowia",
+    "address": "Strzelecka 2"
+  },
+  {
+    "id": "9550429030",
+    "lat": 54.1214703,
+    "lon": 17.9704796,
+    "name": "Od Serca",
+    "address": "Rzemieślnicza 29",
+    "opening_hours": "Mo-Sa 08:00-21:00"
+  },
+  {
+    "id": "9550429031",
+    "lat": 54.1229203,
+    "lon": 17.9778226,
+    "name": "Dr. Max",
+    "address": "Świętojańska 18"
+  },
+  {
+    "id": "9550429032",
+    "lat": 54.1219769,
+    "lon": 17.9569771,
+    "name": "Centrum",
+    "address": "Stanisława Moniuszki 13"
+  },
+  {
+    "id": "9550429034",
+    "lat": 54.0987418,
+    "lon": 17.7848741,
+    "name": "Kaszubska",
+    "address": "Młyńska 6"
+  },
+  {
+    "id": "9550429035",
+    "lat": 54.1224092,
+    "lon": 17.9720268,
+    "name": "Od Serca",
+    "address": "Marii Skłodowskiej-Curie 7"
+  },
+  {
+    "id": "9550429036",
+    "lat": 54.1212382,
+    "lon": 17.9497365,
+    "name": "Dr. Max",
+    "address": "Alojzego Piechowskiego 36"
+  },
+  {
+    "id": "9550429037",
+    "lat": 54.1207286,
+    "lon": 17.9746313,
+    "name": "Św. Michał",
+    "address": "Długa 21"
+  },
+  {
+    "id": "9550429038",
+    "lat": 54.1053407,
+    "lon": 18.2357816,
+    "name": "Magnolia",
+    "address": "27",
+    "opening_hours": "Mo-Fr 08:00-17:30; Sa 09:-12:00"
+  },
+  {
+    "id": "9550429039",
+    "lat": 54.1166006,
+    "lon": 17.8683092,
+    "name": "Pod Akacjami",
+    "address": "Zakładowa 1"
+  },
+  {
+    "id": "9550429040",
+    "lat": 54.1009917,
+    "lon": 18.0622096,
+    "name": "Słoneczna",
+    "address": "Szkolna 1a"
+  },
+  {
+    "id": "9552994906",
+    "lat": 54.2095311,
+    "lon": 19.111206,
+    "name": "Dbam o Zdrowie",
+    "address": "Warszawska 2E",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 15:00-18:00"
+  },
+  {
+    "id": "9552994907",
+    "lat": 54.2144335,
+    "lon": 18.9498169,
+    "name": "Punkt Apteczny",
+    "address": "Tadeusza Kościuszki 34"
+  },
+  {
+    "id": "9552994908",
+    "lat": 54.2115581,
+    "lon": 19.1210693,
+    "name": "Medfarm",
+    "address": "Dworcowa 18"
+  },
+  {
+    "id": "9552994909",
+    "lat": 54.2141744,
+    "lon": 19.1141383,
+    "name": "Nowa",
+    "address": "Generała Władysława Sikorskiego 24"
+  },
+  {
+    "id": "9552994910",
+    "lat": 54.2102091,
+    "lon": 19.1132597,
+    "name": "Morska",
+    "address": "Marii Konopnickiej 4"
+  },
+  {
+    "id": "9553066240",
+    "lat": 54.2426897,
+    "lon": 16.8865471,
+    "name": "Słoneczna",
+    "address": "Szkolna 2"
+  },
+  {
+    "id": "9553066241",
+    "lat": 54.2442507,
+    "lon": 16.8876882,
+    "name": "Centralna",
+    "address": "Tadeusza Kościuszki 3"
+  },
+  {
+    "id": "9553066242",
+    "lat": 54.4833582,
+    "lon": 17.4919348,
+    "name": "Apteka",
+    "address": "Tadeusza Kościuszki 6"
+  },
+  {
+    "id": "9553066243",
+    "lat": 54.6333259,
+    "lon": 17.5086288,
+    "name": "Pod Agawą",
+    "address": "12A"
+  },
+  {
+    "id": "9553066244",
+    "lat": 54.5631621,
+    "lon": 17.4857,
+    "name": "Calendula",
+    "address": "15"
+  },
+  {
+    "id": "9553066245",
+    "lat": 54.3192071,
+    "lon": 17.3879747,
+    "name": "Punkt Apteczny",
+    "address": "Lipowa 5"
+  },
+  {
+    "id": "9553066246",
+    "lat": 54.3751092,
+    "lon": 17.1613911,
+    "name": "W Dolinie Słupi",
+    "address": "Księdza Antoniego Kani 35"
+  },
+  {
+    "id": "9553066248",
+    "lat": 54.5777138,
+    "lon": 16.8546683,
+    "name": "Z Pasją",
+    "address": "Polna 2",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-17:00"
+  },
+  {
+    "id": "9553066250",
+    "lat": 54.5063886,
+    "lon": 17.1169633,
+    "name": "Punkt Apteczny Jezierzyce",
+    "address": "Parkowa 4A"
+  },
+  {
+    "id": "9553066251",
+    "lat": 54.4210237,
+    "lon": 16.8610099,
+    "name": "Maciejka",
+    "address": "Słupska 14B"
+  },
+  {
+    "id": "9553066252",
+    "lat": 54.6044525,
+    "lon": 17.046595,
+    "name": "Punkt Apteczny",
+    "address": "Bałtycka 3"
+  },
+  {
+    "id": "9553066253",
+    "lat": 54.4540226,
+    "lon": 16.97381,
+    "name": "Miraculum",
+    "address": "Szczecińska 6"
+  },
+  {
+    "id": "9556623259",
+    "lat": 54.6016318,
+    "lon": 18.1543615,
+    "name": "Gościnna",
+    "address": "Wiejska 8A"
+  },
+  {
+    "id": "9556623306",
+    "lat": 54.5696711,
+    "lon": 18.3900636,
+    "name": "Starowiejska",
+    "address": "Starowiejska 13C",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "9556623307",
+    "lat": 54.5689826,
+    "lon": 18.4001652,
+    "name": "Prima",
+    "address": "Marszałka Józefa Piłsudskiego 48A"
+  },
+  {
+    "id": "9556623309",
+    "lat": 54.6073517,
+    "lon": 18.2359105,
+    "name": "Słoneczna",
+    "address": "Słoneczna 5"
+  },
+  {
+    "id": "9556623310",
+    "lat": 54.5666905,
+    "lon": 18.413293,
+    "name": "Zdrowia",
+    "address": "Gdańska 24"
+  },
+  {
+    "id": "9556623311",
+    "lat": 54.5631255,
+    "lon": 18.3905423,
+    "name": "Lawendowa",
+    "address": "Jana III Sobieskiego 14A"
+  },
+  {
+    "id": "9556623312",
+    "lat": 54.604688,
+    "lon": 18.2536704,
+    "name": "Gemini",
+    "address": "Kaszubska 4C"
+  },
+  {
+    "id": "9556623313",
+    "lat": 54.5732283,
+    "lon": 18.3998826,
+    "name": "Polska",
+    "address": "Hieronima Derdowskiego 21"
+  },
+  {
+    "id": "9556623314",
+    "lat": 54.564792,
+    "lon": 18.3900696,
+    "name": "Dbam o Zdrowie",
+    "address": "Jana III Sobieskiego 10A"
+  },
+  {
+    "id": "9556623315",
+    "lat": 54.6089797,
+    "lon": 18.2468611,
+    "name": "Dr. Max",
+    "address": "Staromłyńska 2A"
+  },
+  {
+    "id": "9556623316",
+    "lat": 54.5655602,
+    "lon": 18.4177402,
+    "name": "Alfa",
+    "address": "Pomorska 11A"
+  },
+  {
+    "id": "9556689717",
+    "lat": 54.5689204,
+    "lon": 18.3936036,
+    "name": "Gratus",
+    "address": "Henryka Dąbrowskiego 12A",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "9556689718",
+    "lat": 54.6023824,
+    "lon": 18.3517918,
+    "name": "Lipowa",
+    "address": "Aleja Jana Pawła II 6"
+  },
+  {
+    "id": "9556689719",
+    "lat": 54.4752236,
+    "lon": 18.3774407,
+    "name": "Nowa",
+    "address": "Józefa Wybickiego 40",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "9556689720",
+    "lat": 54.6134647,
+    "lon": 18.1773948,
+    "name": "Dbam o Zdrowie",
+    "address": "Zamostna 3A"
+  },
+  {
+    "id": "9556689721",
+    "lat": 54.6132062,
+    "lon": 18.1771602,
+    "name": "Starowiejska",
+    "address": "Zamostna 3C"
+  },
+  {
+    "id": "9556689722",
+    "lat": 54.5643574,
+    "lon": 18.407726,
+    "name": "Starowiejska",
+    "address": "Henryka Dąbrowskiego 50"
+  },
+  {
+    "id": "9556689723",
+    "lat": 54.5720526,
+    "lon": 18.3993202,
+    "name": "Dbam o Zdrowie",
+    "address": "Hieronima Derdowskiego 18"
+  },
+  {
+    "id": "9556689724",
+    "lat": 54.5688013,
+    "lon": 18.3902162,
+    "name": "Dbam o Zdrowie",
+    "address": "Starowiejska 9"
+  },
+  {
+    "id": "9556689725",
+    "lat": 54.5736009,
+    "lon": 18.4002132,
+    "name": "Gemini",
+    "address": "Hieronima Derdowskiego 23A"
+  },
+  {
+    "id": "9556689726",
+    "lat": 54.5859437,
+    "lon": 18.3907337,
+    "name": "Vita",
+    "address": "Stefana Okrzei 37A"
+  },
+  {
+    "id": "9556689727",
+    "lat": 54.7171872,
+    "lon": 18.0141066,
+    "name": "Twoja Apteka",
+    "address": "Pomorska 19",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-14:00; PH off"
+  },
+  {
+    "id": "9556689728",
+    "lat": 54.5942063,
+    "lon": 18.0979186,
+    "name": "Farma Leków",
+    "address": "Perłowa 2",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-14:00; Su,PH off"
+  },
+  {
+    "id": "9556689729",
+    "lat": 54.5661042,
+    "lon": 18.1042355,
+    "name": "Przystanek",
+    "address": "Młyńska 1",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "9556689730",
+    "lat": 54.5609975,
+    "lon": 18.1057261,
+    "name": "Św. Wawrzyńca",
+    "address": "Kościelna 4"
+  },
+  {
+    "id": "9556689731",
+    "lat": 54.5842531,
+    "lon": 17.8639067,
+    "name": "Vita",
+    "address": "Długa 15B"
+  },
+  {
+    "id": "9556689732",
+    "lat": 54.5684583,
+    "lon": 18.043167,
+    "name": "Starowiejska",
+    "address": "Wejherowska 33"
+  },
+  {
+    "id": "9556689733",
+    "lat": 54.5661483,
+    "lon": 18.1055091,
+    "name": "Wracam Do Zdrowia",
+    "address": "Młyńska 5A"
+  },
+  {
+    "id": "9556689734",
+    "lat": 54.5665163,
+    "lon": 18.1036881,
+    "name": "Starowiejska",
+    "address": "Ofiar Stutthofu 8"
+  },
+  {
+    "id": "9556689735",
+    "lat": 54.4518509,
+    "lon": 17.9261234,
+    "name": "Myśliwska",
+    "address": "Długa 71"
+  },
+  {
+    "id": "9558379544",
+    "lat": 54.4587072,
+    "lon": 17.0021832,
+    "name": "Dom Leków",
+    "address": "Braci Gierymskich 1"
+  },
+  {
+    "id": "9558379545",
+    "lat": 54.4647464,
+    "lon": 17.0294446,
+    "name": "Dom Leków",
+    "address": "Władysława Jagiełły 3"
+  },
+  {
+    "id": "9558379546",
+    "lat": 54.4652721,
+    "lon": 17.0250081,
+    "name": "Dr. Max",
+    "address": "Juliana Tuwima 6"
+  },
+  {
+    "id": "9558379547",
+    "lat": 54.4693326,
+    "lon": 17.0060887,
+    "name": "Cef@Rm 36,6",
+    "address": "Stefana Żółkiewskiego 16a",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "9558379549",
+    "lat": 54.451597,
+    "lon": 17.0608938,
+    "name": "Dbam o Zdrowie",
+    "address": "Hubalczyków 1"
+  },
+  {
+    "id": "9558379550",
+    "lat": 54.4621241,
+    "lon": 17.0421846,
+    "name": "Pod Mnichem II",
+    "address": "Nad Śluzami 33"
+  },
+  {
+    "id": "9558379551",
+    "lat": 54.4614677,
+    "lon": 17.0308032,
+    "name": "Prima",
+    "address": "Juliusza Słowackiego 4"
+  },
+  {
+    "id": "9558379552",
+    "lat": 54.4604054,
+    "lon": 17.0458069,
+    "name": "Medykament",
+    "address": "Bohaterów Westerplatte 7"
+  },
+  {
+    "id": "9558379553",
+    "lat": 54.466111,
+    "lon": 17.0200556,
+    "name": "Dbam o Zdrowie",
+    "address": "Wileńska 38"
+  },
+  {
+    "id": "9558379554",
+    "lat": 54.4572406,
+    "lon": 17.0596959,
+    "name": "Pod Gryfem",
+    "address": "Hubalczyków 8"
+  },
+  {
+    "id": "9558379555",
+    "lat": 54.4674245,
+    "lon": 17.023664,
+    "name": "Dbam o Zdrowie",
+    "address": "Wojska Polskiego 9"
+  },
+  {
+    "id": "9558379557",
+    "lat": 54.4703521,
+    "lon": 17.0080734,
+    "name": "Dom Leków",
+    "address": "Władysława IV 9"
+  },
+  {
+    "id": "9558379558",
+    "lat": 54.4597411,
+    "lon": 17.001823,
+    "name": "Na Gierymskich",
+    "address": "Juliusza Kossaka 23B"
+  },
+  {
+    "id": "9558379560",
+    "lat": 54.4662063,
+    "lon": 17.0263403,
+    "name": "Cosmedica",
+    "address": "Stefana Starzyńskiego 7"
+  },
+  {
+    "id": "9558379561",
+    "lat": 54.4629288,
+    "lon": 17.030266,
+    "name": "Dbam o Zdrowie",
+    "address": "Jana Pawła II 1"
+  },
+  {
+    "id": "9558379562",
+    "lat": 54.4644736,
+    "lon": 17.0069077,
+    "name": "Centrum Zdrowia",
+    "address": "Marszałka Józefa Piłsudskiego 2"
+  },
+  {
+    "id": "9558379563",
+    "lat": 54.4675512,
+    "lon": 17.0074689,
+    "name": "Pod Emką",
+    "address": "Zygmunta Augusta 14"
+  },
+  {
+    "id": "9558379564",
+    "lat": 54.4675014,
+    "lon": 17.0361015,
+    "name": "Pod Mnichem",
+    "address": "Armii Krajowej 36"
+  },
+  {
+    "id": "9558919004",
+    "lat": 53.93195,
+    "lon": 18.3363936,
+    "name": "Tęczowa",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9558919006",
+    "lat": 53.9368147,
+    "lon": 18.5063486,
+    "name": "Naturalnie Zdrowi",
+    "address": "Grabowa 5"
+  },
+  {
+    "id": "9558919007",
+    "lat": 53.9668381,
+    "lon": 18.5314756,
+    "name": "Społeczna",
+    "address": "Rynek 18"
+  },
+  {
+    "id": "9558919008",
+    "lat": 53.9697794,
+    "lon": 18.5275923,
+    "name": "Gemini",
+    "address": "Generała Józefa Hallera 19c"
+  },
+  {
+    "id": "9558919009",
+    "lat": 53.9768388,
+    "lon": 18.5206848,
+    "name": "Ponik",
+    "address": "Skarszewska 4B",
+    "opening_hours": "Mo-Fr 07:00-20:00; Sa 07:00-16:00"
+  },
+  {
+    "id": "9558919010",
+    "lat": 53.9750889,
+    "lon": 18.5271719,
+    "name": "Dbam o Zdrowie",
+    "address": "Aleja Wojska Polskiego 25A"
+  },
+  {
+    "id": "9558919011",
+    "lat": 53.9551377,
+    "lon": 18.5175066,
+    "name": "Rodzinna",
+    "address": "Lubichowska 92A",
+    "phone": "+48 58 562 87 28",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 09:00 - 13:00; Su off"
+  },
+  {
+    "id": "9558919012",
+    "lat": 54.0721328,
+    "lon": 18.439459,
+    "name": "Dbam o Zdrowie",
+    "address": "Dworcowa 22A",
+    "opening_hours": "Mo-Fr 07:30-17:30; Sa 08:00-14:00"
+  },
+  {
+    "id": "9558919013",
+    "lat": 53.8867461,
+    "lon": 18.5565231,
+    "name": "Punkt Apteczny Aptekus",
+    "address": "Zachodnia 1B"
+  },
+  {
+    "id": "9558919014",
+    "lat": 53.9628172,
+    "lon": 18.3487656,
+    "name": "Punkt Apteczny Aptekus",
+    "address": "Semlińska 1C"
+  },
+  {
+    "id": "9558919015",
+    "lat": 53.7375494,
+    "lon": 18.6496514,
+    "name": "Medical",
+    "address": "23A"
+  },
+  {
+    "id": "9558919016",
+    "lat": 54.0693657,
+    "lon": 18.4451,
+    "name": "Wracam Do Zdrowia",
+    "address": "Józefa Wybickiego 25",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "9558921317",
+    "lat": 53.9363861,
+    "lon": 18.3289639,
+    "name": "Przy Medyku",
+    "address": "Kościerska 37A"
+  },
+  {
+    "id": "9558921318",
+    "lat": 53.7470169,
+    "lon": 18.6882092,
+    "name": "Zdrowie",
+    "address": "Kociewska 5"
+  },
+  {
+    "id": "9558921319",
+    "lat": 53.7952086,
+    "lon": 18.5258236,
+    "name": "Panaceum",
+    "address": "Główna 15"
+  },
+  {
+    "id": "9558921320",
+    "lat": 53.9850118,
+    "lon": 18.5063351,
+    "name": "Pod Borem",
+    "address": "Doktora Stanisława Kryzana 2A",
+    "phone": "+48 58 562 04 93",
+    "opening_hours": "Mo-Fr 09:00-18:00; Sa 09:00-13:00"
+  },
+  {
+    "id": "9567063862",
+    "lat": 54.4395782,
+    "lon": 18.5681228,
+    "name": "Dr. Max",
+    "address": "Bolesława Chrobrego 6/8"
+  },
+  {
+    "id": "9567063863",
+    "lat": 54.4539305,
+    "lon": 18.548811,
+    "name": "Dr. Max",
+    "address": "Józefa Kraszewskiego 26"
+  },
+  {
+    "id": "9567063864",
+    "lat": 54.4459524,
+    "lon": 18.5563944,
+    "name": "Vitalis",
+    "address": "Armii Krajowej 114"
+  },
+  {
+    "id": "9567063865",
+    "lat": 54.4569966,
+    "lon": 18.5351905,
+    "name": "Brodwino",
+    "address": "Władysława Cieszyńskiego 22"
+  },
+  {
+    "id": "9569805860",
+    "lat": 54.4099453,
+    "lon": 18.5985212,
+    "name": "Dr. Max",
+    "address": "Obrońców Wybrzeża 17",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-18:00; Su 10:00-18:00"
+  },
+  {
+    "id": "9569805861",
+    "lat": 54.4122934,
+    "lon": 18.5867039,
+    "name": "Cosmedica",
+    "address": "Czerwony Dwór 24"
+  },
+  {
+    "id": "9569805862",
+    "lat": 54.4087424,
+    "lon": 18.5677251,
+    "name": "Dr. Max",
+    "address": "Kaprów 3"
+  },
+  {
+    "id": "9569805864",
+    "lat": 54.4166269,
+    "lon": 18.5905134,
+    "name": "Słowiańska",
+    "address": "Piastowska 90E"
+  },
+  {
+    "id": "9569805865",
+    "lat": 54.4068296,
+    "lon": 18.5598496,
+    "name": "Apteki Dla Was",
+    "address": "Polanki 7",
+    "opening_hours": "Mo-Sa 07:00-19:00"
+  },
+  {
+    "id": "9569805867",
+    "lat": 54.4320558,
+    "lon": 18.4709745,
+    "name": "Rodzinna",
+    "address": "Wacława Balcerskiego 2"
+  },
+  {
+    "id": "9569805868",
+    "lat": 54.4213479,
+    "lon": 18.5840465,
+    "name": "Polska",
+    "address": "Jakuba Wejhera 25",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "9569805869",
+    "lat": 54.4208431,
+    "lon": 18.5775816,
+    "name": "Dbam o Zdrowie",
+    "address": "Gdyńska 3A",
+    "phone": "+48 736 698 007",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-14:00"
+  },
+  {
+    "id": "9569805872",
+    "lat": 54.4230616,
+    "lon": 18.5800505,
+    "name": "Apteka",
+    "address": "Gospody 19A"
+  },
+  {
+    "id": "9569805873",
+    "lat": 54.4090787,
+    "lon": 18.5870982,
+    "name": "Medicur",
+    "address": "Generała Bora-Komorowskiego 40",
+    "opening_hours": "Mo-Fr 09:00-20:00; Sa 10:00-15:00; PH off"
+  },
+  {
+    "id": "9571518110",
+    "lat": 54.4040599,
+    "lon": 18.6011208,
+    "name": "Dom Leków",
+    "address": "Opolska 3",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "9571518111",
+    "lat": 54.3927703,
+    "lon": 18.5964107,
+    "name": "Gemini",
+    "address": "Pilotów 3"
+  },
+  {
+    "id": "9571518113",
+    "lat": 54.4042721,
+    "lon": 18.5879979,
+    "name": "Super-Pharm",
+    "address": "Kołobrzeska 41C",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-20:00"
+  },
+  {
+    "id": "9571518114",
+    "lat": 54.4052798,
+    "lon": 18.6066405,
+    "name": "Trzy Żagle",
+    "address": "Olsztyńska 3C"
+  },
+  {
+    "id": "9571518115",
+    "lat": 54.3972503,
+    "lon": 18.5959486,
+    "name": "Cef@Rm 36,6",
+    "address": "Startowa 6",
+    "phone": "+48 58 559 23 27",
+    "opening_hours": "PH,Mo-Su 08:00-21:00"
+  },
+  {
+    "id": "9571518116",
+    "lat": 54.391633,
+    "lon": 18.5996092,
+    "name": "Polska",
+    "address": "Aleja Jana Pawła II 6D",
+    "phone": "+48 58 512 11 05",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "9571599317",
+    "lat": 54.3989931,
+    "lon": 18.6077132,
+    "name": "Dbam o Zdrowie",
+    "address": "Zbigniewa Burzyńskiego 1"
+  },
+  {
+    "id": "9571599318",
+    "lat": 54.3932144,
+    "lon": 18.5981137,
+    "name": "Startowa",
+    "address": "Startowa 1"
+  },
+  {
+    "id": "9571599319",
+    "lat": 54.3878549,
+    "lon": 18.5896118,
+    "name": "Od Serca",
+    "address": "Aleja Grunwaldzka 212"
+  },
+  {
+    "id": "9571599321",
+    "lat": 54.4048211,
+    "lon": 18.5997547,
+    "name": "Dbam o Zdrowie",
+    "address": "Kołobrzeska 46",
+    "opening_hours": "Mo-Fr 07:30-19:30; Sa 08:00-14:00"
+  },
+  {
+    "id": "9571599322",
+    "lat": 54.3864759,
+    "lon": 18.5830881,
+    "name": "Osiedlowa",
+    "address": "Księdza Bernarda Sychty 10A"
+  },
+  {
+    "id": "9571599323",
+    "lat": 54.4029249,
+    "lon": 18.5814145,
+    "name": "Apteka \"Gdańska\"",
+    "address": "Szczecińska 23",
+    "opening_hours": "Mo-Fr 10:00-18:00; Sa 10:00-14:00; Su off; PH off"
+  },
+  {
+    "id": "9571599324",
+    "lat": 54.386434,
+    "lon": 18.6059014,
+    "name": "Sana",
+    "address": "Tadeusza Kościuszki 12",
+    "phone": "+48 58 344 10 16",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "9571689857",
+    "lat": 54.3368095,
+    "lon": 18.613463,
+    "name": "Gemini",
+    "address": "Władysława Cieszyńskiego 48"
+  },
+  {
+    "id": "9571689858",
+    "lat": 54.328487,
+    "lon": 18.5829834,
+    "name": "4 Pory Roku",
+    "address": "Piotrkowska 25"
+  },
+  {
+    "id": "9571689859",
+    "lat": 54.3321683,
+    "lon": 18.5832582,
+    "name": "Wracam Do Zdrowia",
+    "address": "Warszawska 69"
+  },
+  {
+    "id": "9571689860",
+    "lat": 54.3300737,
+    "lon": 18.6054415,
+    "name": "Cosmedica",
+    "address": "Nieborowska 10"
+  },
+  {
+    "id": "9571689861",
+    "lat": 54.3305068,
+    "lon": 18.5569619,
+    "name": "Jabłoniowa",
+    "address": "Jabłoniowa 29A",
+    "opening_hours": "Sa 09:00-17:00; Mo-Fr 08:00-21:00"
+  },
+  {
+    "id": "9571689862",
+    "lat": 54.3508264,
+    "lon": 18.5623724,
+    "name": "Bałtycka",
+    "address": "Myśliwska 72",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 08:00-19:00"
+  },
+  {
+    "id": "9571689863",
+    "lat": 54.3259662,
+    "lon": 18.6066411,
+    "name": "Apteki Dla Was",
+    "address": "Świętokrzyska 4"
+  },
+  {
+    "id": "9571793723",
+    "lat": 54.3784374,
+    "lon": 18.6055824,
+    "name": "Gemini",
+    "address": "Aleja Grunwaldzka 102",
+    "opening_hours": "Mo-Fr 07:00-18:00; Sa 09:00-18:00; Su 09:00-15:00; PH off"
+  },
+  {
+    "id": "9571793724",
+    "lat": 54.3785089,
+    "lon": 18.6054082,
+    "name": "Dr. Max",
+    "address": "Aleja Grunwaldzka 104",
+    "opening_hours": "24/7"
+  },
+  {
+    "id": "9571793726",
+    "lat": 54.3582871,
+    "lon": 18.5861443,
+    "name": "Bratek",
+    "address": "Jaśkowa Dolina 105"
+  },
+  {
+    "id": "9576392803",
+    "lat": 54.3565756,
+    "lon": 18.6820851,
+    "name": "Pinus-Pharm",
+    "address": "Siennicka 9"
+  },
+  {
+    "id": "9576392804",
+    "lat": 54.3374753,
+    "lon": 18.6125756,
+    "name": "Dom Leków",
+    "address": "Władysława Cieszyńskiego 1A",
+    "opening_hours": "Mo-Su 07:00-22:00"
+  },
+  {
+    "id": "9576392806",
+    "lat": 54.4067324,
+    "lon": 18.6399249,
+    "name": "Polska",
+    "address": "Konstantego Ildefonsa Gałczyńskiego 4"
+  },
+  {
+    "id": "9576392807",
+    "lat": 54.3569941,
+    "lon": 18.6517333,
+    "name": "Gemini",
+    "address": "Łagiewniki 48",
+    "opening_hours": "Mo-Su 07:30-20:00; Sa 09:00-18:00"
+  },
+  {
+    "id": "9576392809",
+    "lat": 54.4065087,
+    "lon": 18.638902,
+    "name": "Dbam o Zdrowie",
+    "address": "Konstantego Ildefonsa Gałczyńskiego 2"
+  },
+  {
+    "id": "9576392810",
+    "lat": 54.4012724,
+    "lon": 18.6620751,
+    "name": "Przy Falowcu",
+    "address": "Wolności 21B"
+  },
+  {
+    "id": "9576392812",
+    "lat": 54.3522407,
+    "lon": 18.6511073,
+    "name": "Dr. Max",
+    "address": "Pańska 6",
+    "opening_hours": "08:00-21:00"
+  },
+  {
+    "id": "9576392813",
+    "lat": 54.3609624,
+    "lon": 18.7140415,
+    "name": "Elżbietańska",
+    "address": "Wilhelma Stryjewskiego 29B"
+  },
+  {
+    "id": "9576392814",
+    "lat": 54.4017599,
+    "lon": 18.6707385,
+    "name": "Westerplatte",
+    "address": "Oliwska 62"
+  },
+  {
+    "id": "9576392815",
+    "lat": 54.3568923,
+    "lon": 18.6841634,
+    "name": "Dbam o Zdrowie",
+    "address": "Teofila Lenartowicza 4A"
+  },
+  {
+    "id": "9576418317",
+    "lat": 54.3369304,
+    "lon": 18.6124554,
+    "name": "Orlik",
+    "address": "Władysława Cieszyńskiego 38"
+  },
+  {
+    "id": "9576418318",
+    "lat": 54.3427751,
+    "lon": 18.6604711,
+    "name": "Apteka Gemini",
+    "address": "Jaskółcza 16",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-15:00"
+  },
+  {
+    "id": "9576418319",
+    "lat": 54.3605057,
+    "lon": 18.7121321,
+    "name": "Na Stogach",
+    "address": "Hoża 12",
+    "phone": "+48583073052",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "9576422588",
+    "lat": 54.3952745,
+    "lon": 18.6432313,
+    "name": "Przystanek Apteka",
+    "address": "Sucha 37A"
+  },
+  {
+    "id": "9576422589",
+    "lat": 54.3429955,
+    "lon": 18.8292082,
+    "name": "Na Wyspie",
+    "address": "Kolonijna 2"
+  },
+  {
+    "id": "9579248358",
+    "lat": 53.9902843,
+    "lon": 18.1692429,
+    "name": "Pela Kiszewska",
+    "address": "Kościerska 48"
+  },
+  {
+    "id": "9579248363",
+    "lat": 54.3415586,
+    "lon": 18.3746326,
+    "name": "Żukowo",
+    "address": "Gdańska 14D"
+  },
+  {
+    "id": "9588727175",
+    "lat": 54.0632599,
+    "lon": 19.6579437,
+    "name": "Dbam o Zdrowie",
+    "address": "Władysława Jagiełły 27"
+  },
+  {
+    "id": "9588727176",
+    "lat": 54.0632171,
+    "lon": 19.6591343,
+    "name": "Verbena",
+    "address": "Władysława Jagiełły 24"
+  },
+  {
+    "id": "9588727177",
+    "lat": 54.0597729,
+    "lon": 19.6699042,
+    "name": "Wracam Do Zdrowia",
+    "address": "3 Maja 60"
+  },
+  {
+    "id": "9588727178",
+    "lat": 54.0586731,
+    "lon": 19.6659332,
+    "name": "Dbam o Zdrowie",
+    "address": "Plac Grunwaldzki 6"
+  },
+  {
+    "id": "9588727179",
+    "lat": 54.0567914,
+    "lon": 19.6679171,
+    "name": "Apteka",
+    "address": "Ogrodowa 15A"
+  },
+  {
+    "id": "9590399258",
+    "lat": 53.4566972,
+    "lon": 17.5406937,
+    "name": "Wracam Do Zdrowia",
+    "address": "Tadeusza Kościuszki 22"
+  },
+  {
+    "id": "9590416499",
+    "lat": 53.4577753,
+    "lon": 17.543789,
+    "name": "Źródło Zdrowia",
+    "address": "Tadeusza Kościuszki 24"
+  },
+  {
+    "id": "9590428058",
+    "lat": 53.5315141,
+    "lon": 17.5174919,
+    "name": "Jantar",
+    "address": "Stanisława Wyspiańskiego 2"
+  },
+  {
+    "id": "9590430102",
+    "lat": 53.4528341,
+    "lon": 17.5332748,
+    "name": "Wracam Do Zdrowia",
+    "address": "Plac Wolności 3"
+  },
+  {
+    "id": "9590448719",
+    "lat": 53.4568169,
+    "lon": 17.5371059,
+    "name": "Apteka Rodzinna",
+    "address": "Szkolna 4"
+  },
+  {
+    "id": "9590453530",
+    "lat": 53.4517696,
+    "lon": 17.5315986,
+    "name": "Dbam o Zdrowie",
+    "address": "Generała Józefa Hallera 8"
+  },
+  {
+    "id": "9590478988",
+    "lat": 53.4075031,
+    "lon": 18.4382814,
+    "name": "Apteka Gemini",
+    "address": "Wojska Polskiego 88"
+  },
+  {
+    "id": "9590498297",
+    "lat": 53.4078511,
+    "lon": 18.4236821,
+    "name": "Mariańska",
+    "address": "Ignacego Paderewskiego 4a"
+  },
+  {
+    "id": "9590498690",
+    "lat": 53.5865768,
+    "lon": 18.6314916,
+    "name": "Alba",
+    "address": "Błogosławionej Siostry Marii Heliodory 2"
+  },
+  {
+    "id": "9590509654",
+    "lat": 53.4211158,
+    "lon": 18.0927729,
+    "name": "Poziomka",
+    "address": "Tucholska 23"
+  },
+  {
+    "id": "9590510633",
+    "lat": 53.4978391,
+    "lon": 18.6785696,
+    "name": "Sonia",
+    "address": "Akacjowa 1"
+  },
+  {
+    "id": "9590519965",
+    "lat": 53.5266056,
+    "lon": 18.2103024,
+    "name": "Źródło Zdrowia",
+    "address": "Wyzwolenia 18"
+  },
+  {
+    "id": "9590525977",
+    "lat": 53.4115388,
+    "lon": 18.4247163,
+    "name": "Farmacja24",
+    "address": "Jana III Sobieskiego 2"
+  },
+  {
+    "id": "9590525978",
+    "lat": 53.5101626,
+    "lon": 18.3129932,
+    "name": "Arnika",
+    "address": "Dworcowa 20"
+  },
+  {
+    "id": "9590531074",
+    "lat": 53.5287239,
+    "lon": 18.2140571,
+    "name": "Punkt Apteczny Poziomka",
+    "address": "Wyzwolenia 7D"
+  },
+  {
+    "id": "9590532940",
+    "lat": 53.4071664,
+    "lon": 18.4336078,
+    "name": "Wracam Do Zdrowia",
+    "address": "Wojska Polskiego 81"
+  },
+  {
+    "id": "9590535428",
+    "lat": 53.4926825,
+    "lon": 18.4539794,
+    "name": "Punkt apteczny",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:30-15:30"
+  },
+  {
+    "id": "9590536086",
+    "lat": 53.4313691,
+    "lon": 18.2439807,
+    "name": "Apteka Dbam O Zdrowie",
+    "address": "Doktora Floriana Ceynowy 16"
+  },
+  {
+    "id": "9590536576",
+    "lat": 53.4081447,
+    "lon": 18.4401482,
+    "name": "Apteka Tania",
+    "address": "Wojska Polskiego 115"
+  },
+  {
+    "id": "9590537074",
+    "lat": 53.5964303,
+    "lon": 18.3473974,
+    "name": "Jana Pawła II",
+    "address": "Dworcowa 9A",
+    "opening_hours": "Mo-Fr 08:00-18:00, Su 08:00-14:00"
+  },
+  {
+    "id": "9590540059",
+    "lat": 53.6484618,
+    "lon": 18.7274268,
+    "name": "Wracam Do Zdrowia",
+    "address": "Tczewska 8"
+  },
+  {
+    "id": "9592332116",
+    "lat": 53.5874045,
+    "lon": 17.8711055,
+    "name": "Wracam Do Zdrowia",
+    "address": "Warszawska 15"
+  },
+  {
+    "id": "9592355125",
+    "lat": 53.4874871,
+    "lon": 17.8092422,
+    "name": "Apteka Przy Bydgoskiej",
+    "address": "Bydgoska 17"
+  },
+  {
+    "id": "9592364362",
+    "lat": 53.7075285,
+    "lon": 18.177249,
+    "name": "Pod Widłakiem",
+    "address": "Szkolna 7a"
+  },
+  {
+    "id": "9592371486",
+    "lat": 53.5867291,
+    "lon": 17.8628509,
+    "name": "Apteka",
+    "address": "Pocztowa 1"
+  },
+  {
+    "id": "9592371741",
+    "lat": 53.4666498,
+    "lon": 18.0243396,
+    "name": "Libra",
+    "address": "Wojska Polskiego 43"
+  },
+  {
+    "id": "9592379718",
+    "lat": 53.587976,
+    "lon": 17.8580682,
+    "name": "Apteka Pharma-Land Kraina Niskich Cen",
+    "address": "Plac Wolności 33",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "9592379719",
+    "lat": 53.586893,
+    "lon": 17.8606954,
+    "name": "Dbam o Zdrowie",
+    "address": "Księdza Podpułkownika Józefa Wryczy 22"
+  },
+  {
+    "id": "9592382518",
+    "lat": 53.5578873,
+    "lon": 17.715092,
+    "name": "Lewkonia",
+    "address": "Główna 17"
+  },
+  {
+    "id": "9592382863",
+    "lat": 53.5053077,
+    "lon": 18.005177,
+    "name": "Arkana",
+    "address": "Główna 8A"
+  },
+  {
+    "id": "9592384195",
+    "lat": 53.5855673,
+    "lon": 17.8632589,
+    "name": "Millennium",
+    "address": "Świecka 31"
+  },
+  {
+    "id": "9592385834",
+    "lat": 53.5762165,
+    "lon": 18.0162179,
+    "name": "Asklepios",
+    "address": "Dworcowa 25",
+    "phone": "+48 52 334 24 55",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sat 08:00-14:00"
+  },
+  {
+    "id": "9592762186",
+    "lat": 53.6066489,
+    "lon": 19.5898148,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9592762187",
+    "lat": 53.5883146,
+    "lon": 19.5662578,
+    "name": "Gemini",
+    "address": "Jana III Sobieskiego 45"
+  },
+  {
+    "id": "9592762188",
+    "lat": 53.5894194,
+    "lon": 19.5657897,
+    "name": "Społeczna",
+    "address": "Mikołaja Kopernika 5A"
+  },
+  {
+    "id": "9592762189",
+    "lat": 53.5997286,
+    "lon": 19.5740499,
+    "name": "Dbam o Zdrowie",
+    "address": "Aleja Jana Pawła II 14"
+  },
+  {
+    "id": "9592762190",
+    "lat": 53.5954582,
+    "lon": 19.5650046,
+    "name": "Dbam o Zdrowie",
+    "address": "Królowej Jadwigi 6"
+  },
+  {
+    "id": "9592762191",
+    "lat": 53.7132489,
+    "lon": 19.3355934,
+    "name": "Dla Ciebie",
+    "address": "Plażowa 2"
+  },
+  {
+    "id": "9592762192",
+    "lat": 53.7184836,
+    "lon": 19.3390209,
+    "name": "Staromiejska",
+    "address": "Stare Miasto 6"
+  },
+  {
+    "id": "9592762193",
+    "lat": 53.845976,
+    "lon": 19.6003722,
+    "name": "Arnika",
+    "address": "29 Stycznia 18A"
+  },
+  {
+    "id": "9592762196",
+    "lat": 53.6096634,
+    "lon": 19.2626511,
+    "name": "Witaminka",
+    "address": "Henryka Sienkiewicza 34"
+  },
+  {
+    "id": "9592762197",
+    "lat": 53.5983187,
+    "lon": 19.5590547,
+    "name": "Staromiejska",
+    "address": "Niepodległości 14",
+    "phone": "+48 89 648 56 22",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "9592762198",
+    "lat": 53.585157,
+    "lon": 19.5608778,
+    "name": "Mandragora",
+    "address": "Marii Skłodowskiej-Curie 24A"
+  },
+  {
+    "id": "9592762199",
+    "lat": 53.6046758,
+    "lon": 19.5672011,
+    "name": "Lipowy Dwór",
+    "address": "Jarosława Dąbrowskiego 46B",
+    "phone": "+48896420154",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 09:00-14:00; Su off"
+  },
+  {
+    "id": "9592762200",
+    "lat": 53.5951584,
+    "lon": 19.568436,
+    "name": "Eskulap",
+    "address": "Grunwaldzka 1"
+  },
+  {
+    "id": "9592762201",
+    "lat": 53.5834255,
+    "lon": 19.5621716,
+    "name": "Dla Ciebie",
+    "address": "Marii Skłodowskiej-Curie 25C",
+    "phone": "+48 89 6492404",
+    "opening_hours": "Mo-Fr 08:00-18:00"
+  },
+  {
+    "id": "9592762202",
+    "lat": 53.5887711,
+    "lon": 19.572934,
+    "name": "Dbam o Zdrowie",
+    "address": "Kardynała Stefana Wyszyńskiego 33"
+  },
+  {
+    "id": "9592886589",
+    "lat": 53.6079587,
+    "lon": 19.2583778,
+    "name": "Na Rozdrożu",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9592886590",
+    "lat": 53.5854002,
+    "lon": 19.5564384,
+    "name": "Nova",
+    "address": "Wiejska 5"
+  },
+  {
+    "id": "9597926912",
+    "lat": 53.4995014,
+    "lon": 18.7676619,
+    "name": "Dom Leków",
+    "address": "Legionów 57"
+  },
+  {
+    "id": "9597943483",
+    "lat": 53.4888413,
+    "lon": 18.7572273,
+    "name": "Dom Leków",
+    "address": "Marszałka Józefa Piłsudskiego 10"
+  },
+  {
+    "id": "9597954483",
+    "lat": 53.4860904,
+    "lon": 18.7609784,
+    "name": "Herba",
+    "address": "Rapackiego 19"
+  },
+  {
+    "id": "9597968999",
+    "lat": 53.5012685,
+    "lon": 18.7752014,
+    "name": "Słoneczna",
+    "address": "Legionów 81"
+  },
+  {
+    "id": "9597984588",
+    "lat": 53.4649288,
+    "lon": 18.7757483,
+    "name": "Centrum Zdrowia",
+    "address": "Generała Józefa Kustronia 20"
+  },
+  {
+    "id": "9597986426",
+    "lat": 53.4622626,
+    "lon": 18.7767161,
+    "name": "Apteka Rodzinna",
+    "address": "Dywizjonu 303 5"
+  },
+  {
+    "id": "9597987379",
+    "lat": 53.4768155,
+    "lon": 18.7523152,
+    "name": "Victoria",
+    "address": "Stefana Czarnieckiego 15",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "9598002047",
+    "lat": 53.4866256,
+    "lon": 18.7493353,
+    "name": "Apteka Społeczna Na Marcinkowskiego Grupa Nowa Farmacja",
+    "address": "Władysława Marcinkowskiego 2"
+  },
+  {
+    "id": "9598002167",
+    "lat": 53.5004086,
+    "lon": 18.7647462,
+    "name": "Farmacja 24",
+    "address": "Roty Grudziądzkiej 6"
+  },
+  {
+    "id": "9598126704",
+    "lat": 53.4740641,
+    "lon": 18.7385603,
+    "name": "Miła",
+    "address": "Kalinkowa 82"
+  },
+  {
+    "id": "9598127809",
+    "lat": 53.4941847,
+    "lon": 18.7515697,
+    "name": "Apteka",
+    "address": "Kosynierów Gdyńskich 3"
+  },
+  {
+    "id": "9598141888",
+    "lat": 53.4982831,
+    "lon": 18.7632897,
+    "name": "Alba",
+    "address": "Legionów 37"
+  },
+  {
+    "id": "9598157605",
+    "lat": 53.5022393,
+    "lon": 18.775296,
+    "name": "Farmacja24",
+    "address": "Poniatowskiego 15"
+  },
+  {
+    "id": "9598168510",
+    "lat": 53.4909473,
+    "lon": 18.7483574,
+    "name": "Klasztorna",
+    "address": "Szkolna 6"
+  },
+  {
+    "id": "9598181819",
+    "lat": 53.4645235,
+    "lon": 18.7693837,
+    "name": "Na Lotnisku",
+    "address": "Ikara 4"
+  },
+  {
+    "id": "9598184048",
+    "lat": 53.4956638,
+    "lon": 18.7541323,
+    "name": "Dbam o Zdrowie",
+    "address": "Józefa Wybickiego 30"
+  },
+  {
+    "id": "9598194201",
+    "lat": 53.4303043,
+    "lon": 18.7256268,
+    "name": "Apteka Rodzinna",
+    "address": "Droga Pomorska 18"
+  },
+  {
+    "id": "9598194983",
+    "lat": 53.4953882,
+    "lon": 18.7534248,
+    "name": "Apteka Pharma-Land",
+    "address": "Józefa Wybickiego 24/26"
+  },
+  {
+    "id": "9598195833",
+    "lat": 53.4886629,
+    "lon": 18.750885,
+    "name": "Apteka od Serca",
+    "address": "Toruńska 2/4",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 09:00-13:00"
+  },
+  {
+    "id": "9598195934",
+    "lat": 53.4604477,
+    "lon": 18.7278023,
+    "name": "Apteka Rodzinna",
+    "address": "Śniadeckich 26"
+  },
+  {
+    "id": "9598199440",
+    "lat": 53.4975204,
+    "lon": 18.7598668,
+    "name": "Farmacja24",
+    "address": "Legionów 21"
+  },
+  {
+    "id": "9598200842",
+    "lat": 53.4892013,
+    "lon": 18.7647903,
+    "name": "Herba Nowa",
+    "address": "Ludwika Waryńskiego 6"
+  },
+  {
+    "id": "9598202464",
+    "lat": 53.4853569,
+    "lon": 18.7475049,
+    "name": "Dr Zdrowie",
+    "address": "Chełmińska 4",
+    "phone": "+48 56 643 11 47"
+  },
+  {
+    "id": "9598210499",
+    "lat": 53.4551211,
+    "lon": 18.7160356,
+    "name": "Rodzinna Na Łęgi",
+    "address": "Księdza doktora Władysława Łęgi 12"
+  },
+  {
+    "id": "9598214090",
+    "lat": 53.4310871,
+    "lon": 18.7272082,
+    "name": "Apteka",
+    "address": "Aleja Sportowców 1"
+  },
+  {
+    "id": "9598218786",
+    "lat": 53.5025595,
+    "lon": 18.7757323,
+    "name": "Apteka Rodzinna",
+    "address": "Poniatowskiego 30"
+  },
+  {
+    "id": "9598250275",
+    "lat": 53.409607,
+    "lon": 19.5939511,
+    "name": "Punkt Apteczny Green Cross",
+    "address": "Henryka Sienkiewicza 3"
+  },
+  {
+    "id": "9598250276",
+    "lat": 53.424528,
+    "lon": 19.5918683,
+    "name": "Pharmaland",
+    "address": "3 Maja 4"
+  },
+  {
+    "id": "9598250277",
+    "lat": 53.500929,
+    "lon": 19.3926356,
+    "name": "Punkt Apteczny",
+    "address": "41A"
+  },
+  {
+    "id": "9598250278",
+    "lat": 53.5008913,
+    "lon": 19.3513266,
+    "name": "Pod Lipami",
+    "address": "Rynek 1",
+    "phone": "+48 732 777 737",
+    "opening_hours": "Mo-Fr 08:00-18:00"
+  },
+  {
+    "id": "9598250279",
+    "lat": 53.4452635,
+    "lon": 19.3522282,
+    "name": "Punkt Apteczny Melisa",
+    "address": "137"
+  },
+  {
+    "id": "9598250280",
+    "lat": 53.5007595,
+    "lon": 19.3517995,
+    "name": "Punkt Apteczny Aqua",
+    "address": "Rynek 17"
+  },
+  {
+    "id": "9606415603",
+    "lat": 53.4419159,
+    "lon": 19.0985986,
+    "name": "Nad Osą",
+    "address": "5A"
+  },
+  {
+    "id": "9606440079",
+    "lat": 53.5177905,
+    "lon": 19.0902485,
+    "name": "Wrzos",
+    "address": "Wrzosowa 4-8"
+  },
+  {
+    "id": "9606462736",
+    "lat": 53.5175424,
+    "lon": 19.0812729,
+    "name": "Św. Łukasza",
+    "address": "Radzyńska 4"
+  },
+  {
+    "id": "9606468840",
+    "lat": 53.4663839,
+    "lon": 19.1644364,
+    "name": "Apteka",
+    "address": "69"
+  },
+  {
+    "id": "9606472197",
+    "lat": 53.5192072,
+    "lon": 19.0870112,
+    "name": "Pod Orłem",
+    "address": "Rynek 35"
+  },
+  {
+    "id": "9607363493",
+    "lat": 53.4056756,
+    "lon": 17.8105547,
+    "name": "Apteka",
+    "address": "Sępoleńska 2"
+  },
+  {
+    "id": "9642876096",
+    "lat": 54.4976792,
+    "lon": 18.5081245,
+    "name": "Euro-Apteka",
+    "address": "Niska 1"
+  },
+  {
+    "id": "9642876097",
+    "lat": 54.4817151,
+    "lon": 18.5373388,
+    "name": "W Przychodni",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9642876099",
+    "lat": 54.4734728,
+    "lon": 18.4626643,
+    "name": "Apteka Dbam O Zdrowie",
+    "address": "Gorczycowa 6",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-16:00; Su off"
+  },
+  {
+    "id": "9642876100",
+    "lat": 54.4726996,
+    "lon": 18.4747831,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9642876101",
+    "lat": 54.5378437,
+    "lon": 18.4586605,
+    "name": "Królowej Jadwigi",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9642876102",
+    "lat": 54.5115947,
+    "lon": 18.5315591,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643340347",
+    "lat": 54.4748189,
+    "lon": 18.5515897,
+    "name": "Super-Pharm",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643340348",
+    "lat": 54.4975956,
+    "lon": 18.508862,
+    "name": "Apteka Dyżurna",
+    "address": "Wielkokacka 4A",
+    "phone": "+48586653084",
+    "opening_hours": "Mo-Fr 08:00-21:00; Sa 08:00-20:00"
+  },
+  {
+    "id": "9643340350",
+    "lat": 54.5289101,
+    "lon": 18.5035033,
+    "name": "Dbam o Zdrowie",
+    "address": "Morska 113A"
+  },
+  {
+    "id": "9643340353",
+    "lat": 54.5300316,
+    "lon": 18.5425806,
+    "name": "Piko",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643466762",
+    "lat": 54.4696673,
+    "lon": 18.469648,
+    "name": "Apteka Dbam O Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643466764",
+    "lat": 54.5542338,
+    "lon": 18.4993483,
+    "name": "Piko",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643466766",
+    "lat": 54.4898899,
+    "lon": 18.5541798,
+    "name": "Dr. Max",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643466767",
+    "lat": 54.5527427,
+    "lon": 18.5040718,
+    "name": "Apteka Nr 1",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "9643466768",
+    "lat": 54.5464348,
+    "lon": 18.4547509,
+    "name": "Pod Lwem",
+    "address": "Chylońska 191"
+  },
+  {
+    "id": "9643466769",
+    "lat": 54.5596165,
+    "lon": 18.5083423,
+    "name": "Gemini",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643466770",
+    "lat": 54.4857505,
+    "lon": 18.5252952,
+    "name": "Perełka",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 10:00-18:00; Sa 10:00-14:00"
+  },
+  {
+    "id": "9643466771",
+    "lat": 54.5219904,
+    "lon": 18.5342832,
+    "name": "Dom Leków",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643473505",
+    "lat": 54.4896079,
+    "lon": 18.4257315,
+    "name": "Medica",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643473506",
+    "lat": 54.493322,
+    "lon": 18.4281835,
+    "name": "Multiapteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9643473508",
+    "lat": 54.5420112,
+    "lon": 18.4615038,
+    "name": "Apteka Dyżurna",
+    "address": "Gniewska 21"
+  },
+  {
+    "id": "9643473509",
+    "lat": 54.4979781,
+    "lon": 18.5069631,
+    "name": "Wracam Do Zdrowia",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9668256222",
+    "lat": 54.1566523,
+    "lon": 19.4102303,
+    "name": "Ziołowa",
+    "address": "Związku Jaszczurczego 9C",
+    "opening_hours": "Mo-Fr 09:00-19:00"
+  },
+  {
+    "id": "9668256223",
+    "lat": 54.169861,
+    "lon": 19.4100602,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9668256224",
+    "lat": 54.1582833,
+    "lon": 19.4134939,
+    "name": "Ojca Klimuszki",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-18:00, Sa 09:00-14:00"
+  },
+  {
+    "id": "9668256225",
+    "lat": 54.1697936,
+    "lon": 19.4033194,
+    "name": "Dyżurna",
+    "address": "Gwiezdna 23"
+  },
+  {
+    "id": "9668256226",
+    "lat": 54.1566822,
+    "lon": 19.4041206,
+    "name": "Apteka Dyżurna",
+    "address": "Hetmańska 30-34"
+  },
+  {
+    "id": "9668417936",
+    "lat": 54.15453,
+    "lon": 19.4014326,
+    "name": "Apteka Centrum Leków",
+    "address": "Malborska 23"
+  },
+  {
+    "id": "9668417937",
+    "lat": 54.1580749,
+    "lon": 19.4333162,
+    "name": "Novum",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9668417938",
+    "lat": 54.154127,
+    "lon": 19.4128058,
+    "name": "Apteka Gemini",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9668417939",
+    "lat": 54.1595767,
+    "lon": 19.4037315,
+    "name": "Apteka Społeczna",
+    "address": "1 Maja 44"
+  },
+  {
+    "id": "9668417940",
+    "lat": 54.1634745,
+    "lon": 19.4073541,
+    "name": "Dom Leków",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9668417941",
+    "lat": 54.1530927,
+    "lon": 19.4181664,
+    "name": "Dom Lekow",
+    "address": "Stefana Żeromskiego 1"
+  },
+  {
+    "id": "9668417942",
+    "lat": 54.1792507,
+    "lon": 19.4289248,
+    "name": "Apteka Farmacja 24",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9668417943",
+    "lat": 54.1870074,
+    "lon": 19.403694,
+    "name": "Przy Alei",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9668417944",
+    "lat": 54.186634,
+    "lon": 19.398691,
+    "name": "Apteka Dbam O Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "9735778383",
+    "lat": 54.4884215,
+    "lon": 16.7144909,
+    "name": "Agawa",
+    "address": "6A"
+  },
+  {
+    "id": "9739996282",
+    "lat": 53.8982402,
+    "lon": 16.8392152,
+    "name": "Centrum Zdrowia",
+    "address": "Cypriana Kamila Norwida 5"
+  },
+  {
+    "id": "9770239615",
+    "lat": 54.4096797,
+    "lon": 18.5930594,
+    "name": "Źródło Zdrowia",
+    "address": "Obrońców Wybrzeża 1",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 09:00-20:00"
+  },
+  {
+    "id": "9880724629",
+    "lat": 54.3958377,
+    "lon": 18.642866,
+    "name": "Nowa Letnica",
+    "address": "Sucha 37B",
+    "opening_hours": "Mo-Fr 08:00-19:00, Sa 09:00-14:00"
+  },
+  {
+    "id": "10077468372",
+    "lat": 53.48489,
+    "lon": 18.7518325,
+    "name": "Dr. Max",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Sa 08:00-21:00; Su 10:00-19:00"
+  },
+  {
+    "id": "10127802462",
+    "lat": 54.331316,
+    "lon": 18.2093383,
+    "name": "Przystanek",
+    "address": "Gdańska 49"
+  },
+  {
+    "id": "10208126745",
+    "lat": 54.3033765,
+    "lon": 18.611342,
+    "name": "Zielony Południk",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10210532154",
+    "lat": 54.1828993,
+    "lon": 17.4955649,
+    "name": "Przyjazna",
+    "address": "Księdza Jana Twardowskiego 1"
+  },
+  {
+    "id": "10210551371",
+    "lat": 54.4553372,
+    "lon": 18.3577785,
+    "name": "Punkt Apteczny",
+    "address": "Dębowa 19B"
+  },
+  {
+    "id": "10210551373",
+    "lat": 54.6087674,
+    "lon": 18.2220249,
+    "name": "Gemini",
+    "address": "Przemysłowa 1B"
+  },
+  {
+    "id": "10210551374",
+    "lat": 54.27735,
+    "lon": 16.9614551,
+    "name": "Punkt Apteczny Lawenda",
+    "address": "60"
+  },
+  {
+    "id": "10210551375",
+    "lat": 53.7362911,
+    "lon": 18.9455131,
+    "name": "Gemini",
+    "address": "Warszawska 74"
+  },
+  {
+    "id": "10210551376",
+    "lat": 54.4565839,
+    "lon": 18.459817,
+    "name": "Lek24.pl",
+    "address": "Chwaszczyńska 151E"
+  },
+  {
+    "id": "10211937950",
+    "lat": 53.8380806,
+    "lon": 18.8286078,
+    "name": "Apteka",
+    "address": "Osiedle Wincentego Witosa 10"
+  },
+  {
+    "id": "10211937956",
+    "lat": 53.8355687,
+    "lon": 18.8230036,
+    "name": "Dr. Max",
+    "address": "Marszałka Józefa Piłsudskiego 14",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "10211937957",
+    "lat": 53.8368031,
+    "lon": 18.8232428,
+    "name": "Kociewska",
+    "address": "Mikołaja Kopernika 8a"
+  },
+  {
+    "id": "10212039383",
+    "lat": 53.9282761,
+    "lon": 18.7047119,
+    "name": "Dr. Max",
+    "address": "Józefa Wybickiego 16"
+  },
+  {
+    "id": "10212039384",
+    "lat": 53.9267992,
+    "lon": 18.7065391,
+    "name": "Medical",
+    "address": "Dworcowa 7"
+  },
+  {
+    "id": "10212039386",
+    "lat": 53.840362,
+    "lon": 18.6932972,
+    "name": "Punkt Apteczny Aspirynka",
+    "address": "Kociewska 5"
+  },
+  {
+    "id": "10212148060",
+    "lat": 54.0946163,
+    "lon": 18.624768,
+    "name": "Punkt Apteczny",
+    "address": "Parkowa 12"
+  },
+  {
+    "id": "10212148061",
+    "lat": 54.093402,
+    "lon": 18.7859557,
+    "name": "Gemini",
+    "address": "Aleja Zwycięstwa 16"
+  },
+  {
+    "id": "10212148062",
+    "lat": 54.0866338,
+    "lon": 18.790293,
+    "name": "Medical",
+    "address": "Wojska Polskiego 5A"
+  },
+  {
+    "id": "10212148063",
+    "lat": 54.0860475,
+    "lon": 18.7900006,
+    "name": "Twoja",
+    "address": "Wojska Polskiego 5"
+  },
+  {
+    "id": "10212148064",
+    "lat": 54.0901845,
+    "lon": 18.7854781,
+    "name": "Wracam Do Zdrowia",
+    "address": "Wojska Polskiego 22"
+  },
+  {
+    "id": "10212148065",
+    "lat": 54.086832,
+    "lon": 18.7717616,
+    "name": "Bajkowa",
+    "address": "Jasia i Małgosi 8"
+  },
+  {
+    "id": "10212148066",
+    "lat": 54.0975465,
+    "lon": 18.7652847,
+    "name": "Dr. Max",
+    "address": "Franciszka Żwirki 38"
+  },
+  {
+    "id": "10212148067",
+    "lat": 54.0769153,
+    "lon": 18.8003637,
+    "name": "Apteka",
+    "address": "Czyżykowska 68"
+  },
+  {
+    "id": "10212148068",
+    "lat": 54.0902018,
+    "lon": 18.7754006,
+    "name": "Apteka",
+    "address": "Braci Grimm 4"
+  },
+  {
+    "id": "10212148069",
+    "lat": 54.0677161,
+    "lon": 18.7669917,
+    "name": "Nova",
+    "address": "Bartosza Głowackiego 57"
+  },
+  {
+    "id": "10212148080",
+    "lat": 54.0985424,
+    "lon": 18.7646163,
+    "name": "Wracam Do Zdrowia",
+    "address": "Armii Krajowej 35"
+  },
+  {
+    "id": "10218640148",
+    "lat": 53.4142113,
+    "lon": 18.4672007,
+    "name": "Słoneczna",
+    "address": "Wojska Polskiego 126"
+  },
+  {
+    "id": "10218640150",
+    "lat": 53.6461155,
+    "lon": 18.7296095,
+    "name": "Pod Orłem",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10218640151",
+    "lat": 53.6468795,
+    "lon": 18.7286092,
+    "name": "Pod Łabędziem",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10218640152",
+    "lat": 53.5049227,
+    "lon": 18.6412255,
+    "name": "Punkt Apteczny Rodzinny",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10220358783",
+    "lat": 53.580332,
+    "lon": 17.8770693,
+    "name": "Park",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10220358784",
+    "lat": 53.5848011,
+    "lon": 17.8720474,
+    "name": "Tucholska",
+    "address": "Aleja Ligi Ochrony Przyrody 10a"
+  },
+  {
+    "id": "10220358785",
+    "lat": 53.7029515,
+    "lon": 18.1682242,
+    "name": "Źródło Zdrowia",
+    "address": "Dębowa 2"
+  },
+  {
+    "id": "10234426763",
+    "lat": 53.4111012,
+    "lon": 17.1517937,
+    "name": "Remedium",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10234426766",
+    "lat": 53.4451951,
+    "lon": 16.9835299,
+    "name": "Punkt Apteczny Aurum",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10234426767",
+    "lat": 53.5345012,
+    "lon": 16.8498643,
+    "name": "Alcea",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10234426777",
+    "lat": 53.6053536,
+    "lon": 16.8013285,
+    "name": "Punkt Apteczny Melisa",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10234426778",
+    "lat": 53.4953379,
+    "lon": 17.249222,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10234426780",
+    "lat": 53.4974569,
+    "lon": 17.2516979,
+    "name": "Nowa 1",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10234426781",
+    "lat": 53.4189723,
+    "lon": 16.8201274,
+    "name": "Asklepios",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "10604912149",
+    "lat": 53.6957292,
+    "lon": 17.5609411,
+    "name": "Apteka",
+    "address": "Stary Rynek 7",
+    "opening_hours": "Mo-Fr 07:00-21:00; Sa 08:00-15:00; Su off"
+  },
+  {
+    "id": "10756186614",
+    "lat": 54.3864722,
+    "lon": 18.5830744,
+    "name": "Apteka Osiedlowa",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "11059266484",
+    "lat": 54.0118153,
+    "lon": 16.9824218,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "11063289150",
+    "lat": 54.8296027,
+    "lon": 18.0716593,
+    "name": "Punkt Apteczny",
+    "address": "Adres nieznany",
+    "phone": "+48 601 926 102",
+    "opening_hours": "Mo-Su 09:00-21:00; Oct-Mar off"
+  },
+  {
+    "id": "11138441437",
+    "lat": 54.1836026,
+    "lon": 19.4331705,
+    "name": "Gemini",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "11169047971",
+    "lat": 54.5854376,
+    "lon": 16.8552373,
+    "name": "Nadmorska",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Sa 09:00-13:00,13:30-20:00"
+  },
+  {
+    "id": "11224675317",
+    "lat": 54.3957399,
+    "lon": 18.6446306,
+    "name": "Multipharm",
+    "address": "Sucha 41",
+    "opening_hours": "Mo-Fr 08:00-21:00, Sa 09:00-18:00, Su 10:00-15:00"
+  },
+  {
+    "id": "11291572706",
+    "lat": 54.3734178,
+    "lon": 17.1613988,
+    "name": "Świat Zdrowia",
+    "address": "Adres nieznany",
+    "opening_hours": "closed"
+  },
+  {
+    "id": "11358793187",
+    "lat": 54.6198145,
+    "lon": 18.1883584,
+    "name": "Dbam o Zdrowie",
+    "address": "Słoneczna 16A/4"
+  },
+  {
+    "id": "11649248877",
+    "lat": 54.3020628,
+    "lon": 18.5399456,
+    "name": "+A Bałtycka",
+    "address": "Kapitana Konstantego Maciejewicza 16",
+    "opening_hours": "Mo-Fr 08:00-19:00; Sa 09:00-17:00"
+  },
+  {
+    "id": "12101771989",
+    "lat": 54.3553288,
+    "lon": 18.6446613,
+    "name": "Dr. Max",
+    "address": "Podwale Grodzkie 1",
+    "phone": "+48 506 311 127",
+    "opening_hours": "07:00-22:00"
+  },
+  {
+    "id": "12250258327",
+    "lat": 54.3609319,
+    "lon": 18.2613001,
+    "name": "Punkt Apteczny Przystanek",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00"
+  },
+  {
+    "id": "12344240427",
+    "lat": 53.4121068,
+    "lon": 19.5939774,
+    "name": "Gemini",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "12456852344",
+    "lat": 53.7333729,
+    "lon": 17.5101829,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "12539165592",
+    "lat": 54.2680607,
+    "lon": 18.5718208,
+    "name": "Anafarm",
+    "address": "Adres nieznany",
+    "opening_hours": "Mo-Fr 8:00-20:00; Sa 8:00-16:00"
+  },
+  {
+    "id": "12830443675",
+    "lat": 54.4015238,
+    "lon": 18.6084125,
+    "name": "Gemini",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "12938357392",
+    "lat": 54.4906278,
+    "lon": 17.0575632,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "12985492676",
+    "lat": 54.5619158,
+    "lon": 18.4922178,
+    "name": "Gemini",
+    "address": "Generała broni Władysława Sikorskiego 2A",
+    "opening_hours": "Mo-Fr 08:00-20:00, Sa 8:00-14:00"
+  },
+  {
+    "id": "13033958280",
+    "lat": 54.5164338,
+    "lon": 18.5305283,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "13049515079",
+    "lat": 54.7887732,
+    "lon": 17.996089,
+    "name": "Apteka Medyk",
+    "address": "Adres nieznany",
+    "phone": "+48 786 345 555",
+    "opening_hours": "Mo-Fr 09:00-18:00; Sa 09:00-12:00; PH closed"
+  },
+  {
+    "id": "13189369437",
+    "lat": 54.7845935,
+    "lon": 18.3250952,
+    "name": "+A Bałtycka",
+    "address": "Bałtycka 6",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 09:00-17:00"
+  },
+  {
+    "id": "13258127591",
+    "lat": 53.9259607,
+    "lon": 18.6840602,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "13270812794",
+    "lat": 54.4964621,
+    "lon": 17.2627578,
+    "name": "Apteka",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "13374985720",
+    "lat": 54.6050964,
+    "lon": 18.4972595,
+    "name": "Centrum Zdrowia Medicura",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "149092047",
+    "lat": 54.6052504,
+    "lon": 18.2295837,
+    "name": "Dr. Max",
+    "address": "Dworcowa 16"
+  },
+  {
+    "id": "177797751",
+    "lat": 54.1728363,
+    "lon": 18.6994182,
+    "name": "Dbam o Zdrowie",
+    "address": "Pomorska 27"
+  },
+  {
+    "id": "180732092",
+    "lat": 53.5155508,
+    "lon": 18.4930784,
+    "name": "Pomorska",
+    "address": "Wiatrakowa 2"
+  },
+  {
+    "id": "226079146",
+    "lat": 54.1217186,
+    "lon": 17.9780666,
+    "name": "Wracam Do Zdrowia",
+    "address": "Rynek 19",
+    "opening_hours": "Mo-Fr 08:00-20:00; Sa 08:00-15:00; Su 09:00-16:00"
+  },
+  {
+    "id": "254208486",
+    "lat": 53.4514947,
+    "lon": 17.53186,
+    "name": "Pharma-Land",
+    "address": "Generała Józefa Hallera 7"
+  },
+  {
+    "id": "273026351",
+    "lat": 53.5875025,
+    "lon": 18.626315,
+    "name": "Apteka Mgr Grażyny Bargańskiej Leśna",
+    "address": "Bąkowska 1a"
+  },
+  {
+    "id": "304152166",
+    "lat": 54.272268,
+    "lon": 18.467359,
+    "name": "Nad Radunią",
+    "address": "Plac Kaszubski 7B"
+  },
+  {
+    "id": "336348521",
+    "lat": 54.8324838,
+    "lon": 18.2983536,
+    "name": "Bursztynowa",
+    "address": "Królewska 9"
+  },
+  {
+    "id": "336626355",
+    "lat": 53.6356712,
+    "lon": 19.4575477,
+    "name": "Dr N Farm Tomasz Dębowski",
+    "address": "Szkolna 4",
+    "phone": "+48 89 6481111",
+    "opening_hours": "08:00-16:00"
+  },
+  {
+    "id": "360369718",
+    "lat": 54.1353044,
+    "lon": 19.0109634,
+    "name": "Apteka Medfarm",
+    "address": "Obrońców Westerplatte 4a",
+    "opening_hours": "Mo-Fr 08:00-18:00; Sa 08:00-14:00"
+  },
+  {
+    "id": "397148840",
+    "lat": 54.3319144,
+    "lon": 19.0245395,
+    "name": "Punkt Apteczny Jantar",
+    "address": "Gdańska 40"
+  },
+  {
+    "id": "445756758",
+    "lat": 54.0084056,
+    "lon": 17.7714255,
+    "name": "Dr. Max",
+    "address": "Wyzwolenia 13a",
+    "phone": "+48586880169",
+    "opening_hours": "Mo-Fr 08:00-17:00, Sa 08:00-14:00"
+  },
+  {
+    "id": "570049119",
+    "lat": 54.6024794,
+    "lon": 18.2256238,
+    "name": "Gemini",
+    "address": "Bukowa 2B"
+  },
+  {
+    "id": "666414176",
+    "lat": 54.2093898,
+    "lon": 19.1194877,
+    "name": "Centrum Leków",
+    "address": "Henryka Sienkiewicza 17"
+  },
+  {
+    "id": "789644189",
+    "lat": 54.2440763,
+    "lon": 18.8462631,
+    "name": "Żuławska",
+    "address": "Macieja Płażyńskiego 20"
+  },
+  {
+    "id": "1014564974",
+    "lat": 54.3399932,
+    "lon": 18.3518934,
+    "name": "Zdrowie",
+    "address": "Gdańska 59A",
+    "phone": "+48 58 681 54 76",
+    "opening_hours": "Mo-Sa 09:00-20:00; Su 10:00-19:00"
+  },
+  {
+    "id": "1037713611",
+    "lat": 54.4597567,
+    "lon": 17.0017381,
+    "name": "Apteka",
+    "address": "Juliusza Kossaka 23B"
+  },
+  {
+    "id": "1120744788",
+    "lat": 54.4550669,
+    "lon": 16.9884093,
+    "name": "Dbam o Zdrowie",
+    "address": "Szczecińska 58",
+    "opening_hours": "Mo-Sa 09:00-21:00; Su 09:00-20:00"
+  },
+  {
+    "id": "1233919331",
+    "lat": 54.3823946,
+    "lon": 18.5996078,
+    "name": "Super-Pharm",
+    "address": "Aleja Grunwaldzka 141",
+    "phone": "+48 58 522 67 08"
+  },
+  {
+    "id": "1267117084",
+    "lat": 53.5762519,
+    "lon": 18.0162257,
+    "name": "Dbam o Zdrowie",
+    "address": "Adres nieznany"
+  },
+  {
+    "id": "1328368809",
+    "lat": 54.0895433,
+    "lon": 19.308896,
+    "name": "Verbena",
+    "address": "Elbląska 11A"
+  },
+  {
+    "id": "1410331782",
+    "lat": 54.0479197,
+    "lon": 19.3847332,
+    "name": "Verbena",
+    "address": "70"
+  }
+]

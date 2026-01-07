@@ -1,11 +1,20 @@
 import React, { memo, useCallback, useMemo } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  FlatList, 
+  Platform,
+  Dimensions
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Article } from '@/types/article';
-import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
+import { useThemeStore } from '@/store/themeStore';
 import { formatDateTime } from '@/utils/dateFormatter';
+import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
 
 interface RelatedArticlesSliderProps {
   articles: Article[];
@@ -29,9 +38,9 @@ const RelatedArticleItem = memo(({
   totalItems: number;
   onPress: (article: Article) => void;
 }) => {
+  const router = useRouter();
   const { theme } = useThemeStore();
   
-  // Prefetch on press start for better performance
   const handlePressIn = useCallback(() => {
     if (Platform.OS !== 'web') {
       import('@/services/api').then(({ prefetchArticleById }) => {
@@ -91,7 +100,7 @@ const RelatedArticleItem = memo(({
           ]}
           numberOfLines={2}
         >
-          {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+          {item.title?.rendered ? cleanArticleTitle(item.title.rendered) : 'Brak tytułu'}
         </Text>
         
         <Text

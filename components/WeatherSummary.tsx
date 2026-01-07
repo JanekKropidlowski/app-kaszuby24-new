@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
-import { WeatherIcon } from './WeatherIcon';
+import { WeatherIcons } from './WeatherIcons';
 import { MapPin, Clock, Thermometer, Droplets, Wind, Gauge } from 'lucide-react-native';
 
 interface WeatherData {
@@ -76,7 +76,7 @@ const WeatherSummary: React.FC<WeatherSummaryProps> = ({ weatherData, stationNam
 
             <View style={styles.mainContent}>
                 <View style={styles.weatherIconContainer}>
-                    <WeatherIcon wmoCode={currentWmoCode} size={60} />
+                    <WeatherIcons wmoCode={currentWmoCode} size={60} />
                     <Text style={styles.weatherDescription}>
                         {getWeatherDescription(currentWmoCode)}
                     </Text>

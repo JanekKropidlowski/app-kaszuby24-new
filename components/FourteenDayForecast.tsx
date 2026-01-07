@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
-import { WeatherIcon } from './WeatherIcon';
+import { WeatherIcons } from './WeatherIcons';
 import { CalendarDays, Thermometer, Droplets, Wind, Eye, TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -167,9 +167,9 @@ export const FourteenDayForecast: React.FC<FourteenDayForecastProps> = ({
         </View>
 
         {/* Weather Icon */}
-        <View style={styles.weatherIconContainer}>
-          <WeatherIcon wmoCode={weatherCode} size={32} />
-        </View>
+                    <View style={styles.weatherIconContainer}>
+              <WeatherIcons wmoCode={weatherCode} size={32} />
+            </View>
 
         {/* Temperature */}
         <View style={styles.temperatureContainer}>

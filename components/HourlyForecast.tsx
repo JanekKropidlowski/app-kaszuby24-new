@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
-import { WeatherIcon } from '@/components/WeatherIcon';
+import { WeatherIcons } from '@/components/WeatherIcons';
 import { WeatherDetailModal } from '@/components/WeatherDetailModal';
+import { 
+  Clock,
+  Thermometer,
+  Droplets,
+  Wind,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+  CloudDrizzle
+} from 'lucide-react-native';
 
 interface HourlyForecastProps {
   data: Array<{
@@ -56,6 +68,7 @@ export const HourlyForecast: React.FC<HourlyForecastProps> = ({ data }) => {
         horizontal 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
       >
         {displayData.map((hour, index) => {
           const isCurrentHour = index === currentHourIndex;
@@ -85,7 +98,7 @@ export const HourlyForecast: React.FC<HourlyForecastProps> = ({ data }) => {
               </Text>
               
               <View style={[styles.iconContainer, isCurrentHour && styles.currentHourIconContainer]}>
-                <WeatherIcon wmoCode={hour.wmoCode} size={36} />
+                <WeatherIcons wmoCode={hour.wmoCode} size={36} />
               </View>
               
               <Text style={[
@@ -139,7 +152,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   scrollContent: {
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  scrollView: {
+    flexGrow: 0,
   },
   hourCard: {
     borderRadius: 16,
@@ -147,7 +164,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginRight: 10,
     alignItems: 'center',
-    minWidth: 85,
+    justifyContent: 'space-between',
+    width: 90,
+    height: 140,
     borderWidth: 1.5,
   },
   time: {
@@ -185,9 +204,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   metaContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
     width: '100%',
+    gap: 4,
+    paddingHorizontal: 4,
+    minHeight: 40,
   },
   meta: {
     fontSize: 10,

@@ -1,0 +1,1511 @@
+{
+  "city": "Reda",
+  "updated_at": "2026-01-02T13:07:08.723Z",
+  "regions": [
+    {
+      "id": "wielorodzinna",
+      "name": "Wielorodzinna",
+      "streets": [
+        "Budownictwo wielorodzinne (bloki)"
+      ],
+      "schedule": [
+        {
+          "date": "2026-01-02",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-01-03",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-04",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-05",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-07",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-08",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-01-09",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-10",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-12",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-13",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-14",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-01-15",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-16",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-17",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-01-19",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-20",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-21",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-01-22",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-01-23",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-24",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-27",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-28",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-01-29",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-30",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-02",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-03",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-04",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-02-05",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-07",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-02-09",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-10",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-11",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-02-12",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-13",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-14",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-16",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-17",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-18",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-02-19",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-20",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-21",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-23",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-24",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-25",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-02-26",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-27",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-28",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-02",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-03",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-04",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-03-05",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-06",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-07",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-10",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-11",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-03-12",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-13",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-14",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-16",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-17",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-18",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-03-19",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-20",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-23",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-24",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-25",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-03-26",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-27",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-28",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-30",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-31",
+          "types": [
+            "Plastik i metale"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rejon6",
+      "name": "Rejon6",
+      "streets": [],
+      "schedule": [
+        {
+          "date": "2026-01-05",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-01-07",
+          "types": [
+            "Odpady zielone",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-08",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-09",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-01-19",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-20",
+          "types": [
+            "Odpady zielone",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-21",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-22",
+          "types": [
+            "Szkło",
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-02-02",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-03",
+          "types": [
+            "Odpady zielone",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-04",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-05",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-02-16",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-17",
+          "types": [
+            "Odpady zielone",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-18",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-19",
+          "types": [
+            "Szkło",
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-02",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-03",
+          "types": [
+            "Odpady zielone",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-04",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-05",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-16",
+          "types": [
+            "Bio",
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-17",
+          "types": [
+            "Odpady zielone",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-18",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-19",
+          "types": [
+            "Szkło",
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-21",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-03-30",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-31",
+          "types": [
+            "Odpady zielone",
+            "Plastik i metale"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rejon5",
+      "name": "Rejon5",
+      "streets": [],
+      "schedule": [
+        {
+          "date": "2026-01-02",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-07",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-01-09",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-01-10",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-15",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-20",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-01-21",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-01-22",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-01-23",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-29",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-03",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-02-05",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-12",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-17",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-02-18",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-02-19",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-20",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-26",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-03",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-03-05",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-06",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-12",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-14",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-17",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-03-18",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-03-19",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-20",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-26",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-31",
+          "types": [
+            "Odpady zielone"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rejon4",
+      "name": "Rejon4",
+      "streets": [],
+      "schedule": [
+        {
+          "date": "2026-01-02",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-08",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-01-09",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-01-10",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-13",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-15",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-16",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-01-20",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-22",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-27",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-29",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-30",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-02-04",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-02-05",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-02-10",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-12",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-13",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-02-19",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-02-20",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-23",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-24",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-26",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-02-27",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-03-04",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-03-05",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-06",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-03-10",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-12",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-13",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-19",
+          "types": [
+            "Bio"
+          ]
+        },
+        {
+          "date": "2026-03-20",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-23",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-24",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-26",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-27",
+          "types": [
+            "Gabaryty"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rejon3",
+      "name": "Rejon3",
+      "streets": [],
+      "schedule": []
+    },
+    {
+      "id": "rejon2",
+      "name": "Rejon2",
+      "streets": [
+        "12 Marca",
+        "Asikowa",
+        "Basowicz",
+        "Bursztyn",
+        "Bratkowa",
+        "Chabrowa",
+        "Chopina",
+        "Fiołkowa",
+        "Góreckiego",
+        "Irysowa",
+        "Jarzębinowa",
+        "Jaśminowa",
+        "Karden",
+        "Korwalowa",
+        "Krokusowa",
+        "Krystaliczna",
+        "Komedy",
+        "Kwiatowa",
+        "Lawendowa",
+        "Lutosławskiego",
+        "Łąkowa",
+        "Marzanki",
+        "Klonu",
+        "Miętowa",
+        "Moniuszki",
+        "Norwida",
+        "Ogrodników",
+        "Paderewskiego",
+        "Polna",
+        "Przemysłowa",
+        "Pucka (numery nieparzyste od 7 do 61)",
+        "Różana",
+        "Ruminkowa",
+        "Słodnia",
+        "Storczykowa",
+        "Spółdzielcza",
+        "Szafranowa",
+        "Świętopełka",
+        "Szymanowskiego",
+        "Tarchowa",
+        "Tatarakowa",
+        "Uługowa",
+        "Wierzbickiego",
+        "Widokowa",
+        "Wiktorowa",
+        "Wiosna",
+        "Wodeckiego",
+        "Wojciecha Kilara"
+      ],
+      "schedule": [
+        {
+          "date": "2026-01-09",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-01-12",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-01-13",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-14",
+          "types": [
+            "Zmieszane",
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-01-22",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-01-26",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-01-27",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-28",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-01-31",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-02-05",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-02-09",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-02-10",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-11",
+          "types": [
+            "Zmieszane",
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-02-19",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-02-23",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-02-24",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-25",
+          "types": [
+            "Zmieszane"
+          ]
+        },
+        {
+          "date": "2026-03-05",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-09",
+          "types": [
+            "Makulatura"
+          ]
+        },
+        {
+          "date": "2026-03-10",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-11",
+          "types": [
+            "Zmieszane",
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-03-19",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-23",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-03-24",
+          "types": [
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-25",
+          "types": [
+            "Zmieszane"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rejon1",
+      "name": "Rejon1",
+      "streets": [
+        "Cechowa",
+        "Drogowców",
+        "Gniewowska",
+        "Jara",
+        "Krótka",
+        "Kamienna",
+        "Konopnickiej",
+        "Krajobrazowa",
+        "Królowej Marysieńki",
+        "Księdza Pasierba",
+        "Leśna",
+        "Łososiowa",
+        "Ogrodników",
+        "Ogrodowa",
+        "Orzeszkowej",
+        "Objazdowa",
+        "Owocowa",
+        "ks. A. Potrackiego",
+        "Piaskowa",
+        "Podgórna",
+        "Rzeczna",
+        "Rzemieślnicza",
+        "Sobieskiego",
+        "Słoneczna",
+        "Spacerowa",
+        "Tarasowa",
+        "Torowa",
+        "Warzywnicza",
+        "Wejherowska",
+        "Zbożowa",
+        "Zielna",
+        "Zielarzy",
+        "Zbychowska",
+        "Żwirowa"
+      ],
+      "schedule": [
+        {
+          "date": "2026-01-02",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-01-03",
+          "types": [
+            "Zmieszane",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-10",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-01-13",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-01-15",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-01-16",
+          "types": [
+            "Zmieszane",
+            "Makulatura",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-01-24",
+          "types": [
+            "Gabaryty"
+          ]
+        },
+        {
+          "date": "2026-01-27",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-01-28",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-01-29",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-01-30",
+          "types": [
+            "Zmieszane",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-06",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-02-10",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-02-12",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-02-13",
+          "types": [
+            "Zmieszane",
+            "Makulatura",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-02-20",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-02-24",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-02-25",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-02-26",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-02-27",
+          "types": [
+            "Zmieszane",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-06",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-10",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-03-12",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-03-13",
+          "types": [
+            "Zmieszane",
+            "Makulatura",
+            "Plastik i metale"
+          ]
+        },
+        {
+          "date": "2026-03-20",
+          "types": [
+            "Popiół"
+          ]
+        },
+        {
+          "date": "2026-03-24",
+          "types": [
+            "Odpady zielone"
+          ]
+        },
+        {
+          "date": "2026-03-25",
+          "types": [
+            "Szkło"
+          ]
+        },
+        {
+          "date": "2026-03-26",
+          "types": [
+            "Odpady bio z kuchni"
+          ]
+        },
+        {
+          "date": "2026-03-27",
+          "types": [
+            "Zmieszane",
+            "Plastik i metale"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bookmark, ChevronRight, Home, Settings, Search, MapPin, Calendar } from 'lucide-react-native';
 import { Image } from 'expo-image';
+import * as he from 'he';
 import ArticleCard from '@/components/ArticleCard';
 import EmptyState from '@/components/EmptyState';
 import SkeletonLoader from '@/components/SkeletonLoader';
@@ -35,12 +36,17 @@ const SavedHeader = () => {
       <Image
         source={{ 
           uri: theme.isDarkMode 
-            ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-            : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+            ? 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+            : 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
         }}
         style={styles.logo}
         contentFit="contain"
         transition={200}
+        placeholder="Kaszuby24"
+        onError={() => {
+          // Fallback do tekstu jeśli grafika się nie załaduje
+          console.warn('Saved logo image failed to load');
+        }}
       />
     </View>
   );
@@ -79,11 +85,7 @@ const EventCard = ({ event, onPress }: { event: any, onPress: () => void }) => {
               fontFamily: theme.fontFamily.semibold
             }
           ]} numberOfLines={2}>
-            {event.title.rendered
-              .replace(/&#8222;|&#8221;|&#8211;/g, '')
-              .replace(/&#038;/g, '&')
-              .replace(/&nbsp;/g, ' ')
-              .trim()}
+            {he.decode(event.title.rendered)}
           </Text>
           <View style={styles.eventMeta}>
             <Calendar size={12} color={theme.colors.textSecondary} />

@@ -1,7 +1,30 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Text, TouchableOpacity, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, AlertCircle, WifiOff, MapPin, Calendar, Clock, TrendingUp, Thermometer, Cloud, Droplets, Wind, Eye, Sun, Info, AlertTriangle, Bell } from 'lucide-react-native';
+import { 
+  Settings, 
+  AlertCircle, 
+  WifiOff, 
+  MapPin, 
+  Calendar, 
+  Clock, 
+  TrendingUp, 
+  Thermometer, 
+  Cloud, 
+  Droplets, 
+  Wind, 
+  Eye, 
+  Sun, 
+  Info, 
+  AlertTriangle, 
+  Bell,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+  CloudDrizzle,
+  Moon
+} from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { useWeatherConfigStore } from '@/store/weatherConfigStore';
 import { WeatherHero } from '@/components/WeatherHero';
@@ -13,12 +36,9 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import { LocationSelectionModal } from '@/components/LocationSelectionModal';
 
-
-import { WeatherIcon } from '@/components/WeatherIcon';
-
+import { MeteoconsWeatherIcon } from '@/components/WeatherIcons';
 
 import SwipeableModal from '@/components/SwipeableModal';
-
 
 import * as Location from 'expo-location';
 import { fetchForecast, fetchAllWarnings, filterWarningsForPomeranianVoivodeship, fetchAirQuality, fetchSynopData, findNearestSynopStation, fetchMeteoData, findNearestStations, fetchMarineForecast, findNearestStationsWithDistance, fetchHydroData } from '@/services/weatherService';
@@ -75,6 +95,10 @@ const mockWeeklyData = Array.from({ length: 7 }, (_, i) => {
 export default function WeatherScreen() {
   const { theme, isDarkMode } = useThemeStore();
   const { config, setConfig, selectedStation, sectionOrder, setSectionOrder } = useWeatherConfigStore();
+  
+            // Debug log dla sectionOrder
+          console.log('WeatherScreen - sectionOrder:', sectionOrder);
+          console.log('WeatherScreen - config:', config);
   const router = useRouter();
   const handleOpenPushSettings = () => {
      router.push('/(tabs)/preferences');
@@ -159,8 +183,6 @@ export default function WeatherScreen() {
       setIsOnline(online);
       setError(null);
       
-      console.log('Fetching comprehensive weather data for coordinates:', coords);
-
       // Parallel fetch all data sources for better performance
       const [
         forecast,
@@ -182,7 +204,6 @@ export default function WeatherScreen() {
 
       // Process Open-Meteo forecast data
       if (forecast.status === 'fulfilled' && forecast.value) {
-        console.log('Forecast data received:', forecast.value);
         setForecastData(forecast.value);
         
         if (forecast.value.current_weather) {
@@ -222,7 +243,6 @@ export default function WeatherScreen() {
 
       // Process Air Quality
       if (air.status === 'fulfilled' && air.value) {
-        console.log('Air quality data received');
         // Keep it in state if needed later (optional)
         // setAirQuality(air.value)
       }
@@ -244,7 +264,13 @@ export default function WeatherScreen() {
 
       // Process Hydro (water temperature from nearest station)
       if (hydro.status === 'fulfilled' && Array.isArray(hydro.value)) {
-        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 10).find((h: any) => h?.temperatura_wody != null && String(h.temperatura_wody).trim() !== '');
+        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 15).find((h: any) => 
+          h?.temperatura_wody != null && 
+          String(h.temperatura_wody).trim() !== '' && 
+          !isNaN(Number(h.temperatura_wody)) &&
+          Number(h.temperatura_wody) > -50 && 
+          Number(h.temperatura_wody) < 50
+        );
         if (nearestHydro) {
           const t = parseFloat(String(nearestHydro.temperatura_wody));
           setWaterTempC(Number.isFinite(t) ? t : null);
@@ -276,6 +302,7 @@ export default function WeatherScreen() {
 
         // Filter for Pomorskie and map to UI alerts for skrót na ekranie
         const relevant = filterWarningsForPomeranianVoivodeship(warnings.value);
+        
         const mapped = relevant
           .map((w: any) => ({
             id: w.id,
@@ -289,6 +316,20 @@ export default function WeatherScreen() {
           }))
           .sort((a: any, b: any) => (b.level || 0) - (a.level || 0));
         setAlerts(mapped);
+      } else if (warnings.status === 'rejected') {
+        const reason = warnings.reason;
+        // Don't show error if it's just "no warnings found"
+        if (reason && typeof reason === 'object' && 'message' in reason && reason.message === 'No products were found') {
+          console.log('No weather warnings found - this is normal when no warnings are active');
+          setAlerts([]);
+          setAllAlerts([]);
+        } else {
+          console.error('Weather warnings fetch failed:', reason);
+          setAlerts([]);
+          setAllAlerts([]);
+          // Show error message to user only for real errors
+          setError('Nie udało się pobrać ostrzeżeń pogodowych. Sprawdź połączenie z internetem.');
+        }
       } else {
         setAlerts([]);
         setAllAlerts([]);
@@ -309,7 +350,7 @@ export default function WeatherScreen() {
       // Find nearest METEO station (for soil temperature etc.)
       if (meteo.status === 'fulfilled' && Array.isArray(meteo.value)) {
         // Find nearest METEO station with soil temperature; fallback to the nearest available
-        const nearestList = findNearestStationsWithDistance(coords, meteo.value, 10);
+        const nearestList = findNearestStationsWithDistance(coords, meteo.value, 15); // Zwiększam zasięg do 15km
         const soilStation = Array.isArray(nearestList)
           ? nearestList.find((s: any) => s?.temperatura_gruntu != null && String(s.temperatura_gruntu).trim() !== '')
           : null;
@@ -336,7 +377,13 @@ export default function WeatherScreen() {
         sources.push({ label: 'Morze', source: 'Open‑Meteo Marine (grid)' });
       }
       if (hydro.status === 'fulfilled' && Array.isArray(hydro.value)) {
-        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 10).find((h: any) => h?.temperatura_wody != null && String(h.temperatura_wody).trim() !== '');
+        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 15).find((h: any) => 
+          h?.temperatura_wody != null && 
+          String(h.temperatura_wody).trim() !== '' && 
+          !isNaN(Number(h.temperatura_wody)) &&
+          Number(h.temperatura_wody) > -50 && 
+          Number(h.temperatura_wody) < 50
+        );
         if (nearestHydro) {
           sources.push({ label: 'Woda', source: `HYDRO: ${nearestHydro.stacja || 'stacja'} (${(nearestHydro as any).distance?.toFixed?.(1) || '?'} km)` });
         }
@@ -413,39 +460,7 @@ export default function WeatherScreen() {
     }
   };
 
-  // Quick consistency validator for displayed metrics vs source
-  const validateDataConsistency = () => {
-    const issues: string[] = [];
-    if (synopData) {
-      // Compare currentWeather temperature vs synop temperature if both exist
-      const synopTemp = parseFloat(String(synopData.temperatura ?? 'NaN'));
-      const appTemp = Number(currentWeather.temperature);
-      if (!Number.isNaN(synopTemp) && !Number.isNaN(appTemp)) {
-        const delta = Math.abs(appTemp - synopTemp);
-        if (delta > 3) {
-          issues.push(`Różnica temperatury >3°C (SYNOP ${synopTemp}°C vs app ${appTemp}°C)`);
-        }
-      }
 
-      if (typeof synopData.predkosc_wiatru !== 'undefined' && typeof currentWeather.windSpeed !== 'undefined') {
-        const synopWind = Number(synopData.predkosc_wiatru);
-        const appWind = Number(currentWeather.windSpeed);
-        if (!Number.isNaN(synopWind) && !Number.isNaN(appWind) && Math.abs(appWind - synopWind) > 10) {
-          issues.push(`Różnica wiatru >10 km/h (SYNOP ${synopWind} vs app ${appWind})`);
-        }
-      }
-    }
-
-    if (meteoNearest && typeof (meteoNearest as any).temperatura_gruntu !== 'undefined' && typeof (currentWeather as any).soilTemperature !== 'undefined') {
-      const soilApi = Number((meteoNearest as any).temperatura_gruntu);
-      const soilApp = Number((currentWeather as any).soilTemperature);
-      if (!Number.isNaN(soilApi) && !Number.isNaN(soilApp) && Math.abs(soilApi - soilApp) > 3) {
-        issues.push(`Różnica temperatury gleby >3°C (METEO ${soilApi}°C vs app ${soilApp}°C)`);
-      }
-    }
-
-    return issues;
-  };
 
   const baseAlerts = showAllWarningsNationwide ? allAlerts : alerts;
   const filteredAlerts = baseAlerts.filter((a) => {
@@ -567,17 +582,7 @@ export default function WeatherScreen() {
             windDirection={45}
             onDetailsPress={() => setWeatherDetailsModalVisible(true)}
           />
-          {/* Data consistency warnings (dev/debug) */}
-          {(() => {
-            const issues = validateDataConsistency();
-            return issues.length > 0 ? (
-              <View style={{ marginTop: 8, marginHorizontal: 16, padding: 8, borderRadius: 8, backgroundColor: (theme.colors.warning + '20') }}>
-                {issues.map((m, i) => (
-                  <Text key={i} style={{ color: theme.colors.warning, fontSize: 12 }}>{m}</Text>
-                ))}
-              </View>
-            ) : null;
-          })()}
+
         </Animated.View>
 
 
@@ -591,6 +596,7 @@ export default function WeatherScreen() {
 
 
         {(sectionOrder || ['weekly','alerts','hourly','specialized']).map((sectionKey) => {
+          console.log('Processing section:', sectionKey, 'sectionOrder:', sectionOrder); // Debug log
           if (sectionKey === 'weekly' && config.showWeeklyForecast) {
             return (
               <Animated.View key="weekly" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
@@ -603,41 +609,67 @@ export default function WeatherScreen() {
             );
           }
 
-          if (sectionKey === 'alerts' && config.showAlerts && alerts.length > 0) {
+          // Demo ikon pogodowych - do usunięcia po wyborze
+
+
+          if (sectionKey === 'alerts' && config.showAlerts) {
             return (
               <Animated.View key="alerts" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
-                <View style={styles.sectionHeader}>
+                <View style={[styles.sectionHeader, { marginBottom: 12 }]}>
                   <AlertTriangle size={20} color={theme.colors.warning} />
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Ostrzeżenia pogodowe</Text>
                   <View style={{ flex: 1 }} />
-                  <TouchableOpacity onPress={() => setAlertsModalVisible(true)} accessibilityRole="button">
-                    <Text style={{ color: theme.colors.primary, fontFamily: Platform.select({ default: 'Poppins_Medium', android: 'Poppins_Medium' }) || 'Poppins_Medium' }}>
-                      Zobacz wszystkie
-                    </Text>
-                  </TouchableOpacity>
+                  {alerts.length > 0 && (
+                    <TouchableOpacity 
+                      onPress={() => setAlertsModalVisible(true)} 
+                      accessibilityRole="button"
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.primary + '10' }}
+                    >
+                      <Text style={{ color: theme.colors.primary, fontFamily: Platform.select({ default: 'Poppins_Medium', android: 'Poppins_Medium' }) || 'Poppins_Medium', fontSize: 13 }}>
+                        Zobacz wszystkie
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-                <TouchableOpacity activeOpacity={0.85} onPress={() => setAlertsModalVisible(true)}>
-                  <View style={[styles.alertsContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                    {alerts.slice(0, 3).map((alert, index) => (
-                      <View key={index} style={[styles.alertItem, { borderLeftColor: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}> 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Text style={[styles.alertTitle, { color: theme.colors.text }]}>{alert.title}</Text>
-                          <View style={[styles.badge, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}> 
-                            <Text style={[styles.badgeText, { color: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}> 
-                              {alert.severity === 'high' ? 'Wysokie' : alert.severity === 'medium' ? 'Średnie' : 'Niskie'}
-                            </Text>
+                
+                {alerts.length > 0 ? (
+                  <TouchableOpacity activeOpacity={0.85} onPress={() => setAlertsModalVisible(true)}>
+                    <View style={[styles.alertsContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                      {alerts.slice(0, 3).map((alert, index) => (
+                        <View key={index} style={[styles.alertItem, { borderLeftColor: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}> 
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <Text style={[styles.alertTitle, { color: theme.colors.text }]}>{alert.title}</Text>
+                            <View style={[styles.badge, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}> 
+                              <Text style={[styles.badgeText, { color: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}> 
+                                {alert.severity === 'high' ? 'Wysokie' : alert.severity === 'medium' ? 'Średnie' : 'Niskie'}
+                              </Text>
+                            </View>
                           </View>
+                          <Text style={[styles.alertDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+                            {alert.description}
+                          </Text>
+                          <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 8, fontFamily: Platform.select({ default: 'Poppins_Regular', android: 'Poppins_Regular' }) || 'Poppins_Regular' }}>
+                            {formatDateTime(alert.validFrom)} - {formatDateTime(alert.validTo)}
+                          </Text>
                         </View>
-                        <Text style={[styles.alertDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-                          {alert.description}
-                        </Text>
-                        <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
-                          {formatDateTime(alert.validFrom)} - {formatDateTime(alert.validTo)}
-                        </Text>
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[styles.alertsContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                    <View style={styles.noAlertsContainer}>
+                      <View style={[styles.noAlertsIcon, { backgroundColor: theme.colors.primary + '10' }]}>
+                        <AlertTriangle size={24} color={theme.colors.primary} />
                       </View>
-                    ))}
+                      <Text style={[styles.noAlertsText, { color: theme.colors.textSecondary }]}>
+                        Brak aktywnych ostrzeżeń pogodowych
+                      </Text>
+                      <Text style={[styles.noAlertsSubtext, { color: theme.colors.textSecondary }]}>
+                        Wszystkie ostrzeżenia IMGW-PIB są aktualizowane co 15 minut
+                      </Text>
+                    </View>
                   </View>
-                </TouchableOpacity>
+                )}
               </Animated.View>
             );
           }
@@ -714,7 +746,7 @@ export default function WeatherScreen() {
               <View style={[styles.weatherSummaryCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
                 <View style={styles.weatherSummaryHeader}>
                   <View style={styles.weatherSummaryIcon}>
-                    <WeatherIcon wmoCode={currentWeather.wmoCode} size={84} />
+                    <MeteoconsWeatherIcon wmoCode={currentWeather.wmoCode} size={84} />
                   </View>
                   <View style={styles.weatherSummaryInfo}>
                     <Text style={[styles.weatherSummaryTemp, { color: theme.colors.text }]}>
@@ -812,6 +844,152 @@ export default function WeatherScreen() {
                   </Text>
                 </View>
               </View>
+
+              {/* Informacje o źródle danych */}
+              <View style={[styles.dataSourceSection, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                <Text style={[styles.dataSourceTitle, { color: theme.colors.text }]}>Źródło danych</Text>
+                
+                {/* Stacja IMGW */}
+                {nearestStation && (
+                  <View style={styles.dataSourceItem}>
+                    <View style={[styles.dataSourceIcon, { backgroundColor: theme.colors.primary + '15' }]}>
+                      <MapPin size={16} color={theme.colors.primary} />
+                    </View>
+                    <View style={styles.dataSourceInfo}>
+                      <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Stacja IMGW</Text>
+                      <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
+                        {nearestStation.name}
+                        {nearestStation.distance && ` (${nearestStation.distance.toFixed(1)} km)`}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Czas pomiaru */}
+                {synopData && (
+                  <View style={styles.dataSourceItem}>
+                    <View style={[styles.dataSourceIcon, { backgroundColor: theme.colors.secondary + '15' }]}>
+                      <Clock size={16} color={theme.colors.secondary} />
+                    </View>
+                    <View style={styles.dataSourceInfo}>
+                      <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Czas pomiaru</Text>
+                      <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
+                        {synopData.data_pomiaru && synopData.godzina_pomiaru 
+                          ? `${synopData.data_pomiaru} ${synopData.godzina_pomiaru}`
+                          : 'Ostatnie dane dostępne'
+                        }
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Stacja METEO (temperatura gleby) */}
+                {meteoNearest && (
+                  <View style={styles.dataSourceItem}>
+                    <View style={[styles.dataSourceIcon, { backgroundColor: theme.colors.warning + '15' }]}>
+                      <Thermometer size={16} color={theme.colors.warning} />
+                    </View>
+                    <View style={styles.dataSourceInfo}>
+                      <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Stacja METEO</Text>
+                      <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
+                        {meteoNearest.nazwa_stacji || 'Stacja METEO'}
+                        {meteoNearest.distance && ` (${meteoNearest.distance.toFixed(1)} km)`}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Dane morskie */}
+                {marineData && (
+                  <View style={styles.dataSourceItem}>
+                    <View style={[styles.dataSourceIcon, { backgroundColor: theme.colors.info + '15' }]}>
+                      <Droplets size={16} color={theme.colors.info} />
+                    </View>
+                    <View style={styles.dataSourceInfo}>
+                      <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Dane morskie</Text>
+                      <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
+                        Open-Meteo Marine API
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Temperatura wody */}
+                {waterTempC && (
+                  <View style={styles.dataSourceItem}>
+                    <View style={[styles.dataSourceIcon, { backgroundColor: theme.colors.primary + '15' }]}>
+                      <Droplets size={16} color={theme.colors.primary} />
+                    </View>
+                    <View style={styles.dataSourceInfo}>
+                      <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Temperatura wody</Text>
+                      <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
+                        Stacja hydro IMGW
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Aktualizacja danych */}
+                <View style={styles.dataSourceItem}>
+                  <View style={[styles.dataSourceIcon, { backgroundColor: theme.colors.info + '15' }]}>
+                    <Info size={16} color={theme.colors.info} />
+                  </View>
+                  <View style={styles.dataSourceInfo}>
+                    <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Aktualizacja</Text>
+                    <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
+                      {new Date().toLocaleString('pl-PL', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit'
+                      })}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Prognozy Open-Meteo */}
+                {forecastData && (
+                  <View style={styles.dataSourceItem}>
+                    <View style={[styles.dataSourceIcon, { backgroundColor: '#10B981' + '15' }]}>
+                      <Cloud size={16} color="#10B981" />
+                    </View>
+                    <View style={styles.dataSourceInfo}>
+                      <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Prognozy</Text>
+                      <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
+                        Open-Meteo API (ECMWF)
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Jakość powietrza */}
+                {forecastData && (
+                  <View style={styles.dataSourceItem}>
+                    <View style={[styles.dataSourceIcon, { backgroundColor: '#8B5CF6' + '15' }]}>
+                      <Eye size={16} color="#8B5CF6" />
+                    </View>
+                    <View style={styles.dataSourceInfo}>
+                      <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Jakość powietrza</Text>
+                      <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
+                        Open-Meteo Air Quality API
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Informacja o świeżości danych */}
+                <View style={[styles.dataSourceItem, { backgroundColor: 'rgba(34, 197, 94, 0.1)', borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.2)' }]}>
+                  <View style={[styles.dataSourceIcon, { backgroundColor: '#22C55E' + '20' }]}>
+                    <Info size={16} color="#22C55E" />
+                  </View>
+                  <View style={styles.dataSourceInfo}>
+                    <Text style={[styles.dataSourceLabel, { color: '#22C55E' }]}>Świeżość danych</Text>
+                    <Text style={[styles.dataSourceValue, { color: '#22C55E' }]}>
+                      Dane aktualizowane co 5-15 minut
+                    </Text>
+                  </View>
+                </View>
+              </View>
             </View>
           )}
         </ScrollView>
@@ -886,12 +1064,53 @@ export default function WeatherScreen() {
                   {alert.title}
                 </Text>
               </View>
+              
               <Text style={[styles.alertDetailDescription, { color: theme.colors.text }]}>
                 {alert.description || 'Brak opisu'}
               </Text>
+              
+              {/* Dodatkowe informacje */}
+              {alert.comment && alert.comment !== 'Brak' && (
+                <View style={styles.alertDetailSection}>
+                  <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Komentarz:</Text>
+                  <Text style={[styles.alertDetailValue, { color: theme.colors.text }]}>{alert.comment}</Text>
+                </View>
+              )}
+              
+              {alert.office && (
+                <View style={styles.alertDetailSection}>
+                  <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Biuro:</Text>
+                  <Text style={[styles.alertDetailValue, { color: theme.colors.text }]}>{alert.office}</Text>
+                </View>
+              )}
+              
+              {/* Szczegóły obszarów dla ostrzeżeń hydrologicznych */}
+              {alert.obszary && alert.obszary.length > 0 && (
+                <View style={styles.alertDetailSection}>
+                  <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Obszary:</Text>
+                  {alert.obszary.map((obszar: any, index: number) => (
+                    <View key={index} style={styles.areaItem}>
+                      <Text style={[styles.areaName, { color: theme.colors.text }]}>{obszar.wojewodztwo}</Text>
+                      <Text style={[styles.areaDescription, { color: theme.colors.textSecondary }]}>{obszar.opis}</Text>
+                      {obszar.kod_zlewni && obszar.kod_zlewni.length > 0 && (
+                        <Text style={[styles.areaCode, { color: theme.colors.primary }]}>
+                          Kod zlewni: {obszar.kod_zlewni.join(', ')}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+              
               <View style={styles.alertDetailInfo}>
                 <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Typ: {alert.type === 'hydro' ? 'Hydrologiczne' : 'Meteorologiczne'}</Text>
                 <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Poziom: {alert.level}</Text>
+                {alert.probability && alert.probability > 0 && (
+                  <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Prawdopodobieństwo: {alert.probability}%</Text>
+                )}
+                {alert.published && (
+                  <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Opublikowano: {formatDateTime(alert.published)}</Text>
+                )}
                 <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Obowiązuje: {formatDateTime(alert.validFrom)} - {formatDateTime(alert.validTo)}</Text>
               </View>
             </View>
@@ -977,6 +1196,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.04)',
   },
   sectionTitle: {
     fontSize: 18,
@@ -985,6 +1206,8 @@ const styles = StyleSheet.create({
       android: 'Poppins_SemiBold',
     }) || 'Poppins_SemiBold',
   },
+
+
   // Modal styles
   modalContent: {
     flex: 1,
@@ -1036,6 +1259,16 @@ const styles = StyleSheet.create({
       default: 'Poppins_Regular',
       android: 'Poppins_Regular',
     }) || 'Poppins_Regular',
+  },
+  alertDetailValue: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    marginTop: 4,
+    color: '#000000',
   },
   weatherDetailsContainer: {
     gap: 20,
@@ -1311,23 +1544,27 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   alertsContainer: {
-    marginHorizontal: 8,
+    marginHorizontal: 16,
     borderRadius: 16,
     padding: 16,
-    gap: 12,
+    gap: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)'
+    borderColor: 'rgba(0,0,0,0.04)',
+    marginBottom: 8,
   },
   alertItem: {
     borderLeftWidth: 4,
-    paddingLeft: 12,
-    paddingVertical: 8,
-    paddingRight: 8,
+    paddingLeft: 16,
+    paddingVertical: 12,
+    paddingRight: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    marginBottom: 8,
   },
   alertTitle: {
     fontSize: 16,
@@ -1335,7 +1572,8 @@ const styles = StyleSheet.create({
       default: 'Poppins_SemiBold',
       android: 'Poppins_SemiBold',
     }) || 'Poppins_SemiBold',
-    marginBottom: 6,
+    marginBottom: 8,
+    lineHeight: 22,
   },
   alertDescription: {
     fontSize: 14,
@@ -1344,11 +1582,14 @@ const styles = StyleSheet.create({
       default: 'Poppins_Regular',
       android: 'Poppins_Regular',
     }) || 'Poppins_Regular',
+    marginBottom: 8,
   },
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 999,
+    minWidth: 60,
+    alignItems: 'center',
   },
   badgeText: {
     fontSize: 12,
@@ -1356,6 +1597,7 @@ const styles = StyleSheet.create({
       default: 'Poppins_Medium',
       android: 'Poppins_Medium',
     }) || 'Poppins_Medium',
+    textAlign: 'center',
   },
   filterLabel: {
     fontSize: 12,
@@ -1384,6 +1626,149 @@ const styles = StyleSheet.create({
       default: 'Poppins_Medium',
       android: 'Poppins_Medium',
     }) || 'Poppins_Medium',
+  },
+  noAlertsContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  noAlertsIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  noAlertsText: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    marginBottom: 8,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  noAlertsSubtext: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    textAlign: 'center',
+    lineHeight: 18,
+    opacity: 0.8,
+  },
+  alertDetailSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.04)',
+  },
+  areaItem: {
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  areaName: {
+    fontSize: 15,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    marginBottom: 6,
+    color: '#000000',
+  },
+  areaDescription: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    marginBottom: 6,
+    lineHeight: 18,
+    color: '#666666',
+  },
+  areaCode: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    color: '#2563EB',
+  },
+
+  // New styles for data source section
+  dataSourceSection: {
+    borderRadius: 20,
+    padding: 20,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  dataSourceTitle: {
+    fontSize: 18,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#000000',
+  },
+  dataSourceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
+  dataSourceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  dataSourceInfo: {
+    flex: 1,
+  },
+  dataSourceLabel: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    marginBottom: 4,
+    color: '#666666',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dataSourceValue: {
+    fontSize: 15,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    color: '#000000',
+    lineHeight: 20,
   },
 
 }); 

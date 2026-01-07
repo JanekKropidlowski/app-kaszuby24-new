@@ -1,0 +1,215 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-01-01T22:44:44.237Z",
+  "lines": [
+    {
+      "id": "1",
+      "number": "1",
+      "name": "Linia 1",
+      "type": "regularna",
+      "route": "1"
+    },
+    {
+      "id": "11",
+      "number": "11",
+      "name": "Linia 11",
+      "type": "regularna",
+      "route": "11"
+    },
+    {
+      "id": "12",
+      "number": "12",
+      "name": "Linia 12",
+      "type": "regularna",
+      "route": "12"
+    },
+    {
+      "id": "choczewo-zelazno-zwartowo-zwartowko-brzezno-leborskie-kisewo-lebork-2",
+      "number": "choczewo-zelazno-zwartowo-zwartowko-brzezno-leborskie-kisewo-lebork-2",
+      "name": "Linia choczewo-zelazno-zwartowo-zwartowko-brzezno-leborskie-kisewo-lebork-2",
+      "type": "regionalna",
+      "route": "choczewo-zelazno-zwartowo-zwartowko-brzezno-leborskie-kisewo-lebork-2"
+    },
+    {
+      "id": "519",
+      "number": "519",
+      "name": "Linia 519",
+      "type": "regionalna",
+      "route": "519"
+    }
+  ],
+  "stations": [
+    {
+      "id": "station_1",
+      "name": "Rozkład jazdy",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_2",
+      "name": "Language\":\"pl",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_3",
+      "name": "URL=wp",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_4",
+      "name": "URL=global",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_5",
+      "name": "This file is auto",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_6",
+      "name": "URL=/wp",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_7",
+      "name": "Google Tag Manager",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_8",
+      "name": "GTM",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_9",
+      "name": "End Google Tag Manager",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_10",
+      "name": "Google Tag Manager (noscript)",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_11",
+      "name": "End Google Tag Manager (noscript)",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_12",
+      "name": "PKSW",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_13",
+      "name": "Schemat",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_14",
+      "name": "Asnyka",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_15",
+      "name": "Lipowa",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_16",
+      "name": "Polaczenia",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_17",
+      "name": "Regionalne",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_18",
+      "name": "PKSWejherowo/\" class=\"facebook",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_19",
+      "name": "URL=contact",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_20",
+      "name": "ElementById(\"wp",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_21",
+      "name": "Polaczenia",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_22",
+      "name": "Regionalne",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_23",
+      "name": "PKSWejherowo/\" class=\"facebook",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_24",
+      "name": "URL=contact",
+      "type": "bus_stop"
+    },
+    {
+      "id": "station_25",
+      "name": "ElementById(\"wp",
+      "type": "bus_stop"
+    }
+  ],
+  "connections": {
+    "1": [
+      {
+        "departure": "6:15",
+        "arrival": "20:00",
+        "duration": "13:45",
+        "type": "range"
+      }
+    ],
+    "11": [
+      {
+        "departure": "6:15",
+        "arrival": "20:00",
+        "duration": "13:45",
+        "type": "range"
+      }
+    ],
+    "12": [
+      {
+        "departure": "6:15",
+        "arrival": "20:00",
+        "duration": "13:45",
+        "type": "range"
+      }
+    ],
+    "519": [
+      {
+        "departure": "6:15",
+        "arrival": "20:00",
+        "duration": "13:45",
+        "type": "range"
+      }
+    ],
+    "choczewo-zelazno-zwartowo-zwartowko-brzezno-leborskie-kisewo-lebork-2": [
+      {
+        "departure": "6:15",
+        "arrival": "20:00",
+        "duration": "13:45",
+        "type": "range"
+      }
+    ]
+  },
+  "stats": {
+    "total_lines": 91,
+    "total_connections": 5,
+    "total_stations": 25
+  }
+}

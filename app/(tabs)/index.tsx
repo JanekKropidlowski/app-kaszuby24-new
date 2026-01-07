@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  FlatList, 
-  RefreshControl, 
-  TouchableOpacity, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
   ScrollView,
   Dimensions,
   Platform,
@@ -17,16 +17,16 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { 
-  ChevronRight, 
-  RefreshCw, 
-  WifiOff, 
-  ArrowRight, 
-  Heart, 
-  Home, 
-  Bell, 
-  Search, 
-  Bookmark, 
+import {
+  ChevronRight,
+  RefreshCw,
+  WifiOff,
+  ArrowRight,
+  Heart,
+  Home,
+  Bell,
+  Search,
+  Bookmark,
   Settings,
   Eye,
   TrendingUp,
@@ -50,8 +50,9 @@ import { ArticleCard } from '@/components/ArticleCard';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
 import WelcomeNotifications from '@/components/WelcomeNotifications';
-import OnboardingCoachmarks from '@/components/OnboardingCoachmarks';
-import ComprehensiveTutorial from '@/components/ComprehensiveTutorial';
+import { AdBanner } from '@/components/AdBanner';
+
+
 import NotificationsBanner from '@/components/NotificationsBanner';
 import { useArticlesStore } from '@/store/articlesStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -62,10 +63,14 @@ import { useScrollStore } from '@/store/scrollStore';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { WelcomeGreeting } from '@/components/WelcomeGreeting';
-import { WeatherIcon } from '@/components/WeatherIcon';
-import { WeatherSummary } from '@/components/WeatherSummary';
+import { IOSWeatherIcon } from '@/components/IOSWeatherIcon';
+import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
+
 import { FeaturedCarousel } from '@/components/FeaturedCarousel';
 import * as Haptics from 'expo-haptics';
+import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -74,23 +79,23 @@ const CAROUSEL_ITEM_WIDTH = width * 0.75; // 75% of screen width for better visi
 const CAROUSEL_ITEM_SPACING = 12; // Better spacing for visual separation
 const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Perfect centering calculation
 
-  // Modern header component with enhanced UI
-  const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }: { 
-    weatherData: any; 
-    weatherLoading: boolean; 
-    onWeatherPress: () => void;
-  }) => {
-    const { theme } = useThemeStore();
-    const router = useRouter();
-    const insets = useSafeAreaInsets();
+// Modern header component with enhanced UI
+const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }: {
+  weatherData: any;
+  weatherLoading: boolean;
+  onWeatherPress: () => void;
+}) => {
+  const { theme } = useThemeStore();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.modernHeaderWrapper, { 
+    <View style={[styles.modernHeaderWrapper, {
       backgroundColor: 'transparent',
-      paddingTop: insets.top // Dodany bezpieczny margines od góry
+      paddingTop: insets.top + 5 // Zmniejszony dodatkowy margines od góry
     }]}>
       {/* Usunięto gradient - powodował biały blok */}
-      
+
       <View style={styles.modernHeaderContent}>
         {/* Left side - Greeting with waving hand icon */}
         <View style={styles.headerLeftSection}>
@@ -101,9 +106,9 @@ const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Perfect centeri
             </View>
           </View>
         </View>
-        
+
         {/* Right side - Weather Summary */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.weatherIconContainer}
           onPress={onWeatherPress}
           activeOpacity={0.7}
@@ -115,10 +120,22 @@ const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Perfect centeri
               <Text style={[styles.weatherTemperature, { color: theme.colors.text }]}>
                 {parseFloat(weatherData.temperatura).toFixed(1)}°
               </Text>
-              <WeatherIcon wmoCode={weatherData.weatherCode || 0} size={28} />
+              {/* Emotka pogodowa */}
+              <Text style={{ fontSize: 36, textAlign: 'center' }}>
+                {weatherData.weatherCode <= 1 ? '☀️' :
+                  weatherData.weatherCode === 2 ? '⛅' :
+                    weatherData.weatherCode === 3 ? '☁️' :
+                      weatherData.weatherCode >= 45 && weatherData.weatherCode <= 48 ? '🌫️' :
+                        weatherData.weatherCode >= 51 && weatherData.weatherCode <= 67 ? '🌧️' :
+                          weatherData.weatherCode >= 71 && weatherData.weatherCode <= 77 ? '🌨️' :
+                            weatherData.weatherCode >= 95 && weatherData.weatherCode <= 99 ? '⛈️' : '☀️'}
+              </Text>
             </View>
           ) : (
-            <WeatherIcon wmoCode={0} size={40} />
+            <View>
+              {/* Domyślna emotka słoneczna */}
+              <Text style={{ fontSize: 44, textAlign: 'center' }}>☀️</Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
@@ -127,10 +144,10 @@ const CAROUSEL_SIDE_PEEK = (width - CAROUSEL_ITEM_WIDTH) / 2; // Perfect centeri
 };
 
 // New Reanimated carousel component
-const AnimatedWeeklyPopularCarousel = ({ item, index, scrollX, onPress }: { 
-  item: Article; 
-  index: number; 
-  scrollX: Animated.SharedValue<number>; 
+const AnimatedWeeklyPopularCarousel = ({ item, index, scrollX, onPress }: {
+  item: Article;
+  index: number;
+  scrollX: Animated.SharedValue<number>;
   onPress: (article: Article) => void;
 }) => {
   const { theme } = useThemeStore();
@@ -156,7 +173,7 @@ const AnimatedWeeklyPopularCarousel = ({ item, index, scrollX, onPress }: {
       opacity,
     };
   });
-  
+
   const getArticleRegion = (article: Article) => {
     if (!article.categories || article.categories.length === 0) return null;
     const regionCategories = [
@@ -179,7 +196,7 @@ const AnimatedWeeklyPopularCarousel = ({ item, index, scrollX, onPress }: {
 
   return (
     <Animated.View style={[styles.newCarouselItemContainer, { width: CAROUSEL_ITEM_WIDTH }, animatedStyle]}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.newCarouselItem}
         onPress={() => onPress(item)}
         activeOpacity={0.9}
@@ -198,44 +215,44 @@ const AnimatedWeeklyPopularCarousel = ({ item, index, scrollX, onPress }: {
           ) : (
             <View style={[styles.newCarouselImagePlaceholder, { backgroundColor: theme.colors.subtle }]} />
           )}
-          
+
           <View style={styles.weeklyBadge}>
-            <TrendingUp size={12} color="#FFFFFF" />
+            <TrendingUp size={16} color="#FFFFFF" />
             <Text style={[styles.weeklyBadgeText, { fontFamily: theme.fontFamily.semibold }]}>
               Najpopularniejsze w tym tygodniu
             </Text>
           </View>
 
           <View style={styles.viewCounter}>
-            <Eye size={12} color="#FFFFFF" />
+            <Eye size={16} color="#FFFFFF" />
             <Text style={[styles.viewCountText, { fontFamily: theme.fontFamily.medium }]}>
               {getViewCount(item)}
             </Text>
           </View>
-          
+
           <LinearGradient
             colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
             locations={[0, 0.4, 0.7, 1]}
             style={styles.newCarouselGradient}
           />
-          
+
           <View style={styles.newCarouselItemContent}>
             {getArticleRegion(item) && (
               <View style={styles.newCarouselLabelContainer}>
-                <MapPin size={12} color="#FFFFFF" />
+                <MapPin size={16} color="#FFFFFF" />
                 <Text style={[styles.newCarouselLabel, { fontFamily: theme.fontFamily.semibold }]}>
                   {getArticleRegion(item)}
                 </Text>
               </View>
             )}
             <Text style={[styles.newCarouselTitle, { fontFamily: theme.fontFamily.bold }]} numberOfLines={3}>
-              {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+              {item.title?.rendered ? cleanArticleTitle(item.title.rendered) : 'Brak tytułu'}
             </Text>
             <View style={styles.newCarouselFooter}>
               <Text style={[styles.newCarouselReadMore, { fontFamily: theme.fontFamily.semibold }]}>
                 Czytaj więcej
               </Text>
-              <ArrowRight size={16} color="#FFFFFF" />
+              <ArrowRight size={18} color="#FFFFFF" />
             </View>
           </View>
         </View>
@@ -251,14 +268,14 @@ export default function HomeScreen() {
   const { theme } = useThemeStore();
   const { setScrollDirection } = useScrollStore();
   const insets = useSafeAreaInsets();
-  const { 
-    shouldShowWelcome, 
+  const {
+    shouldShowWelcome,
     shouldShowBanner,
     dismissBanner,
     initializePreferences,
     getUnreadCount
   } = useNotificationsStore();
-  
+
   // Simplified state management for reliable infinite scroll
   const [articles, setArticles] = useState<Article[]>([]);
   const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
@@ -266,32 +283,32 @@ export default function HomeScreen() {
   const [mixedContent, setMixedContent] = useState<(Article | Nekrolog)[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  
+
   // Loading states
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMoreArticles, setHasMoreArticles] = useState(true);
-  
+
   // Carousel and modal states
 
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [showCoachmarks, setShowCoachmarks] = useState(false);
+
   const [showComprehensiveTutorial, setShowComprehensiveTutorial] = useState(false);
 
 
   const [isOffline, setIsOffline] = useState(false);
-  
+
   const flatListRef = useRef<FlatList>(null);
   const isMountedRef = useRef(true);
   const isScreenFocused = useRef(true);
   const loadingRef = useRef(false); // Prevent duplicate requests
-  
+
   // Carousel state (kept for compatibility)
   const [carouselData, setCarouselData] = useState<Article[]>([]);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
@@ -317,7 +334,7 @@ export default function HomeScreen() {
   //     setCarouselData(featuredArticles);
   //   }
   // }, [featuredArticles]);
-  
+
   // useEffect(() => {
   //   if (carouselData.length > 0 && featuredArticles.length > PEEK_COUNT && carouselFlatListRef.current) {
   //     setTimeout(() => {
@@ -330,78 +347,40 @@ export default function HomeScreen() {
   //     }, 200);
   //   }
   // }, [carouselData, featuredArticles.length]);
-  
+
   // Initialize and check for first time user
   useEffect(() => {
     // console.log('HomeScreen: Initializing...');
     initializePreferences();
-    
+
     // Show welcome modal for first time users - reduced delay
     const timer = setTimeout(() => {
       if (shouldShowWelcome()) {
         setShowWelcomeModal(true);
       }
     }, 800); // Reduced from 1500ms to 800ms
-    
+
     return () => clearTimeout(timer);
   }, [initializePreferences, shouldShowWelcome]);
 
   const handleWelcomeClose = useCallback(async () => {
     setShowWelcomeModal(false);
-    try {
-      const hasSeenCoach = await AsyncStorage.getItem('@hasSeenCoachmarks');
-      if (!hasSeenCoach) {
-        // Pokaż krótką podpowiedź po zamknięciu powitania
-        setTimeout(() => setShowCoachmarks(true), 400);
-      }
-    } catch {}
   }, []);
 
-  const handleCoachmarksComplete = useCallback(async () => {
-    setShowCoachmarks(false);
-    try {
-      await AsyncStorage.setItem('@hasSeenCoachmarks', 'true');
-      // Check if user wants to see comprehensive tutorial
-      const hasSeenComprehensive = await AsyncStorage.getItem('@hasSeenComprehensiveTutorial');
-      if (!hasSeenComprehensive) {
-        setTimeout(() => setShowComprehensiveTutorial(true), 500);
-      }
-    } catch {}
-  }, []);
 
-  const handleCoachmarksSkip = useCallback(async () => {
-    setShowCoachmarks(false);
-    try {
-      await AsyncStorage.setItem('@hasSeenCoachmarks', 'true');
-    } catch {}
-  }, []);
 
-  const handleComprehensiveTutorialClose = useCallback(async () => {
-    setShowComprehensiveTutorial(false);
-    try {
-      await AsyncStorage.setItem('@hasSeenComprehensiveTutorial', 'true');
-    } catch {}
-  }, []);
 
-  const handleComprehensiveTutorialComplete = useCallback(async () => {
-    setShowComprehensiveTutorial(false);
-    try {
-      await AsyncStorage.setItem('@hasSeenComprehensiveTutorial', 'true');
-      // Show completion message or additional onboarding
-      console.log('Tutorial completed successfully');
-    } catch {}
-  }, []);
-  
+
   // Main function to load articles with proper pagination
   const loadArticles = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
     // Prevent multiple simultaneous requests
     if (loadingRef.current) {
-              // console.log('Already loading, skipping request');
+      // console.log('Already loading, skipping request');
       return;
     }
-    
+
     if (!isMountedRef.current) {
-              // console.log('Component unmounted, cancelling request');
+      // console.log('Component unmounted, cancelling request');
       return;
     }
 
@@ -409,7 +388,7 @@ export default function HomeScreen() {
       loadingRef.current = true;
       setError(null);
       setIsOffline(false);
-      
+
       // Set appropriate loading state
       if (pageNum === 1) {
         if (isRefresh) {
@@ -420,31 +399,31 @@ export default function HomeScreen() {
       } else {
         setLoadingMore(true);
       }
-      
+
       // console.log(`Loading articles: page=${pageNum}, refresh=${isRefresh}, category=${selectedCategory}`);
-      
+
       const categoryFilter = selectedCategory && selectedCategory !== 554 ? [selectedCategory] : undefined;
-      
+
       const { articles: newArticles, totalPages: total } = await fetchArticles(
         pageNum,
         20, // Articles per page
         categoryFilter
       );
-      
+
       if (!isMountedRef.current) {
         // console.log('Component unmounted during request, ignoring response');
         return;
       }
-      
-              // console.log(`Received ${newArticles.length} articles for page ${pageNum}`);
-      
+
+      // console.log(`Received ${newArticles.length} articles for page ${pageNum}`);
+
       if (pageNum === 1) {
         // First page or refresh - replace all articles
         if (newArticles.length > 0) {
-          const sortedArticles = [...newArticles].sort((a, b) => 
+          const sortedArticles = [...newArticles].sort((a, b) =>
             new Date(b.date).getTime() - new Date(a.date).getTime()
           );
-          
+
           // Take most popular articles for featured carousel based on views
           const articlesWithViews = sortedArticles
             .filter(article => article.meta?.views && parseInt(article.meta.views) > 0)
@@ -453,23 +432,23 @@ export default function HomeScreen() {
               const viewsB = parseInt(b.meta?.views || '0');
               return viewsB - viewsA; // Sort by highest views first
             });
-          
+
           // If we have articles with views, use them; otherwise fall back to latest
-          const featuredSelection = articlesWithViews.length >= 5 
+          const featuredSelection = articlesWithViews.length >= 5
             ? articlesWithViews.slice(0, 5)
             : [...articlesWithViews, ...sortedArticles.filter(a => !a.meta?.views || parseInt(a.meta.views) === 0)].slice(0, 5);
-          
+
           setFeaturedArticles(featuredSelection);
           // Rest go to main list (excluding featured ones)
           const featuredIds = new Set(featuredSelection.map(a => a.id));
           setArticles(sortedArticles.filter(a => !featuredIds.has(a.id)));
-          
+
           // Start prefetching first few articles immediately
           if (Platform.OS !== 'web') {
             setTimeout(() => {
               featuredSelection.slice(0, 3).forEach(article => {
                 import('@/services/api').then(({ prefetchArticleById }) => {
-                  prefetchArticleById(article.id).catch(() => {});
+                  prefetchArticleById(article.id).catch(() => { });
                 });
               });
             }, 100);
@@ -482,35 +461,35 @@ export default function HomeScreen() {
       } else {
         // Append to existing articles
         if (newArticles.length > 0) {
-          const sortedNewArticles = [...newArticles].sort((a, b) => 
+          const sortedNewArticles = [...newArticles].sort((a, b) =>
             new Date(b.date).getTime() - new Date(a.date).getTime()
           );
           setArticles(prev => [...prev, ...sortedNewArticles]);
           setCurrentPage(pageNum);
         }
       }
-      
+
       setTotalPages(total);
-      
+
       // Update pagination state
       const hasMore = pageNum < total && newArticles.length > 0;
       setHasMoreArticles(hasMore);
-      
-              // console.log(`Load complete. Page: ${pageNum}/${total}, Has more: ${hasMore}, Articles: ${newArticles.length}`);
-      
+
+      // console.log(`Load complete. Page: ${pageNum}/${total}, Has more: ${hasMore}, Articles: ${newArticles.length}`);
+
     } catch (err: any) {
       if (!isMountedRef.current) return;
-      
+
       console.error('Error loading articles:', err);
-      
+
       const errorMessage = err.message || 'Nie udało się załadować artykułów. Sprawdź połączenie internetowe i spróbuj ponownie.';
-      
-      if (errorMessage.includes('Brak połączenia z internetem') || 
-          errorMessage.includes('Nie można połączyć się z serwerem') ||
-          errorMessage.includes('Network request failed')) {
+
+      if (errorMessage.includes('Brak połączenia z internetem') ||
+        errorMessage.includes('Nie można połączyć się z serwerem') ||
+        errorMessage.includes('Network request failed')) {
         setIsOffline(true);
       }
-      
+
       setError(errorMessage);
     } finally {
       if (isMountedRef.current) {
@@ -521,17 +500,17 @@ export default function HomeScreen() {
       }
     }
   }, [selectedCategory]);
-  
+
   // Load categories - optimized with faster loading
   const loadCategories = useCallback(async () => {
     if (!isMountedRef.current) return;
-    
+
     try {
-              // console.log('Loading categories...');
+      // console.log('Loading categories...');
       const data = await fetchCategories();
-      
+
       if (!isMountedRef.current) return;
-      
+
       // Filter to show only specific categories by ID
       const allowedCategoryIds = [
         2583, // Wejherowo
@@ -544,26 +523,26 @@ export default function HomeScreen() {
         76797, // Reda
         65558  // Lębork
       ];
-      
+
       const filteredCategories = data
         .filter(cat => {
           // Include only categories with specific IDs and count > 0, exclude specific IDs (3, 554)
           return allowedCategoryIds.includes(cat.id) && cat.count > 0 && cat.id !== 3 && cat.id !== 554;
         })
         .sort((a, b) => b.count - a.count);
-      
+
       setCategories(filteredCategories);
-              // console.log(`Loaded ${filteredCategories.length} filtered categories (specific IDs)`);
+      // console.log(`Loaded ${filteredCategories.length} filtered categories (specific IDs)`);
     } catch (err) {
       if (!isMountedRef.current) return;
       console.error('Error loading categories:', err);
     }
   }, []);
-  
+
   // Load weather data for header
   const loadWeatherData = useCallback(async () => {
     if (!isMountedRef.current) return;
-    
+
     try {
       setWeatherLoading(true);
       // Get weather data and forecast for header
@@ -571,17 +550,17 @@ export default function HomeScreen() {
         fetch('https://danepubliczne.imgw.pl/api/data/synop/id/12160'),
         fetch('https://api.open-meteo.com/v1/forecast?latitude=54.3521&longitude=18.6464&daily=weathercode&timezone=Europe%2FWarsaw')
       ]);
-      
+
       if (imgwResponse.ok && meteoResponse.ok) {
         const imgwData = await imgwResponse.json();
         const meteoData = await meteoResponse.json();
-        
+
         // Add weather code to IMGW data
         const weatherDataWithCode = {
           ...imgwData,
           weatherCode: meteoData.daily?.weathercode?.[0] || 0
         };
-        
+
         setWeatherData(weatherDataWithCode);
       }
     } catch (err) {
@@ -597,20 +576,20 @@ export default function HomeScreen() {
   // Load nekrologi - sorted by date
   const loadNekrologi = useCallback(async () => {
     if (!isMountedRef.current) return;
-    
+
     try {
-              // console.log('Loading nekrologi...');
+      // console.log('Loading nekrologi...');
       const { nekrologi: loadedNekrologi } = await fetchNekrologi(1, 20);
-      
+
       if (!isMountedRef.current) return;
-      
+
       // Sort nekrologi by date (newest first)
-      const sortedNekrologi = loadedNekrologi.sort((a, b) => 
+      const sortedNekrologi = loadedNekrologi.sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      
+
       setNekrologi(sortedNekrologi);
-              // console.log(`Loaded ${sortedNekrologi.length} nekrologi`);
+      // console.log(`Loaded ${sortedNekrologi.length} nekrologi`);
     } catch (err) {
       if (!isMountedRef.current) return;
       console.error('Error loading nekrologi:', err);
@@ -621,50 +600,50 @@ export default function HomeScreen() {
   const mixContentWithNekrologi = useCallback((articlesList: Article[], nekrologiList: Nekrolog[]) => {
     const mixed: (Article | Nekrolog)[] = [];
     let nekrologIndex = 0;
-    
+
     articlesList.forEach((article, index) => {
       mixed.push(article);
-      
+
       // Insert nekrolog every 5th position (after 4th, 9th, 14th, etc.)
       if ((index + 1) % 5 === 0 && nekrologIndex < nekrologiList.length) {
         mixed.push(nekrologiList[nekrologIndex]);
         nekrologIndex++;
       }
     });
-    
+
     return mixed;
   }, []);
-  
+
   // Update mixed content when articles or nekrologi change
   useEffect(() => {
     if (articles.length > 0 || nekrologi.length > 0) {
       const mixed = mixContentWithNekrologi(articles, nekrologi);
       setMixedContent(mixed);
-              // console.log(`Mixed content updated: ${mixed.length} items (${articles.length} articles + ${nekrologi.length} nekrologi)`);
+      // console.log(`Mixed content updated: ${mixed.length} items (${articles.length} articles + ${nekrologi.length} nekrologi)`);
     }
   }, [articles, nekrologi, mixContentWithNekrologi]);
-  
+
   // Component mount/unmount tracking
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     return () => {
       // console.log('HomeScreen unmounting, cancelling all requests');
       isMountedRef.current = false;
       loadingRef.current = false;
       cancelAllRequests();
-      
+
       if (carouselIntervalRef.current) {
         clearInterval(carouselIntervalRef.current);
       }
     };
   }, []);
-  
+
   // Initial load - optimized for faster startup
   useEffect(() => {
     if (isMountedRef.current) {
       // console.log('HomeScreen: Starting initial load...');
-      
+
       // Start both loads simultaneously for faster initial render
       const loadData = async () => {
         try {
@@ -678,31 +657,31 @@ export default function HomeScreen() {
           console.warn('Error during initial load:', error);
         }
       };
-      
+
       loadData();
     }
   }, [loadArticles, loadCategories, loadNekrologi, loadWeatherData]);
-  
+
   // Handle category changes
   useEffect(() => {
     if (!isMountedRef.current) return;
-    
-          // console.log('Category changed to:', selectedCategory);
-    
+
+    // console.log('Category changed to:', selectedCategory);
+
     // Reset pagination state
     setCurrentPage(1);
     setHasMoreArticles(true);
-    
+
     // Load first page with new category
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current) {
         loadArticles(1, false);
       }
     }, 100);
-    
+
     return () => clearTimeout(timeoutId);
   }, [selectedCategory, loadArticles]);
-  
+
   // Carousel auto-scroll logic commented out - using FeaturedCarousel component instead
   // useEffect(() => {
   //   const startAutoScroll = () => {
@@ -710,7 +689,7 @@ export default function HomeScreen() {
   //     if (featuredArticles.length > PEEK_COUNT && isScreenFocused.current && !userInteracting) {
   //       carouselIntervalRef.current = setInterval(() => {
   //         if (!isScreenFocused.current || userInteracting || !carouselFlatListRef.current) return;
-          
+
   //         carouselFlatListRef.current.scrollToIndex({
   //           index: currentRawIndexRef.current + 1,
   //           animated: true,
@@ -732,9 +711,9 @@ export default function HomeScreen() {
     const handleAppStateChange = (nextAppState: string) => {
       isScreenFocused.current = nextAppState === 'active';
     };
-    
+
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
+
     return () => {
       subscription.remove();
     };
@@ -747,7 +726,7 @@ export default function HomeScreen() {
     setHasMoreArticles(true);
     loadArticles(1, true);
   }, [loadArticles]);
-  
+
   // Robust infinite scroll handler
   const handleLoadMore = useCallback(() => {
     // Don't load if already loading, no more articles, or at end
@@ -755,9 +734,9 @@ export default function HomeScreen() {
       // console.log('Skipping load more:', { loadingMore, hasMoreArticles, currentPage, totalPages, loadingRef: loadingRef.current });
       return;
     }
-    
+
     const nextPage = currentPage + 1;
-          // console.log(`Loading more articles: page ${nextPage}`);
+    // console.log(`Loading more articles: page ${nextPage}`);
     loadArticles(nextPage, false);
   }, [loadingMore, hasMoreArticles, currentPage, totalPages, loadArticles]);
 
@@ -766,7 +745,7 @@ export default function HomeScreen() {
     const perfMeasure = MemoryOptimizer.measureArticleLoadTime(article.id);
     addRecentArticle(article);
     router.push(`/article/${article.id}`);
-    
+
     setTimeout(() => {
       perfMeasure.end();
     }, 100);
@@ -776,65 +755,81 @@ export default function HomeScreen() {
 
   // Article render function
   const renderArticle = useCallback(({ item }: { item: Article }) => (
-    <ArticleCard 
-      article={item} 
+    <ArticleCard
+      article={item}
       onPress={() => handleArticlePress(item)}
     />
   ), [handleArticlePress]);
 
   // Nekrolog render function with navigation and memorial ribbon
-  const renderNekrolog = useCallback(({ item }: { item: Nekrolog }) => (
-    <TouchableOpacity 
-      style={[styles.nekrologCard, { 
-        backgroundColor: theme.colors.card,
-        borderColor: theme.colors.border
-      }]}
-      onPress={() => router.push(`/nekrolog/${item.id}`)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.nekrologContent}>
-        <View style={styles.nekrologImageContainer}>
-          <Image
-            source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2023/05/514697-PIHZZ2-291-01.png' }}
-            style={styles.memorialRibbonList}
-            contentFit="cover"
-            transition={200}
-          />
-        </View>
-        <View style={styles.nekrologTextContainer}>
-          <View style={styles.nekrologHeader}>
-            <Text style={[styles.nekrologBadge, { 
-              backgroundColor: '#000',
-              color: '#FFFFFF',
+  const renderNekrolog = useCallback(({ item }: { item: Nekrolog }) => {
+    return (
+      <TouchableOpacity
+        style={[styles.nekrologCard, {
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.border
+        }]}
+        onPress={() => router.push(`/nekrolog/${item.id}`)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.nekrologContent}>
+          <View style={styles.nekrologImageContainer}>
+            <Image
+              source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2023/05/514697-PIHZZ2-291-01.png' }}
+              style={styles.memorialRibbonList}
+              contentFit="cover"
+              transition={200}
+              placeholder="Nekrolog"
+              onError={() => {
+                // Fallback do tekstu jeśli grafika się nie załaduje
+                console.warn('Nekrolog ribbon image failed to load');
+              }}
+            />
+          </View>
+          <View style={styles.nekrologTextContainer}>
+            <View style={styles.nekrologHeader}>
+              <Text style={[styles.nekrologBadge, {
+                backgroundColor: '#000',
+                color: '#FFFFFF',
+                fontFamily: theme.fontFamily.semibold
+              }]}>
+                Nekrolog
+              </Text>
+            </View>
+            <Text style={[styles.nekrologTitle, {
+              color: theme.colors.text,
               fontFamily: theme.fontFamily.semibold
             }]}>
-              Nekrolog
+              {cleanArticleTitle(item.title.rendered)}
+            </Text>
+            <Text style={[styles.nekrologDate, {
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fontFamily.regular
+            }]}>
+              {new Date(item.date).toLocaleDateString('pl-PL')}
             </Text>
           </View>
-          <Text style={[styles.nekrologTitle, { 
-            color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold 
-          }]}>
-            {item.title.rendered}
-          </Text>
-          <Text style={[styles.nekrologDate, { 
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.regular 
-          }]}>
-            {new Date(item.date).toLocaleDateString('pl-PL')}
-          </Text>
         </View>
-      </View>
-    </TouchableOpacity>
-  ), [theme, router]);
+      </TouchableOpacity>
+    );
+  }, [theme, router]);
 
   // Mixed content render function
-  const renderMixedItem = useCallback(({ item }: { item: Article | Nekrolog }) => {
-    if (item.type === 'nekrolog') {
-      return renderNekrolog({ item: item as Nekrolog });
-    } else {
-      return renderArticle({ item: item as Article });
+  const renderMixedItem = useCallback(({ item, index }: { item: Article | Nekrolog, index: number }) => {
+    const content = item.type === 'nekrolog'
+      ? renderNekrolog({ item: item as Nekrolog })
+      : renderArticle({ item: item as Article });
+
+    if (index === 2) {
+      return (
+        <View>
+          {content}
+          <AdBanner position="home_feed" style={{ marginHorizontal: 16, marginBottom: 16 }} />
+        </View>
+      );
     }
+
+    return content;
   }, [renderArticle, renderNekrolog]);
 
   // Key extractor for mixed content
@@ -842,20 +837,20 @@ export default function HomeScreen() {
 
   // Handler functions that need to be defined within component scope
   const handleCategoryChange = useCallback((categoryId: number | null) => {
-          // console.log('Category change requested:', categoryId);
-    
+    // console.log('Category change requested:', categoryId);
+
     // Handle "Wszystkie" category (ID: 3) as null for showing all articles
     const actualCategoryId = categoryId === 3 ? null : categoryId;
-    
+
     setSelectedCategory(actualCategoryId);
     setCurrentPage(1);
     setHasMoreArticles(true);
     setLoadingMore(false);
-    
+
     // Reset to show all content when changing category
     setMixedContent([]);
     setInitialLoading(true);
-    
+
     // Force immediate reload with new category
     setTimeout(() => {
       setInitialLoading(false);
@@ -911,7 +906,7 @@ export default function HomeScreen() {
     index,
   }), []);
 
-  
+
 
   const handleWeatherPress = useCallback(() => {
     try {
@@ -939,8 +934,8 @@ export default function HomeScreen() {
 
     return (
       <View style={styles.categoriesContainer}>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContent}
         >
@@ -949,12 +944,12 @@ export default function HomeScreen() {
               key={category.id}
               style={[
                 styles.categoryPill,
-                { 
-                  backgroundColor: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null)) 
-                    ? category.color 
+                {
+                  backgroundColor: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null))
+                    ? category.color
                     : theme.colors.card,
-                  borderColor: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null)) 
-                    ? category.color 
+                  borderColor: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null))
+                    ? category.color
                     : theme.colors.border,
                 }
               ]}
@@ -962,15 +957,15 @@ export default function HomeScreen() {
               activeOpacity={0.7}
             >
               <Text style={styles.categoryEmoji}>{category.icon}</Text>
-              <Text 
+              <Text
                 style={[
-                  styles.categoryText, 
-                  { 
-                    color: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null)) 
-                      ? '#FFFFFF' 
+                  styles.categoryText,
+                  {
+                    color: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null))
+                      ? '#FFFFFF'
                       : theme.colors.text,
-                    fontFamily: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null)) 
-                      ? theme.fontFamily.semibold 
+                    fontFamily: (selectedCategory === category.id || (category.id === 3 && selectedCategory === null))
+                      ? theme.fontFamily.semibold
                       : theme.fontFamily.medium
                   }
                 ]}
@@ -1000,36 +995,36 @@ export default function HomeScreen() {
       return (
         <View style={[styles.loadingFooter, { backgroundColor: theme.colors.background }]}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { 
+          <Text style={[styles.loadingText, {
             color: theme.colors.text,
-            fontFamily: theme.fontFamily.medium 
+            fontFamily: theme.fontFamily.medium
           }]}>
             Ładowanie artykułów...
           </Text>
         </View>
       );
     }
-    
+
     if (!hasMoreArticles && mixedContent.length > 0) {
       return (
         <View style={[styles.endFooter, { backgroundColor: theme.colors.background }]}>
           <View style={[styles.endDivider, { backgroundColor: theme.colors.border }]} />
-          <Text style={[styles.endText, { 
+          <Text style={[styles.endText, {
             color: theme.colors.text,
-            fontFamily: theme.fontFamily.semibold 
+            fontFamily: theme.fontFamily.semibold
           }]}>
             To wszystkie artykuły
           </Text>
-          <Text style={[styles.endSubtext, { 
+          <Text style={[styles.endSubtext, {
             color: theme.colors.textSecondary,
-            fontFamily: theme.fontFamily.regular 
+            fontFamily: theme.fontFamily.regular
           }]}>
             Sprawdź później czy są nowe artykuły
           </Text>
         </View>
       );
     }
-    
+
     return null;
   }, [loadingMore, hasMoreArticles, mixedContent.length, theme]);
 
@@ -1052,12 +1047,12 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>  
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <FlatList
         data={mixedContent}
         keyExtractor={keyExtractor}
         renderItem={renderMixedItem}
-        contentContainerStyle={[styles.listContent, { 
+        contentContainerStyle={[styles.listContent, {
           paddingTop: Platform.OS === 'ios' ? 0 : 0  // Usunięto dodatkowy padding na Android
         }]}
         onScroll={handleScroll}
@@ -1065,12 +1060,12 @@ export default function HomeScreen() {
         ListHeaderComponent={
           <View>
             {/* Modern Header */}
-            <ModernHeader 
+            <ModernHeader
               weatherData={weatherData}
               weatherLoading={weatherLoading}
               onWeatherPress={handleWeatherPress}
             />
-            
+
             {/* Notifications Banner - REMOVED */}
             {/* {shouldShowBanner() && (
               <NotificationsBanner
@@ -1078,7 +1073,7 @@ export default function HomeScreen() {
                 onDismiss={handleBannerDismiss}
               />
             )} */}
-            
+
             {/* Enhanced Latest Articles Carousel */}
             {featuredArticles.length > 0 && (
               <FeaturedCarousel
@@ -1086,34 +1081,34 @@ export default function HomeScreen() {
                 onArticlePress={handleArticlePress}
               />
             )}
-            
+
             <View style={styles.sectionHeader}>
               <Text style={[
-                styles.sectionTitle, 
-                { 
+                styles.sectionTitle,
+                {
                   color: theme.colors.text,
                   fontFamily: theme.fontFamily.bold
                 }
               ]}>
                 {selectedCategory ? 'Filtrowane artykuły' : 'Najnowsze artykuły'}
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={navigateToSearch}
                 style={styles.sectionMoreButton}
               >
                 <Text style={[
-                  styles.sectionMoreText, 
-                  { 
+                  styles.sectionMoreText,
+                  {
                     color: theme.colors.primary,
                     fontFamily: theme.fontFamily.semibold
                   }
                 ]}>
                   Zobacz wszystkie
                 </Text>
-                <ChevronRight size={16} color={theme.colors.primary} />
+                <ChevronRight size={18} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
-            
+
             {/* Category Filters - Updated with better UI */}
             {renderCategoryPills()}
           </View>
@@ -1147,25 +1142,18 @@ export default function HomeScreen() {
         updateCellsBatchingPeriod={listConfig.updateCellsBatchingPeriod}
         legacyImplementation={false}
       />
-      
+
       <WelcomeNotifications
         visible={showWelcomeModal}
         onClose={handleWelcomeClose}
       />
 
-              <OnboardingCoachmarks
-          visible={showCoachmarks}
-          onComplete={handleCoachmarksComplete}
-          onSkip={handleCoachmarksSkip}
-        />
 
-              <ComprehensiveTutorial
-          visible={showComprehensiveTutorial}
-          onClose={handleComprehensiveTutorialClose}
-          onComplete={handleComprehensiveTutorialComplete}
-        />
-
-
+      <View style={{ padding: 10, alignItems: 'center', opacity: 0.3 }}>
+        <Text style={{ fontSize: 10, color: theme.colors.text }}>
+          Update: {Updates.updateId?.substring(0, 8) || 'embedded'}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -1271,7 +1259,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.2,
   },
-  
+
   // New carousel styles for weekly popular
   newCarouselItemContainer: {
     shadowColor: '#000',
@@ -1546,11 +1534,11 @@ const styles = StyleSheet.create({
 
   // Modern header styles
   modernHeaderWrapper: {
-    paddingVertical: Platform.OS === 'android' ? 18 : 16, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 12 : 10, // Zmniejszony padding od dołu dla obu platform
     paddingHorizontal: 0,
     // paddingTop będzie ustawiony dynamicznie przez insets.top
     width: '100%',
-    minHeight: Platform.OS === 'ios' ? 60 : (Platform.OS === 'android' ? 85 : 80), // Increased height on Android
+    minHeight: Platform.OS === 'ios' ? 70 : (Platform.OS === 'android' ? 85 : 80), // Zmniejszona wysokość
     // backgroundColor automatycznie dziedziczy z rodzica
   },
   modernHeaderGradient: {
@@ -1568,7 +1556,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
     paddingHorizontal: Platform.OS === 'android' ? 24 : 20, // More padding on Android
     width: '100%',
-    minHeight: Platform.OS === 'ios' ? 60 : (Platform.OS === 'android' ? 70 : 60), // Increased height on Android
+    minHeight: Platform.OS === 'ios' ? 70 : (Platform.OS === 'android' ? 80 : 75), // Zmniejszona wysokość
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   headerLeftSection: {
@@ -1576,6 +1564,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     backgroundColor: 'transparent', // Dodane przezroczyste tło
+    minHeight: Platform.OS === 'android' ? 65 : 55, // Zmniejszona wysokość
   },
   logoContainer: {
     width: Platform.OS === 'android' ? 66 : 60, // Larger logo on Android
@@ -1596,17 +1585,21 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     flex: 1,
     backgroundColor: 'transparent', // Dodane przezroczyste tło
+    justifyContent: 'center', // Centrowanie w pionie
+    minHeight: Platform.OS === 'android' ? 65 : 55, // Zmniejszona wysokość
   },
   greetingWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     backgroundColor: 'transparent', // Dodane przezroczyste tło
+    minHeight: Platform.OS === 'android' ? 65 : 55, // Zmniejszona wysokość
   },
   wavingHandIcon: {
-    marginRight: Platform.OS === 'android' ? 14 : 12, // More spacing on Android
+    marginRight: Platform.OS === 'android' ? 16 : 14, // Większy margines na Androidzie
     transform: [{ rotate: '15deg' }],
     backgroundColor: 'transparent', // Dodane przezroczyste tło
+    fontSize: Platform.OS === 'android' ? 32 : 28, // Większa ikona na Androidzie
   },
   // Region Filter Header Styles
   regionFilterHeader: {
@@ -1630,19 +1623,19 @@ const styles = StyleSheet.create({
   weatherIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: Platform.OS === 'android' ? 88 : 80, // Larger container on Android
-    height: Platform.OS === 'android' ? 66 : 60, // Larger container on Android
+    width: Platform.OS === 'android' ? 90 : 85, // Zmniejszony kontener
+    height: Platform.OS === 'android' ? 70 : 65, // Zmniejszony kontener
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   weatherSummaryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
+    gap: Platform.OS === 'android' ? 8 : 6, // Większy odstęp na Androidzie
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   weatherTemperature: {
-    fontSize: Platform.OS === 'android' ? 18 : 16, // Larger font on Android
+    fontSize: Platform.OS === 'android' ? 20 : 18, // Większy font na Androidzie
     fontFamily: 'Poppins_Bold',
     marginTop: Platform.OS === 'android' ? 4 : 2, // More spacing on Android
     backgroundColor: 'transparent', // Dodane przezroczyste tło

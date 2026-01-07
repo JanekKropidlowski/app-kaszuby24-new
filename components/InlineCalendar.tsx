@@ -120,33 +120,33 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
 
     if (isRangeStart(date) || isRangeEnd(date)) {
       return {
-        backgroundColor: theme.colors.primary,
-        borderColor: theme.colors.primary,
+        backgroundColor: '#224A96',
+        borderColor: '#224A96',
         color: '#fff'
       };
     }
 
     if (isInRange(date)) {
       return {
-        backgroundColor: theme.colors.primary + '40',
-        borderColor: theme.colors.primary,
-        color: theme.colors.primary
+        backgroundColor: '#224A96' + '20',
+        borderColor: '#224A96',
+        color: '#224A96'
       };
     }
 
     if (isSelected(date)) {
       return {
-        backgroundColor: theme.colors.primary,
-        borderColor: theme.colors.primary,
+        backgroundColor: '#224A96',
+        borderColor: '#224A96',
         color: '#fff'
       };
     }
 
     if (isToday(date)) {
       return {
-        backgroundColor: theme.colors.subtle,
-        borderColor: theme.colors.border,
-        color: theme.colors.text
+        backgroundColor: '#F0F8FF',
+        borderColor: '#224A96',
+        color: '#224A96'
       };
     }
 
@@ -220,32 +220,38 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
       {/* Compact Header */}
       <View style={styles.compactHeader}>
         <View style={styles.headerLeft}>
-          <CalendarIcon size={20} color={theme.colors.primary} />
-          <Text style={[styles.monthText, { color: theme.colors.text }]}>
+          <CalendarIcon size={20} color="#224A96" />
+          <Text style={[styles.monthText, { 
+            color: theme.colors.text,
+            fontFamily: 'Poppins_SemiBold'
+          }]}>
             {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </Text>
         </View>
         
         <View style={styles.headerRight}>
-          {/* Today button - only show if not current month */}
-          {!isCurrentMonth && (
-            <TouchableOpacity
-              style={[styles.todayButton, { backgroundColor: theme.colors.primary }]}
-              onPress={goToToday}
-            >
-              <Text style={[styles.todayText, { color: '#fff' }]}>Dzisiaj</Text>
-            </TouchableOpacity>
-          )}
-          
-          {/* Clear button - X removed */}
-          {/* {(selectedDate || rangeStart) && (
+          {/* Clear selection button - show when there's a selection */}
+          {(selectedDate || rangeStart) && (
             <TouchableOpacity
               style={[styles.clearButton, { backgroundColor: theme.colors.error }]}
               onPress={clearSelection}
             >
               <X size={14} color="#fff" />
             </TouchableOpacity>
-          )} */}
+          )}
+          
+          {/* Today button - only show if not current month */}
+          {!isCurrentMonth && (
+            <TouchableOpacity
+              style={[styles.todayButton, { backgroundColor: '#224A96' }]}
+              onPress={goToToday}
+            >
+              <Text style={[styles.todayText, { 
+                color: '#fff',
+                fontFamily: 'Poppins_SemiBold'
+              }]}>Dzisiaj</Text>
+            </TouchableOpacity>
+          )}
           
           <TouchableOpacity
             style={styles.monthButton}
@@ -274,6 +280,16 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
         </View>
       </View>
 
+      {/* Info about date range selection - only show when expanded */}
+      {isExpanded && onDateRangeSelect && (
+        <Text style={[styles.rangeInfo, { 
+          color: theme.colors.textSecondary,
+          fontFamily: 'Poppins_Medium'
+        }]}>
+          Kliknij dwie daty aby wybrać zakres (od - do)
+        </Text>
+      )}
+
       {/* Expanded Calendar */}
       {isExpanded && (
         <View style={styles.expandedContent}>
@@ -282,7 +298,10 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
             {weekDays.map((day, index) => (
               <Text 
                 key={index} 
-                style={[styles.weekDayText, { color: theme.colors.textSecondary }]}
+                style={[styles.weekDayText, { 
+                  color: theme.colors.textSecondary,
+                  fontFamily: 'Poppins_Medium'
+                }]}
               >
                 {day}
               </Text>
@@ -312,7 +331,7 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
                         styles.dayText,
                         { 
                           color: getDayStyles(day).color,
-                          fontWeight: (isToday(day) || isSelected(day) || isRangeStart(day) || isRangeEnd(day)) ? '600' : '400'
+                          fontFamily: (isToday(day) || isSelected(day) || isRangeStart(day) || isRangeEnd(day)) ? 'Poppins_SemiBold' : 'Poppins_Regular'
                         }
                       ]}
                     >
@@ -327,19 +346,20 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
                           backgroundColor: isRangeStart(day) || isRangeEnd(day) || isSelected(day)
                             ? '#fff' 
                             : isInRange(day)
-                            ? theme.colors.primary
-                            : theme.colors.primary 
+                            ? '#224A96'
+                            : '#224A96' 
                         }
                       ]}>
                         <Text style={[
                           styles.eventCount,
                           { 
                             color: isRangeStart(day) || isRangeEnd(day) || isSelected(day)
-                              ? theme.colors.primary 
+                              ? '#224A96' 
                               : isInRange(day)
                               ? '#fff'
                               : '#fff',
-                            fontSize: getEventCount(day) > 9 ? 8 : 10
+                            fontSize: getEventCount(day) > 9 ? 8 : 10,
+                            fontFamily: 'Poppins_SemiBold'
                           }
                         ]}>
                           {getEventCount(day)}
@@ -361,15 +381,17 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     marginHorizontal: 16,
     marginVertical: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 74, 150, 0.1)',
   },
   compactHeader: {
     flexDirection: 'row',
@@ -409,11 +431,11 @@ const styles = StyleSheet.create({
   },
   todayText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Poppins_SemiBold',
   },
   monthText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins_SemiBold',
   },
   expandedContent: {
     marginTop: 16,
@@ -426,7 +448,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: 'Poppins_Medium',
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -439,16 +461,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayButton: {
-    width: '80%',
+    width: '85%',
     aspectRatio: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   dayText: {
     fontSize: 14,
-    fontWeight: '400',
+    fontFamily: 'Poppins_Regular',
   },
   emptyDay: {
     width: '80%',
@@ -456,16 +483,27 @@ const styles = StyleSheet.create({
   },
   eventIndicator: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    top: -3,
+    right: -3,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   eventCount: {
-    fontWeight: '600',
+    fontFamily: 'Poppins_SemiBold',
+  },
+  rangeInfo: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 12,
+    fontFamily: 'Poppins_Medium',
   },
 });
 

@@ -16,7 +16,10 @@ import {
   AlertTriangle, Shield, Thermometer, Droplets, CloudRain, Wind, Eye, 
   Compass, Zap, Activity, Car, Navigation, Snowflake, AlertCircle, 
   Camera, Heart, Bike, Mountain, Waves, Sprout, Sun, Cloud, Gauge, 
-  Leaf, Clock, MountainSnow, CloudLightning, CloudSnow, CloudFog, Anchor
+  Leaf, Clock, MountainSnow, CloudLightning, CloudSnow, CloudFog, Anchor,
+  CloudDrizzle,
+  Moon,
+  CloudOff
 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 import AgriculturalWeatherWidget from './AgriculturalWeatherWidget';

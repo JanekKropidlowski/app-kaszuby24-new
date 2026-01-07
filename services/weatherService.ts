@@ -391,10 +391,11 @@ const fetchApi = async <T>(endpoint: string, options: FetchOptions<T> = {}): Pro
     let lastError: unknown = null;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
         try {
-            console.log(`Fetching fresh data from: ${API_BASE_URL}/${endpoint} (attempt ${attempt + 1})`);
+            const fullUrl = `${API_BASE_URL}/${endpoint}`;
+            console.log(`Fetching fresh data from: ${fullUrl} (attempt ${attempt + 1})`);
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000);
-            const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+            const response = await fetch(fullUrl, {
                 signal: controller.signal,
                 headers: {
                     Accept: 'application/json',
@@ -403,7 +404,22 @@ const fetchApi = async <T>(endpoint: string, options: FetchOptions<T> = {}): Pro
             });
             clearTimeout(timeoutId);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                const errorText = await response.text().catch(() => 'No response text');
+                
+                // Special handling for warnings endpoints that return 404 when no warnings exist
+                if (response.status === 404 && (endpoint.includes('warnings') || endpoint.includes('warning'))) {
+                    const errorData = errorText ? JSON.parse(errorText) : {};
+                    if (errorData.message === 'No products were found') {
+                        console.log(`No warnings found for ${endpoint} - this is normal when no warnings are active`);
+                        // Return empty array for warnings when none exist
+                        const emptyData: T = ([] as any) as T;
+                        await cache.set(cacheKey, emptyData, ttlMs);
+                        return emptyData;
+                    }
+                }
+                
+                console.error(`HTTP error for ${fullUrl}:`, response.status, response.statusText, errorText);
+                throw new Error(`HTTP error! status: ${response.status} ${response.statusText} - ${errorText}`);
             }
             const raw = await response.json();
             const data: T = transform ? transform(raw) : raw;
@@ -600,75 +616,121 @@ export const fetchHydroWarnings = (options: Partial<FetchOptions<any[]>> = {}) =
     });
 
 export const fetchAllWarnings = async (options?: { skipNetwork?: boolean }): Promise<WarningData[]> => {
-    const [meteo, hydro] = await Promise.all([
-        fetchMeteoWarnings({ skipNetwork: options?.skipNetwork }),
-        fetchHydroWarnings({ skipNetwork: options?.skipNetwork }),
-    ]);
+    try {
+        const [meteo, hydro] = await Promise.allSettled([
+            fetchMeteoWarnings({ skipNetwork: options?.skipNetwork }),
+            fetchHydroWarnings({ skipNetwork: options?.skipNetwork }),
+        ]);
 
-    const meteoWarnings: WarningData[] = (Array.isArray(meteo) ? meteo : []).map((w: any) => {
-        const levelRaw = w.stopien ?? w["stopień"] ?? w.level;
-        const level = parseInt(levelRaw, 10);
-        const regions = Array.isArray(w.teryt)
-            ? w.teryt
-            : typeof w.teryt === 'string' && w.teryt.length > 0
-                ? [w.teryt]
+        console.log('Warnings fetch results:', {
+            meteo: meteo.status,
+            hydro: hydro.status,
+            meteoData: meteo.status === 'fulfilled' ? meteo.value?.length : 'error',
+            hydroData: hydro.status === 'fulfilled' ? hydro.value?.length : 'error'
+        });
+
+        const meteoWarnings: WarningData[] = (meteo.status === 'fulfilled' && Array.isArray(meteo.value) ? meteo.value : []).map((w: any) => {
+            const levelRaw = w.stopien ?? w["stopień"] ?? w.level;
+            const level = parseInt(levelRaw, 10);
+            const regions = Array.isArray(w.teryt)
+                ? w.teryt
+                : typeof w.teryt === 'string' && w.teryt.length > 0
+                    ? [w.teryt]
+                    : [];
+            const id = w.id || w.identyfikator || `${w.nazwa_zdarzenia ?? 'meteo'}_${w.obowiazuje_od ?? ''}_${w.obowiazuje_do ?? ''}`;
+            return {
+                id: id || 'unknown',
+                type: 'meteo',
+                level: Number.isFinite(level) ? level : 1,
+                title: w.nazwa_zdarzenia || 'Ostrzeżenie meteorologiczne',
+                description: w.tresc || '',
+                validFrom: w.obowiazuje_od || '',
+                validTo: w.obowiazuje_do || '',
+                validUntil: w.obowiazuje_do || '',
+                regions,
+                probability: parseInt(w.prawdopodobienstwo, 10) || 0,
+                comment: w.komentarz || '',
+                published: w.opublikowano || '',
+                office: w.biuro || '',
+                // Additional fields for detailed view
+                rawData: w
+            } as WarningData;
+        });
+
+        const hydroWarnings: WarningData[] = (hydro.status === 'fulfilled' && Array.isArray(hydro.value) ? hydro.value : []).map((w: any) => {
+            const levelRaw = w["stopień"] ?? w.stopien ?? w.level;
+            const level = parseInt(levelRaw, 10);
+            const id = w.numer || w.id || `${w.zdarzenie ?? 'hydro'}_${w.data_od ?? ''}_${w.data_do ?? ''}`;
+            
+            // Extract regions from obszary array
+            const regions = Array.isArray(w.obszary) 
+                ? w.obszary.map((o: any) => o.wojewodztwo).filter(Boolean)
                 : [];
-        const id = w.id || w.identyfikator || `${w.nazwa_zdarzenia ?? 'meteo'}_${w.obowiazuje_od ?? ''}_${w.obowiazuje_do ?? ''}`;
-        return {
-            id: id || 'unknown',
-            type: 'meteo',
-            level: Number.isFinite(level) ? level : 1,
-            title: w.nazwa_zdarzenia || 'Ostrzeżenie meteorologiczne',
-            description: w.tresc || '',
-            validFrom: w.obowiazuje_od || '',
-            validTo: w.obowiazuje_do || '',
-            validUntil: w.obowiazuje_do || '',
-            regions,
-            probability: parseInt(w.prawdopodobienstwo, 10) || 0,
-            comment: w.komentarz || ''
-        } as WarningData;
-    });
+            
+            return {
+                id: id || 'unknown',
+                type: 'hydro',
+                level: Number.isFinite(level) ? level : 1,
+                title: w.zdarzenie || 'Ostrzeżenie hydrologiczne',
+                description: w.przebieg || '',
+                validFrom: w.data_od || '',
+                validTo: w.data_do || '',
+                validUntil: w.data_do || '',
+                regions,
+                // pass-through full areas if present
+                obszary: w.obszary || [],
+                probability: parseInt(w.prawdopodobienstwo, 10) || 0,
+                comment: w.komentarz || '',
+                published: w.opublikowano || '',
+                office: w.biuro || '',
+                // Additional fields for detailed view
+                rawData: w
+            } as WarningData;
+        });
 
-    const hydroWarnings: WarningData[] = (Array.isArray(hydro) ? hydro : []).map((w: any) => {
-        const levelRaw = w["stopień"] ?? w.stopien ?? w.level;
-        const level = parseInt(levelRaw, 10);
-        const id = w.numer || w.id || `${w.zdarzenie ?? 'hydro'}_${w.data_od ?? ''}_${w.data_do ?? ''}`;
-        return {
-            id: id || 'unknown',
-            type: 'hydro',
-            level: Number.isFinite(level) ? level : 1,
-            title: w.zdarzenie || 'Ostrzeżenie hydrologiczne',
-            description: w.przebieg || '',
-            validFrom: w.data_od || '',
-            validTo: w.data_do || '',
-            validUntil: w.data_do || '',
-            regions: Array.isArray(w.obszary) ? w.obszary.map((o: any) => o.wojewodztwo).filter(Boolean) : [],
-            // pass-through full areas if present
-            obszary: w.obszary || [],
-            probability: parseInt(w.prawdopodobienstwo, 10) || 0,
-            comment: w.komentarz || ''
-        } as WarningData;
-    });
-
-    // Deduplicate by id+type and prefer higher level or longer validity
-    const combined = [...meteoWarnings, ...hydroWarnings];
-    const uniqueMap = new Map<string, WarningData>();
-    for (const w of combined) {
-        const key = `${w.type}:${w.id}`;
-        const existing = uniqueMap.get(key);
-        if (!existing) {
-            uniqueMap.set(key, w);
-            continue;
+        // Log any errors (but not when no warnings exist - that's normal)
+        if (meteo.status === 'rejected') {
+            const reason = meteo.reason;
+            // Don't log as error if it's just "no warnings found"
+            if (reason && typeof reason === 'object' && 'message' in reason && reason.message === 'No products were found') {
+                console.log('No meteo warnings found - this is normal when no warnings are active');
+            } else {
+                console.error('Meteo warnings fetch failed:', reason);
+            }
         }
-        const shouldReplace = (w.level > existing.level) || (w.validTo > existing.validTo);
-        if (shouldReplace) uniqueMap.set(key, w);
-    }
+        if (hydro.status === 'rejected') {
+            const reason = hydro.reason;
+            // Don't log as error if it's just "no warnings found"
+            if (reason && typeof reason === 'object' && 'message' in reason && reason.message === 'No products were found') {
+                console.log('No hydro warnings found - this is normal when no warnings are active');
+            } else {
+                console.error('Hydro warnings fetch failed:', reason);
+            }
+        }
 
-    // Sort by severity descending then by validTo ascending (soonest first)
-    return Array.from(uniqueMap.values()).sort((a, b) => {
-        if (b.level !== a.level) return b.level - a.level;
-        return (a.validTo || '').localeCompare(b.validTo || '');
-    });
+        // Deduplicate by id+type and prefer higher level or longer validity
+        const combined = [...meteoWarnings, ...hydroWarnings];
+        const uniqueMap = new Map<string, WarningData>();
+        for (const w of combined) {
+            const key = `${w.type}:${w.id}`;
+            const existing = uniqueMap.get(key);
+            if (!existing) {
+                uniqueMap.set(key, w);
+                continue;
+            }
+            const shouldReplace = (w.level > existing.level) || (w.validTo > existing.validTo);
+            if (shouldReplace) uniqueMap.set(key, w);
+        }
+
+        // Sort by severity descending then by validTo ascending (soonest first)
+        return Array.from(uniqueMap.values()).sort((a, b) => {
+            if (b.level !== a.level) return b.level - a.level;
+            return (a.validTo || '').localeCompare(b.validTo || '');
+        });
+    } catch (error) {
+        console.error('Error in fetchAllWarnings:', error);
+        return [];
+    }
 };
 
 // Filter warnings specifically for Pomeranian Voivodeship (województwo pomorskie)
@@ -698,6 +760,7 @@ export const filterWarningsForPomeranianVoivodeship = (warnings: WarningData[]):
         'puck',
         'sopot',
         'tczew',
+        'tczew',
         'wejherowo',
         'bytów',
         'bytow',
@@ -708,7 +771,101 @@ export const filterWarningsForPomeranianVoivodeship = (warnings: WarningData[]):
         'słupsk',
         'slupsk',
         'pomorskie województwo',
-        'pomorskie wojewodztwo'
+        'pomorskie wojewodztwo',
+        // Dodatkowe lokalizacje z przykładu API
+        'iławka',
+        'dziarny',
+        'drwęca',
+        'wel',
+        'pisa',
+        'bałtyk',
+        'morze bałtyckie',
+        'hel',
+        'jastarnia',
+        'władysławowo',
+        'krynica morska',
+        'stegna',
+        'nowy dwór gdański',
+        'pruszcz gdański',
+        'rumia',
+        'reda',
+        'wejherowo',
+        'kartuzy',
+        'żukowo',
+        'zukowo',
+        'sierakowice',
+        'kartuzy',
+        'kościerzyna',
+        'koscierzyna',
+        'lipusz',
+        'dziemiany',
+        'stężyca',
+        'stężyca',
+        'sulęczyno',
+        'suleczyno',
+        'linia',
+        'lębork',
+        'lebork',
+        'słupsk',
+        'slupsk',
+        'ustka',
+        'smołdzino',
+        'smoldzino',
+        'czarna dąbrówka',
+        'czarna dabrowka',
+        'potęgowo',
+        'potegowo',
+        'damnica',
+        'dębnica kaszubska',
+        'debnica kaszubska',
+        'słupsk',
+        'slupsk',
+        'kobylnica',
+        'główczyce',
+        'glowczyce',
+        'smołdzino',
+        'smoldzino',
+        'ustka',
+        'słupsk',
+        'slupsk',
+        'bytów',
+        'bytow',
+        'miastko',
+        'trzebielino',
+        'człuchów',
+        'czluchow',
+        'debrzno',
+        'przechlewo',
+        'rzechlewo',
+        'człuchów',
+        'czluchow',
+        'brusy',
+        'konarzyny',
+        'lipnica',
+        'dąbrowa',
+        'dabrowa',
+        'chojnice',
+        'brusy',
+        'czersk',
+        'chociński',
+        'chocinski',
+        'człuchów',
+        'czluchow',
+        'debrzno',
+        'przechlewo',
+        'rzechlewo',
+        'człuchów',
+        'czluchow',
+        'brusy',
+        'konarzyny',
+        'lipnica',
+        'dąbrowa',
+        'dabrowa',
+        'chojnice',
+        'brusy',
+        'czersk',
+        'chociński',
+        'chocinski'
     ];
 
     return warnings.filter(warning => {
@@ -921,6 +1078,46 @@ export const fetchProductsList = (options: Partial<FetchOptions<any[]>> = {}) =>
         backoffBaseMs: 400,
         ...options,
     });
+
+// Test function to check available IMGW API endpoints
+export const testIMGWEndpoints = async () => {
+    const endpoints = [
+        'warningsmeteo',
+        'warningshydro',
+        'warnings/meteo',
+        'warnings/hydro',
+        'meteo/warnings',
+        'hydro/warnings',
+        'meteo',
+        'hydro',
+        'synop'
+    ];
+    
+    console.log('Testing IMGW API endpoints...');
+    
+    for (const endpoint of endpoints) {
+        try {
+            const url = `${API_BASE_URL}/${endpoint}`;
+            console.log(`Testing: ${url}`);
+            
+            const response = await fetch(url, {
+                headers: {
+                    Accept: 'application/json',
+                    'User-Agent': 'Kaszuby24-App/1.0',
+                },
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`✅ ${endpoint}: OK (${Array.isArray(data) ? data.length : 'object'} items)`);
+            } else {
+                console.log(`❌ ${endpoint}: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            console.log(`❌ ${endpoint}: Error - ${error}`);
+        }
+    }
+};
 
 // --- HELPERS ---
 export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {

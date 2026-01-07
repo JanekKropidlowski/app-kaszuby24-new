@@ -1,7 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
-import { SvgUri } from 'react-native-svg';
-import { Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog, CloudDrizzle } from 'lucide-react-native';
+import { View, StyleSheet, Animated, Text } from 'react-native';
+import { 
+  Sun, 
+  Moon, 
+  Cloud, 
+  CloudRain, 
+  CloudSnow, 
+  CloudLightning, 
+  CloudFog, 
+  CloudDrizzle,
+  CloudOff,
+  Wind,
+  Thermometer,
+  Umbrella,
+  Snowflake,
+  Zap
+} from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 import { useWeatherConfigStore } from '@/store/weatherConfigStore';
 
@@ -24,7 +38,7 @@ const getWeatherIconComponent = (wmoCode: number, isDay: boolean = true) => {
   if (wmoCode === 3) return Cloud;
   
   // Overcast
-  if (wmoCode === 4) return Cloud;
+  if (wmoCode === 4) return CloudOff;
   
   // Fog
   if (wmoCode >= 45 && wmoCode <= 48) return CloudFog;
@@ -36,17 +50,54 @@ const getWeatherIconComponent = (wmoCode: number, isDay: boolean = true) => {
   if (wmoCode >= 61 && wmoCode <= 67) return CloudRain;
   
   // Snow
-  if (wmoCode >= 71 && wmoCode <= 77) return CloudSnow;
+  if (wmoCode >= 71 && wmoCode <= 77) return Snowflake;
   
   // Showers
-  if (wmoCode >= 80 && wmoCode <= 82) return CloudRain;
-  if (wmoCode >= 85 && wmoCode <= 86) return CloudSnow;
+  if (wmoCode >= 80 && wmoCode <= 82) return Umbrella;
+  if (wmoCode >= 85 && wmoCode <= 86) return Snowflake;
   
   // Thunderstorm
-  if (wmoCode >= 95 && wmoCode <= 99) return CloudLightning;
+  if (wmoCode >= 95 && wmoCode <= 99) return Zap;
   
   // Default
   return isDay ? Sun : Moon;
+};
+
+// Emoji-based weather icons for more friendly appearance
+const getWeatherEmoji = (wmoCode: number, isDay: boolean = true) => {
+  // Clear sky
+  if (wmoCode <= 1) return isDay ? '☀️' : '🌙';
+  
+  // Partly cloudy
+  if (wmoCode === 2) return '⛅';
+  
+  // Cloudy
+  if (wmoCode === 3) return '☁️';
+  
+  // Overcast
+  if (wmoCode === 4) return '☁️';
+  
+  // Fog
+  if (wmoCode >= 45 && wmoCode <= 48) return '🌫️';
+  
+  // Drizzle
+  if (wmoCode >= 51 && wmoCode <= 57) return '🌦️';
+  
+  // Rain
+  if (wmoCode >= 61 && wmoCode <= 67) return '🌧️';
+  
+  // Snow
+  if (wmoCode >= 71 && wmoCode <= 77) return '❄️';
+  
+  // Showers
+  if (wmoCode >= 80 && wmoCode <= 82) return '🌦️';
+  if (wmoCode >= 85 && wmoCode <= 86) return '🌨️';
+  
+  // Thunderstorm
+  if (wmoCode >= 95 && wmoCode <= 99) return '⛈️';
+  
+  // Default
+  return isDay ? '☀️' : '🌙';
 };
 
 export const WeatherIcon: React.FC<WeatherIconProps> = ({
@@ -57,10 +108,10 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({
 }) => {
   const { theme, isDarkMode } = useThemeStore();
   const { config } = useWeatherConfigStore();
-  const [useFallback, setUseFallback] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useRef(new Animated.Value(0)).current;
 
   // Auto-detect day/night based on current time
   const currentHour = new Date().getHours();
@@ -75,11 +126,27 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({
       useNativeDriver: true,
     }).start();
 
+    // Bounce animation for friendly feel
+    const bounceAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
     // Subtle scale animation
     const scaleAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.05,
+          toValue: 1.08,
           duration: 3000,
           useNativeDriver: true,
         }),
@@ -100,6 +167,7 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({
       })
     );
 
+    bounceAnimation.start();
     scaleAnimation.start();
     
     // Only rotate sun icons
@@ -108,15 +176,22 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({
     }
 
     return () => {
+      bounceAnimation.stop();
       scaleAnimation.stop();
       rotateAnimation.stop();
     };
   }, [wmoCode]);
 
   const IconComponent = getWeatherIconComponent(wmoCode, effectiveIsDay);
+  const weatherEmoji = getWeatherEmoji(wmoCode, effectiveIsDay);
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
+  });
+
+  const bounceInterpolate = bounceAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -3],
   });
 
   // Define colors based on weather conditions and theme
@@ -144,46 +219,72 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({
     }
   };
 
-  const getMeteoconsName = (code: number, day: boolean) => {
+  // Enhanced icon mapping with more specific icons for better visibility
+  const getEnhancedWeatherIcon = (code: number, day: boolean) => {
     // Clear sky
-    if (code <= 1) return day ? 'clear-day' : 'clear-night';
+    if (code <= 1) return day ? Sun : Moon;
     
     // Partly cloudy
-    if (code === 2) return day ? 'partly-cloudy-day' : 'partly-cloudy-night';
+    if (code === 2) return Cloud;
     
     // Cloudy
-    if (code === 3) return 'cloudy';
+    if (code === 3) return Cloud;
     
     // Overcast
-    if (code === 4) return 'overcast';
+    if (code === 4) return CloudOff;
     
     // Fog
-    if (code >= 45 && code <= 48) return day ? 'fog-day' : 'fog-night';
+    if (code >= 45 && code <= 48) return CloudFog;
     
     // Drizzle
-    if (code >= 51 && code <= 57) return day ? 'partly-cloudy-day-drizzle' : 'partly-cloudy-night-drizzle';
+    if (code >= 51 && code <= 57) return CloudDrizzle;
     
     // Rain
-    if (code >= 61 && code <= 67) return day ? 'partly-cloudy-day-rain' : 'partly-cloudy-night-rain';
+    if (code >= 61 && code <= 67) return CloudRain;
     
     // Snow
-    if (code >= 71 && code <= 77) return day ? 'partly-cloudy-day-snow' : 'partly-cloudy-night-snow';
+    if (code >= 71 && code <= 77) return Snowflake;
     
     // Showers
-    if (code >= 80 && code <= 82) return day ? 'partly-cloudy-day-rain' : 'partly-cloudy-night-rain';
-    if (code >= 85 && code <= 86) return day ? 'partly-cloudy-day-snow' : 'partly-cloudy-night-snow';
+    if (code >= 80 && code <= 82) return Umbrella;
+    if (code >= 85 && code <= 86) return Snowflake;
     
     // Thunderstorm
-    if (code >= 95 && code <= 99) return day ? 'thunderstorms-day' : 'thunderstorms-night';
+    if (code >= 95 && code <= 99) return Zap;
     
     // Default
-    return day ? 'clear-day' : 'clear-night';
+    return day ? Sun : Moon;
   };
 
-  // FORCE FILL VARIANT - always use filled icons
-  const iconVariant = 'fill';
-  const iconName = getMeteoconsName(wmoCode, effectiveIsDay);
-  const meteoconsUri = `https://basmilius.github.io/weather-icons/production/${iconVariant}/all/${iconName}.svg`;
+  const EnhancedIconComponent = getEnhancedWeatherIcon(wmoCode, effectiveIsDay);
+
+  // Use emoji for smaller sizes (like in header) and icon for larger sizes
+  const useEmoji = size <= 40;
+
+  if (useEmoji) {
+    return (
+      <Animated.View
+        style={[
+          styles.container,
+          {
+            width: size,
+            height: size,
+            opacity: opacityAnim,
+            transform: [
+              { scale: scaleAnim }, 
+              { translateY: bounceInterpolate },
+              { rotate: wmoCode <= 1 ? rotateInterpolate : '0deg' }
+            ],
+          },
+          style,
+        ]}
+      >
+        <Text style={[styles.emojiIcon, { fontSize: size * 0.8 }]}>
+          {weatherEmoji}
+        </Text>
+      </Animated.View>
+    );
+  }
 
   return (
     <Animated.View
@@ -193,21 +294,20 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({
           width: size,
           height: size,
           opacity: opacityAnim,
-          transform: [{ scale: scaleAnim }, { rotate: wmoCode <= 1 ? rotateInterpolate : '0deg' }],
+          transform: [
+            { scale: scaleAnim }, 
+            { translateY: bounceInterpolate },
+            { rotate: wmoCode <= 1 ? rotateInterpolate : '0deg' }
+          ],
         },
         style,
       ]}
     >
-      {!useFallback ? (
-        <SvgUri
-          width={size}
-          height={size}
-          uri={meteoconsUri}
-          onError={() => setUseFallback(true)}
-        />
-      ) : (
-        <IconComponent size={size} color={getIconColor()} fill={getIconColor()} strokeWidth={isDarkMode ? 1.5 : 2} />
-      )}
+      <EnhancedIconComponent 
+        size={size} 
+        color={getIconColor()} 
+        strokeWidth={isDarkMode ? 2 : 2.5} 
+      />
     </Animated.View>
   );
 };
@@ -216,5 +316,10 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emojiIcon: {
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
 });

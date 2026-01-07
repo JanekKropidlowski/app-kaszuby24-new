@@ -3,28 +3,25 @@ import {
   Modal,
   View,
   Text,
-  StyleSheet,
-  Dimensions,
   TouchableOpacity,
-  ActivityIndicator,
+  Dimensions,
   StatusBar,
   Platform,
+  StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
-import { Image } from 'expo-image';
-// import { BlurView } from 'expo-blur';
+import { Image as ExpoImage } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withTiming,
-  interpolate,
   runOnJS,
-  useAnimatedGestureHandler,
 } from 'react-native-reanimated';
+const AnimatedExpoImage = Animated.createAnimatedComponent(ExpoImage);
 import {
-  PanGestureHandler,
-  PinchGestureHandler,
-  State,
+  Gesture,
+  GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 import { X, Download, ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -52,23 +49,23 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [imageLoading, setImageLoading] = useState(true);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
-  
+
   // Animowane wartości
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0);
-  
+
   // Refs
-  const imageRefs = useRef<{ [key: number]: Image | null }>({});
-  
+  const imageRefs = useRef<{ [key: number]: ExpoImage | null }>({});
+
   useEffect(() => {
     if (visible) {
       // Animacja wejścia
       opacity.value = withTiming(1, { duration: 200 });
       setCurrentIndex(initialIndex);
       setImageLoading(true);
-      
+
       // Preloaduj sąsiednie zdjęcia
       preloadAdjacentImages(initialIndex);
     } else {
@@ -78,18 +75,18 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
       imageRefs.current = {};
     }
   }, [visible, initialIndex]);
-  
+
   // Preloadowanie sąsiednich zdjęć
   const preloadAdjacentImages = useCallback((index: number) => {
     const indicesToPreload = [index - 1, index, index + 1];
-    
+
     indicesToPreload.forEach((i) => {
       if (i >= 0 && i < images.length && images[i]?.uri) {
-        Image.prefetch(images[i].uri);
+        ExpoImage.prefetch(images[i].uri);
       }
     });
   }, [images]);
-  
+
   // Zmiana indeksu
   const changeIndex = useCallback((newIndex: number) => {
     if (newIndex >= 0 && newIndex < images.length) {
@@ -97,32 +94,29 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
       setCurrentIndex(newIndex);
       onIndexChange?.(newIndex);
       preloadAdjacentImages(newIndex);
-      
+
       // Pokaż loader tylko jeśli zdjęcie nie było wcześniej załadowane
       if (!loadedImages.has(newIndex)) {
         setImageLoading(true);
       }
-      
+
       // Reset transformacji
       translateX.value = withSpring(0);
       translateY.value = withSpring(0);
       scale.value = withSpring(1);
     }
   }, [images.length, onIndexChange, preloadAdjacentImages, loadedImages]);
-  
+
   // Gesty - Pan
-  const panGestureHandler = useAnimatedGestureHandler({
-    onStart: () => {
-      'worklet';
-    },
-    onActive: (event) => {
+  const pan = Gesture.Pan()
+    .onUpdate((event) => {
       'worklet';
       if (scale.value === 1) {
         translateX.value = event.translationX;
         translateY.value = event.translationY;
       }
-    },
-    onEnd: (event) => {
+    })
+    .onEnd((event) => {
       'worklet';
       if (scale.value === 1) {
         // Swipe do zamknięcia
@@ -137,32 +131,46 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
             runOnJS(changeIndex)(currentIndex + 1);
           }
         }
-        
+
         translateX.value = withSpring(0);
         translateY.value = withSpring(0);
       }
-    },
-  });
-  
+    });
+
   // Gesty - Pinch
-  const pinchGestureHandler = useAnimatedGestureHandler({
-    onActive: (event) => {
+  const pinch = Gesture.Pinch()
+    .onUpdate((event) => {
       'worklet';
-      scale.value = Math.max(1, Math.min((event as any).scale, 3));
-    },
-    onEnd: () => {
+      scale.value = Math.max(1, Math.min(event.scale, 3));
+    })
+    .onEnd(() => {
       'worklet';
       if (scale.value < 1) {
         scale.value = withSpring(1);
       }
-    },
-  });
-  
+    });
+
+  // Obsługa podwójnego stuknięcia do resetowania zoomu
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      'worklet';
+      if (scale.value > 1) {
+        scale.value = withSpring(1);
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+      } else {
+        scale.value = withSpring(2);
+      }
+    });
+
+  const gesture = Gesture.Simultaneous(pan, pinch, doubleTap);
+
   // Style animowane
   const animatedContainerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
   }));
-  
+
   const animatedImageStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
@@ -170,11 +178,11 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
       { scale: scale.value },
     ],
   }));
-  
+
   if (!visible) return null;
-  
+
   const currentImage = images[currentIndex];
-  
+
   return (
     <Modal
       visible={visible}
@@ -184,47 +192,43 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
       onRequestClose={onClose}
     >
       <StatusBar backgroundColor="transparent" barStyle="light-content" />
-      
+
       <Animated.View style={[styles.container, animatedContainerStyle]}>
         <View style={styles.backdrop} />
-        
+
         <GestureHandlerRootView style={styles.gestureContainer}>
-          <PanGestureHandler onGestureEvent={panGestureHandler}>
-            <Animated.View style={styles.imageContainer}>
-              <PinchGestureHandler onGestureEvent={pinchGestureHandler as any}>
-                <Animated.View style={[styles.imageWrapper, animatedImageStyle]}>
-                  {currentImage && (
-                    <Image
-                      key={`lightbox-image-${currentIndex}`}
-                      ref={(ref) => {
-                        if (ref) imageRefs.current[currentIndex] = ref;
-                      }}
-                      source={{ uri: currentImage.uri }}
-                      style={styles.image}
-                      contentFit="contain"
-                      transition={0}
-                      onLoadStart={() => setImageLoading(true)}
-                      onLoadEnd={() => {
-                        setImageLoading(false);
-                        setLoadedImages(prev => new Set(prev).add(currentIndex));
-                      }}
-                      cachePolicy="memory-disk"
-                      priority="high"
-                      recyclingKey={`lightbox-${currentIndex}`}
-                    />
-                  )}
-                  
-                  {imageLoading && (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="large" color="#FFFFFF" />
-                    </View>
-                  )}
-                </Animated.View>
-              </PinchGestureHandler>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={styles.imageWrapper}>
+              {currentImage && (
+                <AnimatedExpoImage
+                  key={`lightbox-image-${currentIndex}`}
+                  ref={(ref: any) => {
+                    if (ref) imageRefs.current[currentIndex] = ref;
+                  }}
+                  source={{ uri: currentImage.uri }}
+                  style={[styles.image, animatedImageStyle]}
+                  contentFit="contain"
+                  transition={0}
+                  onLoadStart={() => setImageLoading(true)}
+                  onLoadEnd={() => {
+                    setImageLoading(false);
+                    setLoadedImages((prev: Set<number>) => new Set(prev).add(currentIndex));
+                  }}
+                  cachePolicy="memory-disk"
+                  priority="high"
+                  recyclingKey={`lightbox-${currentIndex}`}
+                />
+              )}
+
+              {imageLoading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                </View>
+              )}
             </Animated.View>
-          </PanGestureHandler>
+          </GestureDetector>
         </GestureHandlerRootView>
-        
+
         {/* Header */}
         <View style={styles.header}>
           {onDownload && (
@@ -236,17 +240,16 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
               <Download size={24} color="#FFFFFF" />
             </TouchableOpacity>
           )}
-          
-          {/* X button removed */}
-          {/* <TouchableOpacity
+
+          <TouchableOpacity
             style={styles.headerButton}
             onPress={onClose}
             activeOpacity={0.7}
           >
             <X size={28} color="#FFFFFF" />
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
-        
+
         {/* Navigation */}
         {currentIndex > 0 && (
           <TouchableOpacity
@@ -257,7 +260,7 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
             <ChevronLeft size={32} color="#FFFFFF" />
           </TouchableOpacity>
         )}
-        
+
         {currentIndex < images.length - 1 && (
           <TouchableOpacity
             style={[styles.navButton, styles.navButtonRight]}
@@ -267,7 +270,7 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
             <ChevronRight size={32} color="#FFFFFF" />
           </TouchableOpacity>
         )}
-        
+
         {/* Footer */}
         <View style={styles.footer}>
           <View style={styles.counter}>

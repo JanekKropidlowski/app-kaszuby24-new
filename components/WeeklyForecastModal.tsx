@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, Dimensions, ScrollView, Pressable } from
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeStore } from '@/store/themeStore';
 import { X, Calendar, Thermometer, Droplets, Wind, SunMedium, TrendingUp, MapPin, Info } from 'lucide-react-native';
-import { WeatherIcon } from '@/components/WeatherIcon';
+import { WeatherIcons } from '@/components/WeatherIcons';
 
 interface WeeklyForecastDay {
   date: string;
@@ -154,7 +154,7 @@ export const WeeklyForecastModal: React.FC<WeeklyForecastModalProps> = ({
               >
                 <View style={styles.headerContent}>
                   <View style={styles.iconContainer}>
-                    <WeatherIcon 
+                    <WeatherIcons 
                       wmoCode={selectedDay.wmoCode} 
                       size={24}
                     />

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Filtrowania Po Mieście - Kaszuby24 API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            width: 200px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Filtrowania Po Mieście - Kaszuby24 API</h1>
+    
+    <div class="container">
+        <h2>Status API</h2>
+        <button onclick="testAPI()">Test Podstawowego API</button>
+        <div id="api-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>Test Taksonomii Miasta</h2>
+        <button onclick="testCityTaxonomy()">Sprawdź Taksonomię Miasta</button>
+        <div id="taxonomy-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>Test Filtrowania Wydarzeń Po Mieście</h2>
+        <div class="form-group">
+            <label>Miasto:</label>
+            <input type="text" id="city-input" value="Gdynia" placeholder="Wpisz nazwę miasta">
+        </div>
+        <div class="form-group">
+            <label>Liczba wyników:</label>
+            <input type="text" id="per-page-input" value="5" placeholder="Liczba wyników na stronę">
+        </div>
+        <button onclick="testCityFilter()">Test Filtrowania Po Mieście</button>
+        <button onclick="testCityFilterMobile()">Test Filtrowania Mobile</button>
+        <div id="filter-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>Test Różnych Miast</h2>
+        <button onclick="testMultipleCities()">Test Wszystkich Miast</button>
+        <div id="multiple-cities-result" class="result"></div>
+    </div>
+
+    <script>
+        const baseUrl = 'https://kaszuby24.pl/wp-json/kaszuby24/v1';
+
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = JSON.stringify(data, null, 2);
+            element.className = 'result ' + (isError ? 'error' : 'success');
+        }
+
+        async function testAPI() {
+            try {
+                const response = await fetch(`${baseUrl}/test`);
+                const data = await response.json();
+                showResult('api-result', data);
+            } catch (error) {
+                showResult('api-result', { error: error.message }, true);
+            }
+        }
+
+        async function testCityTaxonomy() {
+            try {
+                const response = await fetch(`${baseUrl}/test-city-taxonomy`);
+                const data = await response.json();
+                showResult('taxonomy-result', data);
+            } catch (error) {
+                showResult('taxonomy-result', { error: error.message }, true);
+            }
+        }
+
+        async function testCityFilter() {
+            const city = document.getElementById('city-input').value;
+            const perPage = document.getElementById('per-page-input').value;
+            
+            try {
+                const url = `${baseUrl}/events?city=${encodeURIComponent(city)}&per_page=${perPage}`;
+                console.log('Testing URL:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // Sprawdź czy wszystkie wydarzenia są z podanego miasta
+                const eventsInCity = data.events.filter(event => {
+                    const eventCity = event.location || event.miasto;
+                    return eventCity && eventCity.toLowerCase().includes(city.toLowerCase());
+                });
+                
+                const result = {
+                    requested_city: city,
+                    total_events: data.total,
+                    events_in_city: eventsInCity.length,
+                    all_events_correct: eventsInCity.length === data.events.length,
+                    events: data.events.map(event => ({
+                        id: event.id,
+                        title: event.title,
+                        location: event.location || event.miasto,
+                        city_match: event.location && event.location.toLowerCase().includes(city.toLowerCase())
+                    }))
+                };
+                
+                showResult('filter-result', result);
+            } catch (error) {
+                showResult('filter-result', { error: error.message }, true);
+            }
+        }
+
+        async function testCityFilterMobile() {
+            const city = document.getElementById('city-input').value;
+            const perPage = document.getElementById('per-page-input').value;
+            
+            try {
+                const url = `${baseUrl}/events/mobile?city=${encodeURIComponent(city)}&per_page=${perPage}`;
+                console.log('Testing Mobile URL:', url);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                showResult('filter-result', {
+                    endpoint: 'mobile',
+                    requested_city: city,
+                    total_events: data.total || data.length,
+                    events: data.events || data
+                });
+            } catch (error) {
+                showResult('filter-result', { error: error.message }, true);
+            }
+        }
+
+        async function testMultipleCities() {
+            const cities = ['Gdynia', 'Gdańsk', 'Sopot', 'Wejherowo'];
+            const results = {};
+            
+            for (const city of cities) {
+                try {
+                    const url = `${baseUrl}/events?city=${encodeURIComponent(city)}&per_page=3`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    results[city] = {
+                        total: data.total,
+                        events_count: data.events.length,
+                        events: data.events.map(event => ({
+                            id: event.id,
+                            title: event.title,
+                            location: event.location || event.miasto
+                        }))
+                    };
+                } catch (error) {
+                    results[city] = { error: error.message };
+                }
+            }
+            
+            showResult('multiple-cities-result', results);
+        }
+
+        // Automatycznie testuj API przy załadowaniu
+        window.onload = function() {
+            testAPI();
+        };
+    </script>
+</body>
+</html>

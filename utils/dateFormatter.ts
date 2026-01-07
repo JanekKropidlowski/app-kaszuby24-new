@@ -101,7 +101,9 @@ export const safeDateParse = (dateInput: string | number | null | undefined): Da
 // Bezpieczna funkcja do formatowania daty z fallbackiem
 export const safeFormatDate = (dateInput: string | number | null | undefined): string => {
   const date = safeDateParse(dateInput);
-  if (!date) return 'Nieznana data';
+  if (!date) {
+    return 'Nieznana data';
+  }
   
   try {
     return formatDate(date.toISOString());
@@ -114,7 +116,9 @@ export const safeFormatDate = (dateInput: string | number | null | undefined): s
 // Bezpieczna funkcja do formatowania czasu z fallbackiem
 export const safeFormatTime = (dateInput: string | number | null | undefined): string => {
   const date = safeDateParse(dateInput);
-  if (!date) return 'Nieznana godzina';
+  if (!date) {
+    return 'Nieznana godzina';
+  }
   
   try {
     return formatTime(date.toISOString());

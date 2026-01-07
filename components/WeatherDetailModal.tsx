@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  Platform,
 } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
 import {
@@ -30,7 +31,8 @@ import {
   Calendar,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { WeatherIcon } from '@/components/WeatherIcon';
+import { WeatherIcons } from '@/components/WeatherIcons';
+import SkeletonLoader from '@/components/SkeletonLoader';
 
 interface WeatherDetailModalProps {
   visible: boolean;
@@ -38,7 +40,12 @@ interface WeatherDetailModalProps {
   weatherData: any;
   forecastData?: any;
   location?: string;
-  type: 'current' | 'forecast' | 'marine' | 'agricultural' | 'driver' | 'air-quality';
+  type: 'current' | 'forecast' | 'marine' | 'agricultural' | 'driver' | 'air-quality' | 'radar' | 'uv' | 'air-quality-detailed' | 'allergens';
+  isLoading?: boolean;
+  radarData?: any;
+  uvData?: any;
+  airQualityData?: any;
+  allergensData?: any;
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -50,6 +57,11 @@ export const WeatherDetailModal = ({
   forecastData,
   location = 'Nieznana lokalizacja',
   type,
+  isLoading = false,
+  radarData,
+  uvData,
+  airQualityData,
+  allergensData,
 }: WeatherDetailModalProps) => {
   const { theme } = useThemeStore();
   const styles = getStyles(theme);
@@ -84,6 +96,201 @@ export const WeatherDetailModal = ({
     return 'Bezchmurnie';
   };
 
+  // Helper functions for UV levels
+  const getUVLevelColor = (uvIndex: number) => {
+    if (uvIndex <= 2) return '#4CAF50'; // Low - Green
+    if (uvIndex <= 5) return '#FF9800'; // Moderate - Orange
+    if (uvIndex <= 7) return '#F44336'; // High - Red
+    if (uvIndex <= 10) return '#9C27B0'; // Very High - Purple
+    return '#3F51B5'; // Extreme - Indigo
+  };
+
+  const getUVLevelText = (uvIndex: number) => {
+    if (uvIndex <= 2) return 'Niski';
+    if (uvIndex <= 5) return 'Średni';
+    if (uvIndex <= 7) return 'Wysoki';
+    if (uvIndex <= 10) return 'Bardzo wysoki';
+    return 'Ekstremalny';
+  };
+
+  const getUVRecommendations = (uvIndex: number) => {
+    if (uvIndex <= 2) {
+      return [
+        'Można bezpiecznie przebywać na słońcu',
+        'Używaj kremu z filtrem SPF 15+',
+        'Noś okulary przeciwsłoneczne'
+      ];
+    }
+    if (uvIndex <= 5) {
+      return [
+        'Ogranicz czas na słońcu w godzinach 10-16',
+        'Używaj kremu z filtrem SPF 30+',
+        'Noś kapelusz i okulary przeciwsłoneczne',
+        'Szukaj cienia w południe'
+      ];
+    }
+    if (uvIndex <= 7) {
+      return [
+        'Ogranicz czas na słońcu w godzinach 10-16',
+        'Używaj kremu z filtrem SPF 50+',
+        'Noś kapelusz, okulary i odzież ochronną',
+        'Szukaj cienia w południe',
+        'Dzieci powinny pozostać w cieniu'
+      ];
+    }
+    if (uvIndex <= 10) {
+      return [
+        'Unikaj słońca w godzinach 10-16',
+        'Używaj kremu z filtrem SPF 50+',
+        'Noś kapelusz, okulary i odzież ochronną',
+        'Szukaj cienia',
+        'Dzieci powinny pozostać w cieniu',
+        'Rozważ pozostanie w pomieszczeniach'
+      ];
+    }
+    return [
+      'Unikaj słońca w godzinach 10-16',
+      'Używaj kremu z filtrem SPF 50+',
+      'Noś kapelusz, okulary i odzież ochronną',
+      'Szukaj cienia',
+      'Dzieci powinny pozostać w cieniu',
+      'Pozostań w pomieszczeniach',
+      'Zachowaj szczególną ostrożność'
+    ];
+  };
+
+  // Helper functions for AQI levels
+  const getAQIColor = (aqi: number) => {
+    if (aqi <= 50) return '#4CAF50'; // Good - Green
+    if (aqi <= 100) return '#FF9800'; // Moderate - Orange
+    if (aqi <= 150) return '#F44336'; // Unhealthy for Sensitive - Red
+    if (aqi <= 200) return '#9C27B0'; // Unhealthy - Purple
+    if (aqi <= 300) return '#FF5722'; // Very Unhealthy - Deep Orange
+    return '#795548'; // Hazardous - Brown
+  };
+
+  const getAQILevel = (aqi: number) => {
+    if (aqi <= 50) return 'Dobra';
+    if (aqi <= 100) return 'Umiarkowana';
+    if (aqi <= 150) return 'Niezdrowa dla wrażliwych';
+    if (aqi <= 200) return 'Niezdrowa';
+    if (aqi <= 300) return 'Bardzo niezdrowa';
+    return 'Niebezpieczna';
+  };
+
+  // Helper functions for allergens
+  const getAllergensTips = () => [
+    'Zamykaj okna w godzinach wysokiego stężenia pyłków',
+    'Używaj filtrów powietrza w domu',
+    'Myj włosy po powrocie z zewnątrz',
+    'Unikaj suszenia ubrań na zewnątrz',
+    'Sprawdzaj prognozy pyłków przed wyjściem',
+    'Rozważ noszenie maseczki w dni o wysokim stężeniu'
+  ];
+
+  // Render AQI breakdown
+  const renderAQIBreakdown = (data: any) => (
+    <View style={styles.aqiBreakdownGrid}>
+      {data.pm25 && (
+        <View style={styles.aqiBreakdownItem}>
+          <Text style={[styles.aqiBreakdownLabel, { color: theme.colors.textSecondary }]}>PM2.5</Text>
+          <Text style={[styles.aqiBreakdownValue, { color: theme.colors.text }]}>{data.pm25} µg/m³</Text>
+        </View>
+      )}
+      {data.pm10 && (
+        <View style={styles.aqiBreakdownItem}>
+          <Text style={[styles.aqiBreakdownLabel, { color: theme.colors.textSecondary }]}>PM10</Text>
+          <Text style={[styles.aqiBreakdownValue, { color: theme.colors.text }]}>{data.pm10} µg/m³</Text>
+        </View>
+      )}
+      {data.no2 && (
+        <View style={styles.aqiBreakdownItem}>
+          <Text style={[styles.aqiBreakdownLabel, { color: theme.colors.textSecondary }]}>NO₂</Text>
+          <Text style={[styles.aqiBreakdownValue, { color: theme.colors.text }]}>{data.no2} µg/m³</Text>
+        </View>
+      )}
+      {data.o3 && (
+        <View style={styles.aqiBreakdownItem}>
+          <Text style={[styles.aqiBreakdownLabel, { color: theme.colors.textSecondary }]}>O₃</Text>
+          <Text style={[styles.aqiBreakdownValue, { color: theme.colors.text }]}>{data.o3} µg/m³</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  // Render allergens list
+  const renderAllergensList = (data: any) => (
+    <View style={styles.allergensList}>
+      {data.trees && (
+        <View style={styles.allergenItem}>
+          <View style={[styles.allergenIcon, { backgroundColor: '#4CAF50' + '20' }]}>
+            <Cloud size={20} color="#4CAF50" />
+          </View>
+          <View style={styles.allergenInfo}>
+            <Text style={[styles.allergenName, { color: theme.colors.text }]}>Pyłki drzew</Text>
+            <Text style={[styles.allergenLevel, { color: getAllergenLevelColor(data.trees) }]}>
+              {getAllergenLevelText(data.trees)}
+            </Text>
+          </View>
+        </View>
+      )}
+      {data.grass && (
+        <View style={styles.allergenItem}>
+          <View style={[styles.allergenIcon, { backgroundColor: '#8BC34A' + '20' }]}>
+            <Cloud size={20} color="#8BC34A" />
+          </View>
+          <View style={styles.allergenInfo}>
+            <Text style={[styles.allergenName, { color: theme.colors.text }]}>Pyłki traw</Text>
+            <Text style={[styles.allergenLevel, { color: getAllergenLevelColor(data.grass) }]}>
+              {getAllergenLevelText(data.grass)}
+            </Text>
+          </View>
+        </View>
+      )}
+      {data.weeds && (
+        <View style={styles.allergenItem}>
+          <View style={[styles.allergenIcon, { backgroundColor: '#FF9800' + '20' }]}>
+            <Cloud size={20} color="#FF9800" />
+          </View>
+          <View style={styles.allergenInfo}>
+            <Text style={[styles.allergenName, { color: theme.colors.text }]}>Pyłki chwastów</Text>
+            <Text style={[styles.allergenLevel, { color: getAllergenLevelColor(data.weeds) }]}>
+              {getAllergenLevelText(data.weeds)}
+            </Text>
+          </View>
+        </View>
+      )}
+      {data.dust && (
+        <View style={styles.allergenItem}>
+          <View style={[styles.allergenIcon, { backgroundColor: '#795548' + '20' }]}>
+            <Cloud size={20} color="#795548" />
+          </View>
+          <View style={styles.allergenInfo}>
+            <Text style={[styles.allergenName, { color: theme.colors.text }]}>Kurz</Text>
+            <Text style={[styles.allergenLevel, { color: getAllergenLevelColor(data.dust) }]}>
+              {getAllergenLevelText(data.dust)}
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  // Helper functions for allergen levels
+  const getAllergenLevelColor = (level: number) => {
+    if (level <= 1) return '#4CAF50'; // Low - Green
+    if (level <= 3) return '#FF9800'; // Moderate - Orange
+    if (level <= 5) return '#F44336'; // High - Red
+    return '#9C27B0'; // Very High - Purple
+  };
+
+  const getAllergenLevelText = (level: number) => {
+    if (level <= 1) return 'Niskie';
+    if (level <= 3) return 'Średnie';
+    if (level <= 5) return 'Wysokie';
+    return 'Bardzo wysokie';
+  };
+
   const getGradientColors = () => {
     const temp = parseFloat(weatherData?.temperatura || '0');
     if (temp >= 25) return ['#FF6B6B', '#FF8E53'];
@@ -107,7 +314,7 @@ export const WeatherDetailModal = ({
             {getWeatherDescription(weatherData?.weathercode || 0)}
           </Text>
           <View style={styles.weatherIconContainer}>
-            <WeatherIcon 
+            <WeatherIcons 
               wmoCode={weatherData?.weathercode || 0} 
               size={80} 
             />
@@ -172,19 +379,19 @@ export const WeatherDetailModal = ({
           </View>
         </View>
 
-        {forecastData && (
+        {forecastData && forecastData.hourly && forecastData.hourly.time && (
           <View style={styles.forecastSection}>
             <Text style={styles.sectionTitle}>Prognoza na dziś</Text>
             <View style={styles.forecastCards}>
-              {forecastData?.hourly?.time?.slice(0, 8).map((time: string, index: number) => {
+              {forecastData.hourly.time.slice(0, 8).map((time: any, index: number) => {
                 const hour = new Date(time).getHours();
-                const temp = forecastData?.hourly?.temperature_2m?.[index] || 0;
-                const weatherCode = forecastData?.hourly?.weathercode?.[index] || 0;
+                const temp = forecastData.hourly.temperature_2m?.[index] || 0;
+                const weatherCode = forecastData.hourly.weathercode?.[index] || 0;
                 
                 return (
-                  <View key={time} style={styles.forecastCard}>
+                  <View key={`${time}-${index}`} style={styles.forecastCard}>
                     <Text style={styles.forecastTime}>{hour}:00</Text>
-                    <WeatherIcon wmoCode={weatherCode} size={32} />
+                    <WeatherIcons wmoCode={weatherCode} size={32} />
                     <Text style={styles.forecastTemp}>{temp.toFixed(0)}°</Text>
                   </View>
                 );
@@ -198,88 +405,311 @@ export const WeatherDetailModal = ({
 
   const renderForecastDetails = () => (
     <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-      <LinearGradient colors={['rgba(30, 58, 138, 0.7)', 'rgba(15, 23, 42, 0.7)']} style={styles.headerGradient}>
+      {isLoading ? (
+        <WeatherModalSkeleton theme={theme} />
+      ) : (
+        <>
+          <LinearGradient colors={['rgba(30, 58, 138, 0.7)', 'rgba(15, 23, 42, 0.7)']} style={styles.headerGradient}>
+            <View style={styles.headerContent}>
+              <View style={styles.weatherDescription}>
+                <View style={styles.weatherIconContainer}>
+                  <WeatherIcons 
+                    wmoCode={parseInt(weatherData?.wmo_code || '0')} 
+                    size={80} 
+                  />
+                </View>
+                <Text style={styles.temperatureText}>
+                  {parseFloat(weatherData?.temperatura || '0').toFixed(1)}°
+                </Text>
+                <Text style={styles.weatherDescriptionText}>
+                  {getWeatherDescription(parseInt(weatherData?.wmo_code || '0'))}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.detailsContainer}>
+            <View style={styles.detailsGrid}>
+              <View style={styles.detailItem}>
+                <View style={[styles.detailIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+                  <Thermometer size={20} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.detailLabel}>Temperatura</Text>
+                <Text style={styles.detailValue}>
+                  {parseFloat(weatherData?.temperatura || '0').toFixed(1)}°C
+                </Text>
+              </View>
+
+              <View style={styles.detailItem}>
+                <View style={[styles.detailIcon, { backgroundColor: '#45B7D1' + '20' }]}>
+                  <Wind size={20} color="#45B7D1" />
+                </View>
+                <Text style={styles.detailLabel}>Wiatr</Text>
+                <Text style={styles.detailValue}>
+                  {parseFloat(weatherData?.predkosc_wiatru || '0').toFixed(1)} km/h
+                </Text>
+              </View>
+
+              <View style={styles.detailItem}>
+                <View style={[styles.detailIcon, { backgroundColor: '#4ECDC4' + '20' }]}>
+                  <Droplets size={20} color="#4ECDC4" />
+                </View>
+                <Text style={styles.detailLabel}>Wilgotność</Text>
+                <Text style={styles.detailValue}>
+                  {parseFloat(weatherData?.wilgotnosc_wzgledna || '0').toFixed(0)}%
+                </Text>
+              </View>
+
+              <View style={styles.detailItem}>
+                <View style={[styles.detailIcon, { backgroundColor: '#96CEB4' + '20' }]}>
+                  <CloudRain size={20} color="#96CEB4" />
+                </View>
+                <Text style={styles.detailLabel}>Opady</Text>
+                <Text style={styles.detailValue}>
+                  {parseFloat(weatherData?.suma_opadu || '0').toFixed(1)} mm/h
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.timeInfo}>
+              <View style={styles.timeItem}>
+                <Clock size={16} color={theme.colors.textSecondary} />
+                <Text style={styles.timeText}>
+                  {weatherData?.godzina_pomiaru}:00
+                </Text>
+              </View>
+              <View style={styles.timeItem}>
+                <Calendar size={16} color={theme.colors.textSecondary} />
+                <Text style={styles.timeText}>
+                  {weatherData?.data_pomiaru}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.forecastTip}>
+              <AlertTriangle size={16} color={theme.colors.primary} />
+              <Text style={styles.forecastTipText}>
+                Prognoza godzinowa pokazuje szczegółowe warunki pogodowe dla konkretnej godziny
+              </Text>
+            </View>
+          </View>
+        </>
+      )}
+    </ScrollView>
+  );
+
+  // Radar map with real-time precipitation
+  const renderRadarMap = () => (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={['rgba(59, 130, 246, 0.8)', 'rgba(37, 99, 235, 0.8)']} style={styles.headerGradient}>
         <View style={styles.headerContent}>
           <View style={styles.weatherDescription}>
             <View style={styles.weatherIconContainer}>
-              <WeatherIcon 
-                wmoCode={parseInt(weatherData?.wmo_code || '0')} 
-                size={80} 
-              />
+              <CloudRain size={80} color="#fff" />
             </View>
-            <Text style={styles.temperatureText}>
-              {parseFloat(weatherData?.temperatura || '0').toFixed(1)}°
-            </Text>
+            <Text style={styles.temperatureText}>Radar opadów</Text>
             <Text style={styles.weatherDescriptionText}>
-              {getWeatherDescription(parseInt(weatherData?.wmo_code || '0'))}
+              Mapa opadów w czasie rzeczywistym
             </Text>
           </View>
         </View>
       </LinearGradient>
 
       <View style={styles.detailsContainer}>
-        <View style={styles.detailsGrid}>
-          <View style={styles.detailItem}>
-            <View style={[styles.detailIcon, { backgroundColor: theme.colors.primary + '20' }]}>
-              <Thermometer size={20} color={theme.colors.primary} />
+        <Text style={styles.sectionTitle}>Mapa radarowa</Text>
+        
+        {radarData ? (
+          <View style={styles.radarContainer}>
+            <View style={[styles.radarMap, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.radarPlaceholder, { color: theme.colors.textSecondary }]}>
+                Mapa radarowa opadów
+              </Text>
+              <Text style={[styles.radarInfo, { color: theme.colors.textSecondary }]}>
+                Dane aktualizowane co 5 minut
+              </Text>
             </View>
-            <Text style={styles.detailLabel}>Temperatura</Text>
-            <Text style={styles.detailValue}>
-              {parseFloat(weatherData?.temperatura || '0').toFixed(1)}°C
+          </View>
+        ) : (
+          <View style={[styles.radarContainer, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.radarPlaceholder, { color: theme.colors.textSecondary }]}>
+              Brak danych radarowych
             </Text>
           </View>
+        )}
 
-          <View style={styles.detailItem}>
-            <View style={[styles.detailIcon, { backgroundColor: '#45B7D1' + '20' }]}>
-              <Wind size={20} color="#45B7D1" />
+        <View style={styles.radarLegend}>
+          <Text style={[styles.legendTitle, { color: theme.colors.text }]}>Legenda opadów:</Text>
+          <View style={styles.legendItems}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#87CEEB' }]} />
+              <Text style={[styles.legendText, { color: theme.colors.textSecondary }]}>Lekkie opady</Text>
             </View>
-            <Text style={styles.detailLabel}>Wiatr</Text>
-            <Text style={styles.detailValue}>
-              {parseFloat(weatherData?.predkosc_wiatru || '0').toFixed(1)} km/h
-            </Text>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#4682B4' }]} />
+              <Text style={[styles.legendText, { color: theme.colors.textSecondary }]}>Umiarkowane opady</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendColor, { backgroundColor: '#000080' }]} />
+              <Text style={[styles.legendText, { color: theme.colors.textSecondary }]}>Intensywne opady</Text>
+            </View>
           </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
 
-          <View style={styles.detailItem}>
-            <View style={[styles.detailIcon, { backgroundColor: '#4ECDC4' + '20' }]}>
-              <Droplets size={20} color="#4ECDC4" />
+  // UV forecast with protection recommendations
+  const renderUVForecast = () => (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={['rgba(255, 193, 7, 0.8)', 'rgba(255, 152, 0, 0.8)']} style={styles.headerGradient}>
+        <View style={styles.headerContent}>
+          <View style={styles.weatherDescription}>
+            <View style={styles.weatherIconContainer}>
+              <Sun size={80} color="#fff" />
             </View>
-            <Text style={styles.detailLabel}>Wilgotność</Text>
-            <Text style={styles.detailValue}>
-              {parseFloat(weatherData?.wilgotnosc_wzgledna || '0').toFixed(0)}%
-            </Text>
-          </View>
-
-          <View style={styles.detailItem}>
-            <View style={[styles.detailIcon, { backgroundColor: '#96CEB4' + '20' }]}>
-              <CloudRain size={20} color="#96CEB4" />
-            </View>
-            <Text style={styles.detailLabel}>Opady</Text>
-            <Text style={styles.detailValue}>
-              {parseFloat(weatherData?.suma_opadu || '0').toFixed(1)} mm/h
+            <Text style={styles.temperatureText}>Indeks UV</Text>
+            <Text style={styles.weatherDescriptionText}>
+              Prognoza promieniowania UV
             </Text>
           </View>
         </View>
+      </LinearGradient>
 
-        <View style={styles.timeInfo}>
-          <View style={styles.timeItem}>
-            <Clock size={16} color={theme.colors.textSecondary} />
-            <Text style={styles.timeText}>
-              {weatherData?.godzina_pomiaru}:00
+      <View style={styles.detailsContainer}>
+        <Text style={styles.sectionTitle}>Prognoza UV</Text>
+        
+        {uvData ? (
+          <View style={styles.uvContainer}>
+            <View style={[styles.uvCurrent, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.uvValue, { color: theme.colors.text }]}>
+                {uvData.current || 'N/A'}
+              </Text>
+              <Text style={[styles.uvLevel, { color: getUVLevelColor(uvData.current) }]}>
+                {getUVLevelText(uvData.current)}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.uvContainer, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.uvPlaceholder, { color: theme.colors.textSecondary }]}>
+              Brak danych UV
             </Text>
           </View>
-          <View style={styles.timeItem}>
-            <Calendar size={16} color={theme.colors.textSecondary} />
-            <Text style={styles.timeText}>
-              {weatherData?.data_pomiaru}
+        )}
+
+        <View style={styles.uvRecommendations}>
+          <Text style={[styles.recommendationsTitle, { color: theme.colors.text }]}>Rekomendacje ochrony:</Text>
+          {getUVRecommendations(uvData?.current).map((rec, index) => (
+            <View key={index} style={styles.recommendationItem}>
+              <View style={[styles.recommendationIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+                <AlertTriangle size={16} color={theme.colors.primary} />
+              </View>
+              <Text style={[styles.recommendationText, { color: theme.colors.text }]}>
+                {rec}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  // Detailed air quality with graphical indicator
+  const renderAirQualityDetailed = () => (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={['rgba(76, 175, 80, 0.8)', 'rgba(139, 195, 74, 0.8)']} style={styles.headerGradient}>
+        <View style={styles.headerContent}>
+          <View style={styles.weatherDescription}>
+            <View style={styles.weatherIconContainer}>
+              <Cloud size={80} color="#fff" />
+            </View>
+            <Text style={styles.temperatureText}>Jakość powietrza</Text>
+            <Text style={styles.weatherDescriptionText}>
+              Indeks AQI z graficznym wskaźnikiem
             </Text>
           </View>
         </View>
+      </LinearGradient>
 
-        <View style={styles.forecastTip}>
-          <AlertTriangle size={16} color={theme.colors.primary} />
-          <Text style={styles.forecastTipText}>
-            Prognoza godzinowa pokazuje szczegółowe warunki pogodowe dla konkretnej godziny
-          </Text>
+      <View style={styles.detailsContainer}>
+        <Text style={styles.sectionTitle}>Indeks AQI</Text>
+        
+        {airQualityData ? (
+          <View style={styles.aqiContainer}>
+            <View style={[styles.aqiGauge, { backgroundColor: theme.colors.card }]}>
+              <View style={styles.aqiCircle}>
+                <Text style={[styles.aqiValue, { color: getAQIColor(airQualityData.aqi) }]}>
+                  {airQualityData.aqi || 'N/A'}
+                </Text>
+                <Text style={[styles.aqiLabel, { color: theme.colors.textSecondary }]}>
+                  AQI
+                </Text>
+              </View>
+              <Text style={[styles.aqiLevel, { color: getAQIColor(airQualityData.aqi) }]}>
+                {getAQILevel(airQualityData.aqi)}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.aqiContainer, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.aqiPlaceholder, { color: theme.colors.textSecondary }]}>
+              Brak danych AQI
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.aqiBreakdown}>
+          <Text style={[styles.breakdownTitle, { color: theme.colors.text }]}>Składniki:</Text>
+          {airQualityData && renderAQIBreakdown(airQualityData)}
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  // Allergens forecast
+  const renderAllergensForecast = () => (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={['rgba(156, 39, 176, 0.8)', 'rgba(123, 31, 162, 0.8)']} style={styles.headerGradient}>
+        <View style={styles.headerContent}>
+          <View style={styles.weatherDescription}>
+            <View style={styles.weatherIconContainer}>
+              <Cloud size={80} color="#fff" />
+            </View>
+            <Text style={styles.temperatureText}>Alergeny</Text>
+            <Text style={styles.weatherDescriptionText}>
+              Prognoza pyłków i kurzu
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <View style={styles.detailsContainer}>
+        <Text style={styles.sectionTitle}>Prognoza alergenów</Text>
+        
+        {allergensData ? (
+          <View style={styles.allergensContainer}>
+            {renderAllergensList(allergensData)}
+          </View>
+        ) : (
+          <View style={[styles.allergensContainer, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.allergensPlaceholder, { color: theme.colors.textSecondary }]}>
+              Brak danych o alergenach
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.allergensTips}>
+          <Text style={[styles.tipsTitle, { color: theme.colors.text }]}>Wskazówki dla alergików:</Text>
+          {getAllergensTips().map((tip, index) => (
+            <View key={index} style={styles.tipItem}>
+              <View style={[styles.tipIcon, { backgroundColor: theme.colors.warning + '20' }]}>
+                <AlertTriangle size={16} color={theme.colors.warning} />
+              </View>
+              <Text style={[styles.tipText, { color: theme.colors.text }]}>
+                {tip}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
     </ScrollView>
@@ -299,6 +729,14 @@ export const WeatherDetailModal = ({
         return <Text style={styles.placeholderText}>Szczegóły warunków drogowych</Text>;
       case 'air-quality':
         return <Text style={styles.placeholderText}>Szczegóły jakości powietrza</Text>;
+      case 'radar':
+        return renderRadarMap();
+      case 'uv':
+        return renderUVForecast();
+      case 'air-quality-detailed':
+        return renderAirQualityDetailed();
+      case 'allergens':
+        return renderAllergensForecast();
       default:
         return renderCurrentWeatherDetails();
     }
@@ -333,6 +771,129 @@ export const WeatherDetailModal = ({
   );
 };
 
+// Skeleton loading component for weather modal
+const WeatherModalSkeleton: React.FC<{ theme: any }> = ({ theme }) => {
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const skeletonColor = theme.isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
+  const styles = getStyles(theme);
+
+  React.useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+
+    return () => {
+      animatedValue.stopAnimation();
+    };
+  }, [animatedValue]);
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.4, 0.8],
+  });
+
+  return (
+    <>
+      {/* Header skeleton */}
+      <Animated.View 
+        style={[
+          styles.skeletonHeader, 
+          { backgroundColor: skeletonColor, opacity }
+        ]} 
+      />
+      
+      {/* Content skeleton */}
+      <View style={styles.detailsContainer}>
+        {/* Grid skeleton */}
+        <View style={styles.detailsGrid}>
+          {[1, 2, 3, 4].map((item) => (
+            <View key={item} style={styles.detailItem}>
+              <Animated.View 
+                style={[
+                  styles.skeletonIcon, 
+                  { backgroundColor: skeletonColor, opacity }
+                ]} 
+              />
+              <Animated.View 
+                style={[
+                  styles.skeletonLabel, 
+                  { backgroundColor: skeletonColor, opacity }
+                ]} 
+              />
+              <Animated.View 
+                style={[
+                  styles.skeletonValue, 
+                  { backgroundColor: skeletonColor, opacity }
+                ]} 
+              />
+            </View>
+          ))}
+        </View>
+
+        {/* Time info skeleton */}
+        <View style={styles.timeInfo}>
+          <View style={styles.timeItem}>
+            <Animated.View 
+              style={[
+                styles.skeletonTimeIcon, 
+                { backgroundColor: skeletonColor, opacity }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.skeletonTimeText, 
+                { backgroundColor: skeletonColor, opacity }
+              ]} 
+            />
+          </View>
+          <View style={styles.timeItem}>
+            <Animated.View 
+              style={[
+                styles.skeletonTimeIcon, 
+                { backgroundColor: skeletonColor, opacity }
+              ]} 
+            />
+            <Animated.View 
+              style={[
+                styles.skeletonTimeText, 
+                { backgroundColor: skeletonColor, opacity }
+              ]} 
+            />
+          </View>
+        </View>
+
+        {/* Tip skeleton */}
+        <View style={styles.forecastTip}>
+          <Animated.View 
+            style={[
+              styles.skeletonTipIcon, 
+              { backgroundColor: skeletonColor, opacity }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.skeletonTipText, 
+              { backgroundColor: skeletonColor, opacity }
+            ]} 
+          />
+        </View>
+      </View>
+    </>
+  );
+};
+
 const getStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -356,7 +917,10 @@ const getStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   modalTitle: {
-    fontFamily: 'Poppins_Bold',
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
     fontSize: 18,
     color: theme.colors.text,
   },
@@ -383,13 +947,19 @@ const getStyles = (theme: any) => StyleSheet.create({
     marginBottom: 16,
   },
   locationText: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 16,
     color: '#fff',
   },
 
   descriptionText: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 18,
     color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 20,
@@ -401,7 +971,10 @@ const getStyles = (theme: any) => StyleSheet.create({
     padding: 20,
   },
   sectionTitle: {
-    fontFamily: 'Poppins_Bold',
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
     fontSize: 20,
     color: theme.colors.text,
     marginBottom: 16,
@@ -427,19 +1000,28 @@ const getStyles = (theme: any) => StyleSheet.create({
     marginBottom: 12,
   },
   metricLabel: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginTop: 8,
     marginBottom: 4,
   },
   metricValue: {
-    fontFamily: 'Poppins_Bold',
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
     fontSize: 18,
     color: theme.colors.text,
   },
   metricSubtext: {
-    fontFamily: 'Poppins_Regular',
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
     fontSize: 12,
     color: theme.colors.textSecondary,
     textAlign: 'center',
@@ -462,19 +1044,28 @@ const getStyles = (theme: any) => StyleSheet.create({
     marginBottom: 12,
   },
   forecastTime: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   forecastTemp: {
-    fontFamily: 'Poppins_Bold',
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
     fontSize: 16,
     color: theme.colors.text,
     marginTop: 8,
   },
   placeholderText: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 16,
     color: theme.colors.textSecondary,
     textAlign: 'center',
@@ -493,14 +1084,20 @@ const getStyles = (theme: any) => StyleSheet.create({
     flex: 1,
   },
   temperatureValue: {
-    fontFamily: 'Poppins_Bold',
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
     fontSize: 64,
     color: '#fff',
     lineHeight: 72,
     letterSpacing: -1,
   },
   temperatureUnit: {
-    fontFamily: 'Poppins_Bold',
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
     fontSize: 32,
     color: '#fff',
     marginLeft: 8,
@@ -530,7 +1127,10 @@ const getStyles = (theme: any) => StyleSheet.create({
     textShadowRadius: 3,
   },
   weatherDescriptionText: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
@@ -559,13 +1159,19 @@ const getStyles = (theme: any) => StyleSheet.create({
     marginBottom: 8,
   },
   detailLabel: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   detailValue: {
-    fontFamily: 'Poppins_Bold',
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
     fontSize: 18,
     color: theme.colors.text,
   },
@@ -579,7 +1185,10 @@ const getStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
   },
   timeText: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginLeft: 8,
@@ -593,10 +1202,351 @@ const getStyles = (theme: any) => StyleSheet.create({
     marginTop: 16,
   },
   forecastTipText: {
-    fontFamily: 'Poppins_Medium',
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginLeft: 8,
+  },
+  // Skeleton styles
+  skeletonHeader: {
+    height: 200,
+    borderRadius: 24,
+    margin: 16,
+  },
+  skeletonIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: 8,
+  },
+  skeletonLabel: {
+    height: 14,
+    width: 80,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  skeletonValue: {
+    height: 18,
+    width: 60,
+    borderRadius: 4,
+  },
+  skeletonTimeIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  skeletonTimeText: {
+    height: 14,
+    width: 100,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  skeletonTipIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  skeletonTipText: {
+    height: 14,
+    width: 200,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  // Radar styles
+  radarContainer: {
+    marginBottom: 24,
+  },
+  radarMap: {
+    height: 200,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  radarPlaceholder: {
+    fontSize: 18,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    marginBottom: 8,
+  },
+  radarInfo: {
+    fontSize: 14,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    opacity: 0.7,
+  },
+  radarLegend: {
+    marginTop: 16,
+  },
+  legendTitle: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    marginBottom: 12,
+  },
+  legendItems: {
+    gap: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  legendColor: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 14,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+  },
+  // UV styles
+  uvContainer: {
+    marginBottom: 24,
+  },
+  uvCurrent: {
+    alignItems: 'center',
+    padding: 24,
+    borderRadius: 16,
+  },
+  uvValue: {
+    fontSize: 48,
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
+    marginBottom: 8,
+  },
+  uvLevel: {
+    fontSize: 18,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+  },
+  uvPlaceholder: {
+    fontSize: 18,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    textAlign: 'center',
+  },
+  uvRecommendations: {
+    marginTop: 16,
+  },
+  recommendationsTitle: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    marginBottom: 16,
+  },
+  recommendationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  recommendationIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recommendationText: {
+    fontSize: 14,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    flex: 1,
+    lineHeight: 20,
+  },
+  // AQI styles
+  aqiContainer: {
+    marginBottom: 24,
+  },
+  aqiGauge: {
+    alignItems: 'center',
+    padding: 24,
+    borderRadius: 16,
+  },
+  aqiCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 8,
+    borderColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  aqiValue: {
+    fontSize: 32,
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
+  },
+  aqiLabel: {
+    fontSize: 14,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    marginTop: 4,
+  },
+  aqiLevel: {
+    fontSize: 18,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+  },
+  aqiPlaceholder: {
+    fontSize: 18,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    textAlign: 'center',
+  },
+  aqiBreakdown: {
+    marginTop: 16,
+  },
+  breakdownTitle: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    marginBottom: 16,
+  },
+  aqiBreakdownGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  aqiBreakdownItem: {
+    width: '48%',
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  aqiBreakdownLabel: {
+    fontSize: 12,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    marginBottom: 4,
+  },
+  aqiBreakdownValue: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_Bold',
+      android: 'Poppins_Bold',
+    }) || 'Poppins_Bold',
+  },
+  // Allergens styles
+  allergensContainer: {
+    marginBottom: 24,
+  },
+  allergensPlaceholder: {
+    fontSize: 18,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    textAlign: 'center',
+    padding: 24,
+  },
+  allergensList: {
+    gap: 16,
+  },
+  allergenItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    padding: 16,
+  },
+  allergenIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  allergenInfo: {
+    flex: 1,
+  },
+  allergenName: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_Medium',
+      android: 'Poppins_Medium',
+    }) || 'Poppins_Medium',
+    marginBottom: 4,
+  },
+  allergenLevel: {
+    fontSize: 14,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+  },
+  allergensTips: {
+    marginTop: 16,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontFamily: Platform.select({
+      default: 'Poppins_SemiBold',
+      android: 'Poppins_SemiBold',
+    }) || 'Poppins_SemiBold',
+    marginBottom: 16,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  tipIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipText: {
+    fontSize: 14,
+    fontFamily: Platform.select({
+      default: 'Poppins_Regular',
+      android: 'Poppins_Regular',
+    }) || 'Poppins_Regular',
+    flex: 1,
+    lineHeight: 20,
   },
 });
 

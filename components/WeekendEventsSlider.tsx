@@ -1,19 +1,23 @@
-import React, { useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
+import React, { useState, useRef, useCallback } from 'react';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Dimensions, 
   Platform,
+  Alert,
+  Share
 } from 'react-native';
-import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Calendar, MapPin, Clock, Share2 } from 'lucide-react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Calendar, Clock, MapPin, Share2, Heart } from 'lucide-react-native';
+import { Event } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
 import { safeFormatDate, safeFormatTime } from '@/utils/dateFormatter';
-import { LinearGradient } from 'expo-linear-gradient';
+import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
+import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as he from 'he';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -22,25 +26,6 @@ const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.85; // Szerokość głównej, widocznej karty
 // Obliczamy, jak bardzo ma być widoczny sąsiedni element
 const PEEK_AMOUNT = 50; // Stała wartość 50px z każdej strony
-
-interface Event {
-  id: number;
-  title: { rendered: string };
-  date: string;
-  meta?: {
-    miasto?: string;
-    'opis-wydarzenia'?: string;
-  };
-  _embedded?: {
-    'wp:featuredmedia'?: Array<{
-      source_url: string;
-    }>;
-    'wp:term'?: Array<{
-      taxonomy: string;
-      name: string;
-    }>;
-  };
-}
 
 interface WeekendEventsSliderProps {
   events: Event[];
@@ -59,6 +44,16 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
   const carouselRef = useRef<ICarouselInstance>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // Funkcja pomocnicza do bezpiecznego pobierania tytułu
+  const getEventTitle = (event: Event): string => {
+    if (typeof event.title === 'string') {
+      return event.title;
+    } else if (event.title?.rendered) {
+      return event.title.rendered;
+    }
+    return 'Brak tytułu';
+  };
+
   if (events.length === 0) {
     return null;
   }
@@ -70,7 +65,7 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
     
     if (categories.length > 0) return categories[0];
     
-    const title = event.title?.rendered?.toLowerCase() || '';
+    const title = getEventTitle(event).toLowerCase();
     if (title.includes('kabaret') || title.includes('teatr') || title.includes('spektakl')) return 'Teatr';
     if (title.includes('koncert') || title.includes('muzyka') || title.includes('festival')) return 'Muzyka';
     if (title.includes('sport') || title.includes('bieg') || title.includes('turniej')) return 'Sport';
@@ -83,6 +78,7 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
   const renderEventCard = ({ item: event }: { item: Event }) => {
     const formattedDate = safeFormatDate(event.date);
     const formattedTime = safeFormatTime(event.date);
+    
     const hasImage = event._embedded?.['wp:featuredmedia']?.[0]?.source_url;
     const category = getEventCategory(event);
 
@@ -97,7 +93,16 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
         >
           <View style={styles.imageContainer}>
             {hasImage ? (
-              <Image source={{ uri: hasImage }} style={styles.eventImage} contentFit="cover" />
+              <Image 
+                source={{ uri: hasImage }} 
+                style={styles.eventImage} 
+                contentFit="cover"
+                placeholder="Wydarzenie"
+                onError={() => {
+                  // Fallback do ikony kalendarza jeśli grafika się nie załaduje
+                  console.warn('Event image failed to load');
+                }}
+              />
             ) : (
               <View style={[styles.noImageContainer, { backgroundColor: theme.colors.primary }]}>
                 <Calendar size={40} color="#fff" />
@@ -114,15 +119,19 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
             
             <View style={styles.actionButtons}>
               <TouchableOpacity style={[styles.actionButton, { backgroundColor: 'rgba(255,255,255,0.9)' }]} onPress={() => onShare(event)}>
-                <Share2 size={16} color={theme.colors.primary} />
+                <Text>
+                  <Share2 size={16} color={theme.colors.primary} />
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.actionButton, { backgroundColor: 'rgba(255,255,255,0.9)' }]} onPress={() => onAddToCalendar(event)}>
-                <Calendar size={16} color={theme.colors.primary} />
+                <Text>
+                  <Calendar size={16} color={theme.colors.primary} />
+                </Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.imageContent}>
-              <Text style={[styles.imageTitle, { color: '#fff' }]} numberOfLines={2}>{he.decode(event.title.rendered)}</Text>
+              <Text style={[styles.imageTitle, { color: '#fff' }]} numberOfLines={2}>{cleanArticleTitle(getEventTitle(event))}</Text>
               <View style={styles.imageMeta}>
                 <View style={styles.imageMetaRow}>
                   <Clock size={14} color="#fff" />
@@ -161,6 +170,7 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
           scrollAnimationDuration={500}
           onSnapToItem={(index) => setActiveIndex(index)}
           renderItem={renderEventCard}
+          keyExtractor={(item) => `weekend_event_${item.id}`}
           // --- Konfiguracja dla trybu "center mode" ---
           mode="parallax"
           modeConfig={{
@@ -172,9 +182,9 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
       
       {events.length > 1 && (
         <View style={styles.pagination}>
-          {events.map((_, index) => (
+          {events.map((event, index) => (
             <View
-              key={index}
+              key={`pagination_${event.id}_${index}`}
               style={[
                 styles.paginationDot,
                 {

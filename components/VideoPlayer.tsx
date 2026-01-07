@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Platform, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Platform,
   Dimensions,
   Linking
 } from 'react-native';
@@ -45,7 +45,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = memo(({ url, title, autoPlay = f
   // Memoized YouTube embed HTML
   const youtubeEmbedHtml = useMemo(() => {
     if (!youtubeVideoId) return '';
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -84,7 +84,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = memo(({ url, title, autoPlay = f
       <body>
         <div class="container">
           <iframe
-            src="https://www.youtube.com/embed/${youtubeVideoId}?rel=0&autoplay=${autoPlay ? 1 : 0}&playsinline=1&modestbranding=1&color=white"
+            src="https://www.youtube.com/embed/${youtubeVideoId}?rel=0&autoplay=${autoPlay ? 1 : 0}&playsinline=1&modestbranding=1&color=white&origin=https://www.youtube.com&enablejsapi=1"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen
@@ -121,7 +121,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = memo(({ url, title, autoPlay = f
               {title}
             </Text>
           )}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.thumbnailContainer}
             onPress={handlePlay}
             activeOpacity={0.9}
@@ -132,11 +132,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = memo(({ url, title, autoPlay = f
                 style={styles.thumbnail}
                 contentFit="cover"
                 transition={200}
-                cachePolicy="memory-disk"
-                priority="normal"
+                placeholder="Wideo"
+                onError={() => {
+                  // Fallback do ikony play jeśli grafika się nie załaduje
+                  console.warn('YouTube thumbnail failed to load');
+                }}
               />
             ) : (
-              <View style={[styles.placeholderThumbnail, { backgroundColor: theme.colors.subtle }]} />
+              <View style={[styles.placeholderThumbnail, { backgroundColor: theme.colors.subtle }]}>
+                <Play size={48} color={theme.colors.primary} />
+              </View>
             )}
             <View style={styles.playButtonContainer}>
               <View style={styles.playButton}>
@@ -163,6 +168,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = memo(({ url, title, autoPlay = f
               domStorageEnabled={true}
               allowsFullscreenVideo={true}
               mediaPlaybackRequiresUserAction={false}
+              allowsInlineMediaPlayback={true}
+              originWhitelist={['*']}
+              userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+              {...(Platform.OS === 'android' && {
+                mixedContentMode: 'always',
+                thirdPartyCookiesEnabled: true,
+              })}
               onError={() => setError(true)}
               startInLoadingState={true}
               renderLoading={() => (
@@ -241,6 +253,8 @@ const styles = StyleSheet.create({
   placeholderThumbnail: {
     width: '100%',
     height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   playButtonContainer: {
     ...StyleSheet.absoluteFillObject,

@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useThemeStore } from '@/store/themeStore';
-import { WeatherIcon } from '@/components/WeatherIcon';
+import { WeatherIcons } from '@/components/WeatherIcons';
 import { WeeklyForecastModal } from '@/components/WeeklyForecastModal';
+import { 
+  Calendar,
+  Thermometer,
+  Droplets,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+  CloudDrizzle
+} from 'lucide-react-native';
 
 interface WeeklyForecastProps {
   data: Array<{
@@ -104,7 +115,7 @@ export const WeeklyForecast: React.FC<WeeklyForecastProps> = ({ data }) => {
                 borderColor: index === 0 ? '#FECC00' : 'transparent'
               }
             ]}>
-              <WeatherIcon 
+              <WeatherIcons 
                 wmoCode={day.wmoCode} 
                 size={24}
               />

@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import { fetchArticleBySlug } from '@/services/api';
+import { fetchArticleBySlug, fetchEventBySlug, fetchNekrologBySlug } from '@/services/api';
 
 export interface DeepLinkInfo {
-  type: 'article' | 'event' | 'category' | 'search' | 'weather' | 'home' | 'unknown';
+  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'home' | 'wydarzenia' | 'nekrologi' | 'unknown';
   slug?: string;
   id?: number;
   query?: string;
@@ -14,80 +14,119 @@ export interface DeepLinkInfo {
  */
 export const parseDeepLink = (url: string): DeepLinkInfo => {
   try {
+    console.log('Parsing URL:', url);
     const urlObj = new URL(url);
-    
-    // Check if it's a kaszuby24.pl link
-    if (urlObj.hostname === 'kaszuby24.pl' || urlObj.hostname === 'www.kaszuby24.pl') {
+
+    // Normalize protocol and hostname
+    const protocol = urlObj.protocol.replace(':', '');
+    const hostname = urlObj.hostname.toLowerCase();
+
+    // 1. Handle Custom Scheme (kaszuby24://...)
+    if (protocol === 'kaszuby24') {
+      const pathSegments = urlObj.pathname.replace(/^\/+|\/+$/g, '').split('/').filter(s => s.length > 0);
+      const hostSegment = hostname; // in kaszuby24://article/123, hostname is 'article'
+
+      console.log('Custom scheme detected. Host:', hostSegment, 'Segments:', pathSegments);
+
+      if (hostSegment === 'article' && pathSegments[0]) {
+        const id = parseInt(pathSegments[0]);
+        if (!isNaN(id)) return { type: 'article', id };
+        return { type: 'article', slug: pathSegments[0] };
+      }
+
+      if (hostSegment === 'event' && pathSegments[0]) {
+        const id = parseInt(pathSegments[0]);
+        if (!isNaN(id)) return { type: 'event', id };
+        return { type: 'event', slug: pathSegments[0] };
+      }
+
+      if (hostSegment === 'nekrolog' && pathSegments[0]) {
+        return { type: 'nekrolog', slug: pathSegments[0] };
+      }
+
+      if (hostSegment === 'category' && pathSegments[0]) {
+        return { type: 'category', slug: pathSegments[0] };
+      }
+
+      if (hostSegment === 'search') {
+        const query = urlObj.searchParams.get('q') || pathSegments[0] || '';
+        return { type: 'search', query };
+      }
+
+      if (hostSegment === 'weather') return { type: 'weather' };
+      if (hostSegment === 'home') return { type: 'home' };
+
+      // Fallback for custom scheme if host isn't recognized but segments exist
+      if (pathSegments.length > 0) {
+        return { type: 'article', slug: pathSegments[0] };
+      }
+    }
+
+    // 2. Handle Web URLs (https://kaszuby24.pl/...)
+    if (hostname === 'kaszuby24.pl' || hostname === 'www.kaszuby24.pl') {
       const pathname = urlObj.pathname;
       const path = pathname.replace(/^\/+|\/+$/g, '');
-      const pathSegments = path.split('/');
-      
-      // Handle different URL patterns
+      const pathSegments = path.split('/').filter(s => s.length > 0);
+
+      console.log('Web URL detected. Path segments:', pathSegments);
+
       if (pathSegments.length === 0 || path === '') {
         return { type: 'home' };
       }
-      
-      // Article by slug: /nazwa-artykulu
-      if (pathSegments.length === 1 && pathSegments[0] !== 'event' && pathSegments[0] !== 'category' && pathSegments[0] !== 'search' && pathSegments[0] !== 'weather') {
-        return {
-          type: 'article',
-          slug: pathSegments[0]
-        };
+
+      // Main pages
+      if (pathSegments[0] === 'wydarzenia') return { type: 'wydarzenia' };
+      if (pathSegments[0] === 'nekrologi-2') return { type: 'nekrologi' };
+
+      // Nekrolog by slug: /nekrolog/nazwa-nekrologu
+      if (pathSegments[0] === 'nekrolog' && pathSegments[1]) {
+        return { type: 'nekrolog', slug: pathSegments[1] };
       }
-      
-      // Event: /event/123
+
+      // Event by slug: /kalendarz/nazwa-wydarzenia
+      if (pathSegments[0] === 'kalendarz' && pathSegments[1]) {
+        return { type: 'event', slug: pathSegments[1] };
+      }
+
+      // Event by ID: /event/123
       if (pathSegments[0] === 'event' && pathSegments[1]) {
         const eventId = parseInt(pathSegments[1]);
         if (!isNaN(eventId)) {
-          return {
-            type: 'event',
-            id: eventId,
-            slug: pathSegments[1]
-          };
+          return { type: 'event', id: eventId, slug: pathSegments[1] };
         }
       }
-      
+
       // Category: /category/wiadomosci
       if (pathSegments[0] === 'category' && pathSegments[1]) {
-        return {
-          type: 'category',
-          slug: pathSegments[1]
-        };
+        return { type: 'category', slug: pathSegments[1] };
       }
-      
+
       // Search: /search?q=query
       if (pathSegments[0] === 'search') {
         const query = urlObj.searchParams.get('q') || '';
-        return {
-          type: 'search',
-          query: query,
-          path: 'search'
-        };
+        return { type: 'search', query, path: 'search' };
       }
-      
+
       // Weather: /weather
-      if (pathSegments[0] === 'weather') {
-        return {
-          type: 'weather',
-          path: 'weather'
-        };
+      if (pathSegments[0] === 'weather') return { type: 'weather', path: 'weather' };
+
+      // Article by slug: /nazwa-artykulu (default case)
+      // Resilient check: exclude known non-article roots
+      const reservedRoots = ['event', 'category', 'search', 'weather', 'kalendarz', 'nekrolog', 'wydarzenia', 'nekrologi-2'];
+      if (pathSegments.length === 1 && !reservedRoots.includes(pathSegments[0])) {
+        return { type: 'article', slug: pathSegments[0] };
       }
-      
-      // Default to article if no specific pattern matches
-      return {
-        type: 'article',
-        slug: path
-      };
+
+      // Default to article if no specific pattern matches and we have a path
+      if (pathSegments.length > 0) {
+        return { type: 'article', slug: pathSegments[pathSegments.length - 1] };
+      }
     }
-    
-    return {
-      type: 'unknown'
-    };
+
+    return { type: 'unknown' };
   } catch (error) {
     console.error('Error parsing deep link:', error);
-    return {
-      type: 'unknown'
-    };
+    return { type: 'unknown' };
   }
 };
 
@@ -118,17 +157,64 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
           router.push('/(tabs)');
         }
         break;
-        
+
       case 'event':
         if (linkInfo.id) {
           console.log('Navigating to event with ID:', linkInfo.id);
           router.push(`/event/${linkInfo.id}`);
+        } else if (linkInfo.slug) {
+          console.log('Navigating to event with slug:', linkInfo.slug);
+          // Fetch event by slug, then navigate by ID
+          try {
+            const event = await fetchEventBySlug(linkInfo.slug);
+            if (event?.id) {
+              router.push(`/event/${event.id}`);
+            } else {
+              console.warn('Event not found for slug, navigating to events tab');
+              router.push('/(tabs)/kalendarz');
+            }
+          } catch (e) {
+            console.warn('Failed to fetch event by slug, navigating to events tab', e);
+            router.push('/(tabs)/kalendarz');
+          }
         } else {
-          console.log('No event ID provided, navigating to home');
+          console.log('No event ID or slug provided, navigating to events');
+          router.push('/(tabs)/kalendarz');
+        }
+        break;
+
+      case 'nekrolog':
+        if (linkInfo.slug) {
+          console.log('Navigating to nekrolog with slug:', linkInfo.slug);
+          // Fetch nekrolog by slug, then navigate by ID
+          try {
+            const nekrolog = await fetchNekrologBySlug(linkInfo.slug);
+            if (nekrolog?.id) {
+              router.push(`/nekrolog/${nekrolog.id}`);
+            } else {
+              console.warn('Nekrolog not found for slug, navigating to home');
+              router.push('/(tabs)');
+            }
+          } catch (e) {
+            console.warn('Failed to fetch nekrolog by slug, navigating to home', e);
+            router.push('/(tabs)');
+          }
+        } else {
+          console.log('No nekrolog slug provided, navigating to home');
           router.push('/(tabs)');
         }
         break;
-        
+
+      case 'wydarzenia':
+        console.log('Navigating to wydarzenia tab');
+        router.push('/(tabs)/kalendarz');
+        break;
+
+      case 'nekrologi':
+        console.log('Navigating to nekrologi section (home tab)');
+        router.push('/(tabs)');
+        break;
+
       case 'category':
         if (linkInfo.slug) {
           console.log('Navigating to category:', linkInfo.slug);
@@ -139,7 +225,7 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
           router.push('/(tabs)');
         }
         break;
-        
+
       case 'search':
         if (linkInfo.query) {
           console.log('Navigating to search with query:', linkInfo.query);
@@ -149,17 +235,17 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
           router.push('/(tabs)/search');
         }
         break;
-        
+
       case 'weather':
         console.log('Navigating to weather');
         router.push('/(tabs)/weather');
         break;
-        
+
       case 'home':
         console.log('Navigating to home');
         router.push('/(tabs)');
         break;
-        
+
       default:
         console.log('Unknown link type, navigating to home');
         router.push('/(tabs)');
@@ -177,7 +263,7 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
  */
 export const handleDeepLink = async (url: string) => {
   console.log('Deep link received:', url);
-  
+
   try {
     const linkInfo = parseDeepLink(url);
     console.log('Parsed link info:', linkInfo);
@@ -207,14 +293,14 @@ export const isKaszuby24Link = (url: string): boolean => {
 export const extractSlugFromUrl = (url: string): string | null => {
   try {
     const urlObj = new URL(url);
-    
+
     if (urlObj.hostname === 'kaszuby24.pl' || urlObj.hostname === 'www.kaszuby24.pl') {
       const pathname = urlObj.pathname;
       const slug = pathname.replace(/^\/+|\/+$/g, '');
-      
+
       return slug.length > 0 ? slug : null;
     }
-    
+
     return null;
   } catch {
     return null;
@@ -226,7 +312,7 @@ export const extractSlugFromUrl = (url: string): string | null => {
  */
 export const isValidSlug = (slug: string): boolean => {
   if (!slug || slug.length === 0) return false;
-  
+
   // Basic validation - slug should contain letters/numbers and hyphens
   const slugRegex = /^[a-zA-Z0-9\-_]+$/;
   return slugRegex.test(slug);
@@ -237,9 +323,9 @@ export const isValidSlug = (slug: string): boolean => {
  */
 export const handleDeepLinkWithValidation = async (url: string) => {
   console.log('Handling deep link with validation:', url);
-  
+
   const linkInfo = parseDeepLink(url);
-  
+
   // Validate the link info
   if (linkInfo.type === 'article' && linkInfo.slug && !isValidSlug(linkInfo.slug)) {
     console.warn('Invalid slug format:', linkInfo.slug);
@@ -247,6 +333,6 @@ export const handleDeepLinkWithValidation = async (url: string) => {
     router.push('/(tabs)');
     return;
   }
-  
+
   await handleDeepLinkNavigation(linkInfo);
 };

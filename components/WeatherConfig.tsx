@@ -26,17 +26,18 @@ export const WeatherConfig: React.FC<WeatherConfigProps> = ({
     showWeeklyForecast: true,
     showSpecializedWidgets: false,
     showAlerts: true,
+    showRadarPrecipitation: true,
     showAgriculturalWeather: false,
     showMarineWeather: false,
     showDrivingWeather: false
   };
   const [tempConfig, setTempConfig] = useState<WeatherConfigType>({ ...defaults, ...config });
-  const [tempOrder, setTempOrder] = useState<Array<'weekly' | 'alerts' | 'hourly' | 'specialized'>>(sectionOrder || ['weekly','alerts','hourly','specialized']);
+  const [tempOrder, setTempOrder] = useState<Array<'weekly' | 'alerts' | 'hourly' | 'radar' | 'specialized'>>(sectionOrder || ['weekly','alerts','hourly','radar','specialized']);
 
   React.useEffect(() => {
     // Normalize on open or when config updates
     setTempConfig({ ...defaults, ...config });
-    setTempOrder(sectionOrder || ['weekly','alerts','hourly','specialized']);
+    setTempOrder(sectionOrder || ['weekly','alerts','hourly','radar','specialized']);
   }, [visible, config, sectionOrder]);
 
   const handleSave = () => {
@@ -163,6 +164,13 @@ export const WeatherConfig: React.FC<WeatherConfigProps> = ({
               onToggle={() => toggleOption('showAlerts')}
             />
 
+            <ConfigOption
+              title="Radar opadów IMGW"
+              description="Interaktywna mapa opadów z danymi radarowymi IMGW-PIB"
+              value={tempConfig.showRadarPrecipitation}
+              onToggle={() => toggleOption('showRadarPrecipitation')}
+            />
+
             <View style={styles.subsectionHeader}>
               <Text style={[styles.subsectionTitle, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily?.medium }]}>Kolejność sekcji</Text>
               <Text style={[styles.helperNote, { color: theme.colors.textSecondary }]}>Przytrzymaj i przeciągnij, aby ustawić kolejność</Text>
@@ -179,8 +187,8 @@ export const WeatherConfig: React.FC<WeatherConfigProps> = ({
               scrollEnabled={false}
               nestedScrollEnabled={false}
               dragItemOverflow
-              renderItem={({ item, drag, isActive }: RenderItemParams<'weekly' | 'alerts' | 'hourly' | 'specialized'>) => {
-                const label = item === 'weekly' ? 'Prognoza 7-dniowa' : item === 'alerts' ? 'Ostrzeżenia pogodowe' : item === 'hourly' ? 'Prognoza godzinowa' : 'Pogoda specjalistyczna';
+              renderItem={({ item, drag, isActive }: RenderItemParams<'weekly' | 'alerts' | 'hourly' | 'radar' | 'specialized'>) => {
+                const label = item === 'weekly' ? 'Prognoza 7-dniowa' : item === 'alerts' ? 'Ostrzeżenia pogodowe' : item === 'hourly' ? 'Prognoza godzinowa' : item === 'radar' ? 'Radar opadów' : 'Pogoda specjalistyczna';
                 return (
                   <View
                     style={[

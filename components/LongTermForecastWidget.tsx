@@ -6,15 +6,12 @@ import {
   Thermometer, 
   Droplets, 
   Wind, 
-  Sun, 
-  Cloud,
-  CloudRain,
-  CloudSnow,
-  CloudLightning,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Sun
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { WeatherIcons } from './WeatherIcons';
 
 interface LongTermForecastWidgetProps {
   forecastData: any;
@@ -45,17 +42,13 @@ export const LongTermForecastWidget = ({
   const maxWeeks = weeks.length;
 
   const getWeatherIcon = (weatherCode: number) => {
-    if (weatherCode <= 1) return Sun;
-    if (weatherCode === 2) return Cloud;
-    if (weatherCode === 3) return Cloud;
-    if (weatherCode >= 45 && weatherCode <= 48) return Cloud;
-    if (weatherCode >= 51 && weatherCode <= 55) return CloudRain;
-    if (weatherCode >= 56 && weatherCode <= 67) return CloudRain;
-    if (weatherCode >= 71 && weatherCode <= 77) return CloudSnow;
-    if (weatherCode >= 80 && weatherCode <= 82) return CloudRain;
-    if (weatherCode >= 85 && weatherCode <= 86) return CloudSnow;
-    if (weatherCode >= 95 && weatherCode <= 99) return CloudLightning;
-    return Cloud;
+    return (
+      <WeatherIcons 
+        wmoCode={weatherCode} 
+        size={28} 
+        animated={false}
+      />
+    );
   };
 
   const getWeatherDescription = (weatherCode: number) => {
@@ -169,9 +162,9 @@ export const LongTermForecastWidget = ({
                   {formatDate(date)}
                 </Text>
                 
-                <View style={[styles.weatherIconContainer, isToday && styles.todayIconContainer]}>
-                  <WeatherIcon size={28} color={isToday ? "#fff" : "#fff"} />
-                </View>
+                            <View style={[styles.weatherIconContainer, isToday && styles.todayIconContainer]}>
+              {getWeatherIcon(weatherCode)}
+            </View>
                 
                 <Text style={[styles.weatherDescription, isToday && styles.todayDescription]}>
                   {getWeatherDescription(weatherCode)}

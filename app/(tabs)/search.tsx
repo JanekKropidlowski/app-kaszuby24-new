@@ -414,11 +414,17 @@ export default function SearchScreen() {
         <Image
           source={{ 
             uri: theme.isDarkMode 
-              ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-              : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+              ? 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+              : 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
           }}
           style={styles.logo}
           contentFit="contain"
+          transition={200}
+          placeholder="Kaszuby24"
+          onError={() => {
+            // Fallback do tekstu jeśli grafika się nie załaduje
+            console.warn('Search logo image failed to load');
+          }}
         />
         
         {/* Search Bar */}

@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { handleDeepLinkWithValidation } from '@/utils/linkHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Updates from 'expo-updates';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -59,7 +60,7 @@ export default function RootLayout() {
         console.warn('RootLayout: theme timeout, using fallback');
         setThemeReady(true);
       }, 5000);
-      
+
       return () => clearTimeout(timeout);
     }
   }, [theme]);
@@ -76,16 +77,41 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
+        // Check for OTA updates
+        if (Updates.isEnabled) {
+          try {
+            // Log current update info
+            const currentUpdate = Updates.manifest;
+            console.log('📱 Current Update Info:', {
+              channel: Updates.channel,
+              runtimeVersion: Updates.runtimeVersion,
+              updateId: Updates.updateId,
+              isEmbeddedLaunch: Updates.isEmbeddedLaunch
+            });
+
+            const update = await Updates.checkForUpdateAsync();
+            if (update.isAvailable) {
+              console.log('✅ Update available, downloading...');
+              await Updates.fetchUpdateAsync();
+              console.log('✅ Update downloaded, will reload on next app start');
+            } else {
+              console.log('✅ App is up to date');
+            }
+          } catch (updateError) {
+            console.warn('Error checking for updates:', updateError);
+          }
+        }
+
         // Initialize notification service
         await notificationService.setupNotificationHandlers();
-        
+
         // Memory optimization - no initialization needed
-        
+
         // Preload critical assets
         await Promise.all([
           // Add any critical asset preloading here
         ]);
-        
+
       } catch (e) {
         console.warn('Error during app preparation:', e);
         setError(e as Error);
@@ -108,7 +134,7 @@ export default function RootLayout() {
   useEffect(() => {
     const handleDeepLink = (url: string) => {
       // console.log('Deep link received in _layout:', url);
-      
+
       try {
         // Use the enhanced link handler with validation
         handleDeepLinkWithValidation(url);
@@ -152,10 +178,10 @@ export default function RootLayout() {
 
   // Early return if theme is not ready
   if (!theme || !theme.colors || !themeReady) {
-    console.log('RootLayout: theme not ready, waiting...', { 
-      hasTheme: !!theme, 
+    console.log('RootLayout: theme not ready, waiting...', {
+      hasTheme: !!theme,
       hasColors: !!(theme && theme.colors),
-      themeReady 
+      themeReady
     });
     return null;
   }
@@ -204,40 +230,49 @@ export default function RootLayout() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <StatusBar 
-            style={isDarkMode ? "light" : "dark"} 
+          <StatusBar
+            style={isDarkMode ? "light" : "dark"}
             backgroundColor="transparent"
             translucent={Platform.OS === 'android'} // Only translucent on Android
           />
-                      <Stack
-              screenOptions={{
-                gestureEnabled: true,
-                gestureDirection: 'horizontal',
+          <Stack
+            screenOptions={{
+              gestureEnabled: true,
+              gestureDirection: 'horizontal',
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.colors.background },
+              animation: 'default',
+              animationDuration: 300
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="essentials/index"
+              options={{
+                animationTypeForReplace: 'push',
                 headerShown: false,
-                contentStyle: { backgroundColor: theme.colors.background },
-                animation: 'default',
-                animationDuration: 300
+                presentation: 'card',
+                gestureEnabled: true,
               }}
-            >
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen 
-                name="article/[id]" 
-                options={{ 
-                  animationTypeForReplace: 'push',
-                  headerShown: false,
-                  presentation: 'card',
-                  gestureEnabled: true,
-                }} 
-              />
-              <Stack.Screen 
-                name="event/[id]" 
-                options={{ 
-                  animationTypeForReplace: 'push',
-                  headerShown: false,
-                  presentation: 'card',
-                  gestureEnabled: true,
-                }} 
-              />
+            />
+            <Stack.Screen
+              name="article/[id]"
+              options={{
+                animationTypeForReplace: 'push',
+                headerShown: false,
+                presentation: 'card',
+                gestureEnabled: true,
+              }}
+            />
+            <Stack.Screen
+              name="event/[id]"
+              options={{
+                animationTypeForReplace: 'push',
+                headerShown: false,
+                presentation: 'card',
+                gestureEnabled: true,
+              }}
+            />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             <Stack.Screen name="+not-found" />
           </Stack>

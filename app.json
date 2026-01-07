@@ -2,22 +2,26 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.30",
+    "version": "1.0.39",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaszuby24",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "newArchEnabled": false,
       "supportsTablet": false,
       "bundleIdentifier": "app.kaszuby24",
+      "buildNumber": "9",
       "googleServicesFile": "./GoogleService-Info.plist",
-
+      "associatedDomains": [
+        "applinks:kaszuby24.pl",
+        "applinks:www.kaszuby24.pl"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
@@ -25,15 +29,20 @@
         "NSCalendarsUsageDescription": "Aplikacja potrzebuje dostępu do kalendarza, aby dodać wydarzenia do Twojego kalendarza.",
         "NSPhotoLibraryUsageDescription": "Aplikacja potrzebuje dostępu do galerii, aby umożliwić wybór zdjęć.",
         "NSCameraUsageDescription": "Aplikacja potrzebuje dostępu do kamery, aby umożliwić robienie zdjęć.",
-        "UIDeviceFamily": [1]
+        "NSMicrophoneUsageDescription": "Aplikacja potrzebuje dostępu do mikrofonu dla funkcji syntezy mowy.",
+        "UIDeviceFamily": [
+          1
+        ]
       }
     },
     "android": {
+      "newArchEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "app.kaszuby24",
+      "versionCode": 39,
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
@@ -52,7 +61,40 @@
               "scheme": "kaszuby24"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "kaszuby24.pl",
+              "pathPrefix": "/nekrolog/"
+            },
+            {
+              "scheme": "https",
+              "host": "kaszuby24.pl",
+              "pathPrefix": "/kalendarz/"
+            },
+            {
+              "scheme": "https",
+              "host": "kaszuby24.pl",
+              "pathPrefix": "/wydarzenia"
+            },
+            {
+              "scheme": "https",
+              "host": "kaszuby24.pl",
+              "pathPrefix": "/nekrologi-2"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "permissions": [
@@ -63,12 +105,11 @@
         "ACCESS_COARSE_LOCATION",
         "READ_CALENDAR",
         "WRITE_CALENDAR",
-
-        "com.google.android.c2dm.permission.RECEIVE"
+        "com.google.android.c2dm.permission.RECEIVE",
+        "MODIFY_AUDIO_SETTINGS"
       ],
       "userInterfaceStyle": "automatic"
     },
-
     "updates": {
       "enabled": true,
       "url": "https://u.expo.dev/4aced4e9-da53-4734-83d7-fa5fe9870884",
@@ -80,7 +121,9 @@
         "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
       }
     },
-    "runtimeVersion": "1.0.30",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
       [
         "expo-notifications",
@@ -98,7 +141,8 @@
           "locationAlwaysAndWhenInUsePermission": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy."
         }
       ],
-      "expo-calendar"
+      "expo-calendar",
+      "./plugins/withAndroidFix"
     ],
     "notification": {
       "icon": "./assets/images/icon.png",

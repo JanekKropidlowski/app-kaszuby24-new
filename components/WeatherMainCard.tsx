@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 // Location UI usunięte na prośbę użytkownika
 import { useThemeStore } from '@/store/themeStore';
-import { WeatherIcon } from '@/components/WeatherIcon';
+import { WeatherIcons } from '@/components/WeatherIcons';
 
 interface WeatherMainCardProps {
   location: string;
@@ -85,7 +85,7 @@ export const WeatherMainCard: React.FC<WeatherMainCardProps> = ({
             </Text>
           </View>
           <View style={styles.rightCol}>
-            <WeatherIcon 
+            <WeatherIcons 
               wmoCode={currentWeather.wmoCode} 
               size={48}
             />

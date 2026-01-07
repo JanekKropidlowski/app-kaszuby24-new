@@ -20,12 +20,29 @@ define('KASZUBY24_PUSH_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KASZUBY24_PUSH_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 // Include required files
-require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-database.php';
-require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-api.php';
-require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-expo-push.php';
-require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-admin.php';
-require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-hooks.php';
-require_once KASZUBY24_PUSH_PLUGIN_DIR . 'includes/class-events-notifications.php';
+$required_files = array(
+    'includes/class-database.php',
+    'includes/class-api.php',
+    'includes/class-expo-push.php',
+    'includes/class-admin.php',
+    'includes/class-hooks.php',
+    'includes/class-events-notifications.php',
+    'includes/class-weather-notifications.php',
+    'includes/class-app-links.php',
+    'includes/class-transport.php',
+    'includes/class-waste-schedule.php',
+    'includes/class-waste-schedule-admin.php',
+    'includes/class-ad-manager.php'
+);
+
+foreach ($required_files as $file) {
+    $path = __DIR__ . '/' . $file;
+    if (file_exists($path)) {
+        require_once $path;
+    } else {
+        error_log("Kaszuby24 Push Plugin Error: Required file missing - " . $path);
+    }
+}
 
 class Kaszuby24_Push_Notifications {
     
@@ -46,18 +63,49 @@ class Kaszuby24_Push_Notifications {
     
     public function init() {
         // Initialize database
-        new Kaszuby24_Push_Database();
+        if (class_exists('Kaszuby24_Push_Database')) {
+            new Kaszuby24_Push_Database();
+        }
         
         // Initialize API endpoints
-        new Kaszuby24_Push_API();
+        if (class_exists('Kaszuby24_Push_API')) {
+            new Kaszuby24_Push_API();
+        }
         
         // Initialize admin interface
-        if (is_admin()) {
+        if (is_admin() && class_exists('Kaszuby24_Push_Admin')) {
             new Kaszuby24_Push_Admin();
         }
         
         // Initialize hooks for automatic notifications
-        new Kaszuby24_Push_Hooks();
+        if (class_exists('Kaszuby24_Push_Hooks')) {
+            new Kaszuby24_Push_Hooks();
+        }
+        
+        // Initialize App Links
+        if (class_exists('Kaszuby24_App_Links')) {
+            new Kaszuby24_App_Links();
+        }
+
+        // Initialize Transport Service
+        if (class_exists('Kaszuby24_Transport')) {
+            new Kaszuby24_Transport();
+        }
+
+        // Initialize Waste Schedule Service
+        if (class_exists('Kaszuby24_Waste_Schedule')) {
+            $waste_schedule = new Kaszuby24_Waste_Schedule();
+            
+            // Initialize Admin Panel if in admin area
+            if (is_admin() && class_exists('Kaszuby24_Waste_Schedule_Admin')) {
+                new Kaszuby24_Waste_Schedule_Admin($waste_schedule);
+            }
+        }
+
+        // Initialize Ad Manager
+        if (class_exists('Kaszuby24_Ad_Manager')) {
+            new Kaszuby24_Ad_Manager();
+        }
         
         // Load text domain
         load_plugin_textdomain('kaszuby24-push', false, dirname(plugin_basename(__FILE__)) . '/languages');
@@ -84,6 +132,11 @@ class Kaszuby24_Push_Notifications {
         if (!wp_next_scheduled('kaszuby24_process_scheduled_notifications')) {
             wp_schedule_event(time(), 'kaszuby24_every_5_minutes', 'kaszuby24_process_scheduled_notifications');
         }
+
+        // Schedule transport data refresh (daily)
+        if (!wp_next_scheduled('kaszuby24_refresh_transport_data')) {
+            wp_schedule_event(time(), 'daily', 'kaszuby24_refresh_transport_data');
+        }
     }
     
     public function deactivate() {
@@ -96,6 +149,54 @@ class Kaszuby24_Push_Notifications {
 
 // Initialize the plugin
 Kaszuby24_Push_Notifications::get_instance();
+
+/**
+ * Robust standalone REST API route for waste schedule.
+ * Added to bypass potential class initialization issues during development.
+ */
+add_action('rest_api_init', function() {
+    register_rest_route('kaszuby24/v1', '/waste-schedule', array(
+        'methods' => 'GET',
+        'callback' => function($request) {
+            $city = $request->get_param('city') ?: 'reda';
+            $city = sanitize_text_field($city);
+            
+            // Map city to filename
+            $filename = "waste-data-{$city}.json";
+            $json_path = KASZUBY24_PUSH_PLUGIN_DIR . 'includes/' . $filename;
+            
+            if (!file_exists($json_path)) {
+                // FALLBACK: if specific city not found, try reda
+                $fallback_path = KASZUBY24_PUSH_PLUGIN_DIR . 'includes/waste-data-reda.json';
+                if ($city !== 'reda' && file_exists($fallback_path)) {
+                     $json_path = $fallback_path;
+                } else {
+                    return new WP_Error('no_data', "Waste schedule data for '{$city}' not found on server. Please upload {$filename} to includes/ folder.", array('status' => 404));
+                }
+            }
+
+            $json_data = file_get_contents($json_path);
+            $data = json_decode($json_data, true);
+
+            if (!$data) {
+                return new WP_Error('invalid_data', "Invalid waste schedule data in {$filename}", array('status' => 500));
+            }
+
+            // Add debug info if requested
+            if ($request->get_param('debug')) {
+                $data['debug'] = array(
+                    'file' => $filename,
+                    'path' => $json_path,
+                    'exists' => file_exists($json_path),
+                    'city_param' => $city
+                );
+            }
+
+            return new WP_REST_Response($data, 200);
+        },
+        'permission_callback' => '__return_true'
+    ));
+});
 
 // Cleanup cron job
 add_action('kaszuby24_push_cleanup', function() {
@@ -165,6 +266,14 @@ add_action('kaszuby24_process_scheduled_notifications', function() {
 add_action('kaszuby24_check_push_receipts', function($receipt_ids, $article_id = null) {
     $expo_push = new Kaszuby24_Expo_Push();
     $expo_push->check_push_receipts($receipt_ids, $article_id);
+});
+
+// Refresh transport data daily
+add_action('kaszuby24_refresh_transport_data', function() {
+    if (class_exists('Kaszuby24_Transport')) {
+        $transport = new Kaszuby24_Transport();
+        $transport->refresh_gtfs(null);
+    }
 });
 
 // Add custom cron schedule

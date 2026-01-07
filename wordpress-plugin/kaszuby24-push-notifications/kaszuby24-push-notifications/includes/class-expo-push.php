@@ -13,9 +13,32 @@ class Kaszuby24_Expo_Push {
         $this->database = new Kaszuby24_Push_Database();
     }
     
+    /**
+     * Normalize text for push notifications.
+     * - Decode HTML entities
+     * - Strip tags
+     * - Normalize whitespace
+     * - Trim
+     */
+    private function normalize_text($text) {
+        if (!is_string($text)) {
+            return $text;
+        }
+        // Decode common HTML entities without affecting quotes in a harmful way
+        $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
+        // Remove HTML tags
+        $stripped = wp_strip_all_tags($decoded, true);
+        // Replace multiple whitespace (including newlines) with single spaces
+        $normalized = preg_replace('/\s+/u', ' ', $stripped);
+        // Trim
+        return trim($normalized);
+    }
+    
     public function send_notifications($tokens, $title, $body, $article_id = null, $image = '', $icon = '', $options = array()) {
-        if (empty($tokens)) {
-            return array('sent' => 0, 'failed' => 0);
+        // Ensure tokens is an array and not false/null
+        if (empty($tokens) || !is_array($tokens)) {
+            error_log('Invalid tokens provided to send_notifications: ' . var_export($tokens, true));
+            return array('sent' => 0, 'failed' => 0, 'receipt_ids' => array());
         }
         
         $batch_size = get_option('kaszuby24_push_batch_size', 100);
@@ -62,6 +85,12 @@ class Kaszuby24_Expo_Push {
     }
     
     private function send_batch($tokens, $title, $body, $article_id = null, $image = '', $icon = '', $options = array()) {
+        // Ensure tokens is an array and not false/null
+        if (empty($tokens) || !is_array($tokens)) {
+            error_log('Invalid tokens provided to send_batch: ' . var_export($tokens, true));
+            return array('sent' => 0, 'failed' => 0, 'receipt_ids' => array());
+        }
+        
         $messages = array();
         
         // Extract options with defaults
@@ -77,6 +106,12 @@ class Kaszuby24_Expo_Push {
 		$normalized_subtitle = $this->normalize_text($subtitle);
         
         foreach ($tokens as $token_data) {
+            // Ensure token_data is valid
+            if (empty($token_data) || !is_object($token_data) || empty($token_data->push_token)) {
+                error_log('Invalid token data: ' . var_export($token_data, true));
+                continue;
+            }
+            
             $message = array(
                 'to' => $token_data->push_token,
 				'title' => $normalized_title,
@@ -115,6 +150,15 @@ class Kaszuby24_Expo_Push {
                 if ($post) {
                     $data['slug'] = $post->post_name;
                     $data['published'] = $post->post_date;
+                    
+                    // Add routing information based on post type
+                    if ($post->post_type === 'post') {
+                        $data['route'] = '/(tabs)'; // Main tab for articles
+                    } elseif ($post->post_type === 'wydarzenie') {
+                        $data['route'] = '/(tabs)/kalendarz'; // Calendar tab for events
+                    } elseif ($post->post_type === 'nekrolog') {
+                        $data['route'] = '/(tabs)'; // Main tab for obituaries
+                    }
                 }
             }
             
@@ -189,6 +233,12 @@ class Kaszuby24_Expo_Push {
             $messages[] = $message;
         }
         
+        // Ensure we have messages to send
+        if (empty($messages)) {
+            error_log('No valid messages to send in batch');
+            return array('sent' => 0, 'failed' => 0, 'receipt_ids' => array());
+        }
+        
         // Send to Expo Push API
         $response = $this->call_expo_api($messages);
         
@@ -196,6 +246,21 @@ class Kaszuby24_Expo_Push {
     }
     
     private function call_expo_api($messages) {
+        // Ensure messages is not empty and is an array
+        if (empty($messages) || !is_array($messages)) {
+            error_log('Invalid messages provided to call_expo_api: ' . var_export($messages, true));
+            return false;
+        }
+        
+        // Encode messages to JSON
+        $json_body = wp_json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        
+        // Ensure JSON encoding was successful
+        if ($json_body === false) {
+            error_log('Failed to encode messages to JSON: ' . json_last_error_msg());
+            return false;
+        }
+        
 		$args = array(
             'method' => 'POST',
             'headers' => array(
@@ -204,7 +269,7 @@ class Kaszuby24_Expo_Push {
                 'Accept-Encoding' => 'gzip, deflate',
                 'User-Agent' => 'Kaszuby24-WordPress-Plugin/1.0'
             ),
-			'body' => wp_json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+			'body' => $json_body,
             'timeout' => 30,
             'sslverify' => true
         );
@@ -362,13 +427,22 @@ class Kaszuby24_Expo_Push {
     public function get_push_receipt($receipt_id) {
         $receipt_url = 'https://exp.host/--/api/v2/push/getReceipts';
         
+        // Encode receipt data to JSON
+        $json_body = wp_json_encode(array('ids' => array($receipt_id)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        
+        // Ensure JSON encoding was successful
+        if ($json_body === false) {
+            error_log('Failed to encode receipt data to JSON: ' . json_last_error_msg());
+            return false;
+        }
+        
         $args = array(
             'method' => 'POST',
             'headers' => array(
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ),
-			'body' => wp_json_encode(array('ids' => array($receipt_id)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+			'body' => $json_body,
             'timeout' => 15
         );
         
@@ -389,27 +463,6 @@ class Kaszuby24_Expo_Push {
         if (empty($image_url)) {
             return $image_url;
         }
-
-	/**
-	 * Normalize text for push notifications.
-	 * - Decode HTML entities
-	 * - Strip tags
-	 * - Normalize whitespace
-	 * - Trim
-	 */
-	private function normalize_text($text) {
-		if (!is_string($text)) {
-			return $text;
-		}
-		// Decode common HTML entities without affecting quotes in a harmful way
-		$decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
-		// Remove HTML tags
-		$stripped = wp_strip_all_tags($decoded, true);
-		// Replace multiple whitespace (including newlines) with single spaces
-		$normalized = preg_replace('/\s+/u', ' ', $stripped);
-		// Trim
-		return trim($normalized);
-	}
         
         // If it's a WordPress attachment, get optimized size
         if (strpos($image_url, wp_get_upload_dir()['baseurl']) !== false) {
@@ -460,13 +513,22 @@ class Kaszuby24_Expo_Push {
         
         $receipt_url = 'https://exp.host/--/api/v2/push/getReceipts';
         
+        // Encode receipt data to JSON
+        $json_body = wp_json_encode(array('ids' => $receipt_ids), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        
+        // Ensure JSON encoding was successful
+        if ($json_body === false) {
+            error_log('Failed to encode receipt data to JSON: ' . json_last_error_msg());
+            return;
+        }
+        
 		$args = array(
             'method' => 'POST',
             'headers' => array(
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json'
             ),
-			'body' => wp_json_encode(array('ids' => $receipt_ids), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+			'body' => $json_body,
             'timeout' => 30
         );
         

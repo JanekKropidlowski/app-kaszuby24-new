@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Platform, View, Animated, StyleSheet, Text, Dimensions, PanResponder } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Bell, Bookmark, Search, Calendar as CalendarIcon, Settings, CloudRain } from 'lucide-react-native';
+import { Home, Bell, Bookmark, Search, Calendar as CalendarIcon, Settings, CloudRain, LayoutGrid, MapPin, Bus } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotificationsStore } from '@/store/notificationsStore';
@@ -51,23 +51,27 @@ const FloatingLogo = () => {
       pointerEvents="none"
     >
       <LinearGradient
-        colors={theme.isDarkMode 
+        colors={theme.isDarkMode
           ? ['rgba(30, 41, 59, 0.8)', 'rgba(30, 41, 59, 0.7)']
           : ['rgba(248, 250, 252, 0.8)', 'rgba(248, 250, 252, 0.7)']
         }
         style={styles.logoGradientContainer}
       >
         <Image
-          source={{ 
-            uri: theme.isDarkMode 
-              ? 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png' // white logo
-              : 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png' // color logo
+          source={{
+            uri: theme.isDarkMode
+              ? 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png' // white logo
+              : 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png' // color logo
           }}
           style={styles.floatingLogo}
           contentFit="contain"
           placeholder="Kaszuby24"
           cachePolicy="memory-disk"
           transition={200}
+          onError={() => {
+            // Fallback do tekstu jeśli grafika się nie załaduje
+            console.warn('Floating logo image failed to load');
+          }}
         />
       </LinearGradient>
     </Animated.View>
@@ -81,23 +85,21 @@ export default function TabLayout() {
   const tabBarTranslateY = React.useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const tts = useTTSStore();
-  
+
   // Oblicz właściwy padding dla Androida z safe area
   const getBottomPadding = () => {
     if (Platform.OS === 'ios') {
       return 32;
     }
-    // Android: zawsze dodaj minimum 20px + safe area
-    const androidPadding = Math.max(20, insets.bottom) + 20;
-    // console.log('Android Main Tabs - Safe Area Bottom:', insets.bottom, 'Final Padding:', androidPadding);
-    return androidPadding;
+    // Android: użyj takiej samej logiki jak iOS - tylko safe area
+    return insets.bottom > 0 ? insets.bottom : 20;
   };
-  
+
   const getTabBarHeight = () => {
     if (Platform.OS === 'ios') {
       return 110;
     }
-    // Android: bazowa wysokość + padding
+    // Android: bazowa wysokość + padding (takie same jak iOS)
     return 80 + getBottomPadding();
   };
 
@@ -115,12 +117,12 @@ export default function TabLayout() {
       // console.log('Notification received in TabLayout:', notification);
       incrementNotificationCount();
     });
-    
+
     const responseListener = notificationService.addNotificationResponseReceivedListener((response) => {
-              // console.log('Notification response in TabLayout:', response);
+      // console.log('Notification response in TabLayout:', response);
       // Handle notification tap - navigation is handled in notificationService
     });
-    
+
     return () => {
       // Use proper cleanup method for Expo notifications
       notificationService.removeNotificationSubscription(notificationListener);
@@ -179,18 +181,18 @@ export default function TabLayout() {
           options={{
             title: 'Szukaj',
             tabBarIcon: ({ color, size, focused }) => {
-              const iconSize = focused 
+              const iconSize = focused
                 ? (Platform.OS === 'android' ? 28 : 26) // Larger icons on Android
                 : (Platform.OS === 'android' ? 26 : 24);
-              
-              const strokeWidth = focused 
+
+              const strokeWidth = focused
                 ? (Platform.OS === 'android' ? 2.8 : 2.5) // Thicker strokes on Android
                 : (Platform.OS === 'android' ? 2.2 : 2);
-              
-              const containerSize = focused 
+
+              const containerSize = focused
                 ? (Platform.OS === 'android' ? 52 : 48) // Larger active container on Android
                 : 'auto';
-              
+
               return (
                 <View style={{
                   backgroundColor: focused ? theme.colors.primary : 'transparent',
@@ -201,9 +203,9 @@ export default function TabLayout() {
                   justifyContent: 'center',
                   padding: focused ? (Platform.OS === 'android' ? 12 : 10) : 0, // More padding on Android
                 }}>
-                  <Search 
-                    size={iconSize} 
-                    color={focused ? '#FFFFFF' : color} 
+                  <Search
+                    size={iconSize}
+                    color={focused ? '#FFFFFF' : color}
                     strokeWidth={strokeWidth}
                   />
                 </View>
@@ -218,18 +220,18 @@ export default function TabLayout() {
           options={{
             title: 'Zapisane',
             tabBarIcon: ({ color, size, focused }) => {
-              const iconSize = focused 
+              const iconSize = focused
                 ? (Platform.OS === 'android' ? 28 : 26) // Larger icons on Android
                 : (Platform.OS === 'android' ? 26 : 24);
-              
-              const strokeWidth = focused 
+
+              const strokeWidth = focused
                 ? (Platform.OS === 'android' ? 2.8 : 2.5) // Thicker strokes on Android
                 : (Platform.OS === 'android' ? 2.2 : 2);
-              
-              const containerSize = focused 
+
+              const containerSize = focused
                 ? (Platform.OS === 'android' ? 52 : 48) // Larger active container on Android
                 : 'auto';
-              
+
               return (
                 <View style={{
                   backgroundColor: focused ? theme.colors.primary : 'transparent',
@@ -240,9 +242,9 @@ export default function TabLayout() {
                   justifyContent: 'center',
                   padding: focused ? (Platform.OS === 'android' ? 12 : 10) : 0, // More padding on Android
                 }}>
-                  <Bookmark 
-                    size={iconSize} 
-                    color={focused ? '#FFFFFF' : color} 
+                  <Bookmark
+                    size={iconSize}
+                    color={focused ? '#FFFFFF' : color}
                     strokeWidth={strokeWidth}
                   />
                 </View>
@@ -257,18 +259,18 @@ export default function TabLayout() {
           options={{
             title: 'Główna',
             tabBarIcon: ({ color, size, focused }) => {
-              const iconSize = focused 
+              const iconSize = focused
                 ? (Platform.OS === 'android' ? 28 : 26) // Larger icons on Android
                 : (Platform.OS === 'android' ? 26 : 24);
-              
-              const strokeWidth = focused 
+
+              const strokeWidth = focused
                 ? (Platform.OS === 'android' ? 2.8 : 2.5) // Thicker strokes on Android
                 : (Platform.OS === 'android' ? 2.2 : 2);
-              
-              const containerSize = focused 
+
+              const containerSize = focused
                 ? (Platform.OS === 'android' ? 52 : 48) // Larger active container on Android
                 : 'auto';
-              
+
               return (
                 <View style={{
                   backgroundColor: focused ? theme.colors.primary : 'transparent',
@@ -279,9 +281,9 @@ export default function TabLayout() {
                   justifyContent: 'center',
                   padding: focused ? (Platform.OS === 'android' ? 12 : 10) : 0, // More padding on Android
                 }}>
-                  <Home 
-                    size={iconSize} 
-                    color={focused ? '#FFFFFF' : color} 
+                  <Home
+                    size={iconSize}
+                    color={focused ? '#FFFFFF' : color}
                     strokeWidth={strokeWidth}
                   />
                 </View>
@@ -296,18 +298,18 @@ export default function TabLayout() {
           options={{
             title: 'Kalendarz',
             tabBarIcon: ({ color, size, focused }) => {
-              const iconSize = focused 
+              const iconSize = focused
                 ? (Platform.OS === 'android' ? 28 : 26) // Larger icons on Android
                 : (Platform.OS === 'android' ? 26 : 24);
-              
-              const strokeWidth = focused 
+
+              const strokeWidth = focused
                 ? (Platform.OS === 'android' ? 2.8 : 2.5) // Thicker strokes on Android
                 : (Platform.OS === 'android' ? 2.2 : 2);
-              
-              const containerSize = focused 
+
+              const containerSize = focused
                 ? (Platform.OS === 'android' ? 52 : 48) // Larger active container on Android
                 : 'auto';
-              
+
               return (
                 <View style={{
                   backgroundColor: focused ? theme.colors.primary : 'transparent',
@@ -331,22 +333,22 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
-          name="preferences"
+          name="menu"
           options={{
-            title: 'Ustawienia',
+            title: 'Menu',
             tabBarIcon: ({ color, size, focused }) => {
-              const iconSize = focused 
+              const iconSize = focused
                 ? (Platform.OS === 'android' ? 28 : 26) // Larger icons on Android
                 : (Platform.OS === 'android' ? 26 : 24);
-              
-              const strokeWidth = focused 
+
+              const strokeWidth = focused
                 ? (Platform.OS === 'android' ? 2.8 : 2.5) // Thicker strokes on Android
                 : (Platform.OS === 'android' ? 2.2 : 2);
-              
-              const containerSize = focused 
+
+              const containerSize = focused
                 ? (Platform.OS === 'android' ? 52 : 48) // Larger active container on Android
                 : 'auto';
-              
+
               return (
                 <View style={{
                   backgroundColor: focused ? theme.colors.primary : 'transparent',
@@ -357,9 +359,9 @@ export default function TabLayout() {
                   justifyContent: 'center',
                   padding: focused ? (Platform.OS === 'android' ? 12 : 10) : 0, // More padding on Android
                 }}>
-                  <Settings 
-                    size={iconSize} 
-                    color={focused ? '#FFFFFF' : color} 
+                  <LayoutGrid
+                    size={iconSize}
+                    color={focused ? '#FFFFFF' : color}
                     strokeWidth={strokeWidth}
                   />
                 </View>
@@ -368,6 +370,7 @@ export default function TabLayout() {
             headerShown: false,
           }}
         />
+
 
         <Tabs.Screen
           name="weather"
@@ -378,8 +381,17 @@ export default function TabLayout() {
           }}
         />
 
+        <Tabs.Screen
+          name="transport"
+          options={{
+            // Hidden from bottom bar buttons, but provides the UI layout!
+            href: null,
+            headerShown: false,
+          }}
+        />
+
       </Tabs>
-      
+
       {/* Floating Logo - tymczasowo wyłączony  <FloatingLogo /> */}
     </>
   );

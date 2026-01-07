@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Kalendarza Kaszuby24</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #005a87;
+        }
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .loading {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success { background: #28a745; color: white; }
+        .status.error { background: #dc3545; color: white; }
+        .status.loading { background: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test API Kalendarza Kaszuby24</h1>
+    
+    <div class="container">
+        <h2>🔗 Test Połączenia</h2>
+        <button class="test-button" onclick="testConnection()">Test Połączenia z API</button>
+        <div id="connection-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📅 Test Endpointów Wydarzeń</h2>
+        <button class="test-button" onclick="testEvents()">Test /events (5 wydarzeń)</button>
+        <button class="test-button" onclick="testEventsWithFilters()">Test /events z filtrami</button>
+        <div id="events-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>🏷️ Test Filtrów</h2>
+        <button class="test-button" onclick="testFilters()">Test /events/filters/active</button>
+        <button class="test-button" onclick="testCategories()">Test /events/categories/active</button>
+        <button class="test-button" onclick="testObjects()">Test /events/objects/active</button>
+        <div id="filters-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>🔍 Test Debug</h2>
+        <button class="test-button" onclick="testDatabaseStatus()">Test /debug/database-status</button>
+        <button class="test-button" onclick="testQuery()">Test /debug/test-query</button>
+        <div id="debug-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📊 Podsumowanie</h2>
+        <button class="test-button" onclick="runAllTests()">Uruchom Wszystkie Testy</button>
+        <div id="summary-result" class="result"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://kaszuby24.pl/wp-json/kaszuby24/v1';
+        let testResults = {};
+
+        async function makeRequest(endpoint, description) {
+            const url = `${BASE_URL}${endpoint}`;
+            const resultDiv = document.getElementById(`${description}-result`);
+            
+            try {
+                resultDiv.innerHTML = `<span class="status loading">Ładowanie...</span>`;
+                resultDiv.className = 'result loading';
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const status = response.ok ? 'success' : 'error';
+                const statusText = response.ok ? 'OK' : `Błąd ${response.status}`;
+                
+                resultDiv.innerHTML = `
+                    <span class="status ${status}">${statusText}</span>
+                    <strong>URL:</strong> ${url}<br>
+                    <strong>Status:</strong> ${response.status} ${response.statusText}<br>
+                    <strong>Odpowiedź:</strong><br>
+                    ${JSON.stringify(data, null, 2)}
+                `;
+                resultDiv.className = `result ${status}`;
+                
+                // Zapisz wynik
+                testResults[description] = {
+                    success: response.ok,
+                    status: response.status,
+                    data: data
+                };
+                
+                return { success: response.ok, data };
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <span class="status error">Błąd</span>
+                    <strong>URL:</strong> ${url}<br>
+                    <strong>Błąd:</strong> ${error.message}<br>
+                    <strong>Szczegóły:</strong> ${error.stack}
+                `;
+                resultDiv.className = 'result error';
+                
+                testResults[description] = {
+                    success: false,
+                    error: error.message
+                };
+                
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testConnection() {
+            await makeRequest('/test', 'connection');
+        }
+
+        async function testEvents() {
+            await makeRequest('/events?page=1&per_page=5', 'events');
+        }
+
+        async function testEventsWithFilters() {
+            await makeRequest('/events?page=1&per_page=3&filter=today', 'events');
+        }
+
+        async function testFilters() {
+            await makeRequest('/events/filters/active', 'filters');
+        }
+
+        async function testCategories() {
+            await makeRequest('/events/categories/active', 'filters');
+        }
+
+        async function testObjects() {
+            await makeRequest('/events/objects/active', 'filters');
+        }
+
+        async function testDatabaseStatus() {
+            await makeRequest('/debug/database-status', 'debug');
+        }
+
+        async function testQuery() {
+            await makeRequest('/debug/test-query?post_type=kalendarz', 'debug');
+        }
+
+        async function runAllTests() {
+            const summaryDiv = document.getElementById('summary-result');
+            summaryDiv.innerHTML = '<span class="status loading">Uruchamianie wszystkich testów...</span>';
+            summaryDiv.className = 'result loading';
+            
+            testResults = {};
+            
+            // Uruchom wszystkie testy
+            await testConnection();
+            await testEvents();
+            await testFilters();
+            await testDatabaseStatus();
+            
+            // Podsumowanie
+            const totalTests = Object.keys(testResults).length;
+            const successfulTests = Object.values(testResults).filter(r => r.success).length;
+            const failedTests = totalTests - successfulTests;
+            
+            let summary = `📊 PODSUMOWANIE TESTÓW\n`;
+            summary += `========================\n\n`;
+            summary += `✅ Testy udane: ${successfulTests}\n`;
+            summary += `❌ Testy nieudane: ${failedTests}\n`;
+            summary += `📈 Procent sukcesu: ${Math.round((successfulTests / totalTests) * 100)}%\n\n`;
+            
+            summary += `🔍 SZCZEGÓŁY:\n`;
+            summary += `================\n`;
+            
+            for (const [testName, result] of Object.entries(testResults)) {
+                const status = result.success ? '✅' : '❌';
+                const details = result.success 
+                    ? `Status: ${result.status}` 
+                    : `Błąd: ${result.error || 'Nieznany błąd'}`;
+                
+                summary += `${status} ${testName}: ${details}\n`;
+            }
+            
+            summaryDiv.innerHTML = `<pre>${summary}</pre>`;
+            summaryDiv.className = `result ${failedTests === 0 ? 'success' : 'error'}`;
+        }
+
+        // Automatycznie uruchom test połączenia przy załadowaniu
+        window.onload = function() {
+            testConnection();
+        };
+    </script>
+</body>
+</html>

@@ -23,7 +23,7 @@ import {
   TrendingDown,
 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
-import { WeatherIcon } from './WeatherIcon';
+import { WeatherIcons } from './WeatherIcons';
 
 const { width } = Dimensions.get('window');
 
@@ -179,7 +179,7 @@ export const LongTermForecastComponent: React.FC<LongTermForecastProps> = ({
               </Text>
 
               <View style={styles.iconContainer}>
-                <WeatherIcon wmoCode={weatherCode} size={52} />
+                <WeatherIcons wmoCode={weatherCode} size={52} />
               </View>
 
               <View style={styles.tempContainer}>

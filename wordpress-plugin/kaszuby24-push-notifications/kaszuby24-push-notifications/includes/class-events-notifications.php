@@ -50,7 +50,8 @@ class Kaszuby24_Events_Notifications {
                 'type' => 'event',
                 'eventId' => $post_id,
                 'location' => $miasto,
-                'eventDate' => $data_wydarzenia
+                'eventDate' => $data_wydarzenia,
+                'route' => '/(tabs)/kalendarz' // Calendar tab for events
             )
         );
         
@@ -105,7 +106,8 @@ class Kaszuby24_Events_Notifications {
                 'type' => 'event_reminder',
                 'eventId' => $post_id,
                 'location' => $miasto,
-                'eventDate' => $data_wydarzenia
+                'eventDate' => $data_wydarzenia,
+                'route' => '/(tabs)/kalendarz' // Calendar tab for events
             )
         );
         
@@ -170,7 +172,8 @@ class Kaszuby24_Events_Notifications {
                     'data' => array(
                         'type' => 'weekend_events',
                         'location' => $location,
-                        'eventCount' => $count
+                        'eventCount' => $count,
+                        'route' => '/(tabs)/kalendarz' // Calendar tab for events
                     )
                 );
                 

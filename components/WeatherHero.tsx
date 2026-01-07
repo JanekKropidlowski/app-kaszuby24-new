@@ -2,8 +2,20 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform, Dimensions, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeStore } from '@/store/themeStore';
-import { WeatherIcon } from './WeatherIcon';
-import { Info, Droplets, Wind, SunMedium, ChevronUp } from 'lucide-react-native';
+import { WeatherIcons } from './WeatherIcons';
+import { 
+  Info, 
+  Droplets, 
+  Wind, 
+  Sun, 
+  ChevronUp,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+  CloudDrizzle
+} from 'lucide-react-native';
 
 interface WeatherHeroProps {
   temperature: number;
@@ -68,7 +80,7 @@ export const WeatherHero: React.FC<WeatherHeroProps> = ({
 
           {/* Weather icon on the right */}
           <View style={styles.iconContainer}>
-            <WeatherIcon wmoCode={wmoCode} size={100} />
+            <WeatherIcons wmoCode={wmoCode} size={100} />
           </View>
         </View>
 
@@ -115,7 +127,7 @@ export const WeatherHero: React.FC<WeatherHeroProps> = ({
             ]}
           >
             <View style={[styles.statIconBackground, { backgroundColor: getStatIconColor('uv') + '15' }]}>
-              <SunMedium size={20} color={getStatIconColor('uv')} />
+              <Sun size={20} color={getStatIconColor('uv')} />
             </View>
             <Text style={[styles.statIconValue, { color: theme.colors.text }]}>
               {uvIndex !== undefined ? `UV ${uvIndex}` : '--'}
@@ -232,6 +244,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
   },
   statIconValue: {
     fontSize: 13,

@@ -1,38 +1,30 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  Image,
-  StyleSheet,
-  RefreshControl,
-  ActivityIndicator,
+import React, { memo, useCallback, useMemo, useState, useRef } from 'react';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  FlatList, 
+  Image, 
   Platform,
   Dimensions,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+  Share
 } from 'react-native';
-import { Calendar, MapPin, Clock, Share2 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Calendar, Clock, MapPin, Share2, Heart, Eye, TrendingUp, CalendarDays, Filter, X } from 'lucide-react-native';
+import { Event } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
-import { safeFormatDate, safeFormatTime, safeDateParse } from '@/utils/dateFormatter';
+import { formatDateTime, safeDateParse, safeFormatDate, safeFormatTime } from '@/utils/dateFormatter';
+import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
 import WeekendEventsSlider from './WeekendEventsSlider';
 import * as he from 'he';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-interface Event {
-  id: number;
-  title: { rendered: string };
-  date: string;
-  meta?: {
-    miasto?: string;
-    'opis-wydarzenia'?: string;
-  };
-  _embedded?: {
-    'wp:featuredmedia'?: Array<{
-      source_url: string;
-    }>;
-  };
-}
+
 
 interface ModernEventListProps {
   events: Event[];
@@ -67,8 +59,20 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
 }) => {
   const { theme } = useThemeStore();
 
+
+
+  // Funkcja pomocnicza do bezpiecznego pobierania tytułu
+  const getEventTitle = (event: Event): string => {
+    if (typeof event.title === 'string') {
+      return event.title;
+    } else if (event.title?.rendered) {
+      return event.title.rendered;
+    }
+    return 'Brak tytułu';
+  };
+
   const renderEventItem = ({ item: event, index }: { item: Event; index: number }) => {
-    // Bezpieczne parsowanie daty
+    const eventTitle = getEventTitle(event);
     const eventDate = safeDateParse(event.date);
     const formattedDate = safeFormatDate(event.date);
     const formattedTime = safeFormatTime(event.date);
@@ -107,7 +111,7 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
         <View style={styles.contentContainer}>
           <View style={styles.headerRow}>
             <Text style={[styles.eventTitle, { color: theme.colors.text }]} numberOfLines={2}>
-              {he.decode(event.title.rendered)}
+              {cleanArticleTitle(eventTitle)}
             </Text>
             {(isToday || isTomorrow) && (
               <View style={[
@@ -191,18 +195,23 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
   };
 
   const renderHeader = () => {
-    if (hideSlider || !weekendEvents || weekendEvents.length === 0) return null;
-    
-    return (
-      <View style={styles.weekendSection}>
-        <WeekendEventsSlider
-          events={weekendEvents}
-          onEventPress={onEventPress}
-          onShare={onShare}
-          onAddToCalendar={onAddToCalendar}
-        />
-      </View>
-    );
+    try {
+      if (hideSlider || !weekendEvents || weekendEvents.length === 0) return null;
+      
+      return (
+        <View style={styles.weekendSection}>
+          <WeekendEventsSlider
+            events={weekendEvents}
+            onEventPress={onEventPress}
+            onShare={onShare}
+            onAddToCalendar={onAddToCalendar}
+          />
+        </View>
+      );
+    } catch (error) {
+      console.error('❌ Error in renderHeader:', error);
+      return null;
+    }
   };
 
   return (

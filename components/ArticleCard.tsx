@@ -10,6 +10,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { isSponsoredContent } from '@/utils/contentFilter';
 import { getProgressiveImageProps } from '@/utils/imageOptimizer';
 import { Vibration } from 'react-native';
+import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
 
 interface ArticleCardProps {
   article: Article;
@@ -185,7 +186,7 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
               fontFamily: theme.fontFamily.medium
             }
           ]} numberOfLines={2}>
-            {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+            {cleanArticleTitle(article.title?.rendered || 'Brak tytułu')}
           </Text>
           
           <View style={styles.compactFooter}>
@@ -260,7 +261,7 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
             fontFamily: theme.fontFamily.medium
           }
         ]} numberOfLines={2}>
-          {article.title.rendered.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'")}
+          {cleanArticleTitle(article.title?.rendered || 'Brak tytułu')}
         </Text>
         
         <View style={styles.footer}>

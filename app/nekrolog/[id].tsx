@@ -383,10 +383,15 @@ export default function NekrologDetailScreen() {
         {/* Memorial Ribbon Header */}
         <View style={styles.ribbonHeader}>
           <Image
-            source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2025/07/514697-PIHZZ2-291-01-300x300-–-ze-zmianami.png' }}
+            source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2025/07/514697-PIHZZ2-291-01-300x300-–-ze-zmianami.png' }}
             style={styles.memorialRibbon}
-            contentFit="contain"
+            contentFit="cover"
             transition={200}
+            placeholder="Nekrolog"
+            onError={() => {
+              // Fallback do tekstu jeśli grafika się nie załaduje
+              console.warn('Nekrolog ribbon image failed to load');
+            }}
           />
         </View>
 

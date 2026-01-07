@@ -184,11 +184,20 @@ class Kaszuby24_Push_Database {
             $sql .= ")";
         }
         
+        $results = false;
         if (!empty($params)) {
-            return $wpdb->get_results($wpdb->prepare($sql, $params));
+            $results = $wpdb->get_results($wpdb->prepare($sql, $params));
         } else {
-            return $wpdb->get_results($sql);
+            $results = $wpdb->get_results($sql);
         }
+        
+        // Ensure we always return an array, even if database query fails
+        if ($results === false) {
+            error_log('Database query failed in get_tokens_for_article: ' . $wpdb->last_error);
+            return array();
+        }
+        
+        return is_array($results) ? $results : array();
     }
     
     public function get_tokens_by_preferences($regions = array(), $categories = array()) {
@@ -228,11 +237,20 @@ class Kaszuby24_Push_Database {
             $sql .= " AND (" . implode(' OR ', $conditions) . ")";
         }
         
+        $results = false;
         if (!empty($params)) {
-            return $wpdb->get_results($wpdb->prepare($sql, $params));
+            $results = $wpdb->get_results($wpdb->prepare($sql, $params));
         } else {
-            return $wpdb->get_results($sql);
+            $results = $wpdb->get_results($sql);
         }
+        
+        // Ensure we always return an array, even if database query fails
+        if ($results === false) {
+            error_log('Database query failed in get_tokens_by_preferences: ' . $wpdb->last_error);
+            return array();
+        }
+        
+        return is_array($results) ? $results : array();
     }
     
     public function log_notification($token, $article_id, $title, $body, $status, $response = null, $receipt_id = null) {
@@ -268,7 +286,8 @@ class Kaszuby24_Push_Database {
         $stats['total_tokens'] = $wpdb->get_var("SELECT COUNT(*) FROM $tokens_table WHERE is_active = 1");
         
         // Tokens by platform
-        $stats['by_platform'] = $wpdb->get_results("SELECT platform, COUNT(*) as count FROM $tokens_table WHERE is_active = 1 GROUP BY platform");
+        $by_platform = $wpdb->get_results("SELECT platform, COUNT(*) as count FROM $tokens_table WHERE is_active = 1 GROUP BY platform");
+        $stats['by_platform'] = ($by_platform !== false && is_array($by_platform)) ? $by_platform : array();
         
         // Notifications sent today
         $stats['sent_today'] = $wpdb->get_var($wpdb->prepare(
@@ -341,10 +360,18 @@ class Kaszuby24_Push_Database {
         
         $table_name = $wpdb->prefix . 'kaszuby24_push_scheduled';
         
-        return $wpdb->get_results($wpdb->prepare(
+        $results = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM $table_name WHERE status = 'pending' AND scheduled_time <= %s ORDER BY scheduled_time ASC",
             current_time('mysql')
         ));
+        
+        // Ensure we always return an array, even if database query fails
+        if ($results === false) {
+            error_log('Database query failed in get_pending_scheduled_notifications: ' . $wpdb->last_error);
+            return array();
+        }
+        
+        return is_array($results) ? $results : array();
     }
     
     public function mark_scheduled_notification_sent($id) {
@@ -406,7 +433,15 @@ class Kaszuby24_Push_Database {
                 GROUP BY action, platform, DATE(created_at)
                 ORDER BY created_at DESC";
         
-        return $wpdb->get_results($wpdb->prepare($sql, $params));
+        $results = $wpdb->get_results($wpdb->prepare($sql, $params));
+        
+        // Ensure we always return an array, even if database query fails
+        if ($results === false) {
+            error_log('Database query failed in get_notification_analytics: ' . $wpdb->last_error);
+            return array();
+        }
+        
+        return is_array($results) ? $results : array();
     }
     
     public function update_delivery_status($receipt_id, $status, $delivered_at = null) {
@@ -453,6 +488,14 @@ class Kaszuby24_Push_Database {
                 $where_clause
                 GROUP BY status, delivery_status";
         
-        return $wpdb->get_results($wpdb->prepare($sql, $params));
+        $results = $wpdb->get_results($wpdb->prepare($sql, $params));
+        
+        // Ensure we always return an array, even if database query fails
+        if ($results === false) {
+            error_log('Database query failed in get_delivery_stats: ' . $wpdb->last_error);
+            return array();
+        }
+        
+        return is_array($results) ? $results : array();
     }
 } 

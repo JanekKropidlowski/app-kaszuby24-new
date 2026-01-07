@@ -1,24 +1,22 @@
-import React, { useRef, useEffect } from 'react';
-import { 
-  Modal, 
-  View, 
-  StyleSheet, 
-  Dimensions, 
-  TouchableOpacity, 
+import React, { useEffect } from 'react';
+import {
+  Modal,
+  View,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
   Text,
 } from 'react-native';
-import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  runOnJS
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/store/themeStore';
 import { X } from 'lucide-react-native';
-import { 
-  useAnimatedGestureHandler, 
-  useAnimatedStyle, 
-  useSharedValue, 
-  withSpring, 
-  runOnJS 
-} from 'react-native-reanimated';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -41,25 +39,20 @@ export default function SwipeableModal({
   animationType = 'slide',
   presentationStyle = 'pageSheet'
 }: SwipeableModalProps) {
-  const { theme, isDarkMode } = useThemeStore();
+  const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
-  
+
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
-  
-  const panGestureHandler = useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
-    onStart: () => {
-      'worklet';
-    },
-    onActive: (event) => {
-      'worklet';
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
       if (event.translationY > 0) {
         translateY.value = event.translationY;
         opacity.value = 1 - (event.translationY / screenHeight) * 0.5;
       }
-    },
-    onEnd: (event) => {
-      'worklet';
+    })
+    .onEnd((event) => {
       if (event.translationY > 100) {
         // Swipe down to close
         translateY.value = withSpring(screenHeight);
@@ -70,8 +63,7 @@ export default function SwipeableModal({
         translateY.value = withSpring(0);
         opacity.value = withSpring(1);
       }
-    },
-  });
+    });
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -101,8 +93,8 @@ export default function SwipeableModal({
     <Modal
       visible={visible}
       animationType={animationType}
-      presentationStyle={presentationStyle === 'pageSheet' ? 'pageSheet' : presentationStyle}
-      transparent
+      presentationStyle={presentationStyle === 'pageSheet' ? 'overFullScreen' : presentationStyle}
+      transparent={true}
       onRequestClose={handleClose}
     >
       <TouchableOpacity
@@ -111,7 +103,7 @@ export default function SwipeableModal({
         style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
       />
       <View style={styles.sheetContainer}>
-        <PanGestureHandler onGestureEvent={panGestureHandler}>
+        <GestureDetector gesture={panGesture}>
           <Animated.View style={[styles.content, { backgroundColor: theme.colors.background }, animatedStyle]}>
             {/* Header with drag indicator */}
             <View style={styles.header}>
@@ -131,13 +123,13 @@ export default function SwipeableModal({
                 </TouchableOpacity>
               )}
             </View>
-            
+
             {/* Content */}
             <View style={[styles.childrenContainer, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
               {children}
             </View>
           </Animated.View>
-        </PanGestureHandler>
+        </GestureDetector>
       </View>
     </Modal>
   );

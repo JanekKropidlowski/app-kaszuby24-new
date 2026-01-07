@@ -228,7 +228,9 @@ export const WeatherNotifications: React.FC<WeatherNotificationsProps> = ({
           )}
         </View>
         <TouchableOpacity onPress={() => setShowSettings(!showSettings)}>
-          <Settings size={20} color={theme.colors.textSecondary} />
+          <Text>
+            <Settings size={20} color={theme.colors.textSecondary} />
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -276,7 +278,9 @@ export const WeatherNotifications: React.FC<WeatherNotificationsProps> = ({
                   </View>
                 </View>
                 <TouchableOpacity onPress={() => dismissAlert(alert.id)}>
-                  <X size={16} color={theme.colors.textSecondary} />
+                  <Text>
+                    <X size={16} color={theme.colors.textSecondary} />
+                  </Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.alertFooter}>

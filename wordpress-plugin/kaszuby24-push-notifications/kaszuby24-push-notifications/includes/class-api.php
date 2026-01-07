@@ -13,6 +13,7 @@ class Kaszuby24_Push_API {
         
         // Register REST API routes
         add_action('rest_api_init', array($this, 'register_routes'));
+        add_action('rest_api_init', array($this, 'register_events_routes'));
     }
     
     public function register_routes() {
@@ -212,7 +213,8 @@ class Kaszuby24_Push_API {
             )
         ));
         
-        register_rest_route('kaszuby24/v1', '/events', array(
+        // Endpoint dla wydarzeń z filtrami (aplikacja mobilna)
+        register_rest_route('kaszuby24/v1', '/events/mobile', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_events'),
             'permission_callback' => '__return_true',
@@ -234,7 +236,12 @@ class Kaszuby24_Push_API {
                 ),
                 'city' => array(
                     'required' => false,
-                    'type' => 'string'
+                    'type' => 'string',
+                    'description' => 'Nazwa miasta do filtrowania'
+                ),
+                'object' => array(
+                    'required' => false,
+                    'type' => 'integer'
                 ),
                 'category' => array(
                     'required' => false,
@@ -243,6 +250,16 @@ class Kaszuby24_Push_API {
                 'search' => array(
                     'required' => false,
                     'type' => 'string'
+                ),
+                'date_from' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data od (format: Y-m-d)'
+                ),
+                'date_to' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data do (format: Y-m-d)'
                 )
             )
         ));
@@ -329,6 +346,98 @@ class Kaszuby24_Push_API {
             'callback' => array($this, 'test_endpoint'),
             'permission_callback' => '__return_true'
         ));
+
+        // Test endpoint dla taksonomii miasta
+        register_rest_route('kaszuby24/v1', '/test-city-taxonomy', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'test_city_taxonomy'),
+            'permission_callback' => '__return_true'
+        ));
+
+        // Endpoint dla aplikacji mobilnej - pobiera tylko aktywne kategorie i obiekty
+        register_rest_route('kaszuby24/v1', '/events/filters/active', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_active_filters_for_mobile'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'date_from' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data od (format: Y-m-d)',
+                    'default' => date('Y-m-d')
+                ),
+                'date_to' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data do (format: Y-m-d)',
+                    'default' => date('Y-m-d', strtotime('+90 days'))
+                )
+            )
+        ));
+
+        // Endpoint diagnostyczny - sprawdza stan bazy danych i struktury
+        register_rest_route('kaszuby24/v1', '/debug/database-status', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_database_status'),
+            'permission_callback' => '__return_true'
+        ));
+
+        // Endpoint do testowania konkretnych zapytań
+        register_rest_route('kaszuby24/v1', '/debug/test-query', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'test_specific_query'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'post_type' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'default' => 'kalendarz'
+                ),
+                'meta_key' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'default' => 'sama-data'
+                ),
+                'taxonomy' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'default' => 'kategoria-wydarzenia'
+                )
+            )
+        ));
+
+        // Słownik segregacji
+        register_rest_route('kaszuby24/v1', '/waste-dictionary', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_waste_dictionary'),
+            'permission_callback' => '__return_true'
+        ));
+    }
+
+    public function get_waste_dictionary() {
+        $file = WP_CONTENT_DIR . '/uploads/waste-schedules/waste-dictionary.json';
+        if (file_exists($file)) {
+            $data = json_decode(file_get_contents($file), true);
+            return new WP_REST_Response($data, 200);
+        }
+        
+        // Domyslny slownik jesli plik nie istnieje
+        $default = array(
+            array('name' => 'Karton po mleku', 'category' => 'Plastik i metale'),
+            array('name' => 'Butelka plastikowa', 'category' => 'Plastik i metale'),
+            array('name' => 'Puszka po konserwie', 'category' => 'Plastik i metale'),
+            array('name' => 'Gazeta', 'category' => 'Makulatura'),
+            array('name' => 'Kartonowe pudełko', 'category' => 'Makulatura'),
+            array('name' => 'Słoik', 'category' => 'Szkło'),
+            array('name' => 'Butelka szklana', 'category' => 'Szkło'),
+            array('name' => 'Obierki', 'category' => 'Bio'),
+            array('name' => 'Resztki jedzenia', 'category' => 'Bio'),
+            array('name' => 'Lustro', 'category' => 'Gabaryty (PSZOK)'),
+            array('name' => 'Stary telewizor', 'category' => 'Elektrośmieci'),
+            array('name' => 'Bateria', 'category' => 'Niebezpieczne (PSZOK)')
+        );
+        
+        return new WP_REST_Response($default, 200);
     }
     
     public function test_endpoint($request) {
@@ -336,6 +445,61 @@ class Kaszuby24_Push_API {
             'success' => true,
             'message' => 'API is working',
             'timestamp' => current_time('mysql')
+        ), 200);
+    }
+    
+    public function test_city_taxonomy($request) {
+        // Sprawdź czy taksonomia miasto istnieje
+        $taxonomies = get_taxonomies(array(), 'objects');
+        $miasto_taxonomy = get_taxonomy('miasto');
+        
+        // Pobierz wszystkie termy taksonomii miasto
+        $cities = get_terms(array(
+            'taxonomy' => 'miasto',
+            'hide_empty' => false
+        ));
+        
+        // Sprawdź czy post type kalendarz istnieje
+        $post_types = get_post_types(array(), 'objects');
+        $kalendarz_post_type = get_post_type_object('kalendarz');
+        
+        // Sprawdź przykładowe wydarzenia
+        $sample_events = get_posts(array(
+            'post_type' => 'kalendarz',
+            'posts_per_page' => 5,
+            'post_status' => 'publish'
+        ));
+        
+        $sample_events_data = array();
+        foreach ($sample_events as $event) {
+            $sample_events_data[] = array(
+                'id' => $event->ID,
+                'title' => $event->post_title,
+                'miasto_meta' => get_post_meta($event->ID, 'miasto', true),
+                'miasto_terms' => wp_get_post_terms($event->ID, 'miasto', array('fields' => 'names')),
+                'miasto_term_ids' => wp_get_post_terms($event->ID, 'miasto', array('fields' => 'ids'))
+            );
+        }
+        
+        return new WP_REST_Response(array(
+            'success' => true,
+            'message' => 'City taxonomy test',
+            'timestamp' => current_time('mysql'),
+            'taxonomies' => array_keys($taxonomies),
+            'miasto_taxonomy_exists' => !empty($miasto_taxonomy),
+            'miasto_taxonomy_object' => $miasto_taxonomy,
+            'cities_count' => is_array($cities) ? count($cities) : 'error',
+            'cities' => is_array($cities) ? array_map(function($city) {
+                return array(
+                    'id' => $city->term_id,
+                    'name' => $city->name,
+                    'slug' => $city->slug,
+                    'count' => $city->count
+                );
+            }, $cities) : $cities,
+            'post_types' => array_keys($post_types),
+            'kalendarz_post_type_exists' => !empty($kalendarz_post_type),
+            'sample_events' => $sample_events_data
         ), 200);
     }
     
@@ -715,16 +879,12 @@ class Kaszuby24_Push_API {
             $filter = $request->get_param('filter');
             // NOWE: obsługa wielu filtrów
             $filters = is_array($filter) ? $filter : ($filter ? [$filter] : []);
-            error_log("API Debug - Raw filter param: " . print_r($filter, true));
-            error_log("API Debug - Processed filters: " . print_r($filters, true));
-            error_log("API Debug - Filter type: " . gettype($filter));
-            error_log("API Debug - Filters array: " . print_r($filters, true));
             $city = $request->get_param('city');
+            $object = $request->get_param('object');
             $category = $request->get_param('category');
             $search = $request->get_param('search');
             
-            // Debug: Log the parameters
-            error_log("Events request - page: $page, per_page: $per_page, filter: $filter, city: $city, category: $category, search: $search");
+            $search = $request->get_param('search');
             
             // Base query arguments
             $args = array(
@@ -745,9 +905,9 @@ class Kaszuby24_Push_API {
             $timeFilters = ['today', 'this-weekend', 'this-week'];
             $hasTimeFilter = !empty($filters) && !empty(array_intersect($filters, $timeFilters));
             
-            error_log("API Debug - Filters: " . print_r($filters, true));
-            error_log("API Debug - Time filters: " . print_r($timeFilters, true));
-            error_log("API Debug - Has time filter: " . ($hasTimeFilter ? 'true' : 'false'));
+            $today = current_time('timestamp');
+            $timeFilters = ['today', 'this-weekend', 'this-week'];
+            $hasTimeFilter = !empty($filters) && !empty(array_intersect($filters, $timeFilters));
             
             if (!$hasTimeFilter) {
                 $meta_query[] = array(
@@ -756,7 +916,6 @@ class Kaszuby24_Push_API {
                     'compare' => '>=',
                     'type' => 'NUMERIC'
                 );
-                error_log("API Debug - Added default filter: >= " . date('Y-m-d H:i:s', $today));
             }
             
             // NOWE: obsługa wielu filtrów
@@ -769,15 +928,12 @@ class Kaszuby24_Push_API {
                             $start_of_day = strtotime($today_str . ' 00:00:00');
                             $end_of_day = strtotime($today_str . ' 23:59:59');
                             
-                            error_log("API Debug - Today filter: date=" . $today_str . " start=" . date('Y-m-d H:i:s', $start_of_day) . " end=" . date('Y-m-d H:i:s', $end_of_day));
-                            
                             $meta_query[] = array(
                                 'key' => 'sama-data',
                                 'value' => array($start_of_day, $end_of_day),
                                 'compare' => 'BETWEEN',
                                 'type' => 'NUMERIC'
                             );
-                            error_log("API Debug - Added today filter to meta_query");
                             break;
                             
                         case 'this-weekend':
@@ -844,22 +1000,86 @@ class Kaszuby24_Push_API {
             
             // Add city filter
             if ($city) {
-                $meta_query[] = array(
-                    'key' => 'miasto',
-                    'value' => $city,
-                    'compare' => '='
-                );
+                // Obsługa wielu miast oddzielonych przecinkami
+                if (strpos($city, ',') !== false) {
+                    $cities = array_map('trim', explode(',', $city));
+                    
+                    if (isset($args['tax_query'])) {
+                        $args['tax_query'][] = array(
+                            'taxonomy' => 'miasto',
+                            'field' => 'name',
+                            'terms' => $cities
+                        );
+                        $args['tax_query']['relation'] = 'AND';
+                    } else {
+                        $args['tax_query'] = array(
+                            array(
+                                'taxonomy' => 'miasto',
+                                'field' => 'name',
+                                'terms' => $cities
+                            )
+                        );
+                    }
+                } else {
+                    if (isset($args['tax_query'])) {
+                        $args['tax_query'][] = array(
+                            'taxonomy' => 'miasto',
+                            'field' => 'name',
+                            'terms' => $city
+                        );
+                        $args['tax_query']['relation'] = 'AND';
+                    } else {
+                        $args['tax_query'] = array(
+                            array(
+                                'taxonomy' => 'miasto',
+                                'field' => 'name',
+                                'terms' => $city
+                            )
+                        );
+                    }
+                }
             }
             
             // Add category filter
             if ($category) {
-                $args['tax_query'] = array(
-                    array(
+                $category_id = is_numeric($category) ? intval($category) : $category;
+                if (isset($args['tax_query'])) {
+                    $args['tax_query'][] = array(
                         'taxonomy' => 'kategoria-wydarzenia',
                         'field' => 'term_id',
-                        'terms' => $category
-                    )
-                );
+                        'terms' => $category_id
+                    );
+                    $args['tax_query']['relation'] = 'AND';
+                } else {
+                    $args['tax_query'] = array(
+                        array(
+                            'taxonomy' => 'kategoria-wydarzenia',
+                            'field' => 'term_id',
+                            'terms' => $category_id
+                        )
+                    );
+                }
+            }
+            
+            // Add object filter
+            if ($object) {
+                $object_id = is_numeric($object) ? intval($object) : $object;
+                if (isset($args['tax_query'])) {
+                    $args['tax_query'][] = array(
+                        'taxonomy' => 'obiekt',
+                        'field' => 'term_id',
+                        'terms' => $object_id
+                    );
+                    $args['tax_query']['relation'] = 'AND';
+                } else {
+                    $args['tax_query'] = array(
+                        array(
+                            'taxonomy' => 'obiekt',
+                            'field' => 'term_id',
+                            'terms' => $object_id
+                        )
+                    );
+                }
             }
             
             // Add search filter
@@ -881,10 +1101,7 @@ class Kaszuby24_Push_API {
             
             $query = new WP_Query($args);
             
-            // Debug: Log query arguments and results
-            error_log("Events API Debug - Args: " . print_r($args, true));
-            error_log("Events API Debug - Found posts: " . $query->found_posts);
-            error_log("Events API Debug - Max pages: " . $query->max_num_pages);
+            $query = new WP_Query($args);
             
             if ($query->have_posts()) {
                 $events = array();
@@ -924,22 +1141,50 @@ class Kaszuby24_Push_API {
                         'wp:term' => array()
                     );
                     
-                    // Get featured media
+                    // Get featured media - sprawdź różne sposoby
+                    $featured_image_url = null;
+                    
+                    // 1. Sprawdź featured image
                     if (has_post_thumbnail()) {
+                        $featured_image_url = get_the_post_thumbnail_url(get_the_ID(), 'full');
+                    }
+                    
+                    // 2. Sprawdź meta pole 'obrazek' lub 'image'
+                    if (!$featured_image_url) {
+                        $featured_image_url = get_post_meta(get_the_ID(), 'obrazek', true);
+                    }
+                    
+                    // 3. Sprawdź meta pole 'image'
+                    if (!$featured_image_url) {
+                        $featured_image_url = get_post_meta(get_the_ID(), 'image', true);
+                    }
+                    
+                    // 4. Sprawdź meta pole 'zdjecie'
+                    if (!$featured_image_url) {
+                        $featured_image_url = get_post_meta(get_the_ID(), 'zdjecie', true);
+                    }
+                    
+                    // Jeśli znaleziono obrazek, dodaj do embedded
+                    if ($featured_image_url) {
                         $event_data['_embedded']['wp:featuredmedia'][] = array(
-                            'id' => get_post_thumbnail_id(),
-                            'source_url' => get_the_post_thumbnail_url(get_the_ID(), 'full'),
+                            'id' => get_post_thumbnail_id() ?: 0,
+                            'source_url' => $featured_image_url,
                             'media_details' => array(
                                 'sizes' => array(
                                     'medium' => array(
-                                        'source_url' => get_the_post_thumbnail_url(get_the_ID(), 'medium')
+                                        'source_url' => $featured_image_url
                                     ),
                                     'thumbnail' => array(
-                                        'source_url' => get_the_post_thumbnail_url(get_the_ID(), 'thumbnail')
+                                        'source_url' => $featured_image_url
                                     )
                                 )
                             )
                         );
+                        
+                        // Debug log
+                        error_log("API Debug - Found image for event " . get_the_ID() . ": " . $featured_image_url);
+                    } else {
+                        error_log("API Debug - No image found for event " . get_the_ID());
                     }
                     
                     // Get terms (categories)
@@ -1113,16 +1358,16 @@ class Kaszuby24_Push_API {
             // For now, return all events since we don't have user-specific saved events
             // In the future, this could be connected to a user preferences system
             $args = array(
-                'post_type' => 'wydarzenie',
+                'post_type' => 'kalendarz', // Poprawione - używamy 'kalendarz' bo taki typ jest w WordPress
                 'post_status' => 'publish',
                 'posts_per_page' => $per_page,
                 'paged' => $page,
                 'orderby' => 'meta_value_num',
-                'meta_key' => 'data_wydarzenia',
+                'meta_key' => 'sama-data', // Poprawione - używamy 'sama-data' bo taki klucz jest w WordPress
                 'order' => 'ASC',
                 'meta_query' => array(
                     array(
-                        'key' => 'data_wydarzenia',
+                        'key' => 'sama-data',
                         'value' => current_time('timestamp'),
                         'compare' => '>=',
                         'type' => 'NUMERIC'
@@ -1343,7 +1588,7 @@ class Kaszuby24_Push_API {
             // Get the event post
             $event = get_post($event_id);
             
-            if (!$event || $event->post_type !== 'wydarzenie') {
+            if (!$event || $event->post_type !== 'kalendarz') { // Poprawione - używamy 'kalendarz' bo taki typ jest w WordPress
                 return new WP_Error('event_not_found', 'Event not found', array('status' => 404));
             }
             
@@ -1436,7 +1681,7 @@ class Kaszuby24_Push_API {
             
             // Get current event to extract categories and location if not provided
             $current_event = get_post($event_id);
-            if (!$current_event || $current_event->post_type !== 'wydarzenie') {
+            if (!$current_event || $current_event->post_type !== 'kalendarz') { // Poprawione - używamy 'kalendarz' bo taki typ jest w WordPress
                 return new WP_Error('event_not_found', 'Current event not found', array('status' => 404));
             }
             
@@ -1455,7 +1700,7 @@ class Kaszuby24_Push_API {
             
             // Build query arguments
             $args = array(
-                'post_type' => 'wydarzenie',
+                'post_type' => 'kalendarz', // Poprawione - używamy 'kalendarz' bo taki typ jest w WordPress
                 'post_status' => 'publish',
                 'posts_per_page' => $limit,
                 'post__not_in' => array($event_id), // Exclude current event
@@ -1564,6 +1809,970 @@ class Kaszuby24_Push_API {
             
         } catch (Exception $e) {
             return new WP_Error('related_events_error', $e->getMessage(), array('status' => 500));
+        }
+    }
+
+    /**
+     * Register events API routes
+     */
+    public function register_events_routes() {
+        // Endpoint dla kategorii z aktualnymi wydarzeniami
+        register_rest_route('kaszuby24/v1', '/events/categories/active', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_active_event_categories'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'date_from' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data od (format: Y-m-d)',
+                    'default' => date('Y-m-d')
+                ),
+                'date_to' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data do (format: Y-m-d)',
+                    'default' => date('Y-m-d', strtotime('+90 days'))
+                ),
+                'per_page' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'description' => 'Liczba wyników na stronę',
+                    'default' => 100,
+                    'minimum' => 1,
+                    'maximum' => 1000
+                )
+            )
+        ));
+
+        // Endpoint dla obiektów z aktualnymi wydarzeniami
+        register_rest_route('kaszuby24/v1', '/events/objects/active', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_active_event_objects'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'date_from' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data od (format: Y-m-d)',
+                    'default' => date('Y-m-d')
+                ),
+                'date_to' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data do (format: Y-m-d)',
+                    'default' => date('Y-m-d', strtotime('+90 days'))
+                ),
+                'per_page' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'description' => 'Liczba wyników na stronę',
+                    'default' => 100,
+                    'minimum' => 1,
+                    'maximum' => 1000
+                )
+            )
+        ));
+
+        // Endpoint dla miast z aktualnymi wydarzeniami
+        register_rest_route('kaszuby24/v1', '/events/cities/active', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_active_event_cities'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'date_from' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data od (format: Y-m-d)',
+                    'default' => date('Y-m-d')
+                ),
+                'date_to' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data do (format: Y-m-d)',
+                    'default' => date('Y-m-d', strtotime('+90 days'))
+                ),
+                'per_page' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'description' => 'Liczba wyników na stronę',
+                    'default' => 100,
+                    'minimum' => 1,
+                    'maximum' => 1000
+                )
+            )
+        ));
+
+        // Endpoint dla wszystkich kategorii wydarzeń (hierarchiczne)
+        register_rest_route('kaszuby24/v1', '/events/categories', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_all_event_categories'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'hierarchical' => array(
+                    'required' => false,
+                    'type' => 'boolean',
+                    'description' => 'Czy zwrócić hierarchiczną strukturę',
+                    'default' => true
+                )
+            )
+        ));
+
+        // Endpoint dla wszystkich obiektów wydarzeń (hierarchiczne)
+        register_rest_route('kaszuby24/v1', '/events/objects', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_all_event_objects'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'hierarchical' => array(
+                    'required' => false,
+                    'type' => 'boolean',
+                    'description' => 'Czy zwrócić hierarchiczną strukturę',
+                    'default' => true
+                )
+            )
+        ));
+
+        // Endpoint dla wydarzeń z filtrami
+        register_rest_route('kaszuby24/v1', '/events', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_events_with_filters'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'date_from' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data od (format: Y-m-d)',
+                    'default' => date('Y-m-d')
+                ),
+                'date_to' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Data do (format: Y-m-d)',
+                    'default' => date('Y-m-d', strtotime('+90 days'))
+                ),
+                'city' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Nazwa miasta do filtrowania'
+                ),
+                'category' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'ID kategorii (może być lista oddzielona przecinkami)'
+                ),
+                'object' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'ID obiektu (może być lista oddzielona przecinkami)'
+                ),
+                'per_page' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'description' => 'Liczba wyników na stronę',
+                    'default' => 20,
+                    'minimum' => 1,
+                    'maximum' => 100
+                ),
+                'page' => array(
+                    'required' => false,
+                    'type' => 'integer',
+                    'description' => 'Numer strony',
+                    'default' => 1,
+                    'minimum' => 1
+                )
+            )
+        ));
+    }
+
+    /**
+     * Pobiera kategorie wydarzeń z aktualnymi wydarzeniami
+     */
+    public function get_active_event_categories($request) {
+        $date_from = $request->get_param('date_from') ?: date('Y-m-d');
+        $date_to = $request->get_param('date_to') ?: date('Y-m-d', strtotime('+90 days'));
+        $per_page = intval($request->get_param('per_page')) ?: 100;
+
+        // Pobierz wszystkie kategorie wydarzeń
+        $categories = get_terms(array(
+            'taxonomy' => 'kategoria-wydarzenia',
+            'hide_empty' => false,
+            'number' => $per_page
+        ));
+
+        if (is_wp_error($categories)) {
+            return new WP_Error('categories_error', 'Błąd podczas pobierania kategorii', array('status' => 500));
+        }
+
+        $active_categories = array();
+
+        foreach ($categories as $category) {
+            // Sprawdź czy kategoria ma wydarzenia w podanym zakresie dat
+            $events_count = $this->get_events_count_by_category($category->term_id, $date_from, $date_to);
+            
+            if ($events_count > 0) {
+                $active_categories[] = array(
+                    'id' => $category->term_id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'description' => $category->description,
+                    'count' => $events_count,
+                    'parent' => $category->parent,
+                    'link' => get_term_link($category)
+                );
+            }
+        }
+
+        // Sortuj po liczbie wydarzeń (malejąco)
+        usort($active_categories, function($a, $b) {
+            return $b['count'] - $a['count'];
+        });
+
+        return rest_ensure_response(array(
+            'categories' => $active_categories,
+            'total' => count($active_categories),
+            'date_range' => array(
+                'from' => $date_from,
+                'to' => $date_to
+            )
+        ));
+    }
+
+    /**
+     * Pobiera obiekty wydarzeń z aktualnymi wydarzeniami
+     */
+    public function get_active_event_objects($request) {
+        $date_from = $request->get_param('date_from') ?: date('Y-m-d');
+        $date_to = $request->get_param('date_to') ?: date('Y-m-d', strtotime('+90 days'));
+        $per_page = intval($request->get_param('per_page')) ?: 100;
+
+        // Pobierz wszystkie obiekty wydarzeń (jeśli istnieją)
+        $objects = get_terms(array(
+            'taxonomy' => 'obiekt',
+            'hide_empty' => false,
+            'number' => $per_page
+        ));
+
+        if (is_wp_error($objects)) {
+            return new WP_Error('objects_error', 'Błąd podczas pobierania obiektów', array('status' => 500));
+        }
+
+        $active_objects = array();
+
+        foreach ($objects as $object) {
+            // Sprawdź czy obiekt ma wydarzenia w podanym zakresie dat
+            $events_count = $this->get_events_count_by_object($object->term_id, $date_from, $date_to);
+            
+            if ($events_count > 0) {
+                $active_objects[] = array(
+                    'id' => $object->term_id,
+                    'name' => $object->name,
+                    'slug' => $object->slug,
+                    'description' => $object->description,
+                    'count' => $events_count,
+                    'parent' => $object->parent,
+                    'link' => get_term_link($object)
+                );
+            }
+        }
+
+        // Sortuj po liczbie wydarzeń (malejąco)
+        usort($active_objects, function($a, $b) {
+            return $b['count'] - $a['count'];
+        });
+
+        return rest_ensure_response(array(
+            'objects' => $active_objects,
+            'total' => count($active_objects),
+            'date_range' => array(
+                'from' => $date_from,
+                'to' => $date_to
+            )
+        ));
+    }
+
+    /**
+     * Pobiera miasta z aktualnymi wydarzeniami
+     */
+    public function get_active_event_cities($request) {
+        $date_from = $request->get_param('date_from') ?: date('Y-m-d');
+        $date_to = $request->get_param('date_to') ?: date('Y-m-d', strtotime('+90 days'));
+        $per_page = intval($request->get_param('per_page')) ?: 100;
+
+        // Pobierz wszystkie miasta
+        $cities = get_terms(array(
+            'taxonomy' => 'miasto',
+            'hide_empty' => false,
+            'number' => $per_page
+        ));
+
+        if (is_wp_error($cities)) {
+            return new WP_Error('cities_error', 'Błąd podczas pobierania miast', array('status' => 500));
+        }
+
+        $active_cities = array();
+
+        foreach ($cities as $city) {
+            // Sprawdź czy miasto ma wydarzenia w podanym zakresie dat
+            $events_count = $this->get_events_count_by_city($city->name, $date_from, $date_to);
+            
+            if ($events_count > 0) {
+                $active_cities[] = array(
+                    'id' => $city->term_id,
+                    'name' => $city->name,
+                    'slug' => $city->slug,
+                    'description' => $city->description,
+                    'count' => $events_count,
+                    'parent' => $city->parent,
+                    'link' => get_term_link($city)
+                );
+            }
+        }
+
+        // Sortuj po liczbie wydarzeń (malejąco)
+        usort($active_cities, function($a, $b) {
+            return $b['count'] - $a['count'];
+        });
+
+        return rest_ensure_response(array(
+            'cities' => $active_cities,
+            'total' => count($active_cities),
+            'date_range' => array(
+                'from' => $date_from,
+                'to' => $date_to
+            )
+        ));
+    }
+
+    /**
+     * Pobiera wszystkie kategorie wydarzeń w strukturze hierarchicznej
+     */
+    public function get_all_event_categories($request) {
+        $hierarchical = $request->get_param('hierarchical') !== 'false';
+        
+        if ($hierarchical) {
+            $categories = get_terms(array(
+                'taxonomy' => 'kategoria-wydarzenia',
+                'hide_empty' => false,
+                'parent' => 0
+            ));
+
+            $hierarchical_categories = array();
+            foreach ($categories as $category) {
+                $hierarchical_categories[] = $this->build_hierarchical_category($category);
+            }
+
+            return rest_ensure_response(array(
+                'categories' => $hierarchical_categories,
+                'total' => count($hierarchical_categories)
+            ));
+        } else {
+            $categories = get_terms(array(
+                'taxonomy' => 'kategoria-wydarzenia',
+                'hide_empty' => false
+            ));
+
+            $flat_categories = array();
+            foreach ($categories as $category) {
+                $flat_categories[] = array(
+                    'id' => $category->term_id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'description' => $category->description,
+                    'parent' => $category->parent,
+                    'count' => $category->count,
+                    'link' => get_term_link($category)
+                );
+            }
+
+            return rest_ensure_response(array(
+                'categories' => $flat_categories,
+                'total' => count($flat_categories)
+            ));
+        }
+    }
+
+    /**
+     * Pobiera wszystkie obiekty wydarzeń w strukturze hierarchicznej
+     */
+    public function get_all_event_objects($request) {
+        $hierarchical = $request->get_param('hierarchical') !== 'false';
+        
+        if ($hierarchical) {
+            $objects = get_terms(array(
+                'taxonomy' => 'obiekt',
+                'hide_empty' => false,
+                'parent' => 0
+            ));
+
+            $hierarchical_objects = array();
+            foreach ($objects as $object) {
+                $hierarchical_objects[] = $this->build_hierarchical_object($object);
+            }
+
+            return rest_ensure_response(array(
+                'objects' => $hierarchical_objects,
+                'total' => count($hierarchical_objects)
+            ));
+        } else {
+            $objects = get_terms(array(
+                'taxonomy' => 'obiekt',
+                'hide_empty' => false
+            ));
+
+            $flat_objects = array();
+            foreach ($objects as $object) {
+                $flat_objects[] = array(
+                    'id' => $object->term_id,
+                    'name' => $object->name,
+                    'slug' => $object->slug,
+                    'description' => $object->description,
+                    'parent' => $object->parent,
+                    'count' => $object->count,
+                    'link' => get_term_link($object)
+                );
+            }
+
+            return rest_ensure_response(array(
+                'objects' => $flat_objects,
+                'total' => count($flat_objects)
+            ));
+        }
+    }
+
+    /**
+     * Pobiera wydarzenia z filtrami
+     */
+    public function get_events_with_filters($request) {
+        $date_from = $request->get_param('date_from') ?: date('Y-m-d');
+        $date_to = $request->get_param('date_to') ?: date('Y-m-d', strtotime('+90 days'));
+        $city = $request->get_param('city');
+        $category = $request->get_param('category');
+        $object = $request->get_param('object');
+        $per_page = intval($request->get_param('per_page')) ?: 20;
+        $page = intval($request->get_param('page')) ?: 1;
+
+        $args = array(
+            'post_type' => 'kalendarz', // Poprawione - używamy 'kalendarz' bo taki typ jest w WordPress
+            'post_status' => 'publish',
+            'posts_per_page' => $per_page,
+            'paged' => $page,
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'key' => 'sama-data',
+                    'value' => strtotime($date_from . ' 00:00:00'),
+                    'compare' => '>=',
+                    'type' => 'NUMERIC'
+                ),
+                array(
+                    'key' => 'sama-data',
+                    'value' => strtotime($date_to . ' 23:59:59'),
+                    'compare' => '<=',
+                    'type' => 'NUMERIC'
+                )
+            ),
+            'orderby' => 'meta_value_num',
+            'meta_key' => 'sama-data',
+            'order' => 'ASC'
+        );
+
+        // Inicjalizuj tax_query jeśli będzie potrzebny
+        $tax_queries = array();
+
+        // Dodaj filtry taksonomii
+        if ($category) {
+            $category_ids = array_map('intval', explode(',', $category));
+            $tax_queries[] = array(
+                'taxonomy' => 'kategoria-wydarzenia',
+                'field' => 'term_id',
+                'terms' => $category_ids
+            );
+        }
+
+        if ($object) {
+            $object_ids = array_map('intval', explode(',', $object));
+            $tax_queries[] = array(
+                'taxonomy' => 'obiekt',
+                'field' => 'term_id',
+                'terms' => $object_ids
+            );
+        }
+
+        // Dodaj filtr miasta
+        if ($city) {
+            $tax_queries[] = array(
+                'taxonomy' => 'miasto',
+                'field' => 'name',
+                'terms' => $city
+            );
+        }
+
+        // Dodaj tax_query do głównych argumentów jeśli są jakieś filtry
+        if (!empty($tax_queries)) {
+            if (count($tax_queries) > 1) {
+                $args['tax_query'] = array(
+                    'relation' => 'AND',
+                    $tax_queries
+                );
+            } else {
+                $args['tax_query'] = $tax_queries;
+            }
+        }
+
+        $query = new WP_Query($args);
+        $events = array();
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+                
+                $events[] = array(
+                    'id' => $post_id,
+                    'title' => get_the_title(),
+                    'content' => get_the_content(),
+                    'excerpt' => get_the_excerpt(),
+                    'date' => get_post_meta($post_id, 'sama-data', true),
+                    'time' => get_post_meta($post_id, 'czas', true),
+                    'end_date' => get_post_meta($post_id, 'data-koniec', true),
+                    'end_time' => get_post_meta($post_id, 'czas-koniec', true),
+                    'location' => get_post_meta($post_id, 'miasto', true),
+                    'price' => get_post_meta($post_id, 'cena', true),
+                    'link' => get_permalink(),
+                    'featured_image' => get_the_post_thumbnail_url($post_id, 'medium'),
+                    'categories' => wp_get_post_terms($post_id, 'kategoria-wydarzenia', array('fields' => 'names')),
+                    'objects' => wp_get_post_terms($post_id, 'obiekt', array('fields' => 'names'))
+                );
+            }
+        }
+
+        wp_reset_postdata();
+
+        return rest_ensure_response(array(
+            'events' => $events,
+            'total' => $query->found_posts,
+            'total_pages' => $query->max_num_pages,
+            'current_page' => $page,
+            'per_page' => $per_page,
+            'date_range' => array(
+                'from' => $date_from,
+                'to' => $date_to
+            )
+        ));
+    }
+
+    /**
+     * Buduje hierarchiczną strukturę kategorii
+     */
+    private function build_hierarchical_category($category) {
+        $children = get_terms(array(
+            'taxonomy' => 'kategoria-wydarzenia',
+            'hide_empty' => false,
+            'parent' => $category->term_id
+        ));
+
+        $hierarchical_category = array(
+            'id' => $category->term_id,
+            'name' => $category->name,
+            'slug' => $category->slug,
+            'description' => $category->description,
+            'count' => $category->count,
+            'parent' => $category->parent,
+            'link' => get_term_link($category),
+            'children' => array()
+        );
+
+        foreach ($children as $child) {
+            $hierarchical_category['children'][] = $this->build_hierarchical_category($child);
+        }
+
+        return $hierarchical_category;
+    }
+
+    /**
+     * Buduje hierarchiczną strukturę obiektów
+     */
+    private function build_hierarchical_object($object) {
+        $children = get_terms(array(
+            'taxonomy' => 'obiekt',
+            'hide_empty' => false,
+            'parent' => $object->term_id
+        ));
+
+        $hierarchical_object = array(
+            'id' => $object->term_id,
+            'name' => $object->name,
+            'slug' => $object->slug,
+            'description' => $object->description,
+            'count' => $object->count,
+            'parent' => $object->parent,
+            'link' => get_term_link($object),
+            'children' => array()
+        );
+
+        foreach ($children as $child) {
+            $hierarchical_object['children'][] = $this->build_hierarchical_object($child);
+        }
+
+        return $hierarchical_object;
+    }
+
+    /**
+     * Pobiera aktywne filtry dla aplikacji mobilnej (kategorie i obiekty z wydarzeniami)
+     */
+    public function get_active_filters_for_mobile($request) {
+        try {
+            $date_from = $request->get_param('date_from') ?: date('Y-m-d');
+            $date_to = $request->get_param('date_to') ?: date('Y-m-d', strtotime('+90 days'));
+
+            // Simplify: Return all terms instead of heavy counting in loop
+            // The client can filter or we can use a simpler query later
+            $categories = get_terms(array(
+                'taxonomy' => 'kategoria-wydarzenia',
+                'hide_empty' => true // Only meaningful categories
+            ));
+
+            $objects = get_terms(array(
+                'taxonomy' => 'obiekt',
+                'hide_empty' => true
+            ));
+
+            $cities = get_terms(array(
+                'taxonomy' => 'miasto',
+                'hide_empty' => true
+            ));
+
+            $categories_data = array_map(function($t) {
+                return array('id' => $t->term_id, 'name' => $t->name, 'slug' => $t->slug, 'count' => $t->count);
+            }, is_array($categories) ? $categories : array());
+
+            $objects_data = array_map(function($t) {
+                return array('id' => $t->term_id, 'name' => $t->name, 'slug' => $t->slug, 'count' => $t->count);
+            }, is_array($objects) ? $objects : array());
+
+            $cities_data = array_map(function($t) {
+                return array('id' => $t->term_id, 'name' => $t->name, 'slug' => $t->slug, 'count' => $t->count);
+            }, is_array($cities) ? $cities : array());
+
+            return new WP_REST_Response(array(
+                'success' => true,
+                'categories' => $categories_data,
+                'objects' => $objects_data,
+                'cities' => $cities_data,
+                'total_categories' => count($categories_data),
+                'total_objects' => count($objects_data),
+                'total_cities' => count($cities_data),
+                'date_range' => array('from' => $date_from, 'to' => $date_to)
+            ), 200);
+
+        } catch (Exception $e) {
+            error_log("Error in get_active_filters_for_mobile: " . $e->getMessage());
+            return new WP_Error('filters_error', 'Error fetching active filters', array('status' => 500));
+        }
+    }
+
+    /**
+     * Liczy wydarzenia w kategorii w danym zakresie dat
+     */
+    private function get_events_count_by_category($category_id, $date_from, $date_to) {
+        return 0; // Simplified to avoid slow queries
+    }
+
+    /**
+     * Liczy wydarzenia w obiekcie w danym zakresie dat
+     */
+    private function get_events_count_by_object($object_id, $date_from, $date_to) {
+        try {
+            // Debug: Log parameters
+            error_log("get_events_count_by_object - object_id: $object_id, date_from: $date_from, date_to: $date_to");
+            
+            $args = array(
+                'post_type' => 'kalendarz', // Poprawione - używamy 'kalendarz' bo taki typ jest w WordPress
+                'post_status' => 'publish',
+                'posts_per_page' => -1,
+                'tax_query' => array(
+                    array(
+                        'taxonomy' => 'obiekt',
+                        'field' => 'term_id',
+                        'terms' => $object_id
+                    )
+                ),
+                'meta_query' => array(
+                    'relation' => 'AND',
+                    array(
+                        'key' => 'sama-data',
+                        'value' => strtotime($date_from . ' 00:00:00'),
+                        'compare' => '>=',
+                        'type' => 'NUMERIC'
+                    ),
+                    array(
+                        'key' => 'sama-data',
+                        'value' => strtotime($date_to . ' 23:59:59'),
+                        'compare' => '<=',
+                        'type' => 'NUMERIC'
+                    )
+                )
+            );
+
+            // Debug: Log query arguments
+            error_log("get_events_count_by_object - Query args: " . print_r($args, true));
+
+            $query = new WP_Query($args);
+            
+            // Debug: Log query results
+            error_log("get_events_count_by_object - Found posts: " . $query->found_posts);
+            error_log("get_events_count_by_object - Query SQL: " . $query->request);
+            
+            if ($query->have_posts()) {
+                // Debug: Log first few posts for verification
+                $post_count = 0;
+                while ($query->have_posts() && $post_count < 3) {
+                    $query->the_post();
+                    $post_id = get_the_ID();
+                    $post_date = get_post_meta($post_id, 'sama-data', true);
+                    error_log("get_events_count_by_object - Post ID: $post_id, Date: $post_date");
+                    $post_count++;
+                }
+                wp_reset_postdata();
+            }
+            
+            return $query->found_posts;
+            
+        } catch (Exception $e) {
+            error_log("get_events_count_by_object - Error: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Liczy wydarzenia w mieście w danym zakresie dat
+     */
+    private function get_events_count_by_city($city_name, $date_from, $date_to) {
+        try {
+            // Debug: Log parameters
+            error_log("get_events_count_by_city - city_name: $city_name, date_from: $date_from, date_to: $date_to");
+            
+            $args = array(
+                'post_type' => 'kalendarz',
+                'post_status' => 'publish',
+                'posts_per_page' => -1,
+                'meta_query' => array(
+                    'relation' => 'AND',
+                    array(
+                        'key' => 'miasto',
+                        'value' => $city_name,
+                        'compare' => '='
+                    ),
+                    array(
+                        'key' => 'sama-data',
+                        'value' => strtotime($date_from . ' 00:00:00'),
+                        'compare' => '>=',
+                        'type' => 'NUMERIC'
+                    ),
+                    array(
+                        'key' => 'sama-data',
+                        'value' => strtotime($date_to . ' 23:59:59'),
+                        'compare' => '<=',
+                        'type' => 'NUMERIC'
+                    )
+                )
+            );
+
+            // Debug: Log query arguments
+            error_log("get_events_count_by_city - Query args: " . print_r($args, true));
+
+            $query = new WP_Query($args);
+            
+            // Debug: Log query results
+            error_log("get_events_count_by_city - Found posts: " . $query->found_posts);
+            error_log("get_events_count_by_city - Query SQL: " . $query->request);
+            
+            return $query->found_posts;
+            
+        } catch (Exception $e) {
+            error_log("get_events_count_by_city - Error: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // Endpoint diagnostyczny - sprawdza stan bazy danych i struktury
+    public function get_database_status($request) {
+        try {
+            global $wpdb;
+            
+            $database_status = array(
+                'wordpress_version' => get_bloginfo('version'),
+                'php_version' => PHP_VERSION,
+                'mysql_version' => $wpdb->db_version(),
+                'post_types' => array(),
+                'taxonomies' => array(),
+                'meta_fields' => array(),
+                'sample_posts' => array()
+            );
+            
+            // Sprawdź typy postów
+            $post_types = get_post_types(array(), 'objects');
+            foreach ($post_types as $post_type => $post_type_obj) {
+                $count = wp_count_posts($post_type);
+                $database_status['post_types'][$post_type] = array(
+                    'name' => $post_type_obj->name,
+                    'label' => $post_type_obj->label,
+                    'count' => $count->publish,
+                    'total' => $count->publish + $count->draft + $count->pending + $count->private
+                );
+            }
+            
+            // Sprawdź taksonomie
+            $taxonomies = get_taxonomies(array(), 'objects');
+            foreach ($taxonomies as $taxonomy => $taxonomy_obj) {
+                $terms = get_terms(array('taxonomy' => $taxonomy, 'hide_empty' => false));
+                $database_status['taxonomies'][$taxonomy] = array(
+                    'name' => $taxonomy_obj->name,
+                    'label' => $taxonomy_obj->label,
+                    'terms_count' => count($terms),
+                    'sample_terms' => array_slice(array_map(function($term) {
+                        return array('id' => $term->term_id, 'name' => $term->name, 'slug' => $term->slug);
+                    }, $terms), 0, 5)
+                );
+            }
+            
+            // Sprawdź meta pola dla typu 'kalendarz'
+            if (post_type_exists('kalendarz')) {
+                $sample_posts = get_posts(array(
+                    'post_type' => 'kalendarz',
+                    'post_status' => 'publish',
+                    'posts_per_page' => 3
+                ));
+                
+                foreach ($sample_posts as $post) {
+                    $meta_fields = get_post_meta($post->ID);
+                    $database_status['meta_fields'][$post->ID] = array(
+                        'title' => $post->post_title,
+                        'meta' => $meta_fields
+                    );
+                }
+            }
+            
+            // Sprawdź próbkę postów
+            $recent_posts = get_posts(array(
+                'post_type' => 'any',
+                'post_status' => 'publish',
+                'posts_per_page' => 5
+            ));
+            
+            foreach ($recent_posts as $post) {
+                $database_status['sample_posts'][] = array(
+                    'id' => $post->ID,
+                    'type' => $post->post_type,
+                    'title' => $post->post_title,
+                    'date' => $post->post_date,
+                    'meta_count' => count(get_post_meta($post->ID))
+                );
+            }
+
+            return new WP_REST_Response(array(
+                'success' => true,
+                'database_status' => $database_status
+            ), 200);
+
+        } catch (Exception $e) {
+            error_log("Error in get_database_status: " . $e->getMessage());
+            return new WP_Error('database_status_error', 'Error fetching database status', array('status' => 500));
+        }
+    }
+
+    // Endpoint do testowania konkretnych zapytań
+    public function test_specific_query($request) {
+        try {
+            $post_type = $request->get_param('post_type') ?: 'kalendarz';
+            $meta_key = $request->get_param('meta_key') ?: 'sama-data';
+            $taxonomy = $request->get_param('taxonomy') ?: 'kategoria-wydarzenia';
+
+            // Sprawdź czy typ postu istnieje
+            if (!post_type_exists($post_type)) {
+                return new WP_Error('invalid_post_type', "Typ postu '$post_type' nie istnieje", array('status' => 400));
+            }
+
+            // Sprawdź czy taksonomia istnieje
+            if (!taxonomy_exists($taxonomy)) {
+                return new WP_Error('invalid_taxonomy', "Taksonomia '$taxonomy' nie istnieje", array('status' => 400));
+            }
+
+            // Pobierz termy taksonomii
+            $terms = get_terms(array('taxonomy' => $taxonomy, 'hide_empty' => false));
+            if (is_wp_error($terms)) {
+                return new WP_Error('terms_error', 'Błąd podczas pobierania terminów', array('status' => 500));
+            }
+
+            $args = array(
+                'post_type' => $post_type,
+                'post_status' => 'publish',
+                'posts_per_page' => 10,
+                'meta_key' => $meta_key,
+                'orderby' => 'meta_value_num',
+                'order' => 'ASC'
+            );
+
+            // Dodaj tax_query tylko jeśli są termy
+            if (!empty($terms)) {
+                $term_ids = wp_list_pluck($terms, 'term_id');
+                $args['tax_query'] = array(
+                    array(
+                        'taxonomy' => $taxonomy,
+                        'field' => 'term_id',
+                        'terms' => $term_ids,
+                        'operator' => 'IN'
+                    )
+                );
+            }
+
+            // Debug: Log query arguments
+            error_log("test_specific_query - Args: " . print_r($args, true));
+
+            $query = new WP_Query($args);
+
+            // Debug: Log query results
+            error_log("test_specific_query - Found posts: " . $query->found_posts);
+            error_log("test_specific_query - Query SQL: " . $query->request);
+
+            $results = array();
+            if ($query->have_posts()) {
+                while ($query->have_posts()) {
+                    $query->the_post();
+                    $post_id = get_the_ID();
+                    
+                    $results[] = array(
+                        'id' => $post_id,
+                        'title' => get_the_title(),
+                        'post_type' => get_post_type($post_id),
+                        'meta_data' => get_post_meta($post_id, $meta_key, true),
+                        'all_meta' => get_post_meta($post_id),
+                        'categories' => wp_get_post_terms($post_id, 'kategoria-wydarzenia', array('fields' => 'names')),
+                        'objects' => wp_get_post_terms($post_id, 'obiekt', array('fields' => 'names')),
+                        'permalink' => get_permalink($post_id)
+                    );
+                }
+            }
+
+            wp_reset_postdata();
+
+            return new WP_REST_Response(array(
+                'success' => true,
+                'query_args' => $args,
+                'query_sql' => $query->request,
+                'found_posts' => $query->found_posts,
+                'max_pages' => $query->max_num_pages,
+                'results' => $results,
+                'terms_count' => count($terms),
+                'sample_terms' => array_slice(array_map(function($term) {
+                    return array('id' => $term->term_id, 'name' => $term->name, 'slug' => $term->slug);
+                }, $terms), 0, 5)
+            ), 200);
+
+        } catch (Exception $e) {
+            error_log("Error in test_specific_query: " . $e->getMessage());
+            return new WP_Error('query_error', 'Error testing query: ' . $e->getMessage(), array('status' => 500));
         }
     }
 } 

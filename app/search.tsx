@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  FlatList, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  FlatList,
   ActivityIndicator,
   TouchableOpacity,
   Platform
@@ -19,12 +19,13 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
+import GlobalTabBar from '@/components/GlobalTabBar';
 
 export default function SearchScreen() {
   const router = useRouter();
   const { theme } = useThemeStore();
   const { addRecentArticle } = useArticlesStore();
-  
+
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,24 +33,24 @@ export default function SearchScreen() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  
+
   const handleSearch = async (searchQuery: string) => {
     setQuery(searchQuery);
-    
+
     if (!searchQuery.trim()) {
       setArticles([]);
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
-      
+
       const { articles: searchResults, totalPages } = await searchArticles(searchQuery, 1);
-      
+
       // Additional client-side filtering to ensure no sponsored content
       const filteredResults = filterSponsoredArticles(searchResults);
-      
+
       setArticles(filteredResults);
       setTotalPages(totalPages);
       setPage(1);
@@ -60,19 +61,19 @@ export default function SearchScreen() {
       setLoading(false);
     }
   };
-  
+
   const handleLoadMore = async () => {
     if (page >= totalPages || loadingMore || !query.trim()) return;
-    
+
     try {
       setLoadingMore(true);
-      
+
       const nextPage = page + 1;
       const { articles: moreResults } = await searchArticles(query, nextPage);
-      
+
       // Additional client-side filtering to ensure no sponsored content
       const filteredResults = filterSponsoredArticles(moreResults);
-      
+
       setArticles((prev) => [...prev, ...filteredResults]);
       setPage(nextPage);
     } catch (err) {
@@ -81,7 +82,7 @@ export default function SearchScreen() {
       setLoadingMore(false);
     }
   };
-  
+
   const handleArticlePress = (article: Article) => {
     // Add to recent articles (filtering is handled in the store)
     addRecentArticle(article);
@@ -92,25 +93,25 @@ export default function SearchScreen() {
       <View style={[styles.iconContainer, { backgroundColor: theme.colors.subtle }]}>
         <SearchIcon size={32} color={theme.colors.primary} />
       </View>
-      <Text style={[styles.emptySearchTitle, { 
-        color: theme.colors.text, 
-        fontFamily: theme.fontFamily.bold 
+      <Text style={[styles.emptySearchTitle, {
+        color: theme.colors.text,
+        fontFamily: theme.fontFamily.bold
       }]}>
         Wyszukaj artykuły
       </Text>
-      <Text style={[styles.emptySearchSubtitle, { 
+      <Text style={[styles.emptySearchSubtitle, {
         color: theme.colors.textSecondary,
-        fontFamily: theme.fontFamily.regular 
+        fontFamily: theme.fontFamily.regular
       }]}>
         Wpisz słowa kluczowe lub użyj wyszukiwania głosowego
       </Text>
-      
-              {false && (
+
+      {false && (
         <View style={styles.voiceSearchHint}>
           <Mic size={16} color={theme.colors.primary} />
-          <Text style={[styles.voiceSearchText, { 
+          <Text style={[styles.voiceSearchText, {
             color: theme.colors.primary,
-            fontFamily: theme.fontFamily.semibold 
+            fontFamily: theme.fontFamily.semibold
           }]}>
             Kliknij mikrofon aby wyszukać głosowo
           </Text>
@@ -118,17 +119,17 @@ export default function SearchScreen() {
       )}
     </View>
   );
-  
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.searchContainer, { backgroundColor: theme.colors.card }]}>
-        <SearchBar 
-          onSearch={handleSearch} 
-          placeholder="Szukaj wiadomości..." 
+        <SearchBar
+          onSearch={handleSearch}
+          placeholder="Szukaj wiadomości..."
           autoFocus={false}
         />
       </View>
-      
+
       {loading ? (
         <LoadingIndicator fullScreen />
       ) : (
@@ -137,8 +138,8 @@ export default function SearchScreen() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.articleContainer}>
-              <ArticleCard 
-                article={item} 
+              <ArticleCard
+                article={item}
                 onPress={() => handleArticlePress(item)}
               />
             </View>
@@ -147,10 +148,10 @@ export default function SearchScreen() {
           ListHeaderComponent={
             query.trim() ? (
               <View style={styles.resultsHeader}>
-                <Text 
+                <Text
                   style={[
-                    styles.resultsText, 
-                    { 
+                    styles.resultsText,
+                    {
                       color: theme.colors.text,
                       fontFamily: theme.fontFamily.semibold
                     }
@@ -180,6 +181,7 @@ export default function SearchScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+      <GlobalTabBar activeTab="search" />
     </View>
   );
 }

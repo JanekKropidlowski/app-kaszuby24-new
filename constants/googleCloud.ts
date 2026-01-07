@@ -1,7 +1,7 @@
 // Konfiguracja Google Cloud Text-to-Speech API
 
 export const GOOGLE_CLOUD_CONFIG = {
-  API_KEY: 'AIzaSyAoIelNdv_tDMpmJXSIw54CUA7jJwtKIps',
+  API_KEY: '', // KLUCZ USUNIĘTY DLA BEZPIECZEŃSTWA GITHUB - WPISZ TUTAJ SWÓJ KLUCZ PO POBRANIU KODU
   DEFAULT_VOICE: 'pl-PL-Chirp3-HD-Enceladus',
   DEFAULT_LANGUAGE: 'pl-PL',
   DEFAULT_SPEAKING_RATE: 1.0,

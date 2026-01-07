@@ -4,7 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
+  Image as RNImage,
   FlatList,
   Dimensions,
   StatusBar,
@@ -14,14 +14,11 @@ import {
   Alert,
   Clipboard,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image as ExpoImage } from 'expo-image';
-import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -30,9 +27,12 @@ import Animated, {
   runOnJS,
   interpolate,
   Extrapolate,
-  useAnimatedGestureHandler,
 } from 'react-native-reanimated';
-import { PanGestureHandler, PinchGestureHandler } from 'react-native-gesture-handler';
+import { Image as ExpoImage } from 'expo-image';
+const AnimatedImage = Animated.createAnimatedComponent(ExpoImage);
+import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import RenderHtml from 'react-native-render-html';
 import {
   ArrowLeft,
@@ -62,6 +62,7 @@ import { cleanHtml, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlPar
 import SkeletonLoader from '@/components/SkeletonLoader';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
+import { AdBanner } from '@/components/AdBanner'; // Import AdBanner
 import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
 import { WebView } from 'react-native-webview';
 import { AudioPlayerBar } from '@/components/AudioPlayerBar';
@@ -115,18 +116,9 @@ export default function ArticleScreen() {
   const { isArticleSaved, saveArticle, removeArticle } = useArticlesStore();
   const insets = useSafeAreaInsets();
 
-  // Sprawdź uprawnienia audio na starcie
+  // Sprawdź audio na starcie
   useEffect(() => {
-    const checkAudioPermissions = async () => {
-      try {
-        console.log('[TTS DEBUG] Checking audio permissions...');
-        console.log('[TTS DEBUG] Audio module loaded successfully');
-      } catch (error) {
-        console.error('[TTS DEBUG] Error checking audio permissions:', error);
-      }
-    };
-    
-    checkAudioPermissions();
+    console.log('[TTS] Audio module ready');
   }, []);
 
   // Ensure Poppins is available for this screen (especially for RenderHtml)
@@ -143,10 +135,14 @@ export default function ArticleScreen() {
   const [related, setRelated] = useState<Article[]>([]);
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
+  const [relatedPage, setRelatedPage] = useState(1);
+  const [hasMoreRelated, setHasMoreRelated] = useState(true);
+  const [loadingMoreRelated, setLoadingMoreRelated] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [galleryImages, setGalleryImages] = useState<MediaItem[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [galleryLoading, setGalleryLoading] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
   const [flickrUrl, setFlickrUrl] = useState<string | null>(null);
   const [allImages, setAllImages] = useState<MediaItem[]>([]);
@@ -155,12 +151,12 @@ export default function ArticleScreen() {
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isLightboxVisible, setIsLightboxVisible] = useState(false);
   const [isLightboxReady, setIsLightboxReady] = useState(false);
-  
+
   // Tooltip state dla ikony "czytaj na głos"
   const [showTtsTooltip, setShowTtsTooltip] = useState(true); // Pokazuje się od razu
   const tooltipOpacity = useSharedValue(1); // Zaczyna widoczny
   const tooltipScale = useSharedValue(1); // Zaczyna w pełnym rozmiarze
-  
+
   // Stan dla paska postępu czytania
   const [readingProgress, setReadingProgress] = useState(0);
   const [showReadingProgress, setShowReadingProgress] = useState(false);
@@ -189,7 +185,7 @@ export default function ArticleScreen() {
     const timer = setTimeout(() => {
       hideTooltip();
     }, 5000);
-    
+
     return () => clearTimeout(timer);
   }, [hideTooltip]);
 
@@ -199,44 +195,24 @@ export default function ArticleScreen() {
       try {
         // ensure we stop any ongoing speech when leaving the screen
         useTTSStore.getState().stop();
-      } catch {}
+      } catch { }
     };
   }, []);
 
   const handleReadAloud = useCallback(() => {
-    console.log('[TTS DEBUG] handleReadAloud called');
-    console.log('[TTS DEBUG] TTS store state:', {
-      status: tts.status,
-      isVisible: tts.isVisible,
-      chunks: tts.chunks.length,
-      currentIndex: tts.currentIndex
-    });
-    
-    // Sprawdź czy Speech jest dostępny
-    if (typeof Speech === 'undefined' || !Speech.speak) {
-      console.error('[TTS DEBUG] Speech module not available');
-      Alert.alert('Błąd', 'Moduł syntezy mowy nie jest dostępny');
-      return;
-    }
-    
+    console.log('[TTS] handleReadAloud called');
+
     if (!article || !cleanedContentHtml) {
-      console.log('[TTS DEBUG] Missing article or content:', { 
-        hasArticle: !!article, 
-        hasContent: !!cleanedContentHtml,
-        contentLength: cleanedContentHtml?.length 
-      });
+      console.log('[TTS] Missing article or content');
       Alert.alert('Błąd', 'Brak treści do odczytania');
       return;
     }
 
     // Debounce - prevent multiple rapid clicks
     if (tts.status === 'loading' || tts.status === 'playing') {
-      console.log('[TTS DEBUG] TTS already active, ignoring click');
+      console.log('[TTS] TTS already active, ignoring click');
       return;
     }
-
-    console.log('[TTS DEBUG] article:', !!article);
-    console.log('[TTS DEBUG] cleanedContentHtml length:', cleanedContentHtml.length);
 
     // Clean HTML properly for TTS
     const plainText = cleanedContentHtml
@@ -248,11 +224,8 @@ export default function ArticleScreen() {
       .replace(/\s{2,}/g, ' ')
       .trim();
 
-    console.log('[TTS DEBUG] Plain text length:', plainText.length);
-    console.log('[TTS DEBUG] Plain text preview:', plainText.substring(0, 200));
-
     if (plainText.length < 50) {
-      console.log('[TTS DEBUG] Text too short for TTS');
+      console.log('[TTS] Text too short for TTS');
       Alert.alert('Błąd', 'Treść jest zbyt krótka do odczytania');
       return;
     }
@@ -275,35 +248,30 @@ export default function ArticleScreen() {
         return acc;
       }, [] as string[]);
 
-    console.log('[TTS DEBUG] chunks count:', chunks.length);
-    console.log('[TTS DEBUG] first chunk:', chunks[0]?.substring(0, 200));
-    console.log('[TTS DEBUG] title:', article.title.rendered);
-
     if (chunks.length === 0) {
-      console.log('[TTS DEBUG] No valid chunks created');
+      console.log('[TTS] No valid chunks created');
       Alert.alert('Błąd', 'Nie można przetworzyć treści do odczytania');
       return;
     }
 
     try {
-      console.log('[TTS DEBUG] Starting TTS with store...');
+      console.log('[TTS] Starting TTS...');
       tts.start({
         title: article.title.rendered,
         chunks,
         speakingRate: 1.0,
         language: 'pl-PL',
-        useAlertsFallback: false,
       });
-      console.log('[TTS DEBUG] TTS started successfully');
+      console.log('[TTS] TTS started successfully');
     } catch (error) {
-      console.error('[TTS DEBUG] Error starting TTS:', error);
+      console.error('[TTS] Error starting TTS:', error);
       Alert.alert('Błąd', 'Nie udało się uruchomić czytania: ' + error);
     }
   }, [article, cleanedContentHtml, tts]);
 
   // Stabilne referencje dla lightboxa - zapobiegają przeładowaniu
-  const lightboxImages = useMemo(() => 
-    allImages.map(img => ({ 
+  const lightboxImages = useMemo(() =>
+    allImages.map(img => ({
       uri: img.media_details?.sizes?.large?.source_url || img.source_url,
       caption: img.caption?.rendered || ''
     })), [allImages]
@@ -341,10 +309,7 @@ export default function ArticleScreen() {
     }
   }, [selectedImageIndex, allImages.length, galleryImages.length]);
 
-  // Pinch-to-zoom shared values
-  const scale = useSharedValue(1);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
+
 
   // Płynne przejście shared values
   const screenTranslateY = useSharedValue(0);
@@ -375,10 +340,10 @@ export default function ArticleScreen() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Load article data first
         const articleData = await fetchArticleById(articleId);
-        
+
         if (!articleData) {
           setError('Nie znaleziono artykułu');
           setLoading(false);
@@ -390,54 +355,84 @@ export default function ArticleScreen() {
         // Clean content
         const cleaned = cleanHtml(articleData.content.rendered || '', !!theme.isDarkMode || !!isDarkMode);
         setCleanedContentHtml(cleaned);
-        
+
         // NIE resetuj selectedImageIndex tutaj - pozwól na płynne przejścia
 
-          // Load gallery images in background (non-blocking)
-  const galleryIds = articleData.meta?.galeria ? processGalleryIds(articleData.meta.galeria) : [];
-  
-  // Featured image as MediaItem - zawsze dodaj zdjęcie główne
-  let featuredMedia: MediaItem | null = null;
-  if (articleData.featured_media_url) {
-    featuredMedia = {
-      id: 0,
-      source_url: articleData.featured_media_url,
-      media_details: { width: 800, height: 600 },
-      caption: { rendered: articleData.meta?.foto ? `fot. ${articleData.meta.foto}` : '' },
-      alt_text: '',
-    };
-  }
-  
-  if (galleryIds.length > 0) {
-    fetchMediaByIds(galleryIds)
-      .then(galleryData => {
-        setGalleryImages(galleryData);
-        
-        // Combine featured + gallery
-        let allImgs: MediaItem[] = [];
-        if (featuredMedia) {
-          const isInGallery = galleryData.some(img => img.source_url === featuredMedia!.source_url);
-          allImgs = isInGallery ? galleryData : [featuredMedia, ...galleryData];
+        // Load gallery images in background (non-blocking)
+        const galleryIds = articleData.meta?.galeria ? processGalleryIds(articleData.meta.galeria) : [];
+
+        // Featured image as MediaItem - zawsze dodaj zdjęcie główne
+        let featuredMedia: MediaItem | null = null;
+        if (articleData.featured_media_url) {
+          featuredMedia = {
+            id: 0,
+            source_url: articleData.featured_media_url,
+            media_details: { width: 800, height: 600 },
+            caption: { rendered: articleData.meta?.foto ? `fot. ${articleData.meta.foto}` : '' },
+            alt_text: '',
+          };
+        }
+
+        if (galleryIds.length > 0) {
+          setGalleryLoading(true);
+          fetchMediaByIds(galleryIds)
+            .then(galleryData => {
+              // Usuń duplikaty z galleryData na podstawie source_url
+              const uniqueGalleryData = galleryData.filter((img, index, self) =>
+                index === self.findIndex(t => t.source_url === img.source_url)
+              );
+
+              setGalleryImages(uniqueGalleryData);
+
+              // Combine featured + gallery
+              let allImgs: MediaItem[] = [];
+              if (featuredMedia) {
+                // Sprawdź czy featuredMedia ma unikalne ID
+                const featuredWithUniqueId = {
+                  ...featuredMedia,
+                  id: featuredMedia.id || -1 // Użyj -1 jeśli brak ID
+                };
+
+                // Sprawdź czy featuredMedia jest już w galerii
+                const isInGallery = uniqueGalleryData.some(img => img.source_url === featuredMedia.source_url);
+
+                if (isInGallery) {
+                  // Jeśli featuredMedia jest w galerii, użyj tylko galerii
+                  allImgs = uniqueGalleryData;
+                } else {
+                  // Jeśli featuredMedia nie jest w galerii, dodaj na początku
+                  allImgs = [featuredWithUniqueId, ...uniqueGalleryData];
+                }
+              } else {
+                allImgs = uniqueGalleryData;
+              }
+
+              console.log('[LIGHTBOX DEBUG] Setting allImages with length:', allImgs.length);
+              setAllImages(allImgs);
+              setGalleryLoading(false);
+            })
+            .catch(err => {
+              console.warn('Failed to load gallery images:', err);
+              setGalleryLoading(false);
+              // Jeśli nie ma galerii, dodaj tylko zdjęcie główne
+              if (featuredMedia) {
+                const featuredWithUniqueId = {
+                  ...featuredMedia,
+                  id: featuredMedia.id || -1 // Użyj -1 jeśli brak ID
+                };
+                setAllImages([featuredWithUniqueId]);
+              }
+            });
         } else {
-          allImgs = galleryData;
+          // Jeśli nie ma galerii, dodaj tylko zdjęcie główne
+          if (featuredMedia) {
+            const featuredWithUniqueId = {
+              ...featuredMedia,
+              id: featuredMedia.id || -1 // Użyj -1 jeśli brak ID
+            };
+            setAllImages([featuredWithUniqueId]);
+          }
         }
-        
-        console.log('[LIGHTBOX DEBUG] Setting allImages with length:', allImgs.length);
-        setAllImages(allImgs);
-      })
-      .catch(err => {
-        console.warn('Failed to load gallery images:', err);
-        // Jeśli nie ma galerii, dodaj tylko zdjęcie główne
-        if (featuredMedia) {
-          setAllImages([featuredMedia]);
-        }
-      });
-  } else {
-    // Jeśli nie ma galerii, dodaj tylko zdjęcie główne
-    if (featuredMedia) {
-      setAllImages([featuredMedia]);
-    }
-  }
 
         // Extract YouTube URL if available
         if (articleData.meta?.youtube) {
@@ -446,7 +441,7 @@ export default function ArticleScreen() {
             setYoutubeUrl(ytUrl);
           }
         }
-        
+
         // Extract Flickr URL if available
         if (articleData.meta?.flickr) {
           setFlickrUrl(articleData.meta.flickr);
@@ -454,10 +449,12 @@ export default function ArticleScreen() {
 
         // Load related articles in background
         if (articleData.categories && articleData.categories.length > 0) {
-          fetchRelatedArticles(articleId, articleData.categories, 6)
+          fetchRelatedArticles(articleId, articleData.categories, 6, 1)
             .then(relatedData => {
               const allRelated = [...relatedData.sliderArticles, ...relatedData.listArticles];
               setRelatedArticles(allRelated);
+              setRelatedPage(1);
+              setHasMoreRelated(allRelated.length >= 6);
             })
             .catch(err => {
               console.warn('Failed to load related articles:', err);
@@ -465,7 +462,7 @@ export default function ArticleScreen() {
         }
 
         setLoading(false);
-        
+
       } catch (err) {
         console.error('Error loading article data:', err);
         setError('Nie udało się załadować artykułu');
@@ -484,65 +481,7 @@ export default function ArticleScreen() {
 
   // Debug font logs removed
 
-  // Pinch gesture handler
-  const pinchGestureHandler = useAnimatedGestureHandler({
-    onStart: (_, context: any) => {
-      context.startScale = scale.value;
-    },
-    onActive: (event: any, context: any) => {
-      scale.value = context.startScale * event.scale;
-    },
-    onEnd: () => {
-      if (scale.value < 1) {
-        scale.value = withSpring(1);
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
-      } else if (scale.value > 3) {
-        scale.value = withSpring(3);
-      }
-    },
-  });
 
-  // Pan gesture handler
-  const panGestureHandler = useAnimatedGestureHandler({
-    onStart: (_, context: any) => {
-      context.startX = translateX.value;
-      context.startY = translateY.value;
-    },
-    onActive: (event: any, context: any) => {
-      if (scale.value > 1) {
-        translateX.value = context.startX + event.translationX;
-        translateY.value = context.startY + event.translationY;
-      }
-    },
-    onEnd: () => {
-      const maxTranslateX = (width * (scale.value - 1)) / 2;
-      const maxTranslateY = (height * (scale.value - 1)) / 2;
-
-      if (translateX.value > maxTranslateX) {
-        translateX.value = withSpring(maxTranslateX);
-      } else if (translateX.value < -maxTranslateX) {
-        translateX.value = withSpring(-maxTranslateX);
-      }
-
-      if (translateY.value > maxTranslateY) {
-        translateY.value = withSpring(maxTranslateY);
-      } else if (translateY.value < -maxTranslateY) {
-        translateY.value = withSpring(-maxTranslateY);
-      }
-    },
-  });
-
-  // Animated image style
-  const animatedImageStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { scale: scale.value },
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-      ],
-    };
-  });
 
   // Animated style dla płynnego przejścia
   const animatedContentStyle = useAnimatedStyle(() => {
@@ -561,7 +500,7 @@ export default function ArticleScreen() {
       [0, 1],
       Extrapolate.CLAMP
     );
-    
+
     const translateY = interpolate(
       scrollOverflow.value,
       [0, 100],
@@ -576,11 +515,10 @@ export default function ArticleScreen() {
   });
 
   // Reset zoom when modal closes
+  // Reset zoom when modal closes
   useEffect(() => {
     if (selectedImageIndex === null) {
-      scale.value = withTiming(1);
-      translateX.value = withTiming(0);
-      translateY.value = withTiming(0);
+      // Logic removed as shared values were removed
     }
   }, [selectedImageIndex]);
 
@@ -591,15 +529,15 @@ export default function ArticleScreen() {
       // Navigate to search with filtered category
       router.push({
         pathname: '/(tabs)/search',
-        params: { 
+        params: {
           category: article.categories[0].toString(),
           categoryName: article.categories[0] === 17 ? 'Bezpieczeństwo' :
-                       article.categories[0] === 11 ? 'Biznes' :
-                       article.categories[0] === 24 ? 'Sport' :
-                       article.categories[0] === 22 ? 'Religia' :
-                       article.categories[0] === 2246 ? 'Zdrowie' :
-                       article.categories[0] === 49 ? 'Nauka' :
-                       article.categories[0] === 16 ? 'Kultura' : 'Aktualności'
+            article.categories[0] === 11 ? 'Biznes' :
+              article.categories[0] === 24 ? 'Sport' :
+                article.categories[0] === 22 ? 'Religia' :
+                  article.categories[0] === 2246 ? 'Zdrowie' :
+                    article.categories[0] === 49 ? 'Nauka' :
+                      article.categories[0] === 16 ? 'Kultura' : 'Aktualności'
         }
       });
     }
@@ -641,15 +579,15 @@ export default function ArticleScreen() {
 
   // Nowa funkcja dla animowanej sekcji wsparcia - uproszczona bez problematycznych animacji
   const [coffeePressed, setCoffeePressed] = useState(false);
-  
+
   const handleCoffeePress = () => {
     // Prosta animacja stanu
     setCoffeePressed(true);
     setTimeout(() => setCoffeePressed(false), 300);
-    
+
     // Haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     // Pokazuj alert z opóźnieniem dla lepszego UX
     setTimeout(() => {
       Alert.alert(
@@ -663,10 +601,41 @@ export default function ArticleScreen() {
     }, 200);
   };
 
+  // Funkcja do ładowania kolejnych stron powiązanych artykułów
+  const loadMoreRelatedArticles = useCallback(async () => {
+    if (!article || !hasMoreRelated || loadingMoreRelated) return;
+
+    try {
+      setLoadingMoreRelated(true);
+      const nextPage = relatedPage + 1;
+
+      // Pobierz kolejną stronę powiązanych artykułów
+      const moreRelated = await fetchRelatedArticles(
+        article.id,
+        article.categories,
+        6,
+        nextPage
+      );
+
+      if (moreRelated.sliderArticles.length > 0 || moreRelated.listArticles.length > 0) {
+        const allMoreRelated = [...moreRelated.sliderArticles, ...moreRelated.listArticles];
+        setRelatedArticles(prev => [...prev, ...allMoreRelated]);
+        setRelatedPage(nextPage);
+        setHasMoreRelated(allMoreRelated.length >= 6);
+      } else {
+        setHasMoreRelated(false);
+      }
+    } catch (error) {
+      console.warn('Failed to load more related articles:', error);
+    } finally {
+      setLoadingMoreRelated(false);
+    }
+  }, [article, hasMoreRelated, loadingMoreRelated, relatedPage]);
+
   // Function to navigate between images in the modal - zoptymalizowana
   const navigateImage = (direction: 'prev' | 'next') => {
     if (selectedImageIndex === null || !allImages.length) return;
-    
+
     if (direction === 'prev' && selectedImageIndex > 0) {
       // Płynne przejście do poprzedniego zdjęcia
       setSelectedImageIndex(selectedImageIndex - 1);
@@ -674,7 +643,7 @@ export default function ArticleScreen() {
       const prevIndex = selectedImageIndex - 2;
       if (prevIndex >= 0 && allImages[prevIndex]) {
         const prevImageUrl = allImages[prevIndex].media_details?.sizes?.large?.source_url || allImages[prevIndex].source_url;
-        ExpoImage.prefetch(prevImageUrl).catch(() => {});
+        ExpoImage.prefetch(prevImageUrl).catch(() => { });
       }
     } else if (direction === 'next' && selectedImageIndex < allImages.length - 1) {
       // Płynne przejście do następnego zdjęcia
@@ -683,7 +652,7 @@ export default function ArticleScreen() {
       const nextIndex = selectedImageIndex + 2;
       if (nextIndex < allImages.length && allImages[nextIndex]) {
         const nextImageUrl = allImages[nextIndex].media_details?.sizes?.large?.source_url || allImages[nextIndex].source_url;
-        ExpoImage.prefetch(nextImageUrl).catch(() => {});
+        ExpoImage.prefetch(nextImageUrl).catch(() => { });
       }
     }
   };
@@ -691,7 +660,7 @@ export default function ArticleScreen() {
   // Function to open image modal with haptic feedback - zoptymalizowana
   const openImageModal = useCallback((index: number) => {
     if (allImages.length === 0) return;
-    
+
     if (index >= 0 && index < allImages.length) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       // Ustaw wszystko jednocześnie dla natychmiastowego otwarcia
@@ -715,33 +684,33 @@ export default function ArticleScreen() {
   // Function to download image - POPRAWIONA
   const downloadImage = async () => {
     if (selectedImageIndex === null || !allImages[selectedImageIndex]) return;
-    
+
     try {
       const imageUrl = allImages[selectedImageIndex].source_url;
-      
+
       // Sprawdź uprawnienia do zapisu
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Błąd', 'Brak uprawnień do zapisu zdjęć');
         return;
       }
-      
+
       // Pokaż loader
       Alert.alert('Pobieranie...', 'Zdjęcie jest pobierane...');
-      
+
       // Pobierz zdjęcie
       const fileName = `kaszuby24_${Date.now()}.jpg`;
       const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-      
+
       const downloadResult = await FileSystem.downloadAsync(imageUrl, fileUri);
-      
+
       if (downloadResult.status === 200) {
         // Zapisz do galerii
         const asset = await MediaLibrary.createAssetAsync(fileUri);
         await MediaLibrary.createAlbumAsync('Kaszuby24', asset, false);
-        
+
         Alert.alert('Sukces!', 'Zdjęcie zostało pobrane do galerii');
-        
+
         // Usuń tymczasowy plik
         await FileSystem.deleteAsync(fileUri, { idempotent: true });
       } else {
@@ -753,64 +722,47 @@ export default function ArticleScreen() {
     }
   };
 
-  // Swipe gesture handlers
-  const swipeGestureHandler = useAnimatedGestureHandler({
-    onStart: (_, context: any) => {
-      context.startX = 0;
-    },
-    onActive: (event, context) => {
-      context.startX = event.translationX;
-    },
-    onEnd: (event) => {
-      if (Math.abs(event.translationX) > 100) {
-        if (event.translationX > 0) {
-          runOnJS(navigateImage)('prev');
-        } else {
-          runOnJS(navigateImage)('next');
-        }
-      }
-    },
-  });
+
 
   // Auto-powrót na główną po scrollu do końca
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
     const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
-    
+
     // Sprawdź czy użytkownik przewinął do końca
     const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 10;
-    
+
     if (isAtBottom && !showHomeHint) {
       setShowHomeHint(true);
     } else if (!isAtBottom && showHomeHint) {
       setShowHomeHint(false);
     }
-    
+
     // Oblicz postęp czytania
     const maxScroll = contentHeight - scrollViewHeight;
     const scrollableHeight = Math.max(0, maxScroll);
     const currentProgress = scrollableHeight > 0 ? Math.min(100, (offsetY / scrollableHeight) * 100) : 0;
-    
+
     setReadingProgress(currentProgress);
-    
+
     // Pokaż pasek postępu po przewinięciu 10% treści
     if (currentProgress > 10 && !showReadingProgress) {
       setShowReadingProgress(true);
     } else if (currentProgress <= 10 && showReadingProgress) {
       setShowReadingProgress(false);
     }
-    
+
     // Oblicz overflow scroll
     const overflow = Math.max(0, offsetY - maxScroll);
-    
+
     if (overflow > 0 && !isNavigatingHome.value) {
       scrollOverflow.value = overflow;
-      
+
       // Mapuj overflow na translateY ekranu
       const translateYValue = -Math.min(overflow * 0.5, height * 0.8);
       screenTranslateY.value = translateYValue;
-      
+
       // Sprawdź czy osiągnięto próg nawigacji
       if (overflow > height * 0.3) {
         isNavigatingHome.value = true;
@@ -842,9 +794,10 @@ export default function ArticleScreen() {
 
   // Render gallery item - zoptymalizowane z memo
   const renderGalleryItem = useCallback(({ item, index }: { item: MediaItem; index: number }) => {
+    // Użyj item.id zamiast actualIndex aby uniknąć duplikacji kluczy
     const hasFeatured = !!article?.featured_media_url;
     const actualIndex = (hasFeatured ? 1 : 0) + index;
-    
+
     return (
       <TouchableOpacity
         style={styles.galleryItem}
@@ -856,6 +809,7 @@ export default function ArticleScreen() {
         accessible={true}
         accessibilityLabel={`Zdjęcie ${index + 1} z galerii`}
         accessibilityHint="Kliknij aby powiększyć zdjęcie"
+        key={`gallery_item_${item.id}_${index}`}
       >
         <ExpoImage
           source={{ uri: item.media_details?.sizes?.medium?.source_url || item.source_url }}
@@ -870,7 +824,7 @@ export default function ArticleScreen() {
   }, [article?.featured_media_url, openImageModal]);
 
   // Render related article item - zoptymalizowane z memo
-  const renderRelatedArticle = useCallback(({ item }: { item: Article }) => (
+  const renderRelatedArticle = useCallback(({ item, index }: { item: Article; index: number }) => (
     <TouchableOpacity
       style={[styles.relatedArticleItem, { backgroundColor: theme.colors.card }]}
       onPress={() => router.push(`/article/${item.id}`)}
@@ -878,6 +832,7 @@ export default function ArticleScreen() {
       accessible={true}
       accessibilityLabel={`Powiązany artykuł: ${truncateRelatedTitle(item.title.rendered)}`}
       accessibilityHint="Otwiera powiązany artykuł"
+      key={`related_article_${item.id}`}
     >
       {item.featured_media_url && (
         <View style={styles.relatedArticleImageContainer}>
@@ -926,7 +881,7 @@ export default function ArticleScreen() {
   }
   if (error || !article) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}> 
+      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
         <Text style={{ color: theme.colors.error, fontSize: 18, fontFamily: 'Poppins_Regular' }}>{error || 'Nie znaleziono artykułu'}</Text>
         <TouchableOpacity onPress={handleGoBack} style={styles.headerButton}>
           <ArrowLeft size={24} color={theme.colors.text} />
@@ -940,17 +895,17 @@ export default function ArticleScreen() {
   return (
     <View style={[styles.rootContainer, { backgroundColor: theme.colors.background }]}>
       {/* StatusBar usunięty - dziedziczony z głównego _layout.tsx */}
-      
+
       {/* WARSTWA 1: UI APLIKACJI (STAŁE) */}
-      
+
       {/* Nagłówek - jest poza animowanym widokiem */}
       <View style={[styles.headerContainer, { zIndex: 10, paddingTop: insets.top }]}>
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0)']}
           style={styles.headerGradient}
         />
-        <TouchableOpacity 
-          style={styles.headerButton} 
+        <TouchableOpacity
+          style={styles.headerButton}
           onPress={handleGoBack}
           accessible={true}
           accessibilityLabel="Wróć do poprzedniej strony"
@@ -958,41 +913,41 @@ export default function ArticleScreen() {
         >
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        
+
         {/* Wypełnienie status bara bez logo */}
         <View style={styles.headerCenter}>
           {/* Logo zostało usunięte */}
         </View>
-        
+
         <View style={styles.headerRightButtons}>
-          <TouchableOpacity 
-            style={styles.headerButton} 
+          <TouchableOpacity
+            style={styles.headerButton}
             onPress={handleToggleSave}
             accessible={true}
             accessibilityLabel={isSaved ? "Usuń z zapisanych" : "Zapisz artykuł"}
             accessibilityHint="Zapisuje lub usuwa artykuł z listy zapisanych"
           >
-            <Bookmark 
-              size={24} 
-              color="#FFFFFF" 
-              fill={isSaved ? "#FFFFFF" : "transparent"} 
+            <Bookmark
+              size={24}
+              color="#FFFFFF"
+              fill={isSaved ? "#FFFFFF" : "transparent"}
             />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.headerButton} 
+          <TouchableOpacity
+            style={styles.headerButton}
             onPress={handleReadAloud}
             accessible={true}
             accessibilityLabel="Czytaj artykuł na głos"
             accessibilityHint="Uruchamia czytanie całego artykułu przez syntezator mowy"
             disabled={tts.status === 'loading' || tts.status === 'playing'}
           >
-            <Volume2 
-              size={24} 
-              color={tts.status === 'loading' || tts.status === 'playing' ? "#CCCCCC" : "#FFFFFF"} 
+            <Volume2
+              size={24}
+              color={tts.status === 'loading' || tts.status === 'playing' ? "#CCCCCC" : "#FFFFFF"}
             />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.headerButton} 
+          <TouchableOpacity
+            style={styles.headerButton}
             onPress={handleShare}
             accessible={true}
             accessibilityLabel="Udostępnij artykuł z obrazem"
@@ -1001,7 +956,7 @@ export default function ArticleScreen() {
             <Share2 size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-        
+
         {/* Tooltip dla ikony "czytaj na głos" */}
         {showTtsTooltip && (
           <Animated.View style={[styles.ttsTooltip, tooltipAnimatedStyle]}>
@@ -1013,7 +968,7 @@ export default function ArticleScreen() {
       </View>
 
       {/* WARSTWA 2: KONTENER TREŚCI (ANIMOWANY) */}
-      
+
       {/* Ten Animated.View zawiera TYLKO ScrollView */}
       <Animated.View style={[styles.contentAnimatedContainer, animatedContentStyle]}>
         <ScrollView
@@ -1025,7 +980,7 @@ export default function ArticleScreen() {
           onLayout={handleScrollViewLayout}
         >
           {/* Featured image with gradient overlay */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.imageContainer}
             onPress={() => openImageModal(0)}
             activeOpacity={0.95}
@@ -1033,7 +988,7 @@ export default function ArticleScreen() {
             accessibilityLabel="Zdjęcie główne artykułu"
             accessibilityHint="Kliknij aby powiększyć zdjęcie"
           >
-            <ExpoImage
+            <RNImage
               source={{ uri: String(article.featured_media_url || article.featured_media) }}
               style={styles.featuredImage}
               resizeMode="cover"
@@ -1042,7 +997,7 @@ export default function ArticleScreen() {
               colors={['transparent', 'rgba(0,0,0,0.7)']}
               style={styles.imageGradient}
             />
-            
+
             {/* Photo credit overlay - nowy */}
             {article?.meta?.foto && (
               <View style={styles.photoCreditOverlay}>
@@ -1054,7 +1009,7 @@ export default function ArticleScreen() {
           </TouchableOpacity>
 
           {/* Content container with improved curved transition */}
-            <View style={[styles.contentContainer, { backgroundColor: theme.colors.card }]} onLayout={handleContentLayout}> 
+          <View style={[styles.contentContainer, { backgroundColor: theme.colors.card }]} onLayout={handleContentLayout}>
             {/* Tytuł artykułu - przeniesiony nad metadata */}
             <Text
               style={[
@@ -1073,40 +1028,43 @@ export default function ArticleScreen() {
 
             {/* Metadata section - kategoria i data w jednej linii */}
             <View style={styles.metadataContainer}>
-              <Text style={[styles.date, { 
-                color: theme.colors.textSecondary, 
+              <Text style={[styles.date, {
+                color: theme.colors.textSecondary,
                 fontFamily: theme.fontFamily.regular
               }]}>
                 {formatDateTime(article.date)}
               </Text>
-              
+
               {/* Kategoria w jednej linii z datą */}
               {article?.categories && article.categories.length > 0 && (
                 <TouchableOpacity onPress={handleCategoryPress}>
                   <Text style={[styles.categoryText, { color: '#FFFFFF', fontFamily: theme.fontFamily.medium }]}>
                     {article.categories[0] === 17 ? 'Bezpieczeństwo' :
-                     article.categories[0] === 11 ? 'Biznes' :
-                     article.categories[0] === 24 ? 'Sport' :
-                     article.categories[0] === 22 ? 'Religia' :
-                     article.categories[0] === 2246 ? 'Zdrowie' :
-                     article.categories[0] === 49 ? 'Nauka' :
-                     article.categories[0] === 16 ? 'Kultura' : 'Aktualności'}
+                      article.categories[0] === 11 ? 'Biznes' :
+                        article.categories[0] === 24 ? 'Sport' :
+                          article.categories[0] === 22 ? 'Religia' :
+                            article.categories[0] === 2246 ? 'Zdrowie' :
+                              article.categories[0] === 49 ? 'Nauka' :
+                                article.categories[0] === 16 ? 'Kultura' : 'Aktualności'}
                   </Text>
                 </TouchableOpacity>
               )}
             </View>
-            
 
 
-            
+
+
             {/* Video player nad treścią */}
+            {/* --- AD: TOP --- */}
+            <AdBanner position="article_top" style={{ marginBottom: 20 }} />
+
             {youtubeUrl && (
               <VideoPlayer url={youtubeUrl} />
             )}
 
             <RenderHtml
               source={{ html: cleanedContentHtml }}
-              contentWidth={width}
+              contentWidth={width - 40}
               baseStyle={{
                 color: theme.colors.text,
                 fontSize: 15, // Zmniejszone z 16 na 15
@@ -1117,7 +1075,7 @@ export default function ArticleScreen() {
               systemFonts={['Poppins_Regular', 'Poppins_Bold', 'Poppins_SemiBold', 'Poppins_Medium', 'sans-serif', 'System']}
               tagsStyles={getHtmlViewStyles(theme)}
               renderers={{
-                iframe: ({ tnode, ...props }: { tnode: any; [key: string]: any }) => {
+                iframe: ({ tnode, ...props }: { tnode: any;[key: string]: any }) => {
                   const { src, width, height } = tnode.attributes;
                   return (
                     <View style={styles.iframeContainer}>
@@ -1140,7 +1098,7 @@ export default function ArticleScreen() {
                 a: {
                   onPress: (_event: any, href: string) => {
                     if (href) {
-                      Linking.openURL(href).catch(() => {});
+                      Linking.openURL(href).catch(() => { });
                     }
                   },
                 },
@@ -1164,10 +1122,13 @@ export default function ArticleScreen() {
             )}
           </View>
 
+          {/* --- AD: BOTTOM - zaraz po treści artykułu --- */}
+          <AdBanner position="article_bottom" style={{ marginHorizontal: 20, marginVertical: 20 }} />
+
 
 
           {/* Galeria - Przywrócona */}
-          {galleryImages.length > 0 && (
+          {(galleryImages.length > 0 || galleryLoading) && (
             <View style={[
               styles.galleryContainer,
               {
@@ -1185,21 +1146,37 @@ export default function ArticleScreen() {
               <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
                 Galeria
               </Text>
-              
-              <FlatList
-                data={galleryImages}
-                renderItem={renderGalleryItem}
-                keyExtractor={(item) => item.id.toString()}
-                numColumns={2}
-                columnWrapperStyle={styles.galleryRow}
-                showsVerticalScrollIndicator={false}
-                scrollEnabled={false}
-                contentContainerStyle={styles.galleryContent}
-              />
-              
+
+              {galleryLoading ? (
+                <View style={styles.galleryLoadingContainer}>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <Text style={[styles.galleryLoadingText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.medium, marginTop: 10 }]}>
+                    Ładowanie zdjęć...
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.galleryContent}>
+                  {(() => {
+                    const rows = [];
+                    for (let i = 0; i < galleryImages.length; i += 2) {
+                      rows.push(
+                        <View key={`row_${i}`} style={styles.galleryRow}>
+                          {renderGalleryItem({ item: galleryImages[i], index: i })}
+                          {i + 1 < galleryImages.length ?
+                            renderGalleryItem({ item: galleryImages[i + 1], index: i + 1 }) :
+                            <View style={{ width: (width - 52) / 2 }} />
+                          }
+                        </View>
+                      );
+                    }
+                    return rows;
+                  })()}
+                </View>
+              )}
+
               {/* Flickr link */}
-              {flickrUrl && (
-                <TouchableOpacity 
+              {!galleryLoading && flickrUrl && (
+                <TouchableOpacity
                   style={[styles.flickrButton, { backgroundColor: theme.colors.primary }]}
                   onPress={() => Linking.openURL(flickrUrl)}
                 >
@@ -1221,10 +1198,15 @@ export default function ArticleScreen() {
               accessibilityLabel="Przejdź do strony wsparcia"
             >
               <ExpoImage
-                source={{ uri: 'http://kaszuby24.pl/wp-content/uploads/2025/08/Bez-nazwy-1-03-scaled.png' }}
+                source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2025/08/Bez-nazwy-1-03-scaled.png' }}
                 style={styles.supportHeroImage}
                 contentFit="cover"
                 priority="high"
+                placeholder="Wesprzyj Kaszuby24"
+                onError={() => {
+                  // Fallback do tekstu jeśli grafika się nie załaduje
+                  console.warn('Support banner image failed to load');
+                }}
               />
             </TouchableOpacity>
           </View>
@@ -1243,16 +1225,29 @@ export default function ArticleScreen() {
                 </View>
                 <View style={[styles.relatedSectionDivider, { backgroundColor: theme.colors.border }]} />
               </View>
-              <FlatList
-                data={relatedArticles}
-                renderItem={renderRelatedArticle}
-                keyExtractor={(item) => item.id.toString()}
-                showsVerticalScrollIndicator={false}
-                scrollEnabled={false}
-                contentContainerStyle={styles.relatedList}
-              />
+              <View style={styles.relatedList}>
+                {relatedArticles.map((item, index) => (
+                  <React.Fragment key={`related_${item.id}`}>
+                    {renderRelatedArticle({ item, index })}
+                  </React.Fragment>
+                ))}
+                {hasMoreRelated && (
+                  <TouchableOpacity
+                    style={styles.loadMoreButton}
+                    onPress={loadMoreRelatedArticles}
+                    disabled={loadingMoreRelated}
+                  >
+                    {loadingMoreRelated ? (
+                      <ActivityIndicator size="small" color={theme.colors.primary} />
+                    ) : (
+                      <Text style={[styles.loadMoreText, { color: theme.colors.primary }]}>Pokaż więcej</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
+
 
           {/* Wskazówka płynnego przejścia */}
           <Animated.View style={[styles.homeHintContainer, hintAnimatedStyle]}>
@@ -1278,10 +1273,10 @@ export default function ArticleScreen() {
 
       {/* Mini-player TTS – POD TAB BAREM Z BIAŁYM TŁEM */}
       {tts.isVisible && (
-        <View style={[styles.articleTtsPlayerContainer, { 
-          zIndex: 1, 
-          elevation: 1 
-        }]}> 
+        <View style={[styles.articleTtsPlayerContainer, {
+          zIndex: 1,
+          elevation: 1
+        }]}>
           <AudioPlayerBar
             isPlaying={tts.status === 'playing'}
             isLoading={tts.status === 'loading'}
@@ -1312,10 +1307,10 @@ export default function ArticleScreen() {
           onDownload={downloadImage}
         />
       )}
-
     </View>
   );
 }
+// Forced Rebuild 01
 
 const getHtmlViewStyles = (theme: any) => ({
   // Główny styl dla całej treści
@@ -1521,17 +1516,17 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  imageContainer: { 
-    width: '100%', 
+  imageContainer: {
+    width: '100%',
     height: height * 0.55, // Zwiększone z 0.45 na 0.55
     position: 'relative',
     zIndex: 1,
     elevation: 1,
     marginTop: -20, // Przesunięte wyżej o 20px
   },
-  featuredImage: { 
-    width: '100%', 
-    height: '100%' 
+  featuredImage: {
+    width: '100%',
+    height: '100%'
   },
   imageGradient: {
     position: 'absolute',
@@ -1541,13 +1536,13 @@ const styles = StyleSheet.create({
     height: '60%',
     zIndex: 1,
   },
-  contentContainer: { 
+  contentContainer: {
     marginTop: -40,              // wjeżdża 40px na zdjęcie
     borderTopLeftRadius: 40,     // zaokrąglenie 40px
     borderTopRightRadius: 40,
-    paddingHorizontal: 20, 
+    paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 60,
+    paddingBottom: 120, // Increased for GlobalTabBar
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.15,
@@ -1556,11 +1551,11 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
 
-  headerContainer: { 
-    position: 'absolute', 
-    top: 0, 
-    left: 0, 
-    right: 0, 
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 1000,
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -1571,11 +1566,11 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
     paddingTop: 0, // Usunięty niepotrzebny padding dla status bara
   },
-  headerGradient: { 
-    position: 'absolute', 
-    top: 0, 
-    left: 0, 
-    right: 0, 
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     bottom: 0,
     zIndex: -1,
     height: HEADER_HEIGHT + 20,
@@ -1589,43 +1584,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between' 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
-  headerButton: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     marginLeft: 8,
     marginTop: 35, // Dodany margines od góry
   },
-  title: { 
+  title: {
     fontSize: 32,
-    fontWeight: '700', 
+    fontWeight: '700',
     marginBottom: 16,
     lineHeight: 40,
     textAlign: 'left',
   },
-  date: { 
+  date: {
     fontSize: 14,
     marginBottom: 0,
     opacity: 0.8,
   },
- 
-  photoCreditOverlay: { 
-    position: 'absolute', 
+
+  photoCreditOverlay: {
+    position: 'absolute',
     bottom: 60, // Przywrócone do poprzedniej pozycji
-    right: 20, 
+    right: 20,
     backgroundColor: 'rgba(254, 204, 0, 0.9)', // Żółte tło zamiast czarnego
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)', // Jaśniejsza ramka
@@ -1635,55 +1630,60 @@ const styles = StyleSheet.create({
     shadowRadius: 3, // Mniejszy radius cienia
     elevation: 2, // Mniejsza wysokość na Android
     zIndex: 10, // Dodany z-index żeby był nad gradientem
+    alignSelf: 'flex-end', // Automatycznie dopasowuje szerokość do zawartości
+    maxWidth: '80%', // Maksymalna szerokość żeby nie było za szeroko
   },
-  photoCreditText: { 
+  photoCreditText: {
     color: '#1a1a1a', // Ciemny tekst na żółtym tle
     fontSize: 13,
     fontFamily: 'Poppins_Medium',
     fontWeight: '600', // Nieco grubszy font dla lepszej czytelności
     letterSpacing: 0.2,
+    textAlign: 'right', // Wyrównanie do prawej strony
+    flexShrink: 1, // Pozwala na zawijanie tekstu
+    flexWrap: 'wrap', // Zawijanie tekstu jeśli jest za długi
   },
-  relatedContainer: { 
-    marginTop: 32, 
-    paddingHorizontal: 20 
+  relatedContainer: {
+    marginTop: 32,
+    paddingHorizontal: 20
   },
-  relatedTitle: { 
-    fontSize: 18, 
-    fontWeight: '700', 
-    marginBottom: 16 
+  relatedTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16
   },
-  relatedCard: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 16, 
-    borderRadius: 16, 
-    overflow: 'hidden', 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 4, 
-    elevation: 3 
+  relatedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
   },
-  relatedImage: { 
-    width: 80, 
-    height: 80, 
-    borderTopLeftRadius: 16, 
-    borderBottomLeftRadius: 16 
+  relatedImage: {
+    width: 80,
+    height: 80,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16
   },
-  relatedContent: { 
-    flex: 1, 
-    padding: 12 
+  relatedContent: {
+    flex: 1,
+    padding: 12
   },
-  relatedCardTitle: { 
-    fontSize: 15, 
-    fontWeight: '600', 
-    marginBottom: 4 
+  relatedCardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4
   },
-  relatedCardDate: { 
-    fontSize: 12, 
-    color: '#888' 
+  relatedCardDate: {
+    fontSize: 12,
+    color: '#888'
   },
-  
+
   // Nowe style dla sekcji
   sectionHeader: {
     flexDirection: 'row',
@@ -1695,7 +1695,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     marginLeft: 12,
   },
-  
+
   // Nowe style dla galerii
   galleryContainer: {
     marginTop: 32,
@@ -1713,6 +1713,7 @@ const styles = StyleSheet.create({
   galleryRow: {
     justifyContent: 'space-between',
     marginBottom: 12,
+    flexDirection: 'row',
   },
   galleryItem: {
     width: (width - 52) / 2,
@@ -1730,7 +1731,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  
+
   // Ulepszone style dla modala
   modalContainer: {
     flex: 1,
@@ -1845,7 +1846,8 @@ const styles = StyleSheet.create({
   sourceContainer: {
     marginTop: 16, // Dodane 16px odstępu od treści
     marginBottom: 8, // Dodane 8px odstępu do galerii
-    paddingHorizontal: 0,
+    paddingHorizontal: 0, // Usunięte - marginesy są już w contentContainer
+    alignItems: 'flex-start', // Wyrównanie do lewej strony
   },
   sourceText: {
     fontSize: 13, // Zmniejszone z 16 na 13
@@ -1853,7 +1855,7 @@ const styles = StyleSheet.create({
     lineHeight: 18, // Dodane line-height
     marginBottom: 4, // Dodane odstępy między elementami
   },
-  
+
   // Nowe style dla sekcji powiązanych artykułów
   relatedSection: {
     marginTop: 32,
@@ -2208,6 +2210,26 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     opacity: 0.6,
   },
+  relatedFooterText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_Regular',
+    marginLeft: 8,
+  },
+  loadMoreButton: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(34, 74, 150, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 74, 150, 0.1)',
+  },
+  loadMoreText: {
+    fontSize: 15,
+    fontFamily: 'Poppins_Medium',
+    fontWeight: '600',
+  },
   supportTextContainer: {
     flex: 1,
     marginRight: 16,
@@ -2479,7 +2501,7 @@ const styles = StyleSheet.create({
   tooltipArrow: {
     position: 'absolute',
     top: -6,
-    right: 10, // Wycentruj względem tooltip - przesunięte w lewo
+    right: 10,
     width: 0,
     height: 0,
     backgroundColor: 'transparent',
@@ -2490,11 +2512,16 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: '#FFFFFF',
-    // Dodaj cień dla ogonka
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
+  relatedFooterLoader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 10,
+  }
 });

@@ -1,4 +1,4 @@
-import { Article, Category, MediaItem, Nekrolog } from '@/types/article';
+import { Article, Category, MediaItem, Nekrolog, Artist, Venue } from '@/types/article';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, Vibration } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories, isSponsoredContent } from '@/utils/contentFilter';
@@ -693,6 +693,66 @@ export const fetchCategories = async (): Promise<Category[]> => {
   });
 };
 
+// Function to fetch artist information by ID
+export const fetchArtist = async (artistId: number): Promise<Artist | null> => {
+  if (!artistId) return null;
+  
+  const requestKey = `artist_${artistId}`;
+  
+  return deduplicateRequest(requestKey, async () => {
+    try {
+      const timestamp = new Date().getTime();
+      const url = `https://kaszuby24.pl/wp-json/wp/v2/artysta/${artistId}?meta=true&_=${timestamp}`;
+      
+      const response = await fetchWithTimeout(url);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        console.warn(`Failed to fetch artist ${artistId}: ${response.status}`);
+        return null;
+      }
+      
+      const artist = await response.json();
+      return artist;
+    } catch (error: any) {
+      console.warn(`Error fetching artist ${artistId}:`, error);
+      return null;
+    }
+  });
+};
+
+// Function to fetch venue information by ID
+export const fetchVenue = async (venueId: number): Promise<Venue | null> => {
+  if (!venueId) return null;
+  
+  const requestKey = `venue_${venueId}`;
+  
+  return deduplicateRequest(requestKey, async () => {
+    try {
+      const timestamp = new Date().getTime();
+      const url = `https://kaszuby24.pl/wp-json/wp/v2/obiekt/${venueId}?meta=true&_=${timestamp}`;
+      
+      const response = await fetchWithTimeout(url);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        console.warn(`Failed to fetch venue ${venueId}: ${response.status}`);
+        return null;
+      }
+      
+      const venue = await response.json();
+      return venue;
+    } catch (error: any) {
+      console.warn(`Error fetching venue ${venueId}:`, error);
+      return null;
+    }
+  });
+};
+
 export const searchArticles = async (
   query: string,
   page = 1,
@@ -836,9 +896,10 @@ export const fetchMediaByIds = async (ids: string[]): Promise<MediaItem[]> => {
 export const fetchRelatedArticles = async (
   currentArticleId: number,
   categories: number[],
-  limit = 8 // Increased to get more for slider (5) + list (3)
+  limit = 8, // Increased to get more for slider (5) + list (3)
+  page = 1 // Dodany parametr page dla paginacji
 ): Promise<{ sliderArticles: Article[], listArticles: Article[] }> => {
-  const requestKey = `related_${currentArticleId}_${categories.join(',')}_${limit}`;
+  const requestKey = `related_${currentArticleId}_${categories.join(',')}_${limit}_${page}`;
   
   return deduplicateRequest(requestKey, async () => {
     try {
@@ -847,7 +908,7 @@ export const fetchRelatedArticles = async (
       // Filter out sponsored category from categories
       const filteredCategories = categories.filter(catId => catId !== 554);
       
-      let url = `${API_BASE_URL}/posts?_embed&per_page=${limit * 2}&exclude=${currentArticleId}&_=${timestamp}`;
+      let url = `${API_BASE_URL}/posts?_embed&per_page=${limit * 2}&exclude=${currentArticleId}&page=${page}&_=${timestamp}`;
       
       // If we have categories, use them for related articles
       if (filteredCategories.length > 0) {
@@ -862,7 +923,7 @@ export const fetchRelatedArticles = async (
       if (!response.ok) {
         // If categories-based search fails, try without categories
         if (filteredCategories.length > 0) {
-          const fallbackUrl = `${API_BASE_URL}/posts?_embed&per_page=${limit * 2}&exclude=${currentArticleId}&categories_exclude=554&_=${timestamp}`;
+          const fallbackUrl = `${API_BASE_URL}/posts?_embed&per_page=${limit * 2}&exclude=${currentArticleId}&categories_exclude=554&page=${page}&_=${timestamp}`;
           const fallbackResponse = await fetchWithTimeout(fallbackUrl);
           
           if (!fallbackResponse.ok) {
@@ -1286,7 +1347,7 @@ export const fetchRelatedEvents = async (
       const timestamp = new Date().getTime();
       
       // Try the new related-events endpoint first
-      let url = `https://kaszuby24.pl/wp-json/kaszuby24/v1/related-events?event_id=${currentEventId}&limit=${limit}&_=${timestamp}`;    
+      let url = `https://kaszuby24.pl/wp-json/kaszuby24/v1/related-events?event_id=${currentEventId}&limit=${limit}&_embed&_=${timestamp}`;    
 
       // Add category filter if available
       if (categories && categories.length > 0) {
@@ -1309,7 +1370,7 @@ export const fetchRelatedEvents = async (
 
       // Fallback to standard WordPress events endpoint
       console.log('Falling back to standard WordPress events endpoint');
-      let fallbackUrl = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?per_page=${limit * 2}&exclude=${currentEventId}&_=${timestamp}`;    
+      let fallbackUrl = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?per_page=${limit * 2}&exclude=${currentEventId}&_embed&_=${timestamp}`;    
 
       // Add category filter if available
       if (categories && categories.length > 0) {
@@ -1329,6 +1390,192 @@ export const fetchRelatedEvents = async (
     } catch (error: any) {
       console.warn('Error fetching related events:', error);
       return [];
+    }
+  });
+};
+
+// Function to fetch event by slug
+export const fetchEventBySlug = async (slug: string): Promise<any> => {
+  const requestKey = `event_slug_${slug}`;
+  const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_event_slug_${slug}`;
+  
+  return deduplicateRequest(requestKey, async () => {
+    try {
+      // Try cache first
+      const cached = await getCachedDataWithSWR(cacheKey);
+      
+      if (cached) {
+        if (!cached.shouldRevalidate) {
+          console.log(`Using fresh cached event ${slug}`);
+          return cached.data;
+        } else {
+          console.log(`Using stale cached event ${slug}, revalidating in background`);
+          
+          // Start background revalidation
+          setTimeout(async () => {
+            try {
+              const timestamp = new Date().getTime();
+              const url = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?slug=${encodeURIComponent(slug)}&_=${timestamp}`;
+              
+              const response = await fetchWithTimeout(url);
+              if (response.ok) {
+                const events = await response.json();
+                if (Array.isArray(events) && events.length > 0) {
+                  await cacheDataWithSWR(cacheKey, events[0]);
+                  console.log(`Background revalidation completed for event ${slug}`);
+                }
+              }
+            } catch (error) {
+              console.warn(`Background revalidation failed for event ${slug}:`, error);
+            }
+          }, 100);
+          
+          return cached.data;
+        }
+      }
+      
+      // No cache, fetch fresh data
+      const timestamp = new Date().getTime();
+      const url = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?slug=${encodeURIComponent(slug)}&_=${timestamp}`;
+      
+      console.log(`Fetching fresh event with slug: ${slug}`);
+      const response = await fetchWithTimeout(url);
+      
+      if (!response.ok) {
+        console.error(`Error fetching event ${slug}: ${response.status} ${response.statusText}`);
+        if (response.status === 404) {
+          throw new Error('Wydarzenie nie zostało znalezione.');
+        } else if (response.status === 429) {
+          throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+        } else if (response.status >= 500) {
+          throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+        } else {
+          throw new Error(`Błąd API: ${response.status}`);
+        }
+      }
+      
+      const events = await response.json();
+      
+      if (!Array.isArray(events) || events.length === 0) {
+        throw new Error('Wydarzenie nie zostało znalezione.');
+      }
+      
+      const event = events[0];
+      console.log(`Successfully fetched fresh event ${slug}`);
+      
+      // Cache the fresh data
+      await cacheDataWithSWR(cacheKey, event);
+      
+      return event;
+    } catch (error: any) {
+      console.error('Error in fetchEventBySlug:', error);
+      
+      if (error instanceof TypeError && error.message.includes('Network request failed')) {
+        throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
+      } else if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
+      } else if (error.message === 'Failed to fetch') {
+        throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
+      }
+      
+      if (error.message) {
+        throw error;
+      }
+      
+      throw new Error('Wystąpił problem podczas wyszukiwania wydarzenia. Spróbuj ponownie później.');
+    }
+  });
+};
+
+// Function to fetch nekrolog by slug
+export const fetchNekrologBySlug = async (slug: string): Promise<Nekrolog> => {
+  const requestKey = `nekrolog_slug_${slug}`;
+  const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_nekrolog_slug_${slug}`;
+  
+  return deduplicateRequest(requestKey, async () => {
+    try {
+      // Try cache first
+      const cached = await getCachedDataWithSWR(cacheKey);
+      
+      if (cached) {
+        if (!cached.shouldRevalidate) {
+          console.log(`Using fresh cached nekrolog ${slug}`);
+          return cached.data;
+        } else {
+          console.log(`Using stale cached nekrolog ${slug}, revalidating in background`);
+          
+          // Start background revalidation
+          setTimeout(async () => {
+            try {
+              const timestamp = new Date().getTime();
+              const url = `https://kaszuby24.pl/wp-json/wp/v2/nekrolog?slug=${encodeURIComponent(slug)}&_=${timestamp}`;
+              
+              const response = await fetchWithTimeout(url);
+              if (response.ok) {
+                const nekrologi = await response.json();
+                if (Array.isArray(nekrologi) && nekrologi.length > 0) {
+                  await cacheDataWithSWR(cacheKey, nekrologi[0]);
+                  console.log(`Background revalidation completed for nekrolog ${slug}`);
+                }
+              }
+            } catch (error) {
+              console.warn(`Background revalidation failed for nekrolog ${slug}:`, error);
+            }
+          }, 100);
+          
+          return cached.data;
+        }
+      }
+      
+      // No cache, fetch fresh data
+      const timestamp = new Date().getTime();
+      const url = `https://kaszuby24.pl/wp-json/wp/v2/nekrolog?slug=${encodeURIComponent(slug)}&_=${timestamp}`;
+      
+      console.log(`Fetching fresh nekrolog with slug: ${slug}`);
+      const response = await fetchWithTimeout(url);
+      
+      if (!response.ok) {
+        console.error(`Error fetching nekrolog ${slug}: ${response.status} ${response.statusText}`);
+        if (response.status === 404) {
+          throw new Error('Nekrolog nie został znaleziony.');
+        } else if (response.status === 429) {
+          throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
+        } else if (response.status >= 500) {
+          throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
+        } else {
+          throw new Error(`Błąd API: ${response.status}`);
+        }
+      }
+      
+      const nekrologi = await response.json();
+      
+      if (!Array.isArray(nekrologi) || nekrologi.length === 0) {
+        throw new Error('Nekrolog nie został znaleziony.');
+      }
+      
+      const nekrolog = nekrologi[0];
+      console.log(`Successfully fetched fresh nekrolog ${slug}`);
+      
+      // Cache the fresh data
+      await cacheDataWithSWR(cacheKey, nekrolog);
+      
+      return nekrolog;
+    } catch (error: any) {
+      console.error('Error in fetchNekrologBySlug:', error);
+      
+      if (error instanceof TypeError && error.message.includes('Network request failed')) {
+        throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
+      } else if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
+      } else if (error.message === 'Failed to fetch') {
+        throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
+      }
+      
+      if (error.message) {
+        throw error;
+      }
+      
+      throw new Error('Wystąpił problem podczas wyszukiwania nekrologu. Spróbuj ponownie później.');
     }
   });
 };

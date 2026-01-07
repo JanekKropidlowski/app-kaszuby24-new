@@ -150,7 +150,9 @@ export const lightTheme = {
     },
   },
   logo: {
-    header: 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png',
+    primary: 'https://kaszuby24.pl/wp-content/uploads/2020/03/logo-e1584093147599.png',
+    header: 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png',
+    compact: 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png',
   },
 };
 
@@ -260,6 +262,8 @@ export const darkTheme = {
     },
   },
   logo: {
-    header: 'http://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png',
+    primary: 'https://kaszuby24.pl/wp-content/uploads/2020/03/logo-e1584093147599.png',
+    header: 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png',
+    compact: 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png',
   },
 };

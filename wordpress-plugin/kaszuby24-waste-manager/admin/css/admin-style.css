@@ -1,0 +1,125 @@
+.k24-waste-wrap {
+    margin-top: 20px;
+    max-width: 1200px;
+}
+
+.k24-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background: #e2e8f0;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: 600;
+}
+
+.tab-btn.active {
+    background: #2563eb;
+    color: white;
+}
+
+.tab-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.k24-card {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-danger {
+    background: #ef4444 !important;
+    color: white !important;
+    border-color: #ef4444 !important;
+}
+
+.add-city-form {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.region-item {
+    background: #f8fafc;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    position: relative;
+}
+
+.region-item input {
+    margin-bottom: 10px;
+    display: block;
+    width: 300px;
+}
+
+.region-item textarea {
+    width: 100%;
+    height: 80px;
+}
+
+.btn-remove-region {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+#quick-edit-table-wrap {
+    margin-top: 20px;
+    display: none;
+}
+
+#table-dates .row-date {
+    width: 150px;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.type-tag {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+}
+
+.type-tag:hover {
+    background: #e2e8f0;
+}
+
+.type-tag.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+.row-custom-type {
+    border: 1px solid #e2e8f0;
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}

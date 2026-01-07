@@ -6,38 +6,36 @@ import TabBarButton from './TabBarButton';
 import { useRouter } from 'expo-router';
 
 interface GlobalTabBarProps {
-  activeTab?: 'search' | 'saved' | 'home' | 'kalendarz' | 'preferences';
+  activeTab?: 'search' | 'saved' | 'home' | 'kalendarz' | 'menu';
 }
 
 const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
   const { theme } = useThemeStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
+
   // Oblicz właściwy padding dla Androida z safe area
   const getBottomPadding = () => {
     if (Platform.OS === 'ios') {
       return insets.bottom > 0 ? insets.bottom : 32;
     }
-    // Android: zawsze dodaj minimum 20px + safe area
-    const androidPadding = Math.max(20, insets.bottom) + 20;
-    // console.log('Android Tab Bar - Safe Area Bottom:', insets.bottom, 'Final Padding:', androidPadding);
-    return androidPadding;
+    // Android: użyj takiej samej logiki jak iOS - tylko safe area
+    return insets.bottom > 0 ? insets.bottom : 20;
   };
-  
+
   const getTabBarHeight = () => {
     if (Platform.OS === 'ios') {
       return 110;
     }
-    // Android: bazowa wysokość + padding
+    // Android: bazowa wysokość + padding (takie same jak iOS)
     return 80 + getBottomPadding();
   };
 
   return (
     <View style={[
-      styles.tabBar, 
-      { 
-        backgroundColor: theme.colors.tabBarBackground, 
+      styles.tabBar,
+      {
+        backgroundColor: theme.colors.tabBarBackground,
         borderTopColor: theme.colors.border,
         borderTopWidth: 1,
         paddingBottom: getBottomPadding(),
@@ -70,10 +68,10 @@ const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
         active={activeTab === 'kalendarz'}
       />
       <TabBarButton
-        icon="Settings"
-        label="Ustawienia"
-        onPress={() => router.push('/(tabs)/preferences')}
-        active={activeTab === 'preferences'}
+        icon="Menu"
+        label="Menu"
+        onPress={() => router.push('/(tabs)/menu')}
+        active={activeTab === 'menu'}
       />
     </View>
   );
@@ -95,7 +93,7 @@ const styles = StyleSheet.create({
     shadowRadius: Platform.OS === 'android' ? 12 : 8, // Increased shadow radius for Android
     borderTopLeftRadius: Platform.OS === 'android' ? 32 : 28, // Increased radius for Android
     borderTopRightRadius: Platform.OS === 'android' ? 32 : 28, // Increased radius for Android
-    zIndex: 10,
+    zIndex: 9999,
   },
 });
 

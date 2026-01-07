@@ -134,16 +134,30 @@ class NotificationService {
         markAsRead(notificationId);
       }
       
-      // Handle navigation based on notification data
+      // Handle navigation based on notification data with improved routing
       if (data?.route && typeof data.route === 'string') {
+        console.log('Navigate to route:', data.route);
         router.push(data.route);
+      } else if (data?.type === 'event' || data?.type === 'event_reminder' || data?.type === 'weekend_events') {
+        console.log('Navigate to events tab for event notification');
+        // For events, navigate to the calendar tab where events are displayed
+        router.push('/(tabs)/kalendarz');
+      } else if (data?.type === 'nekrolog') {
+        console.log('Navigate to home tab for nekrolog notification');
+        // For nekrologi, we could navigate to a specific section or just home
+        // Since nekrologi are usually displayed on the main tab, we go there
+        router.push('/(tabs)');
+      } else if (data?.type === 'daily_weather' || data?.type === 'weather_warning' || data?.type === 'air_quality') {
+        console.log('Navigate to weather tab for weather notification');
+        // For weather notifications, navigate to the weather tab
+        router.push('/(tabs)/weather');
       } else if (data?.articleId) {
         console.log('Navigate to article:', data.articleId);
-        // Navigate to article by ID
+        // For articles, navigate to the article detail page
         router.push(`/article/${data.articleId}`);
       } else if (data?.slug) {
         console.log('Navigate to article by slug:', data.slug);
-        // Navigate to article by slug
+        // For articles by slug, navigate to the article detail page
         router.push(`/article/${data.slug}`);
       } else if (data?.url) {
         console.log('Navigate to URL:', data.url);
@@ -151,7 +165,7 @@ class NotificationService {
         this.handleNotificationUrl(data.url as string);
       } else {
         console.log('No navigation data, going to home');
-        // Default to home if no specific navigation data
+        // Default to home tab if no specific navigation data
         router.push('/(tabs)');
       }
       
@@ -162,7 +176,7 @@ class NotificationService {
       
     } catch (error) {
       console.warn('Error handling notification response:', error);
-      // Fallback to home
+      // Fallback to home tab
       router.push('/(tabs)');
     }
   };
@@ -184,7 +198,7 @@ class NotificationService {
       }
     } catch (error) {
       console.warn('Error handling notification URL:', error);
-      // Fallback to home
+      // Fallback to home tab
       router.push('/(tabs)');
     }
   };
@@ -640,7 +654,7 @@ class NotificationService {
             if (data.notification_id) {
               this.trackNotificationAnalytics(data.notification_id as string, 'action_read', data.articleId as string);
             }
-            // Navigate to article
+            // Navigate to article detail page
             router.push(`/article/${data.articleId}`);
           }
           break;
@@ -653,14 +667,21 @@ class NotificationService {
             }
             // Save article logic - you can implement this
             console.log('Save article:', data.articleId);
+            // Optionally navigate to saved articles tab
+            // router.push('/(tabs)/saved');
           }
           break;
           
         default:
           console.log('Unknown notification action:', actionId);
+          // Fallback to home tab for unknown actions
+          router.push('/(tabs)');
+          break;
       }
     } catch (error) {
       console.warn('Error handling notification action:', error);
+      // Fallback to home tab for action errors
+      router.push('/(tabs)');
     }
   }
 

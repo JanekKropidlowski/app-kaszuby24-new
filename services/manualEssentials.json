@@ -1,0 +1,510 @@
+{
+  "pharmacies": [
+    {
+      "id": "manual_pharm_1",
+      "name": "DOZ Apteka.Dbam o Zdrowie.Nad Zatoką Pucką",
+      "address": "ul.10 Lutego 52 Puck",
+      "phone": "501865136",
+      "lat": 54.7189058,
+      "lon": 18.3923914,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_2",
+      "name": "Apteka Zdrowie",
+      "address": "ul. Gdańska 59A Żukowo",
+      "phone": "58 681 54 76",
+      "lat": 54.3397555,
+      "lon": 18.3520468,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_3",
+      "name": "Apteka \"Żukowo\"",
+      "address": "ul. Gdańska 14D Żukowo",
+      "phone": "58 763 99 95",
+      "lat": 54.3414868,
+      "lon": 18.3747133,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_4",
+      "name": "Apteka Rodzinna",
+      "address": "ul. Gdyńska 50 Żukowo",
+      "phone": "511415125",
+      "lat": 54.3505777,
+      "lon": 18.3669277,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_5",
+      "name": "Apteka Żukowska",
+      "address": "ul.Pożarna 2A Żukowo",
+      "phone": "58 681 85 46",
+      "lat": 54.3453684,
+      "lon": 18.3651846,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_6",
+      "name": "Apteka Żukowska",
+      "address": "ul. Gdyńska 22D Żukowo",
+      "phone": "58 681 49 00",
+      "lat": 54.3467853,
+      "lon": 18.3656061,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_7",
+      "name": "Farmacja24",
+      "address": "ul. Braterstwa Narodów 52 Kwidzyn",
+      "phone": "55 261 03 26",
+      "lat": 53.7363695,
+      "lon": 18.9283942,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_8",
+      "name": "Gemini",
+      "address": "ul. Chopina 27 Kwidzyn",
+      "phone": "55 261 06 52",
+      "lat": 53.7321199,
+      "lon": 18.9317127,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_9",
+      "name": "Gemini",
+      "address": "ul. Warszawska 74 Kwidzyn",
+      "phone": "571601671",
+      "lat": 53.736265,
+      "lon": 18.9454634,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_10",
+      "name": "Apteka NOVA",
+      "address": "ul. Kazimierza  Wielkiego 24 Miastko",
+      "phone": "59 857 67 32",
+      "lat": 53.9980995,
+      "lon": 16.974391,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_11",
+      "name": "Apteka Królowej Jadwigi ",
+      "address": "ul. Królowej Jadwigi 12B Miastko",
+      "phone": "59 857 56 76",
+      "lat": 54.0029586,
+      "lon": 16.9816589,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_12",
+      "name": "Apteka Piastowska",
+      "address": "ul. Długa 10 Miastko",
+      "phone": "59 857 22 45",
+      "lat": 54.0043668,
+      "lon": 16.9855809,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_13",
+      "name": "Wracam do zdrowia-Elżbietańska",
+      "address": "ul. gen. Józefa Hallera 21b Starogard Gdański",
+      "phone": "798002366",
+      "lat": 53.9700515,
+      "lon": 18.5288367,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_14",
+      "name": "Wracam do zdrowia",
+      "address": "ul. Juranda ze Spychowa 2 Starogard Gdański",
+      "phone": "798002367",
+      "lat": 53.962904,
+      "lon": 18.5075948,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_15",
+      "name": "Wracam do zdrowia",
+      "address": "ul. Romualda Traugutta 30 Starogard Gdański",
+      "phone": "58 560 03 35",
+      "lat": 53.9770432,
+      "lon": 18.5361436,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_16",
+      "name": "Przy Rondzie",
+      "address": "ul. Chojnicka 44 Starogard Gdański",
+      "phone": "58 562 25 25",
+      "lat": 53.9667594,
+      "lon": 18.5265296,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_17",
+      "name": "Apteka Centralna",
+      "address": "ul. Mickiewicza 50 Sztum",
+      "phone": "55 247 67 92",
+      "lat": 53.9202619,
+      "lon": 19.0309829,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_18",
+      "name": "Apteka Św. Anny",
+      "address": "ul. Galla Anonima 12 Sztum",
+      "phone": "55 277 50 50",
+      "lat": 53.9151696,
+      "lon": 19.0380219,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_19",
+      "name": "Apteka",
+      "address": "ul. Sienkiewicza 10 Sztum",
+      "phone": "606959653",
+      "lat": 53.9216098,
+      "lon": 19.0296631,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_20",
+      "name": "Apteka Miraculum",
+      "address": "ul. Grunwaldzka 18/A Lębork",
+      "phone": "59 862 24 77",
+      "lat": 54.5365092,
+      "lon": 17.748503,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_21",
+      "name": "Apteka Cef@rm 36,6",
+      "address": "ul. Armii Krajowej 32/1 Lębork",
+      "phone": "59 863 40 90",
+      "lat": 54.5418783,
+      "lon": 17.7452517,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_22",
+      "name": "Apteka od Serca",
+      "address": "ul.Staszica 2, Kościerzyna",
+      "phone": "58 686 33 03",
+      "lat": 54.121721,
+      "lon": 17.9692025,
+      "is24h": true
+    },
+    {
+      "id": "manual_pharm_23",
+      "name": "Apteka Centrum",
+      "address": "ul.Staszica 13, Kościerzyna",
+      "phone": "58 686 89 89",
+      "lat": 54.1221472,
+      "lon": 17.9700411,
+      "is24h": true
+    }
+  ],
+  "hospitals": [
+    {
+      "id": "manual_nisoz_1",
+      "name": "Samodzielny Publiczny Zakład Opieki Zdrowotnej w Człuchowie",
+      "address": "ul. Szczecińska 31,                                       77-300 Człuchów ",
+      "phone": "(59) 714 23 57",
+      "lat": 53.6595144,
+      "lon": 17.3542445,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_2",
+      "name": "Wojewódzki Szpital Specjalistyczny im. Janusza Korczaka w Słupsku Sp. z o. o.",
+      "address": "ul. Mickiewicza 12,                                     76-271 Ustka",
+      "phone": "(59) 815 42 28,                   815 42 29",
+      "lat": 54.5863851,
+      "lon": 16.8631635,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_3",
+      "name": "Wojewódzki Szpital Specjalistyczny im. Janusza Korczaka w Słupsku Sp. z o.o.",
+      "address": "ul. Hubalczyków 1,                                      76-200 Słupsk ",
+      "phone": "512 598 174",
+      "lat": 54.4517571,
+      "lon": 17.0645759,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_4",
+      "name": "Wojewódzki Szpital Specjalistyczny im. Janusza Korczaka w Słupsku Sp. z o.o.",
+      "address": "NZOZ ul. Główna 54A,                                 76-251 Kobylnica ",
+      "phone": "(59) 842 90 49",
+      "lat": 54.43728,
+      "lon": 16.99695,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_5",
+      "name": "Szpital Specjalistyczny im.J.K.Łukowicza w Chojnicach",
+      "address": "ul. Leśna 10,                                                  89-600 Chojnice ",
+      "phone": "(52) 395 67 12",
+      "lat": 53.7117853,
+      "lon": 17.547308,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_6",
+      "name": "COPERNICUS Podmiot Leczniczy Sp. z o.o.",
+      "address": "ul. Powstańców Warszawskich 1/2, wejście B, gabinet 30,                         80-152 Gdańsk ",
+      "phone": "(58) 764 06 40",
+      "lat": 54.4288032,
+      "lon": 18.798327,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_7",
+      "name": "COPERNICUS Podmiot Leczniczy Sp. z o.o.",
+      "address": "al. Jana Pawła II 50,                                    80-462 Gdańsk ",
+      "phone": "(58) 768 46 84",
+      "lat": 54.4026312,
+      "lon": 18.6134734,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_8",
+      "name": "Samodzielny Publiczny Specjalistyczny Zakład Opieki Zdrowotnej ",
+      "address": "ul. Juliana Węgrzynowicza 13,                84-300 Lębork ",
+      "phone": "(59) 863 30 00",
+      "lat": 54.5382359,
+      "lon": 17.7514259,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_9",
+      "name": "Samodzielny Publiczny Zespół Zakładów Opieki Zdrowotnej Miejska Stacja Pogotowia Ratunkowego z Przychodnią        w Sopocie",
+      "address": "ul. Bolesława Chrobrego 10,            81-756 Sopot",
+      "phone": "(58) 555 81 14",
+      "lat": 54.4397601,
+      "lon": 18.56901,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_10",
+      "name": "Szpitale Pomorskie Sp. z o.o.",
+      "address": "Szpital Morski im. PCK,                 budynek 28,                                        ul. Huzarska 1,                                                   81-519 Gdynia ",
+      "phone": "(58) 726 09 39",
+      "lat": 54.5233304,
+      "lon": 18.6040279,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_11",
+      "name": "Szpitale Pomorskie Sp. z o.o.",
+      "address": "ul. Wejherowska 59,                                 81-049 Gdynia ",
+      "phone": "(58) 726 09 39",
+      "lat": 54.5427849,
+      "lon": 18.4653297,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_12",
+      "name": "Szpitale Pomorskie Sp. z o.o.",
+      "address": "Szpital Św. Wincentego a Paulo,           ul. Wójta Radtkego 1,               wejście od Placu Kaszubskiego,                                81-348 Gdynia ",
+      "phone": "(58) 726 09 39",
+      "lat": 52.215933,
+      "lon": 19.134422,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_13",
+      "name": "Szpitale Pomorskie Sp. z o.o.",
+      "address": "Szpital Specjalistyczny,                       ul. dr. Alojzego Jagalskiego 10,             84-200 Wejherowo ",
+      "phone": "(58) 572 78 44",
+      "lat": 54.6143416,
+      "lon": 18.2465854,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_14",
+      "name": "Samodzielne Publiczne Pogotowie Ratunkowe",
+      "address": "ul. prof. Mariana Raciborskiego 2A, 83-000 Pruszcz Gdański ",
+      "phone": "(58) 773 30 31",
+      "lat": 54.2656006,
+      "lon": 18.634081,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_15",
+      "name": "\"ZDROWIE\" Sp. z o.o. ",
+      "address": "ul. gen. Józefa Hallera 31,                82-500 Kwidzyn ",
+      "phone": "(55) 645 83 47",
+      "lat": 53.7269105,
+      "lon": 18.9205672,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_16",
+      "name": "Nadmorskie Centrum Medyczne Sp. z o.o.",
+      "address": "ul. Świętokrzyska 4,                             80-180 Gdańsk ",
+      "phone": "(58) 763 98 90",
+      "lat": 54.3258696,
+      "lon": 18.6065916,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_17",
+      "name": "Powiatowe Centrum Zdrowia Sp. z o.o.",
+      "address": "ul. al. Armii Krajowej 105/106,               82-200 Malbork ",
+      "phone": "556 460 330",
+      "lat": 54.0313698,
+      "lon": 19.022147,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_18",
+      "name": "Powiatowe Centrum Zdrowia Sp. z o.o.",
+      "address": "ul. Dworcowa 12,                                      82-100 Nowy Dwór Gdański ",
+      "phone": "(55) 247 22 47 wew. 5",
+      "lat": 54.2112877,
+      "lon": 19.1194864,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_19",
+      "name": "Szpitale Tczewskie Spółka Akcyjna",
+      "address": "ul. 30-go Stycznia 57/58,                     83-110 Tczew ",
+      "phone": "(58) 777 66 01",
+      "lat": 54.0835744,
+      "lon": 18.7904874,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_20",
+      "name": "Szpitale Tczewskie Spółka Akcyjna",
+      "address": "ul. Osiedle Witosa 10,                                83-140 Gniew ",
+      "phone": "(58) 535 22 90 wew. 38",
+      "lat": 53.8385069,
+      "lon": 18.8281489,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_21",
+      "name": "Powiatowe Centrum Zdrowia Sp. z o.o.",
+      "address": "Kaszubskie Centrum Medyczne          ul. Lęborska 34,                                                  83-340 Sierakowice ",
+      "phone": "(58) 685 69 01",
+      "lat": 54.3501883,
+      "lon": 17.8907666,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_22",
+      "name": "Powiatowe Centrum Zdrowia Sp. z o.o.",
+      "address": "ul. Floriana Ceynowy 7,                             83-300 Kartuzy ",
+      "phone": "(58) 685 49 59",
+      "lat": 54.3368632,
+      "lon": 18.1969532,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_23",
+      "name": "Szpital Powiatu Bytowskiego Sp. z o.o.",
+      "address": "ul. Lęborska 13,                                                  77-100 Bytów ",
+      "phone": "(59) 822 87 09",
+      "lat": 54.1783887,
+      "lon": 17.4857984,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_24",
+      "name": "Kociewskie Centrum Zdrowia Sp. z o.o. ",
+      "address": "ul. dra Józefa Balewskiego 1,                       83-200 Starogard Gdański ",
+      "phone": "(58) 774 96 80",
+      "lat": 53.9670656,
+      "lon": 18.5078305,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_25",
+      "name": "American Heart of Poland Spółka Akcyjna ",
+      "address": "ul. Reja 12,                                                            82-400 Sztum ",
+      "phone": "(55) 640 61 58",
+      "lat": 53.9225511,
+      "lon": 19.0264098,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_26",
+      "name": "Szpital Dziecięcy Polanki im. Macieja Płażyńskiego w Gdańsku Sp. z o.o.",
+      "address": "Pacjenci do 18 r.ż.,                                           ul. Polanki 119,                                                 80-308 Gdańsk ",
+      "phone": "(58) 520 93 02",
+      "lat": 54.3952393,
+      "lon": 18.5625855,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_27",
+      "name": "Szpital Dziecięcy Polanki im. Macieja Płażyńskiego w Gdańsku Sp. z o.o.",
+      "address": "Pacjenci powyżej 18 r.ż.,                                   7 Szpital Marynarki Wojennej                                         ul. Polanki 117,                                                 80-305 Gdańsk ",
+      "phone": "(58) 552 62 65,                      261 21 62 65",
+      "lat": 54.4068779,
+      "lon": 18.5599981,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_28",
+      "name": "Szpital Pucki Sp. z o.o.",
+      "address": "ul. 1 Maja 13A,                                                   84-100 Puck",
+      "phone": "(58) 690 43 05",
+      "lat": 54.720856,
+      "lon": 18.414105,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_29",
+      "name": "Szpital Specjalistyczny w Kościerzynie                Sp. z o.o.",
+      "address": "    ul. A. Piechowskiego 36                          83-400 Kościerzyna",
+      "phone": "(58) 680 00 35",
+      "lat": 54.1227815,
+      "lon": 17.9506472,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_30",
+      "name": "Szpital Miejski w Miastku Sp. z o.o.",
+      "address": "ul. Generała J. Wybickiego 30,                          77-200 Miastko",
+      "phone": "(59) 857 09 17",
+      "lat": 54.0001478,
+      "lon": 16.9774717,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_31",
+      "name": "Niepubliczny Zakład Opieki Zdrowotnej              Nr 1 Katarzyna Szalewska",
+      "address": "ul. Derdowskiego 24,                                       84-230 Rumia ",
+      "phone": "(58) 727 29 50",
+      "lat": 54.5733604,
+      "lon": 18.4008001,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_32",
+      "name": "Medica Plus Przychodnia Rodzinna Sp. z .o.o",
+      "address": "ul. Stanisława Lema 21,                               80-126 Gdańsk ",
+      "phone": "(58) 340 54 70",
+      "lat": 54.3492265,
+      "lon": 18.5914851,
+      "type": "NiSOZ"
+    },
+    {
+      "id": "manual_nisoz_33",
+      "name": "Medica Plus Przychodnia Rodzinna Sp. z .o.o",
+      "address": "Uniwersyteckie Centrum Kliniczne,  ul. Mariana Smoluchowskiego 17, 80-211 Gdańsk ",
+      "phone": "(58) 340 54 54",
+      "lat": 54.3658105,
+      "lon": 18.6195613,
+      "type": "NiSOZ"
+    }
+  ]
+}

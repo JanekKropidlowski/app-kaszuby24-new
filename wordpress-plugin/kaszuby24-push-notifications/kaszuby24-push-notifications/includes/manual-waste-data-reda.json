@@ -1,0 +1,16 @@
+{
+    "city": "Reda",
+    "regions": [
+        {
+            "id": "wielorodzinna",
+            "schedule": [
+                {
+                    "date": "2026-05-15",
+                    "types": [
+                        "Gabaryty (Dodatkowe)"
+                    ]
+                }
+            ]
+        }
+    ]
+}

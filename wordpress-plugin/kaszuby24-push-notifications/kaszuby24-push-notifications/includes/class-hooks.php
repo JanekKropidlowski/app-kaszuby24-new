@@ -11,9 +11,9 @@ class Kaszuby24_Push_Hooks {
     private $events_notifications;
     
     public function __construct() {
-        $this->database = new Kaszuby24_Push_Database();
-        $this->expo_push = new Kaszuby24_Expo_Push();
-        $this->events_notifications = new Kaszuby24_Events_Notifications();
+        $this->database = class_exists('Kaszuby24_Push_Database') ? new Kaszuby24_Push_Database() : null;
+        $this->expo_push = class_exists('Kaszuby24_Expo_Push') ? new Kaszuby24_Expo_Push() : null;
+        $this->events_notifications = class_exists('Kaszuby24_Events_Notifications') ? new Kaszuby24_Events_Notifications() : null;
         
         // Hook into post publication
         add_action('publish_post', array($this, 'on_post_published'), 10, 2);
@@ -201,7 +201,7 @@ class Kaszuby24_Push_Hooks {
             return;
         }
         
-        // Send notifications
+        // Send notifications with routing information
         $result = $this->expo_push->send_notifications($tokens, $title, $body, $post_id);
         
         // Mark as sent
