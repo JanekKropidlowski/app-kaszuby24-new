@@ -133,9 +133,7 @@ const getAccessLabel = (access?: string): string => {
 const DYN_SIZE = Platform.OS === 'android' ? 26 : 32;
 const DYN_ICON = Platform.OS === 'android' ? 12 : 16;
 
-// ─── DEBUG: ustaw true żeby zobaczyć granice wrapperów markerów ───────────────
-const DEBUG_MARKERS = true;
-const DBG = DEBUG_MARKERS ? { backgroundColor: 'rgba(255,255,0,0.25)', borderWidth: 1, borderColor: 'yellow' } : {};
+const DBG = {};
 
 const dynMarkerBase: import('react-native').ViewStyle = {
   width: DYN_SIZE,

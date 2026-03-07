@@ -214,7 +214,7 @@ export default function MenuHubScreen() {
           {/* --- OPCJA: USTAWIENIA --- */}
           <TouchableOpacity
             activeOpacity={0.9}
-            style={[styles.hubCard, styles.fullWidth, { shadowColor: '#64748B' }]}
+            style={[styles.hubCard, Platform.OS === 'ios' ? styles.halfWidth : styles.fullWidth, { shadowColor: '#64748B' }]}
             onPress={() => router.push('/settings')}
           >
             <LinearGradient

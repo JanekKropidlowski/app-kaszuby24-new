@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.42",
+    "version": "1.0.43",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaszuby24",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.kaszuby24",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "associatedDomains": [
         "applinks:kaszuby24.pl",
         "applinks:www.kaszuby24.pl"
@@ -39,7 +39,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.kaszuby24",
-      "versionCode": 43,
+      "versionCode": 44,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -100,7 +100,7 @@
       "gaMeasurementId": "G-XXXXXXXXXX",
       "gaApiSecret": "YOUR_API_SECRET"
     },
-    "runtimeVersion": "1.0.42",
+    "runtimeVersion": "1.0.43",
     "plugins": [
       [
         "expo-notifications",

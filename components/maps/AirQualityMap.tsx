@@ -93,6 +93,12 @@ export const AirQualityMap: React.FC<AirQualityMapProps> = ({
         return () => clearTimeout(timer);
     }, []);
 
+    // Pre-filter valid coordinate points to prevent library crashes
+    const validStations = React.useMemo(() => {
+        const filtered = stations.filter(s => s.lat != null && s.lon != null && !isNaN(s.lat) && !isNaN(s.lon));
+        return filtered;
+    }, [stations]);
+
     // Gdy stacje się załadują, odśwież tracksViewChanges na chwilę
     // (iOS nie odświeża markerów gdy tracksViewChanges=false, a stacje mogą przyjść po 2s)
     React.useEffect(() => {
@@ -101,12 +107,6 @@ export const AirQualityMap: React.FC<AirQualityMapProps> = ({
         const timer = setTimeout(() => setTracksViewChanges(false), 800);
         return () => clearTimeout(timer);
     }, [validStations.length]);
-
-    // Pre-filter valid coordinate points to prevent library crashes
-    const validStations = React.useMemo(() => {
-        const filtered = stations.filter(s => s.lat != null && s.lon != null && !isNaN(s.lat) && !isNaN(s.lon));
-        return filtered;
-    }, [stations]);
 
     return (
         <View style={styles.container}>

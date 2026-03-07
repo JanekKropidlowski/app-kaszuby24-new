@@ -589,7 +589,7 @@ export async function fetchNearestCombinedAirQuality(
     totalStationsLimit = 100
 ): Promise<AqStationResult[]> {
     // Priorytet: WordPress server cache (zero limitów, szybko)
-    const wpResults = await fetchFromWordPress(lat, lon, 100);
+    const wpResults = await fetchFromWordPress(lat, lon, 200);
     if (wpResults.length > 0) {
         return wpResults.slice(0, totalStationsLimit);
     }
