@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.39",
+    "version": "1.0.42",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaszuby24",
@@ -13,11 +13,9 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "newArchEnabled": false,
       "supportsTablet": false,
       "bundleIdentifier": "app.kaszuby24",
-      "buildNumber": "9",
-      "googleServicesFile": "./GoogleService-Info.plist",
+      "buildNumber": "12",
       "associatedDomains": [
         "applinks:kaszuby24.pl",
         "applinks:www.kaszuby24.pl"
@@ -36,14 +34,12 @@
       }
     },
     "android": {
-      "newArchEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "app.kaszuby24",
-      "versionCode": 39,
-      "googleServicesFile": "./google-services.json",
+      "versionCode": 43,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -51,14 +47,13 @@
           "data": [
             {
               "scheme": "https",
-              "host": "kaszuby24.pl"
+              "host": "kaszuby24.pl",
+              "pathPrefix": "/"
             },
             {
               "scheme": "https",
-              "host": "www.kaszuby24.pl"
-            },
-            {
-              "scheme": "kaszuby24"
+              "host": "www.kaszuby24.pl",
+              "pathPrefix": "/"
             }
           ],
           "category": [
@@ -68,27 +63,9 @@
         },
         {
           "action": "VIEW",
-          "autoVerify": false,
           "data": [
             {
-              "scheme": "https",
-              "host": "kaszuby24.pl",
-              "pathPrefix": "/nekrolog/"
-            },
-            {
-              "scheme": "https",
-              "host": "kaszuby24.pl",
-              "pathPrefix": "/kalendarz/"
-            },
-            {
-              "scheme": "https",
-              "host": "kaszuby24.pl",
-              "pathPrefix": "/wydarzenia"
-            },
-            {
-              "scheme": "https",
-              "host": "kaszuby24.pl",
-              "pathPrefix": "/nekrologi-2"
+              "scheme": "kaszuby24"
             }
           ],
           "category": [
@@ -113,17 +90,17 @@
     "updates": {
       "enabled": true,
       "url": "https://u.expo.dev/4aced4e9-da53-4734-83d7-fa5fe9870884",
-      "fallbackToCacheTimeout": 0,
+      "fallbackToCacheTimeout": 10000,
       "checkAutomatically": "ON_LOAD"
     },
     "extra": {
       "eas": {
         "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
-      }
+      },
+      "gaMeasurementId": "G-XXXXXXXXXX",
+      "gaApiSecret": "YOUR_API_SECRET"
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.42",
     "plugins": [
       [
         "expo-notifications",
@@ -142,13 +119,19 @@
         }
       ],
       "expo-calendar",
-      "./plugins/withAndroidFix"
-    ],
-    "notification": {
-      "icon": "./assets/images/icon.png",
-      "color": "#ffffff",
-      "androidMode": "default",
-      "androidCollapsedTitle": "Nowe wiadomości z Kaszub24"
-    }
+      "./plugins/withAndroidFix",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": true,
+            "deploymentTarget": "15.1"
+          },
+          "android": {
+            "newArchEnabled": true
+          }
+        }
+      ]
+    ]
   }
 }

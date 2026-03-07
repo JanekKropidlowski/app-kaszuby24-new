@@ -1,4 +1,3 @@
-import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
@@ -8,16 +7,36 @@ import { useNotificationsStore } from '@/store/notificationsStore';
 import { registerExpoPushToken } from './api';
 import { router } from 'expo-router';
 
+// Sprawdź czy działa w Expo Go (nie wspiera push notifications od SDK 53)
+const isExpoGo = Constants.appOwnership === 'expo';
+
+// Warunkowy import expo-notifications - tylko jeśli nie w Expo Go
+let Notifications: any = null;
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (e) {
+    console.log('expo-notifications not available in Expo Go');
+  }
+}
+
 class NotificationService {
   private isInitialized = false;
   private initializationFailed = false;
   private notificationListener: any = null;
   private responseListener: any = null;
   private dailyWeatherNotificationId: string | null = null;
-  
+
   async setupNotificationHandlers() {
     if (this.isInitialized || this.initializationFailed) return;
-    
+
+    // Pomiń inicjalizację w Expo Go
+    if (isExpoGo) {
+      console.log('Running inside Expo Go - skipping push notification setup (use development build for full notifications)');
+      this.initializationFailed = true;
+      return;
+    }
+
     try {
       console.log('Initializing Expo Push Notifications...');
       // Ensure notifications are presented while app is in foreground (iOS by default hides them)
@@ -54,10 +73,14 @@ class NotificationService {
       this.isInitialized = true;
       console.log('Expo Push notification handlers setup complete');
       
-      // Request permissions after setup
-      setTimeout(() => {
-        this.requestPermissionsAndRegister().catch(console.warn);
-      }, 1000);
+      // Request permissions and register push token after setup, unless running in Expo Go
+      if (Constants.appOwnership === 'expo') {
+        console.log('Running inside Expo Go - skipping push token registration (use development build for full notifications)');
+      } else {
+        setTimeout(() => {
+          this.requestPermissionsAndRegister().catch(console.warn);
+        }, 1000);
+      }
 
       // Restore daily weather schedule if user enabled it
       setTimeout(() => {
@@ -205,28 +228,29 @@ class NotificationService {
   
   async requestPermissions(): Promise<boolean> {
     try {
-      if (this.initializationFailed) {
+      // Pomiń w Expo Go
+      if (isExpoGo || this.initializationFailed) {
         return false;
       }
-      
+
       if (!Device.isDevice) {
         console.log('Must use physical device for Push Notifications');
         return false;
       }
-      
+
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      
+
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      
+
       if (finalStatus !== 'granted') {
         console.log('Failed to get push token for push notification!');
         return false;
       }
-      
+
       console.log('Expo Push permission granted');
       return true;
     } catch (error) {
@@ -237,10 +261,11 @@ class NotificationService {
   
   async requestPermissionsAndRegister() {
     try {
-      if (this.initializationFailed) {
+      // Pomiń w Expo Go
+      if (isExpoGo || this.initializationFailed) {
         return;
       }
-      
+
       // Request permission
       const hasPermission = await this.requestPermissions();
       
@@ -281,39 +306,44 @@ class NotificationService {
   }
   
   async registerForPushNotifications() {
+    // Pomiń w Expo Go
+    if (isExpoGo) {
+      console.log('Running inside Expo Go - skipping push token registration (use development build for full notifications)');
+      return;
+    }
+
     try {
-      
       const hasPermission = await this.requestPermissions();
-      
+
       if (!hasPermission) {
         console.log('Expo Push permission denied');
         return;
       }
-      
+
       // Get push token
       try {
         const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
-        
+
         if (!projectId) {
           console.warn('No project ID found for Expo Push notifications');
           return;
         }
-        
+
         const pushToken = await Notifications.getExpoPushTokenAsync({
           projectId,
         });
-        
+
         if (pushToken.data) {
           const { setExpoPushToken } = useNotificationsStore.getState();
           setExpoPushToken(pushToken.data);
-          
+
           // Register with backend
           await this.registerTokenWithBackend(pushToken.data);
         }
       } catch (error) {
         console.warn('Failed to get Expo Push token:', error);
       }
-      
+
       console.log('Expo Push notifications registered');
     } catch (error) {
       console.error('Error registering for Expo Push notifications:', error);
@@ -873,11 +903,19 @@ class NotificationService {
   }
 
   // Public methods for external listeners
-  addNotificationReceivedListener(callback: (notification: Notifications.Notification) => void) {
+  addNotificationReceivedListener(callback: (notification: any) => void) {
+    if (!Notifications || isExpoGo) {
+      console.log('Notifications not available in Expo Go');
+      return { remove: () => {} }; // Return dummy subscription
+    }
     return Notifications.addNotificationReceivedListener(callback);
   }
 
-  addNotificationResponseReceivedListener(callback: (response: Notifications.NotificationResponse) => void) {
+  addNotificationResponseReceivedListener(callback: (response: any) => void) {
+    if (!Notifications || isExpoGo) {
+      console.log('Notifications not available in Expo Go');
+      return { remove: () => {} }; // Return dummy subscription
+    }
     return Notifications.addNotificationResponseReceivedListener(callback);
   }
 

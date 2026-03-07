@@ -354,9 +354,9 @@ const styles = StyleSheet.create({
     letterSpacing: Platform.OS === 'android' ? 0.4 : 0.3, // Better letter spacing on Android
   },
   title: {
-    fontSize: Platform.OS === 'android' ? 18 : 16, // Increased from 17 to 18 on Android
+    fontSize: Platform.OS === 'android' ? 16 : 16,
     fontWeight: '600',
-    lineHeight: Platform.OS === 'android' ? 26 : 22, // Increased line height on Android
+    lineHeight: Platform.OS === 'android' ? 22 : 22,
     marginBottom: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
     letterSpacing: Platform.OS === 'android' ? -0.05 : -0.2, // Better letter spacing on Android
   },
@@ -414,10 +414,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   compactTitle: {
-    fontSize: Platform.OS === 'android' ? 17 : 15, // Increased from 16 to 17 on Android
+    fontSize: Platform.OS === 'android' ? 15 : 15,
     fontWeight: '600',
     marginBottom: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
-    lineHeight: Platform.OS === 'android' ? 24 : 20, // Increased line height on Android
+    lineHeight: Platform.OS === 'android' ? 20 : 20,
     letterSpacing: Platform.OS === 'android' ? -0.05 : -0.2, // Better letter spacing on Android
   },
   compactFooter: {

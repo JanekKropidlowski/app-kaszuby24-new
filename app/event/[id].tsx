@@ -12,7 +12,7 @@ import calendarService from '@/services/calendarService';
 import { fetchRelatedEvents, fetchArtist, fetchVenue } from '@/services/api';
 import { VenueMap } from '@/components/VenueMap';
 import * as he from 'he';
-import { safeFormatDate, safeFormatTime } from '@/utils/dateFormatter';
+import { safeDateParse, safeFormatDate, safeFormatTime } from '@/utils/dateFormatter';
 
 const { width, height } = Dimensions.get('window');
 const BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2/kalendarz';
@@ -316,10 +316,10 @@ export default function EventDetailScreen() {
            <View style={styles.dateOverlay}>
              <View style={styles.dateOverlayInner}>
                <Text style={styles.dateOverlayDay}>
-                 {new Date((event.meta?.['data-i-godzina'] || event.meta?.['sama-data'] || event.date) * 1000).getDate()}
+                 {(safeDateParse(event.meta?.['data-i-godzina'] || event.meta?.['sama-data'] || event.date) ?? new Date()).getDate()}
                </Text>
                <Text style={styles.dateOverlayMonth}>
-                 {new Date((event.meta?.['data-i-godzina'] || event.meta?.['sama-data'] || event.date) * 1000).toLocaleDateString('pl-PL', { month: 'short' })}
+                 {(safeDateParse(event.meta?.['data-i-godzina'] || event.meta?.['sama-data'] || event.date) ?? new Date()).toLocaleDateString('pl-PL', { month: 'short' })}
                </Text>
              </View>
            </View>

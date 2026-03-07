@@ -69,6 +69,10 @@ export interface WarningData {
   regions: string[];
   probability?: number;
   comment?: string;
+  // Nowe pola z API
+  published?: string; // opublikowano
+  office?: string; // biuro
+  rawData?: any; // Pełne dane z API dla szczegółowego widoku
   // Pola specyficzne dla ostrzeżeń hydro
   obszary?: Array<{
     wojewodztwo: string;

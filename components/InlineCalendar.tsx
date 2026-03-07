@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -99,15 +99,19 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
     return date >= effectiveStartDate && date <= effectiveEndDate;
   };
 
+  // O(1) lookup map instead of O(n) find/some per day cell
+  const eventsMap = useMemo(() => {
+    const map = new Map<string, number>();
+    events.forEach(e => map.set(e.date, e.count));
+    return map;
+  }, [events]);
+
   const hasEvents = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return events.some(event => event.date === dateStr);
+    return eventsMap.has(date.toISOString().split('T')[0]);
   };
 
   const getEventCount = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    const event = events.find(e => e.date === dateStr);
-    return event?.count || 0;
+    return eventsMap.get(date.toISOString().split('T')[0]) || 0;
   };
 
   // Helper function to get day styles
@@ -310,13 +314,21 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
 
           {/* Calendar Grid */}
           <View style={styles.calendarGrid}>
-            {days.map((day, index) => (
+            {days.map((day, index) => {
+              // Compute once per day to avoid calling getDayStyles twice
+              const dayStyles = day ? getDayStyles(day) : null;
+              const dayEventCount = day ? getEventCount(day) : 0;
+              const dayHasEvents = dayEventCount > 0;
+              const dayIsHighlighted = day ? (isRangeStart(day) || isRangeEnd(day) || isSelected(day)) : false;
+              const dayIsInRange = day ? isInRange(day) : false;
+
+              return (
               <View key={index} style={styles.dayContainer}>
                 {day ? (
                   <TouchableOpacity
                     style={[
                       styles.dayButton,
-                      getDayStyles(day),
+                      dayStyles!,
                       {
                         opacity: isInValidRange(day) ? 1 : 0.3,
                         borderWidth: 1
@@ -326,43 +338,39 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
                     activeOpacity={0.7}
                     disabled={!isInValidRange(day)}
                   >
-                    <Text 
+                    <Text
                       style={[
                         styles.dayText,
-                        { 
-                          color: getDayStyles(day).color,
-                          fontFamily: (isToday(day) || isSelected(day) || isRangeStart(day) || isRangeEnd(day)) ? 'Poppins_SemiBold' : 'Poppins_Regular'
+                        {
+                          color: dayStyles!.color,
+                          fontFamily: (isToday(day) || dayIsHighlighted) ? 'Poppins_SemiBold' : 'Poppins_Regular'
                         }
                       ]}
                     >
                       {day.getDate()}
                     </Text>
-                    
+
                     {/* Event indicator */}
-                    {hasEvents(day) && (
+                    {dayHasEvents && (
                       <View style={[
                         styles.eventIndicator,
-                        { 
-                          backgroundColor: isRangeStart(day) || isRangeEnd(day) || isSelected(day)
-                            ? '#fff' 
-                            : isInRange(day)
-                            ? '#224A96'
-                            : '#224A96' 
+                        {
+                          backgroundColor: dayIsHighlighted
+                            ? '#fff'
+                            : '#224A96'
                         }
                       ]}>
                         <Text style={[
                           styles.eventCount,
-                          { 
-                            color: isRangeStart(day) || isRangeEnd(day) || isSelected(day)
-                              ? '#224A96' 
-                              : isInRange(day)
-                              ? '#fff'
+                          {
+                            color: dayIsHighlighted
+                              ? '#224A96'
                               : '#fff',
-                            fontSize: getEventCount(day) > 9 ? 8 : 10,
+                            fontSize: dayEventCount > 9 ? 8 : 10,
                             fontFamily: 'Poppins_SemiBold'
                           }
                         ]}>
-                          {getEventCount(day)}
+                          {dayEventCount}
                         </Text>
                       </View>
                     )}
@@ -371,7 +379,8 @@ const InlineCalendar: React.FC<InlineCalendarProps> = ({
                   <View style={styles.emptyDay} />
                 )}
               </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       )}

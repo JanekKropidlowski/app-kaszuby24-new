@@ -29,12 +29,9 @@ function formatTime(sec: number) {
 }
 
 export const AudioPlayerBar = ({ isPlaying, duration, position, onPlayPause, onStop, isLoading, title, label = 'Czytanie' }: AudioPlayerBarProps) => {
-  console.log('[AUDIO PLAYER] Rendering with:', { isPlaying, duration, position, title, label, isLoading });
-  
   // Animacja pojawiania się
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    console.log('[AUDIO PLAYER] Starting fade animation');
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,

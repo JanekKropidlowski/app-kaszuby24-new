@@ -125,18 +125,22 @@ export const WasteNotificationService = {
             return false;
         }
 
-        await Notifications.scheduleNotificationAsync({
-            content: {
-                title: 'Jutro odbiór odpadów! 🗑️',
-                body: 'Przygotuj: Zmieszane, Plastik i metale, Makulatura',
-                data: { test: true },
-                sound: true,
-            },
-            trigger: {
-                seconds: 2,
-            },
-        });
-
-        return true;
+        try {
+            await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: 'Jutro odbiór odpadów! 🗑️',
+                    body: 'Przygotuj: Zmieszane, Plastik i metale, Makulatura',
+                    data: { test: true },
+                    sound: true,
+                },
+                trigger: {
+                    seconds: 2,
+                },
+            });
+            return true;
+        } catch (error) {
+            console.error('[WasteNotificationService] Error scheduling test notification:', error);
+            return false;
+        }
     }
 };

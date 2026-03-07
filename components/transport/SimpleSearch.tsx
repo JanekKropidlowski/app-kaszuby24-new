@@ -14,6 +14,8 @@ interface Props {
     onRouteSelect: (route: RouteOption) => void;
 }
 
+const tfs = (size: number) => (Platform.OS === 'android' ? Math.max(9, size - 3) : size);
+
 export const SimpleSearch = ({ theme, userLocation, onClose, onRouteSelect }: Props) => {
     // State
     const [fromText, setFromText] = useState('');
@@ -45,14 +47,23 @@ export const SimpleSearch = ({ theme, userLocation, onClose, onRouteSelect }: Pr
             return;
         }
         const lower = text.toLowerCase();
-        // Priority for Rail Hubs
+        // Priority for Rail Hubs: SKM > POLREGIO > MZK Wejherowo > others
         const filtered = allStopsParam.current
             .filter(s => s.name.toLowerCase().includes(lower))
             .sort((a, b) => {
-                // Boost railway stations
-                const aRail = a.agency?.includes('rail') || a.agency?.includes('skm') ? 1 : 0;
-                const bRail = b.agency?.includes('rail') || b.agency?.includes('skm') ? 1 : 0;
-                return bRail - aRail;
+                // Calculate priority score for each stop
+                const getPriority = (stop: TransportStop) => {
+                    const agency = stop.agency?.toLowerCase() || '';
+                    if (agency.includes('skm')) return 100;
+                    if (agency.includes('polregio') || agency.includes('regio')) return 90;
+                    if (agency.includes('mzk') || agency.includes('wejherowo')) return 80;
+                    if (agency.includes('rail')) return 70;
+                    return 0;
+                };
+                
+                const aPriority = getPriority(a);
+                const bPriority = getPriority(b);
+                return bPriority - aPriority;
             })
             .slice(0, 20);
         setSuggestions(filtered);
@@ -174,7 +185,7 @@ export const SimpleSearch = ({ theme, userLocation, onClose, onRouteSelect }: Pr
                 {item.legs.map((l, i) => (
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center' }}>
                         {i > 0 && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.textSecondary, marginHorizontal: 4 }} />}
-                        <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
+                        <Text style={{ fontSize: tfs(11), color: theme.colors.textSecondary }}>
                             {l.mode === 'WALK' ? `Spacer` : `Linia ${l.line}`} ({l.duration}min)
                         </Text>
                     </View>
@@ -278,21 +289,21 @@ const styles = StyleSheet.create({
     inputRow: { flexDirection: 'row', alignItems: 'center' },
     inputStack: { flex: 1, marginRight: 10 },
     inputWrapper: { flexDirection: 'row', alignItems: 'center', height: 44 },
-    input: { flex: 1, fontSize: 16, paddingHorizontal: 10 },
+    input: { flex: 1, fontSize: tfs(16), paddingHorizontal: 10 },
     dot: { width: 8, height: 8, borderRadius: 4, marginLeft: 6 },
     swapBtn: { padding: 8, justifyContent: 'center', alignItems: 'center' },
 
     suggestionItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1 },
     iconBox: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    suggName: { fontSize: 16, fontWeight: '500' },
-    suggDesc: { fontSize: 12 },
+    suggName: { fontSize: tfs(16), fontWeight: '500' },
+    suggDesc: { fontSize: tfs(12) },
 
     resultCard: { padding: 16, marginBottom: 12, borderRadius: 12, elevation: 1 },
     cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
     agencyBadge: { paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#e0e7ff', borderRadius: 4 },
     agencyText: { color: '#3730a3', fontWeight: 'bold' },
-    timeRange: { fontSize: 18, fontWeight: '700' },
-    durationText: { fontSize: 13 },
+    timeRange: { fontSize: tfs(18), fontWeight: '700' },
+    durationText: { fontSize: tfs(13) },
     miniTimeline: { flexDirection: 'row', flexWrap: 'wrap' },
 
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },

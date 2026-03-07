@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useFonts } from 'expo-font';
 import { 
   StyleSheet, 
@@ -24,6 +24,13 @@ import { SafeAreaView as SafeAreaViewContext } from 'react-native-safe-area-cont
 import SkeletonLoader from '@/components/SkeletonLoader';
 import GlobalTabBar from '@/components/GlobalTabBar';
 import RenderHtml from 'react-native-render-html';
+
+const NEKROLOG_SYSTEM_FONTS = ['Poppins_Regular', 'Poppins_Bold', 'sans-serif', 'System'];
+const NEKROLOG_TAGS_STYLES = {
+  strong: { fontFamily: 'Poppins_Bold' as any },
+  b: { fontFamily: 'Poppins_Bold' as any },
+  p: { marginBottom: 8 },
+};
 
 import { fetchNekrologById } from '@/services/api';
 import { Nekrolog } from '@/types/article';
@@ -315,6 +322,18 @@ export default function NekrologDetailScreen() {
       .trim();
   }, []);
 
+  // Memoizowane props dla RenderHtml
+  const nekrologHtmlSource = useMemo(() => ({
+    html: nekrolog ? decodeHTMLContent(nekrolog.content.rendered) : '',
+  }), [nekrolog, decodeHTMLContent]);
+  const nekrologBaseStyle = useMemo(() => ({
+    color: theme.colors.text,
+    fontFamily: 'Poppins_Regular' as any,
+    fontSize: 16,
+    lineHeight: 26,
+    textAlign: 'center' as const,
+  }), [theme.colors.text]);
+
   if (loading) {
     return (
       <SafeAreaViewContext style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -433,31 +452,10 @@ export default function NekrologDetailScreen() {
          <View style={[styles.contentCard, { backgroundColor: theme.colors.card }]}>
             <RenderHtml
               contentWidth={Math.max(280, width - 40)}
-              systemFonts={[
-                'Poppins_Regular',
-                'Poppins_Bold',
-                'sans-serif',
-                'System'
-              ]}
-              source={{ html: decodeHTMLContent(nekrolog.content.rendered) }}
-              baseStyle={{
-                color: theme.colors.text,
-                fontFamily: 'Poppins_Regular',
-                fontSize: 16,
-                lineHeight: 26,
-                textAlign: 'center',
-              }}
-              tagsStyles={{
-                strong: {
-                  fontFamily: 'Poppins_Bold',
-                },
-                b: {
-                  fontFamily: 'Poppins_Bold',
-                },
-                p: {
-                  marginBottom: 8,
-                },
-              }}
+              systemFonts={NEKROLOG_SYSTEM_FONTS}
+              source={nekrologHtmlSource}
+              baseStyle={nekrologBaseStyle}
+              tagsStyles={NEKROLOG_TAGS_STYLES}
             />
          </View>
 

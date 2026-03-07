@@ -1,7 +1,6 @@
 {
   "cli": {
-    "version": ">= 7.2.1",
-    "appVersionSource": "remote"
+    "version": ">= 7.2.1"
   },
   "build": {
     "development": {
@@ -15,7 +14,8 @@
       },
       "channel": "development",
       "env": {
-        "EXPO_PUBLIC_UPDATES_ENABLED": "true"
+        "EXPO_PUBLIC_UPDATES_ENABLED": "true",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
       }
     },
     "preview": {
@@ -25,7 +25,8 @@
       },
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_UPDATES_ENABLED": "true"
+        "EXPO_PUBLIC_UPDATES_ENABLED": "true",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
       }
     },
     "production": {
@@ -34,17 +35,15 @@
       },
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_UPDATES_ENABLED": "true"
+        "EXPO_PUBLIC_UPDATES_ENABLED": "true",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "6748219988",
-        "ascApiKeyPath": "./asc-api-key.p8",
-        "ascApiKeyIssuerId": "YOUR_ISSUER_ID_HERE",
-        "ascApiKeyId": "YOUR_KEY_ID_HERE"
+        "ascAppId": "6748219988"
       }
     }
   }

@@ -26,6 +26,19 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+._*
+
+# local env files
+.env
+.env.local
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# EAS
+.eas/
+.easignore
 
 # keys and secrets
 google-services.json
@@ -33,8 +46,8 @@ GoogleService-Info.plist
 *.json_key
 *credentials*.json
 sonic-wavelet*.json
-.env
-.env.local
+firebase-service-account.json
+kaszuby24-push-*.json
 
 # local data and test files
 skm_test_unzip/
@@ -47,11 +60,102 @@ GTFS/
 *.zip
 *.log
 *.sqlite
-*report.txt
+
+# debug/test output files (root)
+debug_output.json
+debug_skm.json
+skm_result.json
+test_response.json
+test_route_response.json
+out.json
+out_clean.json
+sync_report.json
+files_report.json
+verify_log.txt
+verify_output.txt
+verify_stats.js
+deps.txt
+deps_final.txt
+gitstatus.txt
+rebuild_monitor.txt
+mevo_status_test.json
+mevo_wp_response.txt
+doctor_*.txt
+doctor_*.json
+test-results*.txt
+build_*.json
+build_ids*.json
+last_builds.json
+latest_ios_build.json
 all_builds.json
+branch_prod.json
+buildinfo.json
+channelinfo.json
+updater-config.json
+manifest_*.json
+otp-config*.json
+router-config*.json
+
+# generated scripts
 analyze_*.js
+dump_all_text.js
+extract_*.js
+find_streets*.js
+verify_stats.js
+run_app.ps1
+
+# test scripts (root)
+test-offline.js
+test-weather.js
 test-*.js
 
-# EAS
-.eas/
-.easignore
+# android build artifacts
+android/build/
+android/app/build/
+android/.gradle/
+
+# ios build artifacts
+ios/build/
+ios/Pods/
+ios/DerivedData/
+
+# POLREGIO shapes data (large)
+POLREGIO SHAPES/
+POLREGIO-SHAPES/
+constants/PolregioShapesData.json
+
+# misc files
+dist-check/
+docker-compose*.yml
+src/
+docs/
+pks-rozklad-2025.pdf
+pks_stops_data.json
+waste_data_reda.json
+skm_test_output.txt
+class-cache.php
+index.js
+metro.config.js
+
+# bak files
+*.bak
+*.bak2
+*.tmp
+
+# dist check
+dist-check/
+
+# misc root json configs
+build-config*.json
+router-config*.json
+router-config.json.b64
+
+# report files
+skm_report.txt
+stops-api-urls.js
+
+# files with weird names
+"--date=short*"
+
+# app/(tabs)/transport_legacy
+app/(tabs)/transport_legacy.bak

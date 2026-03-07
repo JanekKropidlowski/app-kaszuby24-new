@@ -9,7 +9,8 @@ if (!defined('ABSPATH')) {
 
 ob_start();
 
-class Kaszuby24_Transport {
+class Kaszuby24_Transport
+{
 
     private $namespace = 'kaszuby24/v1';
     private $resource_name = 'transport';
@@ -21,10 +22,11 @@ class Kaszuby24_Transport {
     const POMERANIA_MIN_LON = 16.5;
     const POMERANIA_MAX_LON = 19.5;
 
-    public function __construct() {
+    public function __construct()
+    {
         $upload_dir = wp_upload_dir();
         $this->cache_dir = $upload_dir['basedir'] . '/gtfs-cache';
-        
+
         if (!file_exists($this->cache_dir)) {
             wp_mkdir_p($this->cache_dir);
         }
@@ -32,7 +34,8 @@ class Kaszuby24_Transport {
         add_action('rest_api_init', array($this, 'register_routes'));
     }
 
-    public function register_routes() {
+    public function register_routes()
+    {
         // Prevent leak of warnings into REST responses
         @ini_set('display_errors', 0);
         @error_reporting(0);
@@ -51,7 +54,8 @@ class Kaszuby24_Transport {
                 'min_lat' => array('required' => false, 'type' => 'number'),
                 'min_lon' => array('required' => false, 'type' => 'number'),
                 'max_lat' => array('required' => false, 'type' => 'number'),
-                'max_lon' => array('required' => false, 'type' => 'number')
+                'max_lon' => array('required' => false, 'type' => 'number'),
+                'format' => array('required' => false, 'type' => 'string', 'enum' => array('json', 'geojson'))
             )
         ));
 
@@ -112,7 +116,7 @@ class Kaszuby24_Transport {
             'permission_callback' => '__return_true',
             'args' => array(
                 'agency' => array(
-                    'required' => true, 
+                    'required' => true,
                     'type' => 'string',
                     'enum' => array('gdansk', 'GDANSK', 'mevo', 'MEVO')
                 )
@@ -127,16 +131,19 @@ class Kaszuby24_Transport {
         ));
     }
 
-    public function check_admin_permissions() {
+    public function check_admin_permissions()
+    {
         return current_user_can('manage_options');
     }
 
-    public function get_stops($request) {
+    public function get_stops($request)
+    {
         $agency = strtolower($request->get_param('agency'));
         $min_lat = $request->get_param('min_lat');
         $max_lat = $request->get_param('max_lat');
         $min_lon = $request->get_param('min_lon');
         $max_lon = $request->get_param('max_lon');
+        $format = $request->get_param('format');
 
         // Suppress output
         ob_start();
@@ -155,9 +162,9 @@ class Kaszuby24_Transport {
             if (file_exists($cache_file)) {
                 $stops = json_decode(file_get_contents($cache_file), true);
                 if ($min_lat && $max_lat && $min_lon && $max_lon) {
-                    $stops = array_filter($stops, function($s) use ($min_lat, $max_lat, $min_lon, $max_lon) {
-                        return $s['lat'] >= $min_lat && $s['lat'] <= $max_lat && 
-                               $s['lon'] >= $min_lon && $s['lon'] <= $max_lon;
+                    $stops = array_filter($stops, function ($s) use ($min_lat, $max_lat, $min_lon, $max_lon) {
+                        return $s['lat'] >= $min_lat && $s['lat'] <= $max_lat &&
+                            $s['lon'] >= $min_lon && $s['lon'] <= $max_lon;
                     });
                     $stops = array_values($stops);
                 }
@@ -168,13 +175,13 @@ class Kaszuby24_Transport {
 
         if ($agency === 'all' || $agency === 'all_rail') {
             $all_stops = array();
-            
+
             if ($agency === 'all_rail') {
                 $agencies = array('polregio', 'pkp', 'skm', 'intercity');
             } else {
                 $agencies = array('polregio', 'wejherowo', 'pkp', 'skm', 'gdynia', 'intercity', 'gdansk', 'mevo');
             }
-            
+
             foreach ($agencies as $ag) {
                 $file = $this->cache_dir . "/{$ag}_stops.json";
                 if (!file_exists($file) && $ag === 'mevo') {
@@ -194,7 +201,7 @@ class Kaszuby24_Transport {
                     dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/pks_stops_data.json',
                     dirname(dirname(dirname(dirname(dirname(dirname(__FILE__)))))) . '/pks_stops_data.json'
                 ];
-                
+
                 foreach ($possible_pks_paths as $pks_file) {
                     if (@file_exists($pks_file)) {
                         $pks_data = @json_decode(file_get_contents($pks_file), true);
@@ -232,7 +239,7 @@ class Kaszuby24_Transport {
             $max_lon = $request->get_param('max_lon');
 
             if ($min_lat !== null && $max_lat !== null && $min_lon !== null && $max_lon !== null) {
-                $stops = array_filter($stops, function($s) use ($min_lat, $max_lat, $min_lon, $max_lon) {
+                $stops = array_filter($stops, function ($s) use ($min_lat, $max_lat, $min_lon, $max_lon) {
                     return $s['lat'] >= $min_lat && $s['lat'] <= $max_lat && $s['lon'] >= $min_lon && $s['lon'] <= $max_lon;
                 });
                 return new WP_REST_Response(array_values($stops), 200);
@@ -246,7 +253,9 @@ class Kaszuby24_Transport {
 
         if (file_exists($cache_file)) {
             $data = file_get_contents($cache_file);
-            return new WP_REST_Response(json_decode($data), 200);
+            $stops = json_decode($data, true);
+        } else {
+            return new WP_REST_Response(array(), 404);
         }
 
         // Specjalna obsługa PKS Gdynia z lokalnego pliku jeśli istnieje
@@ -257,7 +266,7 @@ class Kaszuby24_Transport {
                 dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/pks_stops_data.json',
                 dirname(dirname(dirname(dirname(dirname(dirname(__FILE__)))))) . '/pks_stops_data.json'
             ];
-            
+
             foreach ($possible_paths as $pks_file) {
                 if (@file_exists($pks_file)) {
                     $pks_data = @json_decode(file_get_contents($pks_file), true);
@@ -272,10 +281,11 @@ class Kaszuby24_Transport {
             }
         }
 
-        return new WP_REST_Response(array(), 200);
+        return new WP_REST_Response($stops, 200);
     }
 
-    public function get_timetable($request) {
+    public function get_timetable($request)
+    {
         $agency = $request->get_param('agency');
         $stop_id = $request->get_param('stop_id');
 
@@ -302,15 +312,15 @@ class Kaszuby24_Transport {
         }
 
         $idx_file = $this->cache_dir . "/{$agency}/departures/" . sanitize_file_name($stop_id) . ".json";
-        
+
         if (file_exists($idx_file)) {
             $data = json_decode(file_get_contents($idx_file), true);
-            
+
             // 1. USTALENIE DATY I CZASU
             $all_day = $request->get_param('all_day') === '1';
             $now_time = current_time('H:i');
             $today_timestamp = current_time('timestamp');
-            
+
             $days_to_check = array(
                 array(
                     'ymd' => date('Ymd', $today_timestamp),
@@ -335,18 +345,19 @@ class Kaszuby24_Transport {
 
             // 3. FILTROWANIE I NORMALIZACJA
             $valid_departures = array();
-            $day_map = array(1=>0, 2=>1, 3=>2, 4=>3, 5=>4, 6=>5, 0=>6); // 0=Mon, 6=Sun
+            $day_map = array(1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5, 0 => 6); // 0=Mon, 6=Sun
 
             foreach ($days_to_check as $day_info) {
                 $target_ymd = $day_info['ymd'];
                 // Dzień tygodnia dla konkretnej daty
                 $target_ts = strtotime($target_ymd);
-                $day_of_week = (int)date('w', $target_ts);
+                $day_of_week = (int) date('w', $target_ts);
                 $current_day_idx = $day_map[$day_of_week];
 
                 foreach ($data as $dep) {
                     $sid = isset($dep['service_id']) ? $dep['service_id'] : null;
-                    if (!$sid || !isset($services[$sid])) continue;
+                    if (!$sid || !isset($services[$sid]))
+                        continue;
 
                     $s = $services[$sid];
                     $is_active = false;
@@ -365,13 +376,15 @@ class Kaszuby24_Transport {
                         }
                     }
 
-                    if (!$is_active) continue;
+                    if (!$is_active)
+                        continue;
 
                     // 4. FILTR CZASU
                     $raw_time = $dep['time'];
-                    
+
                     // Dla dzisiaj filtrujemy przeszłe, chyba że all_day
-                    if ($day_info['is_today'] && !$all_day && strcmp($raw_time, $now_time) < 0) continue;
+                    if ($day_info['is_today'] && !$all_day && strcmp($raw_time, $now_time) < 0)
+                        continue;
 
                     // Normalizacja 24h+
                     $display_time = $raw_time;
@@ -382,7 +395,7 @@ class Kaszuby24_Transport {
                         $display_time = sprintf("%02d:%02s", $h - 24, $time_parts[1]);
                         $is_next_day_overflow = true;
                     }
-                    
+
                     $new_dep = $dep;
                     $new_dep['display_time'] = $display_time;
                     $new_dep['target_date'] = date('Y-m-d', $target_ts);
@@ -393,7 +406,7 @@ class Kaszuby24_Transport {
             }
 
             // 5. SORTOWANIE
-            usort($valid_departures, function($a, $b) {
+            usort($valid_departures, function ($a, $b) {
                 if ($a['target_date'] !== $b['target_date']) {
                     return strcmp($a['target_date'], $b['target_date']);
                 }
@@ -404,9 +417,10 @@ class Kaszuby24_Transport {
             $seen = array();
             foreach ($valid_departures as $dep) {
                 $key = $dep['target_date'] . '|' . $dep['service_id'] . '|' . $dep['trip_id'] . '|' . $dep['time'];
-                if (isset($seen[$key])) continue;
+                if (isset($seen[$key]))
+                    continue;
                 $seen[$key] = true;
-                
+
                 $final[] = array(
                     'time' => $dep['display_time'],
                     'date' => $dep['target_date'],
@@ -417,7 +431,7 @@ class Kaszuby24_Transport {
                     'platform' => $dep['platform'],
                     'trip_id' => $dep['trip_id'],
                     'attributes' => array_merge(
-                        (array)$dep['attributes'],
+                        (array) $dep['attributes'],
                         array(
                             'is_next_day' => $dep['is_next_day_overflow'],
                             'date' => $dep['target_date']
@@ -432,7 +446,8 @@ class Kaszuby24_Transport {
         return new WP_REST_Response(array(), 200);
     }
 
-    private function get_pks_timetable_combined($stop_id) {
+    private function get_pks_timetable_combined($stop_id)
+    {
         // Use live API from kiedyprzyjedzie.pl
         $api_url = 'https://pksgdynia.kiedyprzyjedzie.pl/departures/' . urlencode($stop_id);
         $result = array();
@@ -465,12 +480,13 @@ class Kaszuby24_Transport {
                 );
             }
         }
-        
+
         $deduplicated = $this->deduplicate_timetable($result);
         return new WP_REST_Response(array_slice($deduplicated, 0, 15), 200);
     }
 
-    private function get_pksgdynia_stops_from_api($request) {
+    private function get_pksgdynia_stops_from_api($request)
+    {
         $api_url = 'https://pksgdynia.kiedyprzyjedzie.pl/stops?rev=5422';
         $response = wp_remote_get($api_url, array(
             'timeout' => 10,
@@ -504,7 +520,8 @@ class Kaszuby24_Transport {
         return new WP_REST_Response($stops, 200);
     }
 
-    private function get_gdansk_stops_from_api($request) {
+    private function get_gdansk_stops_from_api($request)
+    {
         $api_url = 'https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json';
         $response = wp_remote_get($api_url, array(
             'timeout' => 15,
@@ -541,9 +558,11 @@ class Kaszuby24_Transport {
                 // Filtruj tylko pomorskie przystanki
                 $lat = floatval($stop['stopLat'] ?? $stop['stop_lat'] ?? 0);
                 $lon = floatval($stop['stopLon'] ?? $stop['stop_lon'] ?? 0);
-                
-                if ($lat >= self::POMERANIA_MIN_LAT && $lat <= self::POMERANIA_MAX_LAT &&
-                    $lon >= self::POMERANIA_MIN_LON && $lon <= self::POMERANIA_MAX_LON) {
+
+                if (
+                    $lat >= self::POMERANIA_MIN_LAT && $lat <= self::POMERANIA_MAX_LAT &&
+                    $lon >= self::POMERANIA_MIN_LON && $lon <= self::POMERANIA_MAX_LON
+                ) {
                     $stops[] = array(
                         'id' => $stop['stopId'] ?? $stop['stop_id'] ?? '',
                         'name' => $stop['stopName'] ?? $stop['stop_name'] ?? $stop['stopDesc'] ?? 'Unknown',
@@ -560,39 +579,73 @@ class Kaszuby24_Transport {
     }
 
 
-    public function safe_callback_live($request) {
-        while (ob_get_level() > 1) ob_end_clean();
+    public function safe_callback_live($request)
+    {
+        while (ob_get_level() > 1)
+            ob_end_clean();
         ob_start();
         $response = $this->get_live_positions($request);
         $junk = ob_get_clean();
         return $response;
     }
 
-    public function safe_callback_mevo_status($request) {
-        while (ob_get_level() > 1) ob_end_clean();
+    public function safe_callback_mevo_status($request)
+    {
+        while (ob_get_level() > 1)
+            ob_end_clean();
         ob_start();
         $response = $this->get_mevo_all_status($request);
         $junk = ob_get_clean();
         return $response;
     }
 
-    public function safe_callback_stops($request) {
-        while (ob_get_level() > 1) ob_end_clean();
+    public function safe_callback_stops($request)
+    {
+        while (ob_get_level() > 1)
+            ob_end_clean();
         ob_start();
         $response = $this->get_stops($request);
         $junk = ob_get_clean();
+
+        $format = $request->get_param('format');
+        if ($format === 'geojson' && is_a($response, 'WP_REST_Response')) {
+            $data = $response->get_data();
+            if (is_array($data)) {
+                $features = array();
+                foreach ($data as $s) {
+                    if (!isset($s['lat']) || !isset($s['lon']))
+                        continue;
+                    $features[] = array(
+                        'type' => 'Feature',
+                        'geometry' => array(
+                            'type' => 'Point',
+                            'coordinates' => array(floatval($s['lon']), floatval($s['lat']))
+                        ),
+                        'properties' => $s
+                    );
+                }
+                $response->set_data(array(
+                    'type' => 'FeatureCollection',
+                    'features' => $features
+                ));
+            }
+        }
+
         return $response;
     }
 
-    public function safe_callback_timetable($request) {
-        while (ob_get_level() > 1) ob_end_clean();
+    public function safe_callback_timetable($request)
+    {
+        while (ob_get_level() > 1)
+            ob_end_clean();
         ob_start();
         $response = $this->get_timetable($request);
         $junk = ob_get_clean();
         return $response;
     }
 
-    private function get_gdansk_timetable($stop_id) {
+    private function get_gdansk_timetable($stop_id)
+    {
         // Use ZTM Gdańsk Live Departures API (Virtual Monitor)
         $api_url = 'https://ckan2.multimediagdansk.pl/departures?stopId=' . urlencode($stop_id);
 
@@ -627,81 +680,85 @@ class Kaszuby24_Transport {
                     $time = substr($timeFull, 0, 5);
                 }
 
-                if (empty($time)) continue;
+                if (empty($time))
+                    continue;
 
                 $result[] = array(
                     'time' => $time,
-                    'line' => (string)($item['routeShortName'] ?? $item['routeId'] ?? ''),
+                    'line' => (string) ($item['routeShortName'] ?? $item['routeId'] ?? ''),
                     'destination' => $item['headsign'] ?? '',
                     'platform' => '',
-                    'trip_id' => (string)($item['tripId'] ?? ''),
+                    'trip_id' => (string) ($item['tripId'] ?? ''),
                     'attributes' => array(
                         'is_realtime' => (isset($item['status']) && $item['status'] === 'REALTIME'),
-                        'delay_desc' => isset($item['delayInSeconds']) ? (round($item['delayInSeconds']/60) . ' min') : ''
+                        'delay_desc' => isset($item['delayInSeconds']) ? (round($item['delayInSeconds'] / 60) . ' min') : ''
                     )
                 );
             }
-            
+
             // Sort by time
-            usort($result, function($a, $b) {
+            usort($result, function ($a, $b) {
                 return strcmp($a['time'], $b['time']);
             });
         }
-        
+
         return new WP_REST_Response(array_slice($result, 0, 20), 200);
     }
 
-    private function get_gdynia_timetable($stop_id) {
+    private function get_gdynia_timetable($stop_id)
+    {
         // Use ZKM Gdynia Live Departures API
         $api_url = 'https://api.zdiz.gdynia.pl/pt/delays?stopId=' . urlencode($stop_id);
-    
+
         $response = wp_remote_get($api_url, array(
             'timeout' => 5,
             'headers' => array('Accept' => 'application/json')
         ));
-    
+
         $result = array();
-    
+
         if (is_wp_error($response)) {
             error_log('[ZKM Gdynia API] Error fetching departures: ' . $response->get_error_message());
             return new WP_REST_Response($result, 200);
         }
-    
+
         $body = wp_remote_retrieve_body($response);
         $data = json_decode($body, true);
-    
+
         // Gdynia format has "delay" key
         if (isset($data['delay']) && is_array($data['delay'])) {
             foreach ($data['delay'] as $item) {
                 // Determine display time (Estimated > Theoretical)
                 $timeFull = $item['estimatedTime'] ?? $item['theoreticalTime'] ?? '';
                 $time = substr($timeFull, 0, 5);
-    
-                if (empty($time)) continue;
-    
+
+                if (empty($time))
+                    continue;
+
                 $result[] = array(
                     'time' => $time,
-                    'line' => (string)($item['routeShortName'] ?? $item['routeId'] ?? ''),
+                    'line' => (string) ($item['routeShortName'] ?? $item['routeId'] ?? ''),
                     'destination' => $item['headsign'] ?? '',
                     'platform' => '',
-                    'trip_id' => (string)($item['tripId'] ?? ''),
+                    'trip_id' => (string) ($item['tripId'] ?? ''),
                     'attributes' => array(
                         'is_realtime' => true,
-                        'delay_desc' => isset($item['delayInSeconds']) ? (round($item['delayInSeconds']/60) . ' min') : ''
+                        'delay_desc' => isset($item['delayInSeconds']) ? (round($item['delayInSeconds'] / 60) . ' min') : ''
                     )
                 );
             }
-            
+
             // Sort by time
-            usort($result, function($a, $b) {
+            usort($result, function ($a, $b) {
                 return strcmp($a['time'], $b['time']);
             });
         }
-        
+
         return new WP_REST_Response(array_slice($result, 0, 20), 200);
     }
 
-    private function deduplicate_timetable($data) {
+    private function deduplicate_timetable($data)
+    {
         $seen = array();
         $unique = array();
 
@@ -716,7 +773,8 @@ class Kaszuby24_Transport {
         return $unique;
     }
 
-    public function get_live_positions($request) {
+    public function get_live_positions($request)
+    {
         $agency = strtolower($request->get_param('agency'));
 
         if ($agency === 'mevo') {
@@ -757,12 +815,13 @@ class Kaszuby24_Transport {
         return new WP_REST_Response(array(), 200);
     }
 
-    public function get_train_details($request) {
+    public function get_train_details($request)
+    {
         $agency = $request->get_param('agency');
         $trip_id = $request->get_param('trip_id');
 
         $trip_file = $this->cache_dir . "/{$agency}/trips/" . sanitize_file_name($trip_id) . ".json";
-        
+
         if (file_exists($trip_file)) {
             return new WP_REST_Response(json_decode(file_get_contents($trip_file)), 200);
         }
@@ -770,7 +829,8 @@ class Kaszuby24_Transport {
         return new WP_REST_Response(array('error' => 'Trip not found'), 404);
     }
 
-    public function get_shapes($request) {
+    public function get_shapes($request)
+    {
         $agency = $request->get_param('agency');
         $shape_id = $request->get_param('shape_id');
         $file = $this->cache_dir . "/{$agency}/shapes/" . sanitize_file_name($shape_id) . ".json";
@@ -780,7 +840,8 @@ class Kaszuby24_Transport {
         return new WP_REST_Response(array(), 200);
     }
 
-    public function get_agency_info($request) {
+    public function get_agency_info($request)
+    {
         $agency = $request->get_param('agency');
         $file = $this->cache_dir . "/{$agency}/agency.json";
         if (file_exists($file)) {
@@ -789,15 +850,16 @@ class Kaszuby24_Transport {
         return new WP_REST_Response(array(), 200);
     }
 
-    private function process_gtfs($agency) {
+    private function process_gtfs($agency)
+    {
         $urls = array(
-            'wejherowo'=> 'https://mkuran.pl/gtfs/wejherowo.zip',
-            'skm'      => 'https://mkuran.pl/gtfs/skm.zip', // Używamy stabilnego feedu mkuran dla SKM
+            'wejherowo' => 'https://mkuran.pl/gtfs/wejherowo.zip',
+            'skm' => 'https://mkuran.pl/gtfs/skm.zip', // Używamy stabilnego feedu mkuran dla SKM
             'polregio' => 'https://mkuran.pl/gtfs/polregio.zip',
-            'intercity'=> 'https://mkuran.pl/gtfs/intercity.zip',
-            'pkp'      => 'https://mkuran.pl/gtfs/plk.zip', // Cały PKP PLK dla ogólnych zapytań
-            'gdynia'   => 'http://api.zdiz.gdynia.pl/pt/gtfs.zip',
-            'gdansk'   => 'https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/30e783e4-2bec-4a7d-bb22-ee3e3b26ca96/download/gtfsgoogle.zip',
+            'intercity' => 'https://mkuran.pl/gtfs/intercity.zip',
+            'pkp' => 'https://mkuran.pl/gtfs/plk.zip', // Cały PKP PLK dla ogólnych zapytań
+            'gdynia' => 'http://api.zdiz.gdynia.pl/pt/gtfs.zip',
+            'gdansk' => 'https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/30e783e4-2bec-4a7d-bb22-ee3e3b26ca96/download/gtfsgoogle.zip',
         );
 
         if (!isset($urls[$agency])) {
@@ -822,12 +884,12 @@ class Kaszuby24_Transport {
         // Pobierz GTFS
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         $tmp_zip = download_url($url, 600);
-        
+
         if (is_wp_error($tmp_zip)) {
             error_log("GTFS Download Error ({$agency}): " . $tmp_zip->get_error_message());
             return;
         }
-        
+
         rename($tmp_zip, $zip_path);
 
         // Rozpakuj
@@ -867,8 +929,9 @@ class Kaszuby24_Transport {
             $wheel_idx = array_search('wheelchair_boarding', $headers);
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-                if (count($data) <= max($id_idx, $lat_idx, $lon_idx)) continue;
-                
+                if (count($data) <= max($id_idx, $lat_idx, $lon_idx))
+                    continue;
+
                 $lat = floatval($data[$lat_idx]);
                 $lon = floatval($data[$lon_idx]);
                 $plat = ($plat_idx !== false && isset($data[$plat_idx])) ? $data[$plat_idx] : '';
@@ -877,8 +940,8 @@ class Kaszuby24_Transport {
 
                 // FILTRUJ TYLKO POMORSKIE!
                 $is_pomorskie = ($lat >= self::POMERANIA_MIN_LAT && $lat <= self::POMERANIA_MAX_LAT &&
-                                $lon >= self::POMERANIA_MIN_LON && $lon <= self::POMERANIA_MAX_LON);
-                
+                    $lon >= self::POMERANIA_MIN_LON && $lon <= self::POMERANIA_MAX_LON);
+
                 if ($is_pomorskie) {
                     $stops[] = array(
                         'id' => $data[$id_idx],
@@ -891,7 +954,7 @@ class Kaszuby24_Transport {
                         'agency' => $agency
                     );
                 }
-                
+
                 // Store all in map for timetable lookup
                 $stops_map[$data[$id_idx]] = array(
                     'name' => $data[$name_idx],
@@ -920,9 +983,10 @@ class Kaszuby24_Transport {
         $this->index_stop_times($agency, $extract_path, $stops_map, $pomorskie_stop_ids);
     }
 
-    private function index_calendar($agency, $extract_path) {
+    private function index_calendar($agency, $extract_path)
+    {
         $services = array();
-        
+
         // 1. Parse calendar.txt (Base schedule)
         $cal_file = $this->find_file_recursive($extract_path, 'calendar.txt');
         if ($cal_file && ($handle = fopen($cal_file, "r")) !== FALSE) {
@@ -937,10 +1001,12 @@ class Kaszuby24_Transport {
             // days: monday...sunday (indices 0..6 usually, but look for column names)
             $day_cols = array();
             $days = array('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');
-            foreach ($days as $d) $day_cols[$d] = array_search($d, $headers);
+            foreach ($days as $d)
+                $day_cols[$d] = array_search($d, $headers);
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-                if (!isset($data[$sid_idx])) continue;
+                if (!isset($data[$sid_idx]))
+                    continue;
                 $active_days = array();
                 foreach ($days as $i => $d) {
                     if (isset($data[$day_cols[$d]]) && $data[$day_cols[$d]] == '1') {
@@ -971,7 +1037,8 @@ class Kaszuby24_Transport {
             $type_idx = array_search('exception_type', $headers); // 1=Added, 2=Removed
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-                if (!isset($data[$sid_idx])) continue;
+                if (!isset($data[$sid_idx]))
+                    continue;
                 $sid = $data[$sid_idx];
                 $date = $data[$date_idx];
                 $type = $data[$type_idx];
@@ -994,9 +1061,11 @@ class Kaszuby24_Transport {
         error_log("Indexed " . count($services) . " services for {$agency}");
     }
 
-    private function index_agency_info($agency, $extract_path) {
+    private function index_agency_info($agency, $extract_path)
+    {
         $agency_file = $this->find_file_recursive($extract_path, 'agency.txt');
-        if (!$agency_file || ($handle = fopen($agency_file, "r")) === FALSE) return;
+        if (!$agency_file || ($handle = fopen($agency_file, "r")) === FALSE)
+            return;
 
         $line = fgets($handle);
         $delimiter = (strpos($line, ';') !== false) ? ';' : ',';
@@ -1019,9 +1088,11 @@ class Kaszuby24_Transport {
         fclose($handle);
     }
 
-    private function index_shapes($agency, $extract_path) {
+    private function index_shapes($agency, $extract_path)
+    {
         $shapes_file = $this->find_file_recursive($extract_path, 'shapes.txt');
-        if (!$shapes_file) return;
+        if (!$shapes_file)
+            return;
 
         $shapes_dir = $this->cache_dir . "/{$agency}/shapes";
         wp_mkdir_p($shapes_dir);
@@ -1041,10 +1112,13 @@ class Kaszuby24_Transport {
             $last_id = null;
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-                if (!isset($data[$id_idx])) continue;
+                if (!isset($data[$id_idx]))
+                    continue;
                 $id = $data[$id_idx];
                 if ($last_id !== null && $id !== $last_id) {
-                    usort($current_shape, function($a, $b) { return $a['s'] - $b['s']; });
+                    usort($current_shape, function ($a, $b) {
+                        return $a['s'] - $b['s'];
+                    });
                     file_put_contents($shapes_dir . "/" . sanitize_file_name($last_id) . ".json", json_encode($current_shape));
                     $current_shape = array();
                 }
@@ -1056,20 +1130,24 @@ class Kaszuby24_Transport {
                 $last_id = $id;
             }
             if ($last_id !== null) {
-                usort($current_shape, function($a, $b) { return $a['s'] - $b['s']; });
+                usort($current_shape, function ($a, $b) {
+                    return $a['s'] - $b['s'];
+                });
                 file_put_contents($shapes_dir . "/" . sanitize_file_name($last_id) . ".json", json_encode($current_shape));
             }
             fclose($handle);
         }
     }
 
-    private function index_stop_times($agency, $extract_path, $stops_map, $pomorskie_stop_ids) {
+    private function index_stop_times($agency, $extract_path, $stops_map, $pomorskie_stop_ids)
+    {
         $routes_file = $this->find_file_recursive($extract_path, 'routes.txt');
         $trips_file = $this->find_file_recursive($extract_path, 'trips.txt');
         $stop_times_file = $this->find_file_recursive($extract_path, 'stop_times.txt');
         $transfers_file = $this->find_file_recursive($extract_path, 'transfers.txt');
 
-        if (!$trips_file || !$stop_times_file) return;
+        if (!$trips_file || !$stop_times_file)
+            return;
 
         @set_time_limit(1800);
 
@@ -1087,8 +1165,9 @@ class Kaszuby24_Transport {
             $color_idx = array_search('route_color', $headers);
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-                if (!isset($data[$route_id_idx])) continue;
-                
+                if (!isset($data[$route_id_idx]))
+                    continue;
+
                 $badge = ($short_name_idx !== false && !empty($data[$short_name_idx])) ? $data[$short_name_idx] : '';
                 // Fallback to route_id if short_name is empty (common in some GTFS)
                 if (empty($badge) && $route_id_idx !== false && !empty($data[$route_id_idx])) {
@@ -1143,7 +1222,8 @@ class Kaszuby24_Transport {
             $shape_idx = array_search('shape_id', $headers);
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-                if (!isset($data[$trip_id_idx])) continue;
+                if (!isset($data[$trip_id_idx]))
+                    continue;
                 $rid = $data[$route_idx];
                 $r_meta = isset($route_info_map[$rid]) ? $route_info_map[$rid] : array();
 
@@ -1201,7 +1281,8 @@ class Kaszuby24_Transport {
             $seq_idx = array_search('stop_sequence', $headers);
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-                if (count($data) <= max($trip_idx, $arrival_idx, $departure_idx)) continue;
+                if (count($data) <= max($trip_idx, $arrival_idx, $departure_idx))
+                    continue;
 
                 $trip_id = $data[$trip_idx];
                 $stop_id = $data[$stop_idx];
@@ -1224,7 +1305,7 @@ class Kaszuby24_Transport {
                 $route_id = $trip_info['route_id'];
                 if (empty($route_id) || !isset($route_info_map[$route_id])) {
                     // Jeśli nie mamy info o trasie, nie wiemy jaka to linia/badge
-                    continue; 
+                    continue;
                 }
                 $route_info = $route_info_map[$route_id];
 
@@ -1232,11 +1313,12 @@ class Kaszuby24_Transport {
                 $time_parts = explode(':', $departure);
                 $h = intval($time_parts[0]);
                 $is_next_day = ($h >= 24);
-                
+
                 // Normalizujemy do zapisu ale zachowujemy info o "następnym dniu" jeśli trzeba
                 // Użytkownik chce widzieć "01:10" ale w sortowaniu musi być po 23:59.
                 $normalized_time = $departure; // Zostawiamy oryginalny GTFS (np. "25:10") dla poprawnego sortowania i filtrowania service_day
-                if (strlen($normalized_time) > 5) $normalized_time = substr($normalized_time, 0, 5);
+                if (strlen($normalized_time) > 5)
+                    $normalized_time = substr($normalized_time, 0, 5);
 
                 $stop_info = isset($stops_map[$stop_id]) ? $stops_map[$stop_id] : array('name' => $stop_id, 'platform' => '');
 
@@ -1292,7 +1374,9 @@ class Kaszuby24_Transport {
         $departures_dir = $this->cache_dir . "/{$agency}/departures";
         wp_mkdir_p($departures_dir);
         foreach ($departures_by_stop as $stop_id => $deps) {
-            usort($deps, function($a, $b) { return strcmp($a['time'], $b['time']); });
+            usort($deps, function ($a, $b) {
+                return strcmp($a['time'], $b['time']);
+            });
             file_put_contents($departures_dir . "/" . sanitize_file_name($stop_id) . ".json", json_encode($deps));
         }
 
@@ -1300,7 +1384,9 @@ class Kaszuby24_Transport {
         $trips_dir = $this->cache_dir . "/{$agency}/trips";
         wp_mkdir_p($trips_dir);
         foreach ($stops_by_trip as $trip_id => $stops) {
-            usort($stops, function($a, $b) { return $a['sequence'] - $b['sequence']; });
+            usort($stops, function ($a, $b) {
+                return $a['sequence'] - $b['sequence'];
+            });
             $trip_meta = isset($trip_info_map[$trip_id]) ? $trip_info_map[$trip_id] : array();
             file_put_contents($trips_dir . "/" . sanitize_file_name($trip_id) . ".json", json_encode(array(
                 'trip_id' => $trip_id,
@@ -1318,13 +1404,14 @@ class Kaszuby24_Transport {
         }
 
         error_log("Indexed " . count($departures_by_stop) . " stops and " . count($stops_by_trip) . " trips for {$agency}");
-        
+
         unset($stops_by_trip);
         unset($departures_by_stop);
         unset($trip_info_map);
     }
 
-    private function find_file_recursive($dir, $filename) {
+    private function find_file_recursive($dir, $filename)
+    {
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir));
         foreach ($iterator as $file) {
             if ($file->isFile() && $file->getFilename() === $filename) {
@@ -1334,9 +1421,11 @@ class Kaszuby24_Transport {
         return null;
     }
 
-    private function clear_agency_cache($agency) {
+    private function clear_agency_cache($agency)
+    {
         $dir = $this->cache_dir . "/{$agency}";
-        if (!file_exists($dir)) return;
+        if (!file_exists($dir))
+            return;
 
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         global $wp_filesystem;
@@ -1345,14 +1434,15 @@ class Kaszuby24_Transport {
         }
 
         $wp_filesystem->delete($dir, true);
-        
+
         $stops_cache = $this->cache_dir . "/{$agency}_stops.json";
         if (file_exists($stops_cache)) {
             unlink($stops_cache);
         }
     }
 
-    private function process_mevo_stops() {
+    private function process_mevo_stops()
+    {
         $info_url = 'https://gbfs.urbansharing.com/rowermevo.pl/station_information.json';
         $args = array(
             'timeout' => 10,
@@ -1361,7 +1451,7 @@ class Kaszuby24_Transport {
             )
         );
         $response = wp_remote_get($info_url, $args);
-        
+
         if (is_wp_error($response)) {
             return array('success' => false, 'message' => 'Failed to fetch MEVO stations');
         }
@@ -1388,7 +1478,7 @@ class Kaszuby24_Transport {
 
         $cache_file = $this->cache_dir . "/mevo_stops.json";
         file_put_contents($cache_file, json_encode($stops));
-        
+
         // Also save in directory structure for consistency
         wp_mkdir_p($this->cache_dir . "/mevo");
         file_put_contents($this->cache_dir . "/mevo/stops.json", json_encode($stops));
@@ -1397,7 +1487,8 @@ class Kaszuby24_Transport {
         return array('success' => true, 'message' => 'Processed ' . count($stops) . ' MEVO stations');
     }
 
-    private function get_mevo_status($station_id) {
+    private function get_mevo_status($station_id)
+    {
         $status_url = 'https://gbfs.urbansharing.com/rowermevo.pl/station_status.json';
         $args = array(
             'timeout' => 5,
@@ -1406,11 +1497,13 @@ class Kaszuby24_Transport {
             )
         );
         $response = wp_remote_get($status_url, $args);
-        
-        if (is_wp_error($response)) return array();
+
+        if (is_wp_error($response))
+            return array();
 
         $data = json_decode(wp_remote_retrieve_body($response), true);
-        if (!isset($data['data']['stations'])) return array();
+        if (!isset($data['data']['stations']))
+            return array();
 
         foreach ($data['data']['stations'] as $station) {
             if ($station['station_id'] == $station_id) {
@@ -1420,7 +1513,7 @@ class Kaszuby24_Transport {
                 $status = array(
                     array(
                         'time' => 'Dostępne',
-                        'line' => (string)$total_bikes,
+                        'line' => (string) $total_bikes,
                         'destination' => 'Razem',
                         'route_type' => 'mevo_bikes'
                     )
@@ -1444,9 +1537,9 @@ class Kaszuby24_Transport {
                         $is_electric = ($type === 'electric' || $type === 'ebike' || strpos($type, 'elec') !== false);
                         $label = $is_electric ? 'Elektryczne' : 'Klasyczne';
                         $icon_type = $is_electric ? 'mevo_electric' : 'mevo_mechanical';
-                        
+
                         $status[] = array(
-                            'time' => (string)$count,
+                            'time' => (string) $count,
                             'line' => $label,
                             'destination' => 'Rower',
                             'route_type' => $icon_type
@@ -1456,7 +1549,7 @@ class Kaszuby24_Transport {
 
                 $status[] = array(
                     'time' => 'Wolne',
-                    'line' => (string)$station['num_docks_available'],
+                    'line' => (string) $station['num_docks_available'],
                     'destination' => 'Stojaki',
                     'route_type' => 'mevo_docks'
                 );
@@ -1467,30 +1560,35 @@ class Kaszuby24_Transport {
         return array();
     }
 
-    public function get_mevo_all_status($request) {
+    public function get_mevo_all_status($request)
+    {
         $status_url = 'https://gbfs.urbansharing.com/rowermevo.pl/station_status.json';
         $args = array(
             'timeout' => 10,
             'headers' => array('User-Agent' => 'Kaszuby24-Transport-Plugin/1.0')
         );
         $response = wp_remote_get($status_url, $args);
-        
-        if (is_wp_error($response)) return new WP_REST_Response(array(), 200);
+
+        if (is_wp_error($response))
+            return new WP_REST_Response(array(), 200);
 
         $data = json_decode(wp_remote_retrieve_body($response), true);
-        if (!isset($data['data']['stations'])) return new WP_REST_Response(array(), 200);
+        if (!isset($data['data']['stations']))
+            return new WP_REST_Response(array(), 200);
 
         $statuses = array();
         foreach ($data['data']['stations'] as $station) {
             $total_bikes = isset($station['num_bikes_available']) ? $station['num_bikes_available'] : (isset($station['num_vehicles_available']) ? $station['num_vehicles_available'] : 0);
-            
+
             // Collect type details
             $classic = 0;
             $electric = 0;
             if (isset($station['vehicle_types_available'])) {
                 foreach ($station['vehicle_types_available'] as $vt) {
-                    if ($vt['vehicle_type_id'] === 'bike') $classic = $vt['count'];
-                    if ($vt['vehicle_type_id'] === 'ebike' || $vt['vehicle_type_id'] === 'electric') $electric = $vt['count'];
+                    if ($vt['vehicle_type_id'] === 'bike')
+                        $classic = $vt['count'];
+                    if ($vt['vehicle_type_id'] === 'ebike' || $vt['vehicle_type_id'] === 'electric')
+                        $electric = $vt['count'];
                 }
             }
 
@@ -1504,7 +1602,8 @@ class Kaszuby24_Transport {
         return new WP_REST_Response($statuses, 200);
     }
 
-    private function get_mevo_free_bikes() {
+    private function get_mevo_free_bikes()
+    {
         $bikes_url = 'https://gbfs.urbansharing.com/rowermevo.pl/free_bike_status.json';
         $args = array(
             'timeout' => 5,
@@ -1513,8 +1612,9 @@ class Kaszuby24_Transport {
             )
         );
         $response = wp_remote_get($bikes_url, $args);
-        
-        if (is_wp_error($response)) return array();
+
+        if (is_wp_error($response))
+            return array();
 
         $data = json_decode(wp_remote_retrieve_body($response), true);
         $bikes = array();
@@ -1529,7 +1629,8 @@ class Kaszuby24_Transport {
         return $bikes;
     }
 
-    public function refresh_gtfs($request = null) {
+    public function refresh_gtfs($request = null)
+    {
         $agency = $request ? $request->get_param('agency') : null;
 
         if ($agency) {
@@ -1546,7 +1647,7 @@ class Kaszuby24_Transport {
             $this->process_mevo_stops();
             $msg = 'GTFS refreshed for all operators';
         }
-        
+
         if ($request) {
             return new WP_REST_Response(array('success' => true, 'message' => $msg), 200);
         }

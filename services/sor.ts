@@ -54,8 +54,7 @@ export const SorService = {
             });
 
             return Array.from(uniqueHospitalsMap.values());
-        } catch (error) {
-            console.error('SOR Fetch Error:', error);
+        } catch {
             return [];
         }
     },
@@ -65,8 +64,7 @@ export const SorService = {
             const response = await fetch(`${QUEUE_API_BASE}/${numerKsiegi}?_format=json`);
             if (!response.ok) throw new Error('Failed to fetch queue data');
             return await response.json();
-        } catch (error) {
-            console.error(`SOR Queue Fetch Error (${numerKsiegi}):`, error);
+        } catch {
             return null;
         }
     }

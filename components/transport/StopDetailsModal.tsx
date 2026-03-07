@@ -47,6 +47,8 @@ interface StopDetailsModalProps {
     isAllDay?: boolean;
 }
 
+const tfs = (size: number) => (Platform.OS === 'android' ? Math.max(9, size - 3) : size);
+
 export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
     visible,
     stop,
@@ -245,9 +247,9 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                                 <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 4 }}>
                                                     {timetable.filter(t => t.route_type === 'mevo_electric' || t.route_type === 'mevo_mechanical').map((type, idx) => (
                                                         <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.dark ? '#334155' : '#F1F5F9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                                                            <Text style={{ fontSize: 12, marginRight: 4 }}>{type.route_type === 'mevo_electric' ? '⚡' : '🚲'}</Text>
-                                                            <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>{type.time}</Text>
-                                                            <Text style={{ fontSize: 11, marginLeft: 4, color: theme.colors.textSecondary }}>{type.line}</Text>
+                                                            <Text style={{ fontSize: tfs(12), marginRight: 4 }}>{type.route_type === 'mevo_electric' ? '⚡' : '🚲'}</Text>
+                                                            <Text style={{ fontSize: tfs(14), fontWeight: '700', color: theme.colors.text }}>{type.time}</Text>
+                                                            <Text style={{ fontSize: tfs(11), marginLeft: 4, color: theme.colors.textSecondary }}>{type.line}</Text>
                                                         </View>
                                                     ))}
                                                 </View>
@@ -273,7 +275,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                         <View style={styles.mevoIconCircle}><Bike size={24} color={theme.colors.primary} /></View>
                                         <View style={{ flex: 1 }}>
                                             <Text style={[styles.mevoLabel, { color: theme.colors.textSecondary }]}>Numer roweru</Text>
-                                            <Text style={[styles.mevoValue, { color: theme.colors.text, fontSize: 20 }]}>
+                                            <Text style={[styles.mevoValue, { color: theme.colors.text, fontSize: tfs(20) }]}>
                                                 #{stop.id.substring(stop.id.length - 4).toUpperCase()}
                                             </Text>
                                         </View>
@@ -281,15 +283,15 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
 
                                     <View style={[styles.mevoCard, { backgroundColor: stop.attributes?.is_electric ? '#F59E0B15' : '#3B82F615' }]}>
                                         <View style={[styles.mevoIconCircle, { backgroundColor: stop.attributes?.is_electric ? '#F59E0B25' : '#3B82F625' }]}>
-                                            <Text style={{ fontSize: 20 }}>{stop.attributes?.is_electric ? '⚡' : '🚲'}</Text>
+                                            <Text style={{ fontSize: tfs(20) }}>{stop.attributes?.is_electric ? '⚡' : '🚲'}</Text>
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <Text style={[styles.mevoLabel, { color: theme.colors.textSecondary }]}>Typ roweru</Text>
-                                            <Text style={[styles.mevoValue, { color: theme.colors.text, fontSize: 20 }]}>
+                                            <Text style={[styles.mevoValue, { color: theme.colors.text, fontSize: tfs(20) }]}>
                                                 {stop.attributes?.is_electric ? 'Elektryczny' : 'Klasyczny'}
                                             </Text>
                                             {stop.attributes?.is_electric && stop.attributes?.range && (
-                                                <Text style={{ fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 }}>
+                                                <Text style={{ fontSize: tfs(13), color: theme.colors.textSecondary, marginTop: 4 }}>
                                                     Zasięg: ~{Math.round(stop.attributes.range / 1000)} km
                                                 </Text>
                                             )}
@@ -301,7 +303,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                             <View style={[styles.mevoIconCircle, { backgroundColor: '#10B98115' }]}><MapPin size={24} color="#10B981" /></View>
                                             <View style={{ flex: 1 }}>
                                                 <Text style={[styles.mevoLabel, { color: theme.colors.textSecondary }]}>Lokalizacja</Text>
-                                                <Text style={{ fontSize: 13, color: theme.colors.text, marginTop: 2 }}>
+                                                <Text style={{ fontSize: tfs(13), color: theme.colors.text, marginTop: 2 }}>
                                                     {stop.lat.toFixed(5)}, {stop.lon.toFixed(5)}
                                                 </Text>
                                             </View>
@@ -365,7 +367,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                     onPress={() => setLimit(prev => prev + 40)}
                                 >
                                     <Clock size={20} color="#fff" />
-                                    <Text style={[styles.seeMoreText, { fontSize: 16 }]}>POKAŻ DALSZY ROZKŁAD ({allDepartures.length - limit})</Text>
+                                    <Text style={[styles.seeMoreText, { fontSize: tfs(16) }]}>POKAŻ DALSZY ROZKŁAD ({allDepartures.length - limit})</Text>
                                     <ChevronRight size={24} color="#fff" />
                                 </TouchableOpacity>
                             )}
@@ -391,49 +393,125 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
     iconContainer: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
     titleContainer: { flex: 1 },
-    stopName: { fontSize: 18, fontWeight: '800', lineHeight: 22 },
+    stopName: {
+        fontSize: tfs(18),
+        fontWeight: '800',
+        lineHeight: 22,
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     agencyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-    agencyName: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-    coordText: { fontSize: 11, marginLeft: 2 },
-    descText: { fontSize: 12, marginTop: 1 },
+    agencyName: {
+        fontSize: tfs(11),
+        fontWeight: '700',
+        letterSpacing: 0.5,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
+    coordText: { fontSize: tfs(11), marginLeft: 2 },
+    descText: { fontSize: tfs(12), marginTop: 1 },
     headerActions: { flexDirection: 'row', gap: 8 },
     squareBtn: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
     timetableHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
     row: { flexDirection: 'row', alignItems: 'center' },
-    timetableTitle: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+    timetableTitle: {
+        fontSize: tfs(12),
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     allDayBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-    allDayBtnText: { fontSize: 11, fontWeight: '700' },
+    allDayBtnText: {
+        fontSize: tfs(11),
+        fontWeight: '700',
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
     tabsContainer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8 },
     tab: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, minWidth: 80, alignItems: 'center' },
-    tabText: { fontSize: 12 },
+    tabText: {
+        fontSize: tfs(12),
+        ...Platform.select({ android: { fontFamily: 'Poppins_Medium' }, default: {} }),
+    },
     scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
     departureRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1 },
     lineBadge: { minWidth: 44, paddingHorizontal: 8, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-    lineText: { fontWeight: '900', fontSize: 15, textAlign: 'center' },
+    lineText: {
+        fontWeight: '900',
+        fontSize: tfs(15),
+        textAlign: 'center',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     departureDetails: { flex: 1 },
-    destText: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
+    destText: {
+        fontSize: tfs(16),
+        fontWeight: '700',
+        marginBottom: 2,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
     liveBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF444415', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 8 },
     liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444', marginRight: 4 },
-    liveText: { fontSize: 9, fontWeight: '900', color: '#EF4444' },
-    nextDayText: { fontSize: 9, fontWeight: '800', color: '#3B82F6', backgroundColor: '#3B82F615', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 8 },
+    liveText: {
+        fontSize: tfs(9),
+        fontWeight: '900',
+        color: '#EF4444',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
+    nextDayText: {
+        fontSize: tfs(9),
+        fontWeight: '800',
+        color: '#3B82F6',
+        backgroundColor: '#3B82F615',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginRight: 8,
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     platformBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 8 },
-    platformText: { fontSize: 10, fontWeight: '700' },
+    platformText: {
+        fontSize: tfs(10),
+        fontWeight: '700',
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
     attrIcons: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     attrIcon: { opacity: 0.7 },
     timeContainer: { alignItems: 'flex-end', minWidth: 60 },
-    relTime: { fontSize: 16, fontWeight: '800' },
-    absTime: { fontSize: 12, marginTop: 1 },
+    relTime: {
+        fontSize: tfs(16),
+        fontWeight: '800',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
+    absTime: { fontSize: tfs(12), marginTop: 1 },
     seeMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, marginTop: 20, gap: 8, elevation: 4 },
-    seeMoreText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    seeMoreText: {
+        color: '#fff',
+        fontSize: tfs(13),
+        fontWeight: '800',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     loaderContainer: { padding: 40, alignItems: 'center' },
-    loadingText: { marginTop: 12, fontSize: 14, fontWeight: '500' },
+    loadingText: {
+        marginTop: 12,
+        fontSize: tfs(14),
+        fontWeight: '500',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Medium' }, default: {} }),
+    },
     emptyContainer: { padding: 60, alignItems: 'center' },
-    emptyText: { marginTop: 12, fontSize: 14, textAlign: 'center' },
+    emptyText: { marginTop: 12, fontSize: tfs(14), textAlign: 'center' },
     mevoContainer: { padding: 20, gap: 12 },
     mevoCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 20, gap: 20 },
     mevoIconCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 2 },
-    mevoLabel: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 2 },
-    mevoValue: { fontSize: 28, fontWeight: '900' },
+    mevoLabel: {
+        fontSize: tfs(12),
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        marginBottom: 2,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
+    mevoValue: {
+        fontSize: tfs(28),
+        fontWeight: '900',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     dayHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -445,13 +523,15 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     dayHeaderText: {
-        fontSize: 13,
+        fontSize: tfs(13),
         fontWeight: '800',
         textTransform: 'uppercase',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
     },
     dayDateText: {
-        fontSize: 11,
+        fontSize: tfs(11),
         fontWeight: '400',
         opacity: 0.6,
+        ...Platform.select({ android: { fontFamily: 'Poppins_Regular' }, default: {} }),
     },
 });

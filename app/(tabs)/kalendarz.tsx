@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  FlatList, 
-  TouchableOpacity, 
-  Platform, 
-  Dimensions, 
-  Share, 
-  Linking, 
-  TextInput, 
-  ScrollView, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Platform,
+  Dimensions,
+  Share,
+  Linking,
+  TextInput,
+  ScrollView,
   RefreshControl,
   ActivityIndicator,
   Modal,
@@ -18,14 +18,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { 
-  ArrowLeft, 
-  Calendar as CalendarIcon, 
-  MapPin, 
-  Clock, 
-  Share2, 
-  Search, 
-  Filter, 
+import {
+  ArrowLeft,
+  Calendar as CalendarIcon,
+  MapPin,
+  Clock,
+  Share2,
+  Search,
+  Filter,
   ChevronRight,
   Plus,
   Minus,
@@ -90,6 +90,37 @@ interface Object {
 
 const BASE_URL = 'https://kaszuby24.pl/wp-json/kaszuby24/v1/events/mobile';
 
+// Helper: safely parse JSON response, tolerating HTML warnings/prefixes
+const safeParseJsonResponse = async (res: Response) => {
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return res.json();
+  }
+
+  // Try to parse text and extract JSON if HTML wrappers present
+  const text = await res.text();
+  const trimmed = text.trim();
+  // If response starts with < it's likely HTML wrapper; try to find first JSON char
+  const firstBrace = Math.min(
+    trimmed.indexOf('{') !== -1 ? trimmed.indexOf('{') : Infinity,
+    trimmed.indexOf('[') !== -1 ? trimmed.indexOf('[') : Infinity
+  );
+
+  if (firstBrace === Infinity) {
+    // No JSON content found, return empty placeholder depending on what caller expects
+    console.warn('No JSON content in response, might be PHP error. Raw:', text.substring(0, 100));
+    return { success: false, data: null, error: 'No JSON content' };
+  }
+
+  const jsonPart = trimmed.substring(firstBrace);
+  try {
+    return JSON.parse(jsonPart);
+  } catch (e) {
+    console.error('safeParseJsonResponse: failed to parse extracted JSON:', e, '\njsonPart:', jsonPart.substring(0, 500));
+    return { success: false, data: null, error: 'Invalid JSON' };
+  }
+};
+
 export default function EventCalendarScreen() {
   const { theme } = useThemeStore();
   const { isEventSaved, saveEvent, removeEvent } = useEventsStore();
@@ -119,17 +150,17 @@ export default function EventCalendarScreen() {
   const [catModal, setCatModal] = useState(false);
   const [objectModal, setObjectModal] = useState(false);
   const [cityModal, setCityModal] = useState(false);
-  
+
   // Nowe funkcjonalności
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedDateRange, setSelectedDateRange] = useState<{start: Date, end: Date} | null>(null);
+  const [selectedDateRange, setSelectedDateRange] = useState<{ start: Date, end: Date } | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
-  
+
   // Nowy stan dla wyboru konkretnego dnia (bez zakresu)
   const [selectedSpecificDate, setSelectedSpecificDate] = useState<Date | null>(null);
   const [showSpecificDatePicker, setShowSpecificDatePicker] = useState(false);
-  
+
   // Filter data states
   const [cities, setCities] = useState<City[]>([]);
   const [categories, setCategories] = useState<EventCategory[]>([]);
@@ -214,7 +245,7 @@ export default function EventCalendarScreen() {
     const searchLower = categorySearchText.toLowerCase();
     const filterCategory = (cat: any): any => {
       const matchesSearch = cat.name.toLowerCase().includes(searchLower);
-      const hasMatchingChildren = cat.children && cat.children.some((child: any) => 
+      const hasMatchingChildren = cat.children && cat.children.some((child: any) =>
         child.name.toLowerCase().includes(searchLower) || filterCategory(child)
       );
 
@@ -228,7 +259,7 @@ export default function EventCalendarScreen() {
     };
 
     const filteredRoots = categoryTree.rootCategories.map(filterCategory).filter(Boolean);
-    const filteredWithoutParent = categoryTree.categoriesWithoutParent.filter(cat => 
+    const filteredWithoutParent = categoryTree.categoriesWithoutParent.filter(cat =>
       cat.name.toLowerCase().includes(searchLower)
     );
 
@@ -246,7 +277,7 @@ export default function EventCalendarScreen() {
     const searchLower = objectSearchText.toLowerCase();
     const filterObject = (obj: any): any => {
       const matchesSearch = obj.name.toLowerCase().includes(searchLower);
-      const hasMatchingChildren = obj.children && obj.children.some((child: any) => 
+      const hasMatchingChildren = obj.children && obj.children.some((child: any) =>
         child.name.toLowerCase().includes(searchLower) || filterObject(child)
       );
 
@@ -260,7 +291,7 @@ export default function EventCalendarScreen() {
     };
 
     const filteredRoots = objectTree.rootObjects.map(filterObject).filter(Boolean);
-    const filteredWithoutParent = objectTree.objectsWithoutParent.filter(obj => 
+    const filteredWithoutParent = objectTree.objectsWithoutParent.filter(obj =>
       obj.name.toLowerCase().includes(searchLower)
     );
 
@@ -386,7 +417,7 @@ export default function EventCalendarScreen() {
       const categoryFilterValue = selectedCategories[0].toString();
       setCategoryFilter(categoryFilterValue);
     }
-    
+
     setCatModal(false);
     // reloadEvents will be called automatically by useEffect when categoryFilter changes
   };
@@ -458,7 +489,7 @@ export default function EventCalendarScreen() {
       const objectFilterValue = selectedObjects[0].toString();
       setObjectFilter(objectFilterValue);
     }
-    
+
     setObjectModal(false);
     // reloadEvents will be called automatically by useEffect when objectFilter changes
   };
@@ -494,9 +525,9 @@ export default function EventCalendarScreen() {
       const cityFilterValue = selectedCities.join(',');
       setCityFilter(cityFilterValue);
     }
-    
+
     setCityModal(false);
-    
+
     // reloadEvents will be called automatically by useEffect when cityFilter changes
     // No need for setTimeout since we're using useEffect with cityFilter dependency
   };
@@ -512,50 +543,43 @@ export default function EventCalendarScreen() {
   // Fetch filter data from API - using improved endpoints that show only active categories/objects
   const fetchFilterData = useCallback(async () => {
     setLoadingFilters(true);
-    console.log('🔄 Fetching filter data...');
-    
+
     try {
       // Try to fetch all filters at once using the new combined endpoint
-      console.log('🔄 Trying combined filters endpoint...');
       const combinedFiltersResponse = await fetch('https://kaszuby24.pl/wp-json/kaszuby24/v1/events/filters/active');
-      
-      if (combinedFiltersResponse.ok) {
-        const combinedData = await combinedFiltersResponse.json();
-        console.log('🔄 Combined filters response:', combinedData);
-        
-        if (combinedData.success && (combinedData.categories || combinedData.objects)) {
 
-          
+      if (combinedFiltersResponse.ok) {
+        const combinedData = await safeParseJsonResponse(combinedFiltersResponse);
+
+        if (combinedData.success && (Array.isArray(combinedData.categories) || Array.isArray(combinedData.objects))) {
+
           // Set categories from combined endpoint
-          if (combinedData.categories) {
+          if (Array.isArray(combinedData.categories)) {
             const mappedCategories = combinedData.categories.map((cat: any) => ({
               id: cat.id,
               name: he.decode(cat.name),
               slug: cat.slug,
               parent: cat.parent || 0,
-              count: cat.count || 0, // API zwraca 'count', nie 'events_count'
+              count: cat.count || 0,
               description: cat.description || ''
             }));
             setCategories(mappedCategories);
-
           }
-          
+
           // Set objects from combined endpoint
-          if (combinedData.objects) {
+          if (Array.isArray(combinedData.objects)) {
             const mappedObjects = combinedData.objects.map((obj: any) => ({
               id: obj.id,
               name: he.decode(obj.name),
               slug: obj.slug,
               parent: obj.parent || 0,
-              count: obj.count || 0 // API zwraca 'count', nie 'events_count'
+              count: obj.count || 0
             }));
             setObjects(mappedObjects);
-
           }
 
           // Set cities from combined endpoint
-          if (combinedData.cities) {
-
+          if (Array.isArray(combinedData.cities)) {
             const mappedCities = combinedData.cities.map((city: any) => ({
               id: city.id,
               name: he.decode(city.name),
@@ -563,31 +587,22 @@ export default function EventCalendarScreen() {
               parent: city.parent || 0,
               count: city.count || 0
             }));
-
             setCities(mappedCities);
-
-
-          } else {
-            console.log('⚠️ No cities data in combined response');
-
           }
         } else {
-          console.log('⚠️ Combined endpoint failed, falling back to individual endpoints');
           // Fallback to individual endpoints if combined endpoint fails
           await fetchIndividualFilters();
         }
       } else {
-        console.log('⚠️ Combined endpoint response not ok, falling back to individual endpoints');
         // Fallback to individual endpoints if combined endpoint fails
         await fetchIndividualFilters();
       }
-      
+
 
     } catch (error) {
       console.error('❌ Error fetching filter data:', error);
       // Fallback to individual endpoints on error
       try {
-        console.log('🔄 Attempting fallback to individual endpoints...');
         await fetchIndividualFilters();
       } catch (fallbackError) {
         console.error('❌ Error in fallback filter fetch:', fallbackError);
@@ -595,11 +610,11 @@ export default function EventCalendarScreen() {
 
       // Ostateczny fallback - pobierz miasta z WordPress endpoint
       if (cities.length === 0) {
-        console.log('🔄 Final fallback: Fetching cities from WordPress endpoint...');
         try {
           const citiesResponse = await fetch('https://kaszuby24.pl/wp-json/wp/v2/miasto?per_page=100&hide_empty=true');
           if (citiesResponse.ok) {
-            const citiesData = await citiesResponse.json();
+            const citiesData = await safeParseJsonResponse(citiesResponse);
+            if (!Array.isArray(citiesData)) throw new Error('Invalid cities data');
             const mappedCities = citiesData.map((city: any) => ({
               id: city.id,
               name: he.decode(city.name),
@@ -607,11 +622,10 @@ export default function EventCalendarScreen() {
               parent: city.parent || 0,
               count: city.count || 0
             }));
-    
+
             setCities(mappedCities);
 
           } else {
-            console.log('⚠️ Final fallback: Cities response not ok:', citiesResponse.status);
           }
         } catch (finalError) {
           console.error('❌ Final fallback error:', finalError);
@@ -619,19 +633,17 @@ export default function EventCalendarScreen() {
       }
     } finally {
       setLoadingFilters(false);
-      console.log('🔄 Filter data fetch completed');
     }
   }, []); // Usunięto cities.length z dependency - powodowało pętlę
 
   // Fallback function to fetch individual filters
   const fetchIndividualFilters = async () => {
-    console.log('🔄 Fetching individual filters as fallback...');
-    
+
     // Fetch active categories with upcoming events using our improved API
     const categoriesResponse = await fetch('https://kaszuby24.pl/wp-json/kaszuby24/v1/events/categories/active');
     if (categoriesResponse.ok) {
-      const categoriesData = await categoriesResponse.json();
-      if (categoriesData.success && categoriesData.categories) {
+      const categoriesData = await safeParseJsonResponse(categoriesResponse);
+      if (Array.isArray(categoriesData.categories) && categoriesData.categories.length > 0) {
         const mappedCategories = categoriesData.categories.map((cat: any) => ({
           id: cat.id,
           name: he.decode(cat.name),
@@ -644,14 +656,13 @@ export default function EventCalendarScreen() {
 
       }
     } else {
-      console.log('⚠️ Fallback: Categories endpoint failed');
     }
 
     // Fetch active objects with upcoming events using our improved API
     const objectsResponse = await fetch('https://kaszuby24.pl/wp-json/kaszuby24/v1/events/objects/active');
     if (objectsResponse.ok) {
-      const objectsData = await objectsResponse.json();
-      if (objectsData.success && objectsData.objects) {
+      const objectsData = await safeParseJsonResponse(objectsResponse);
+      if (Array.isArray(objectsData.objects) && objectsData.objects.length > 0) {
         const mappedObjects = objectsData.objects.map((obj: any) => ({
           id: obj.id,
           name: he.decode(obj.name),
@@ -663,14 +674,13 @@ export default function EventCalendarScreen() {
 
       }
     } else {
-      console.log('⚠️ Fallback: Objects endpoint failed');
     }
 
     // Fetch active cities with upcoming events using our improved API
     const citiesResponse = await fetch('https://kaszuby24.pl/wp-json/kaszuby24/v1/events/cities/active');
     if (citiesResponse.ok) {
-      const citiesData = await citiesResponse.json();
-      if (citiesData.success && citiesData.cities) {
+      const citiesData = await safeParseJsonResponse(citiesResponse);
+      if (Array.isArray(citiesData.cities) && citiesData.cities.length > 0) {
         const mappedCities = citiesData.cities.map((city: any) => ({
           id: city.id,
           name: he.decode(city.name),
@@ -682,10 +692,8 @@ export default function EventCalendarScreen() {
         setCities(mappedCities);
 
       } else {
-        console.log('⚠️ Fallback: Cities response structure invalid:', citiesData);
       }
     } else {
-      console.log('⚠️ Fallback: Cities endpoint failed');
     }
   };
 
@@ -698,7 +706,6 @@ export default function EventCalendarScreen() {
 
   // Function to refresh filters
   const refreshFilters = useCallback(async () => {
-    console.log('🔄 Refreshing filters...');
     await fetchFilterData();
   }, [fetchFilterData]);
 
@@ -719,9 +726,9 @@ export default function EventCalendarScreen() {
           name: he.decode(t.name)      // Dekodujemy nazwy kategorii
         }));
     });
-    const uniq: {id:string,name:string}[] = [];
+    const uniq: { id: string, name: string }[] = [];
     const ids = new Set<string>();
-    all.forEach(c => { if (!ids.has(c.id)){ ids.add(c.id); uniq.push(c);} });
+    all.forEach(c => { if (!ids.has(c.id)) { ids.add(c.id); uniq.push(c); } });
     return uniq;
   }, [events]);
 
@@ -731,7 +738,7 @@ export default function EventCalendarScreen() {
       const params = new URLSearchParams();
       params.append('page', pageNum.toString());
       params.append('per_page', '20');
-      
+
       // Add server-side filters
       if (selectedFilters.length > 0) {
         // Use the first filter for server-side filtering
@@ -739,76 +746,67 @@ export default function EventCalendarScreen() {
         selectedFilters.forEach(filter => {
           params.append('filter', filter);
         });
-        
+
 
       }
-      
+
+      // Ensure WP exposes taxonomies - request embeds
+      params.append('_embed', '1');
+
       // Add category filter to URL parameters
       if (categoryFilter) {
         params.append('category', categoryFilter);
       }
-      
+
       // Add object filter to URL parameters
       if (objectFilter) {
         params.append('object', objectFilter);
       }
-      
+
       // Add city filter to URL parameters
       if (cityFilter) {
         params.append('city', cityFilter);
       }
-      
-      console.log('🔍 Debug - fetchPage URL params:', {
+
+      // Debug removed for production performance
+      if (__DEV__) console.log('🔍 fetchPage params:', {
         params: params.toString(),
         cityFilter,
         categoryFilter,
         objectFilter,
         selectedFilters
       });
-      
 
-      
+
+
       const url = `${BASE_URL}?${params.toString()}`;
-      
+
       const res = await fetch(url);
-      const data = await res.json();
-      
-      console.log('🔍 Debug - fetchPage API response:', {
-        url,
-        status: res.status,
-        dataLength: Array.isArray(data) ? data.length : 'not array',
-        firstEvent: Array.isArray(data) && data.length > 0 ? {
-          id: data[0].id,
-          title: data[0].title?.rendered || data[0].title,
-          city: data[0].location || data[0].miasto || data[0].meta?.miasto
-        } : null
-      });
-      
+      const data = await safeParseJsonResponse(res);
+
+
       // API zwraca obiekt {events: [...], total: 216}, nie tablicę
       let filteredData: any[] = [];
       if (data && data.events && Array.isArray(data.events)) {
         filteredData = data.events;
-        console.log('📅 Events loaded from API:', data.events.length, 'Total:', data.total);
-        
+
 
       } else if (Array.isArray(data)) {
         // Fallback dla starszej wersji API
         filteredData = data;
-        console.log('📅 Events loaded (legacy):', data.length);
       } else {
         console.error('❌ Invalid events response structure:', data);
         filteredData = [];
       }
-      
 
-      
 
-      
+
+
+
       // Użyj total z odpowiedzi API lub nagłówka jako fallback
       const total = data?.total_pages || parseInt(res.headers.get('X-WP-TotalPages') || '1', 10);
       setTotalPages(total);
-      console.log('📅 Total pages from API:', data?.total_pages, 'From headers:', res.headers.get('X-WP-TotalPages'));
-      
+
       if (append) {
         setEvents(prev => [...prev, ...filteredData]);
       } else {
@@ -835,7 +833,7 @@ export default function EventCalendarScreen() {
       params.append('per_page', '100'); // Więcej wydarzeń na stronę dla kalendarza
       params.append('date_from', new Date().toISOString().split('T')[0]);
       params.append('date_to', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-      
+
       // Dodaj filtry jeśli są aktywne
       if (categoryFilter) {
         params.append('category', categoryFilter);
@@ -846,34 +844,26 @@ export default function EventCalendarScreen() {
       if (cityFilter) {
         params.append('city', cityFilter);
       }
-      
+
       const url = `${BASE_URL}?${params.toString()}`;
-      console.log('📅 Fetching calendar events from:', url);
-      console.log('📅 Params:', params.toString());
-      
+
       const res = await fetch(url);
-      console.log('📅 Response status:', res.status, res.ok);
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         console.error('❌ API Error Response:', res.status, errorText);
         setCalendarEventsData([]);
         return;
       }
-      
-      const data = await res.json();
-      console.log('📅 Raw API response:', data);
-      
+
+      const data = await safeParseJsonResponse(res);
+
       // API zwraca obiekt {events: [...], total: 216}, nie tablicę
       if (data && data.events && Array.isArray(data.events)) {
         setCalendarEventsData(data.events);
-        console.log('📅 Calendar events loaded:', data.events.length, 'Total:', data.total);
-        console.log('📅 First event sample:', data.events[0]);
       } else if (Array.isArray(data)) {
         // Fallback dla starszej wersji API
         setCalendarEventsData(data);
-        console.log('📅 Calendar events loaded (legacy):', data.length);
-        console.log('📅 First event sample:', data[0]);
       } else {
         setCalendarEventsData([]);
         console.error('❌ Invalid calendar events response structure:', data);
@@ -887,18 +877,14 @@ export default function EventCalendarScreen() {
   }, [categoryFilter, objectFilter, cityFilter]);
 
   const reloadEvents = useCallback(async () => {
-    
     setLoading(true);
     setError(null);
     setPage(1);
-    await fetchPage(1, false);
-    // Odśwież również dane kalendarza
-    await fetchCalendarEvents();
+    // Run both in parallel - they are independent requests
+    await Promise.all([fetchPage(1, false), fetchCalendarEvents()]);
     setLoading(false);
     setRefreshing(false);
-    
-
-  }, [fetchPage, fetchCalendarEvents, cityFilter, categoryFilter, objectFilter, selectedFilters]);
+  }, [fetchPage, fetchCalendarEvents]);
 
 
 
@@ -915,10 +901,8 @@ export default function EventCalendarScreen() {
     'saved': 0
   });
 
-  // Pobierz wydarzenia kalendarza przy pierwszym załadowaniu i przy zmianie filtrów
-  useEffect(() => {
-    fetchCalendarEvents();
-  }, [fetchCalendarEvents]);
+  // fetchCalendarEvents is already called inside reloadEvents (via Promise.all)
+  // so no separate useEffect needed here
 
   // Usunięto fetchEventCounts - endpoint /event-counts nie istnieje w API
   // Liczby wydarzeń są liczone lokalnie w useEffect poniżej
@@ -936,20 +920,9 @@ export default function EventCalendarScreen() {
   // Note: cityFilter, categoryFilter, and objectFilter are handled server-side in fetchPage
   // but we include them in dependencies to ensure this memo recalculates when they change
   const filteredEvents = useMemo(() => {
-    console.log('🔍 Debug - filteredEvents calculation:', {
-      eventsCount: events.length,
-      cityFilter,
-      categoryFilter,
-      objectFilter,
-      selectedFilters,
-      selectedDate,
-      selectedDateRange,
-      selectedSpecificDate
-    });
-
     let filtered = events.filter(e => {
       // Handle selectedDate, selectedDateRange, selectedSpecificDate, saved events, and backup filtering for city/category/object
-      
+
       // Check selected date or date range
       let dateOk = true;
       if (selectedDate) {
@@ -979,72 +952,46 @@ export default function EventCalendarScreen() {
           dateOk = selectedDateStr === eventDateStr;
         }
       }
-      
+
       // Check saved events (client-side only)
       let savedOk = true;
       if (selectedFilters.includes('saved')) {
         savedOk = isEventSaved(e.id) === true;
       }
-      
+
       // Backup client-side filtering for city, category, and object (in case server-side filtering fails)
       let cityOk = true;
       if (cityFilter) {
         const eventCity = e.location || e.miasto || e.meta?.miasto || '';
         cityOk = eventCity.toLowerCase().includes(cityFilter.toLowerCase());
-        console.log('🔍 Debug - City filtering:', {
-          eventId: e.id,
-          eventTitle: e.title?.rendered || e.title,
-          eventCity,
-          cityFilter,
-          cityOk,
-          location: e.location,
-          miasto: e.miasto,
-          metaMiasto: e.meta?.miasto
-        });
       }
-      
+
       let categoryOk = true;
       if (categoryFilter) {
-        const eventCategories = e['kategoria-wydarzenia'] || e.categories || [];
-        categoryOk = eventCategories.includes(parseInt(categoryFilter));
-        console.log('🔍 Debug - Category filtering:', {
-          eventId: e.id,
-          eventTitle: e.title?.rendered || e.title,
-          eventCategories,
-          categoryFilter,
-          categoryOk,
-          kategoriaWydarzenia: e['kategoria-wydarzenia'],
-          categories: e.categories
-        });
+        const embeddedTerms = e._embedded?.['wp:term']?.flat() || [];
+        const embeddedCategoryIds = embeddedTerms
+          .filter((t: any) => t.taxonomy === 'kategoria-wydarzenia')
+          .map((t: any) => t.id);
+
+        const eventCategories: number[] = (e['kategoria-wydarzenia'] || e.categories || embeddedCategoryIds || []).map((v: any) => parseInt(v, 10));
+        categoryOk = eventCategories.includes(parseInt(categoryFilter, 10));
       }
-      
+
       let objectOk = true;
       if (objectFilter) {
-        const eventObjects = e.objects || [];
-        objectOk = eventObjects.includes(objectFilter);
-        console.log('🔍 Debug - Object filtering:', {
-          eventId: e.id,
-          eventTitle: e.title?.rendered || e.title,
-          eventObjects,
-          objectFilter,
-          objectOk,
-          objects: e.objects
-        });
+        const embeddedTerms = e._embedded?.['wp:term']?.flat() || [];
+        const objectTaxonomies = ['obiekt', 'objects', 'obiekty'];
+        const embeddedObjectIds = embeddedTerms
+          .filter((t: any) => objectTaxonomies.includes(t.taxonomy))
+          .map((t: any) => t.id.toString());
+
+        const eventObjects: string[] = (e.objects || e.meta?.objects || embeddedObjectIds || []).map((v: any) => v.toString());
+        objectOk = eventObjects.includes(objectFilter.toString());
       }
-      
+
       return dateOk && savedOk && cityOk && categoryOk && objectOk;
     });
-    
-    console.log('🔍 Debug - Final filtered events:', {
-      originalCount: events.length,
-      filteredCount: filtered.length,
-      filteredEvents: filtered.map(e => ({
-        id: e.id,
-        title: e.title?.rendered || e.title,
-        city: e.location || e.miasto || e.meta?.miasto
-      }))
-    });
-    
+
     return filtered.sort((a, b) => {
       const dateA = safeDateParse(a.date);
       const dateB = safeDateParse(b.date);
@@ -1053,25 +1000,23 @@ export default function EventCalendarScreen() {
     });
   }, [events, selectedDate, selectedDateRange, selectedSpecificDate, selectedFilters, isEventSaved, cityFilter, categoryFilter, objectFilter]);
 
-  // Weekend events for slider - use filteredEvents to respect active filters
+  // Weekend events for slider - z calendarEventsData (100 wydarzeń, pełny zasięg)
   const weekendEvents = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const thisWeekend = new Date(today.getTime() + (6 - today.getDay()) * 24 * 60 * 60 * 1000);
-    const nextWeekend = new Date(thisWeekend.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const dayOfWeek = today.getDay(); // 0=nd, 1=pn, ..., 6=sb
+    const daysToSaturday = dayOfWeek === 6 ? 0 : dayOfWeek === 0 ? 6 : 6 - dayOfWeek;
+    const thisSaturday = new Date(today.getTime() + daysToSaturday * 24 * 60 * 60 * 1000);
+    const nextMonday = new Date(thisSaturday.getTime() + 2 * 24 * 60 * 60 * 1000);
 
-    // Use filteredEvents instead of events to respect active filters
-    const weekendFiltered = filteredEvents.filter(event => {
+    // calendarEventsData ma 100 wydarzeń od dziś - dużo większa szansa że znajdzie weekendowe
+    const source = calendarEventsData.length > 0 ? calendarEventsData : events;
+    return source.filter(event => {
       const eventDate = safeDateParse(event.date);
       if (!eventDate) return false;
-      
-      return eventDate >= thisWeekend && eventDate < nextWeekend;
-    }).slice(0, 10); // Limit to 10 events for slider
-
-
-
-    return weekendFiltered;
-  }, [filteredEvents, cityFilter, categoryFilter, objectFilter, selectedDate, selectedDateRange, selectedSpecificDate, selectedFilters]);
+      return eventDate >= thisSaturday && eventDate < nextMonday;
+    }).slice(0, 10);
+  }, [calendarEventsData, events]);
 
   const loadMore = async () => {
     if (loadingMore || loading || page >= totalPages) return;
@@ -1104,18 +1049,18 @@ export default function EventCalendarScreen() {
   const handleFilterPress = (filterId: string) => {
     // Define time-based filters that are mutually exclusive
     const timeFilters = ['today', 'this-weekend', 'this-week'];
-    
+
     // Special handling for 'saved' filter - it's client-side only
     if (filterId === 'saved') {
       const newFilters = selectedFilters.includes(filterId)
         ? selectedFilters.filter(id => id !== filterId)
         : [...selectedFilters, filterId];
-      
+
       setSelectedFilters(newFilters);
       // For saved filter, we don't reload from server since it's client-side
       return;
     }
-    
+
     // For time-based filters, ensure only one is active at a time
     if (timeFilters.includes(filterId)) {
       // If clicking on already selected filter, deselect it
@@ -1133,10 +1078,10 @@ export default function EventCalendarScreen() {
       const newFilters = selectedFilters.includes(filterId)
         ? selectedFilters.filter(id => id !== filterId)
         : [...selectedFilters, filterId];
-      
+
       setSelectedFilters(newFilters);
     }
-    
+
     // reloadEvents will be called automatically by useEffect when selectedFilters changes
   };
 
@@ -1154,54 +1099,26 @@ export default function EventCalendarScreen() {
     setCategorySearchText('');
     setObjectSearchText('');
     setCitySearchText('');
-    
+
     // reloadEvents will be called automatically by useEffect when filters change
   };
 
   const handleDateSelect = (date: Date | null) => {
-    console.log('📅 Date selected in calendar:', date);
-    console.log('📅 Calendar events data available:', calendarEventsData.length);
-    console.log('📅 Sample event date:', calendarEventsData[0]?.date);
-    
     setSelectedDate(date);
-    setSelectedDateRange(null); // Clear range when single date is selected
-    setSelectedSpecificDate(null); // Clear specific date when single date is selected
-    
+    setSelectedDateRange(null);
+    setSelectedSpecificDate(null);
+
     if (date) {
-      // Filtruj wydarzenia tylko z wybranej daty
       const filteredEvents = calendarEventsData.filter(event => {
-        if (!event.date) {
-          console.log('📅 Event has no date:', event.id);
-          return false;
-        }
-        
+        if (!event.date) return false;
         const eventDate = safeDateParse(event.date);
-        if (!eventDate) {
-          console.log('📅 Failed to parse event date:', event.date, 'for event:', event.id);
-          return false;
-        }
-        
-        const isMatch = eventDate.toDateString() === date.toDateString();
-        console.log('📅 Date comparison:', eventDate.toDateString(), 'vs', date.toDateString(), 'Match:', isMatch);
-        
-        return isMatch;
+        if (!eventDate) return false;
+        return eventDate.toDateString() === date.toDateString();
       });
-      
-      console.log('📅 Filtered events for date:', date.toDateString(), 'Count:', filteredEvents.length);
-      console.log('📅 Filtered events:', filteredEvents.map(e => ({ id: e.id, title: e.title?.rendered, date: e.date })));
-      
-      // Ustaw filtrowane wydarzenia jako główną listę
       setEvents(filteredEvents);
       setPage(1);
       setTotalPages(1);
-    } else {
-      // Jeśli data została odznaczona, załaduj wszystkie wydarzenia
-      console.log('📅 Date deselected, reloading all events');
-      // reloadEvents will be called automatically by useEffect when selectedDate changes
     }
-    
-    // Odśwież dane kalendarza po wyborze daty
-    fetchCalendarEvents();
   };
 
   const handleDateRangeSelect = (startDate: Date, endDate: Date) => {
@@ -1226,22 +1143,22 @@ export default function EventCalendarScreen() {
   // Przygotowanie danych dla kalendarza
   const calendarEvents = useMemo(() => {
     const eventCounts: Record<string, number> = {};
-    
+
     // Użyj calendarEventsData zamiast events dla dokładniejszych liczb
     const eventsToProcess = calendarEventsData.length > 0 ? calendarEventsData : events;
-    
+
     eventsToProcess.forEach(event => {
       const eventDate = safeDateParse(event.date);
       if (!eventDate) return;
-      
+
       const dateStr = eventDate.toISOString().split('T')[0];
-      
+
       if (!eventCounts[dateStr]) {
         eventCounts[dateStr] = 0;
       }
       eventCounts[dateStr]++;
     });
-    
+
     return Object.entries(eventCounts).map(([date, count]) => ({
       date,
       count
@@ -1266,26 +1183,25 @@ export default function EventCalendarScreen() {
     try {
       const eventDate = safeDateParse(event.date);
       if (!eventDate) return;
-      
+
       const eventTitle = getEventTitle(event);
-      
+
       await Share.share({
         message: `${he.decode(eventTitle)}\n\nData: ${safeFormatDate(eventDate.toISOString())} ${safeFormatTime(eventDate.toISOString())}\n${event.meta?.miasto ? `Miasto: ${event.meta.miasto}\n` : ''}${event.meta?.cena ? `Cena: ${event.meta.cena} zł\n` : ''}${event.meta?.['link-do-wydarzenia'] ? `\nSzczegóły: ${event.meta['link-do-wydarzenia']}` : ''}`,
         title: he.decode(eventTitle),
       });
     } catch (error) {
-      console.log('Error sharing:', error);
     }
   };
 
   const handleAddToCalendar = async (event: any) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      
+
       // Use the calendar service to add event
       const calendarEvent = calendarService.createEventFromEventData(event);
       const success = await calendarService.addEventToCalendar(calendarEvent);
-      
+
       if (!success) {
         Alert.alert('Błąd', 'Nie udało się dodać wydarzenia do kalendarza');
       }
@@ -1309,13 +1225,13 @@ export default function EventCalendarScreen() {
         startDate={new Date()}
         endDate={new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)} // +90 dni
       />
-      
+
       {/* Wszystkie Filtry w Jednej Linii */}
       <View style={styles.filtersInSection}>
-        
+
         {/* JEDNA LINIA - Wszystkie filtry równej wielkości */}
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.singleLineFiltersContainer}
           style={styles.filtersScroll}
@@ -1326,7 +1242,7 @@ export default function EventCalendarScreen() {
           <TouchableOpacity
             style={[
               styles.uniformFilterButton,
-              { 
+              {
                 backgroundColor: categoryFilter ? theme.colors.primary : theme.colors.subtle,
                 borderColor: categoryFilter ? theme.colors.primary : theme.colors.border,
                 opacity: loadingFilters ? 0.7 : 1
@@ -1345,21 +1261,21 @@ export default function EventCalendarScreen() {
             )}
             <Text style={[
               styles.uniformFilterText,
-              { 
+              {
                 color: categoryFilter ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
             ]}>
-              {loadingFilters ? 'Ładowanie...' : 
-                (categoryFilter ? 
-                  (categoryFilter.includes(',') ? 
-                    `${categoryFilter.split(',').length} kategorii` : 
+              {loadingFilters ? 'Ładowanie...' :
+                (categoryFilter ?
+                  (categoryFilter.includes(',') ?
+                    `${categoryFilter.split(',').length} kategorii` :
                     (() => {
                       const categoryId = categoryFilter;
                       const category = findCategoryInTree(categoryId);
                       return category ? category.name : 'Kategoria';
                     })()
-                  ) : 
+                  ) :
                   `Kategoria${categories.length > 0 ? ` (${categories.length})` : ''}`
                 )
               }
@@ -1371,7 +1287,7 @@ export default function EventCalendarScreen() {
           <TouchableOpacity
             style={[
               styles.uniformFilterButton,
-              { 
+              {
                 backgroundColor: objectFilter ? theme.colors.primary : theme.colors.subtle,
                 borderColor: objectFilter ? theme.colors.primary : theme.colors.border,
                 opacity: loadingFilters ? 0.7 : 1
@@ -1390,21 +1306,21 @@ export default function EventCalendarScreen() {
             )}
             <Text style={[
               styles.uniformFilterText,
-              { 
+              {
                 color: objectFilter ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
             ]}>
-              {loadingFilters ? 'Ładowanie...' : 
-                (objectFilter ? 
-                  (objectFilter.includes(',') ? 
-                    `${objectFilter.split(',').length} obiektów` : 
+              {loadingFilters ? 'Ładowanie...' :
+                (objectFilter ?
+                  (objectFilter.includes(',') ?
+                    `${objectFilter.split(',').length} obiektów` :
                     (() => {
                       const objectId = objectFilter;
                       const object = findObjectInTree(objectId);
                       return object ? object.name : 'Obiekt';
                     })()
-                  ) : 
+                  ) :
                   `Obiekt${objects.length > 0 ? ` (${objects.length})` : ''}`
                 )
               }
@@ -1416,7 +1332,7 @@ export default function EventCalendarScreen() {
           <TouchableOpacity
             style={[
               styles.uniformFilterButton,
-              { 
+              {
                 backgroundColor: cityFilter ? theme.colors.primary : theme.colors.subtle,
                 borderColor: cityFilter ? theme.colors.primary : theme.colors.border,
                 opacity: loadingFilters ? 0.7 : 1
@@ -1436,13 +1352,13 @@ export default function EventCalendarScreen() {
             )}
             <Text style={[
               styles.uniformFilterText,
-              { 
+              {
                 color: cityFilter ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
             ]}>
-              {loadingFilters ? 'Ładowanie...' : 
-                (cityFilter ? 
+              {loadingFilters ? 'Ładowanie...' :
+                (cityFilter ?
                   (() => {
                     if (cityFilter.includes(',')) {
                       const cityCount = cityFilter.split(',').length;
@@ -1451,7 +1367,7 @@ export default function EventCalendarScreen() {
                       return cityFilter;
                     }
                   })()
-                  : 
+                  :
                   `Miasto${cities.length > 0 ? ` (${cities.length})` : ''}`
                 )
               }
@@ -1465,7 +1381,7 @@ export default function EventCalendarScreen() {
           <TouchableOpacity
             style={[
               styles.uniformFilterButton,
-              { 
+              {
                 backgroundColor: selectedFilters.includes('this-weekend') ? theme.colors.primary : theme.colors.subtle,
                 borderColor: selectedFilters.includes('this-weekend') ? theme.colors.primary : theme.colors.border,
               }
@@ -1478,7 +1394,7 @@ export default function EventCalendarScreen() {
             <CalendarIcon size={16} color={selectedFilters.includes('this-weekend') ? '#fff' : theme.colors.text} />
             <Text style={[
               styles.uniformFilterText,
-              { 
+              {
                 color: selectedFilters.includes('this-weekend') ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
@@ -1492,7 +1408,7 @@ export default function EventCalendarScreen() {
           <TouchableOpacity
             style={[
               styles.uniformFilterButton,
-              { 
+              {
                 backgroundColor: selectedFilters.includes('this-week') ? theme.colors.primary : theme.colors.subtle,
                 borderColor: selectedFilters.includes('this-week') ? theme.colors.primary : theme.colors.border,
               }
@@ -1505,7 +1421,7 @@ export default function EventCalendarScreen() {
             <CalendarIcon size={16} color={selectedFilters.includes('this-week') ? '#fff' : theme.colors.text} />
             <Text style={[
               styles.uniformFilterText,
-              { 
+              {
                 color: selectedFilters.includes('this-week') ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
@@ -1521,7 +1437,7 @@ export default function EventCalendarScreen() {
           <TouchableOpacity
             style={[
               styles.uniformFilterButton,
-              { 
+              {
                 backgroundColor: selectedFilters.includes('saved') ? theme.colors.primary : theme.colors.subtle,
                 borderColor: selectedFilters.includes('saved') ? theme.colors.primary : theme.colors.border,
               }
@@ -1534,7 +1450,7 @@ export default function EventCalendarScreen() {
             <Heart size={16} color={selectedFilters.includes('saved') ? '#fff' : theme.colors.text} />
             <Text style={[
               styles.uniformFilterText,
-              { 
+              {
                 color: selectedFilters.includes('saved') ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
@@ -1546,7 +1462,7 @@ export default function EventCalendarScreen() {
 
           {/* Odśwież filtry */}
           <TouchableOpacity
-            style={[styles.uniformFilterButton, { 
+            style={[styles.uniformFilterButton, {
               backgroundColor: loadingFilters ? theme.colors.primary : theme.colors.subtle,
               borderColor: loadingFilters ? theme.colors.primary : theme.colors.border,
               opacity: loadingFilters ? 0.7 : 1
@@ -1561,7 +1477,7 @@ export default function EventCalendarScreen() {
             )}
             <Text style={[
               styles.uniformFilterText,
-              { 
+              {
                 color: loadingFilters ? '#fff' : theme.colors.text,
                 fontFamily: theme.fontFamily.medium
               }
@@ -1604,80 +1520,80 @@ export default function EventCalendarScreen() {
     setCategorySearchText('');
     setObjectSearchText('');
     setCitySearchText('');
-    
+
     // reloadEvents will be called automatically by useEffect when filters change
   };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>  
-      {/* Header with logo */}
-      <View style={[styles.header, { 
-        backgroundColor: theme.colors.background,
-        paddingTop: insets.top // Dodany bezpieczny margines od góry
-      }]}>
-        <Image
-          source={{ 
-            uri: theme.isDarkMode 
-              ? 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
-              : 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
-          }}
-          style={styles.logo}
-          contentFit="contain"
-          transition={200}
-          placeholder="Kaszuby24"
-          onError={() => {
-            // Fallback do tekstu jeśli grafika się nie załaduje
-            console.warn('Calendar logo image failed to load');
-          }}
-        />
-      </View>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Header with logo */}
+        <View style={[styles.header, {
+          backgroundColor: theme.colors.background,
+          paddingTop: insets.top // Dodany bezpieczny margines od góry
+        }]}>
+          <Image
+            source={{
+              uri: theme.isDarkMode
+                ? 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+                : 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+            }}
+            style={styles.logo}
+            contentFit="contain"
+            transition={200}
+            placeholder="Kaszuby24"
+            onError={() => {
+              // Fallback do tekstu jeśli grafika się nie załaduje
+              console.warn('Calendar logo image failed to load');
+            }}
+          />
+        </View>
 
-      
-      {/* Combined Calendar and Filters Section */}
-      {renderCalendarAndFilters()}
 
-      {/* Modern Events List - z własnym scrolling */}
-      {loading ? (
-        <SkeletonLoader type="home" count={5} immediate={true} />
-      ) : error ? (
-        <View style={styles.center}><Text style={{ color: theme.colors.error }}>{error}</Text></View>
-      ) : (
-        <ModernEventList
-          events={filteredEvents}
-          weekendEvents={weekendEvents}
-          loading={loading}
-          refreshing={refreshing}
-          loadingMore={loadingMore}
-          onEventPress={handleEventPress}
-          onShare={handleShare}
-          onAddToCalendar={handleAddToCalendar}
-          onRefresh={handleRefresh}
-          onLoadMore={loadMore}
-          scrollEnabled={true}
-          hideSlider={(() => {
-            const shouldHide = selectedFilters.length > 0 || !!selectedDate || !!selectedDateRange || !!selectedSpecificDate || !!categoryFilter || !!objectFilter || !!cityFilter;
+        {/* Combined Calendar and Filters Section */}
+        {renderCalendarAndFilters()}
 
-            return shouldHide;
-          })()}
-        />
+        {/* Modern Events List - z własnym scrolling */}
+        {loading ? (
+          <SkeletonLoader type="home" count={5} immediate={true} />
+        ) : error ? (
+          <View style={styles.center}><Text style={{ color: theme.colors.error }}>{error}</Text></View>
+        ) : (
+          <ModernEventList
+            events={filteredEvents}
+            weekendEvents={weekendEvents}
+            loading={loading}
+            refreshing={refreshing}
+            loadingMore={loadingMore}
+            onEventPress={handleEventPress}
+            onShare={handleShare}
+            onAddToCalendar={handleAddToCalendar}
+            onRefresh={handleRefresh}
+            onLoadMore={loadMore}
+            scrollEnabled={true}
+            hideSlider={(() => {
+              const shouldHide = selectedFilters.length > 0 || !!selectedDate || !!selectedDateRange || !!selectedSpecificDate || !!categoryFilter || !!objectFilter || !!cityFilter;
+
+              return shouldHide;
+            })()}
+          />
         )}
 
         {/* Category Picker Sheet Modal */}
         <Modal visible={catModal} transparent animationType="slide" onRequestClose={() => setCatModal(false)}>
-          <TouchableOpacity 
-            style={styles.modalOverlay} 
+          <TouchableOpacity
+            style={styles.modalOverlay}
             onPress={() => setCatModal(false)}
             activeOpacity={1}
           >
-            <View style={[styles.sheetModal, { 
+            <View style={[styles.sheetModal, {
               backgroundColor: theme.colors.card,
               height: '80%',
               maxHeight: 600
             }]}>
               <View style={styles.sheetHandle} />
               <View style={styles.filterHeader}>
-                <Text style={[styles.sheetTitle, { 
+                <Text style={[styles.sheetTitle, {
                   color: theme.colors.text,
                   fontFamily: theme.fontFamily.bold,
                   marginBottom: 0
@@ -1693,12 +1609,12 @@ export default function EventCalendarScreen() {
                   Wybrane: {selectedCategories.length}
                 </Text>
               )}
-              
+
               {/* Search Bar */}
               <View style={styles.searchContainer}>
                 <Search size={20} color={theme.colors.textSecondary} />
                 <TextInput
-                  style={[styles.searchInput, { 
+                  style={[styles.searchInput, {
                     color: theme.colors.text,
                     fontFamily: theme.fontFamily.medium
                   }]}
@@ -1713,11 +1629,11 @@ export default function EventCalendarScreen() {
                   </TouchableOpacity>
                 )}
               </View>
-              
+
               {loadingFilters ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={theme.colors.primary} />
-                  <Text style={[styles.loadingText, { 
+                  <Text style={[styles.loadingText, {
                     color: theme.colors.textSecondary,
                     fontFamily: theme.fontFamily.medium
                   }]}>
@@ -1727,11 +1643,11 @@ export default function EventCalendarScreen() {
               ) : (
                 <>
                   <ScrollView style={styles.sheetContent} showsVerticalScrollIndicator={false}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[
                         styles.sheetItem,
                         selectedCategories.length === 0 && !categoryFilter && styles.sheetItemSelected
-                      ]} 
+                      ]}
                       onPress={() => {
                         setSelectedCategories([]);
                         setCategoryFilter(null);
@@ -1743,7 +1659,7 @@ export default function EventCalendarScreen() {
                         <View style={styles.categoryItemLeft}>
                           <View style={[
                             styles.categoryCheckbox,
-                            { 
+                            {
                               backgroundColor: selectedCategories.length === 0 && !categoryFilter ? theme.colors.primary : 'transparent',
                               borderColor: selectedCategories.length === 0 && !categoryFilter ? theme.colors.primary : theme.colors.border
                             }
@@ -1753,8 +1669,8 @@ export default function EventCalendarScreen() {
                             )}
                           </View>
                           <Text style={[
-                            styles.sheetItemText, 
-                            { 
+                            styles.sheetItemText,
+                            {
                               color: selectedCategories.length === 0 && !categoryFilter ? theme.colors.primary : theme.colors.text,
                               fontFamily: theme.fontFamily.medium,
                               marginLeft: 12
@@ -1765,11 +1681,11 @@ export default function EventCalendarScreen() {
                         </View>
                       </View>
                     </TouchableOpacity>
-                    
+
                     {/* Root categories with expand/collapse */}
                     {filteredCategoryTree.rootCategories.map(cat => (
                       <View key={cat.id}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={[
                             styles.sheetItem,
                             selectedCategories.includes(cat.id) && styles.sheetItemSelected
@@ -1784,13 +1700,13 @@ export default function EventCalendarScreen() {
                         >
                           <View style={styles.categoryItemContent}>
                             <View style={styles.categoryItemLeft}>
-                              <TouchableOpacity 
+                              <TouchableOpacity
                                 onPress={() => handleCategoryToggle(cat.id)}
                                 style={{ marginRight: 8 }}
                               >
                                 <View style={[
                                   styles.categoryCheckbox,
-                                  { 
+                                  {
                                     backgroundColor: selectedCategories.includes(cat.id) ? theme.colors.primary : 'transparent',
                                     borderColor: selectedCategories.includes(cat.id) ? theme.colors.primary : theme.colors.border
                                   }
@@ -1801,8 +1717,8 @@ export default function EventCalendarScreen() {
                                 </View>
                               </TouchableOpacity>
                               <Text style={[
-                                styles.sheetItemText, 
-                                { 
+                                styles.sheetItemText,
+                                {
                                   color: selectedCategories.includes(cat.id) ? theme.colors.primary : theme.colors.text,
                                   fontFamily: theme.fontFamily.medium,
                                   marginLeft: 4
@@ -1814,7 +1730,7 @@ export default function EventCalendarScreen() {
                             <View style={styles.categoryItemRight}>
                               {cat.count && cat.count > 0 && (
                                 <View style={[styles.categoryCount, { backgroundColor: theme.colors.subtle }]}>
-                                  <Text style={[styles.categoryCountText, { 
+                                  <Text style={[styles.categoryCountText, {
                                     color: theme.colors.textSecondary,
                                     fontFamily: theme.fontFamily.semibold
                                   }]}>
@@ -1823,7 +1739,7 @@ export default function EventCalendarScreen() {
                                 </View>
                               )}
                               {cat.children && cat.children.length > 0 && (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                   onPress={() => toggleCategoryExpansion(cat.id.toString())}
                                   style={styles.expandButton}
                                 >
@@ -1837,13 +1753,13 @@ export default function EventCalendarScreen() {
                             </View>
                           </View>
                         </TouchableOpacity>
-                        
+
                         {/* Render children if expanded */}
                         {expandedCategories.has(cat.id.toString()) && cat.children && cat.children.map((child: any) => (
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             key={child.id}
                             style={[
-                              styles.sheetItem, 
+                              styles.sheetItem,
                               { paddingLeft: 32 },
                               selectedCategories.includes(child.id) && styles.sheetItemSelected
                             ]}
@@ -1853,7 +1769,7 @@ export default function EventCalendarScreen() {
                               <View style={styles.categoryItemLeft}>
                                 <View style={[
                                   styles.categoryCheckbox,
-                                  { 
+                                  {
                                     backgroundColor: selectedCategories.includes(child.id) ? theme.colors.primary : 'transparent',
                                     borderColor: selectedCategories.includes(child.id) ? theme.colors.primary : theme.colors.border
                                   }
@@ -1863,8 +1779,8 @@ export default function EventCalendarScreen() {
                                   )}
                                 </View>
                                 <Text style={[
-                                  styles.sheetItemText, 
-                                  { 
+                                  styles.sheetItemText,
+                                  {
                                     color: selectedCategories.includes(child.id) ? theme.colors.primary : theme.colors.text,
                                     fontFamily: theme.fontFamily.medium,
                                     marginLeft: 12
@@ -1875,7 +1791,7 @@ export default function EventCalendarScreen() {
                               </View>
                               {child.count && child.count > 0 && (
                                 <View style={[styles.categoryCount, { backgroundColor: theme.colors.subtle }]}>
-                                  <Text style={[styles.categoryCountText, { 
+                                  <Text style={[styles.categoryCountText, {
                                     color: theme.colors.textSecondary,
                                     fontFamily: theme.fontFamily.semibold
                                   }]}>
@@ -1888,10 +1804,10 @@ export default function EventCalendarScreen() {
                         ))}
                       </View>
                     ))}
-                    
+
                     {/* Categories without parent at the bottom */}
                     {filteredCategoryTree.categoriesWithoutParent.map(cat => (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         key={cat.id}
                         style={styles.sheetItem}
                         onPress={() => handleCategoryToggle(cat.id)}
@@ -1900,7 +1816,7 @@ export default function EventCalendarScreen() {
                           <View style={styles.categoryItemLeft}>
                             <View style={[
                               styles.categoryCheckbox,
-                              { 
+                              {
                                 backgroundColor: selectedCategories.includes(cat.id) ? theme.colors.primary : 'transparent',
                                 borderColor: selectedCategories.includes(cat.id) ? theme.colors.primary : theme.colors.border
                               }
@@ -1913,8 +1829,8 @@ export default function EventCalendarScreen() {
                               <View style={styles.selectedItemIndicator} />
                             )}
                             <Text style={[
-                              styles.sheetItemText, 
-                              { 
+                              styles.sheetItemText,
+                              {
                                 color: selectedCategories.includes(cat.id) ? theme.colors.primary : theme.colors.text,
                                 fontFamily: theme.fontFamily.medium,
                                 marginLeft: 12
@@ -1925,42 +1841,42 @@ export default function EventCalendarScreen() {
                           </View>
                           {cat.count && cat.count > 0 && (
                             <View style={[styles.categoryCount, { backgroundColor: theme.colors.subtle }]}>
-                              <Text style={[styles.categoryCountText, { 
+                              <Text style={[styles.categoryCountText, {
                                 color: theme.colors.textSecondary,
                                 fontFamily: theme.fontFamily.semibold
                               }]}>
                                 {cat.count}
                               </Text>
-                              </View>
+                            </View>
                           )}
                         </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-                  
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
                   <View style={styles.modalActions}>
-                    <TouchableOpacity 
-                      style={[styles.actionBtn, { 
+                    <TouchableOpacity
+                      style={[styles.actionBtn, {
                         backgroundColor: theme.colors.subtle,
                         borderColor: theme.colors.border
-                      }]} 
+                      }]}
                       onPress={handleCategoryFilterClear}
                     >
-                      <Text style={[styles.actionText, { 
+                      <Text style={[styles.actionText, {
                         color: theme.colors.textSecondary,
                         fontFamily: theme.fontFamily.medium
                       }]}>
                         Wyczyść
                       </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.actionBtn, { 
+                    <TouchableOpacity
+                      style={[styles.actionBtn, {
                         backgroundColor: theme.colors.primary,
                         borderColor: theme.colors.primary
-                      }]} 
+                      }]}
                       onPress={handleCategoryFilterApply}
                     >
-                      <Text style={[styles.actionText, { 
+                      <Text style={[styles.actionText, {
                         color: '#fff',
                         fontFamily: theme.fontFamily.medium
                       }]}>
@@ -1970,46 +1886,46 @@ export default function EventCalendarScreen() {
                   </View>
                 </>
               )}
-        </View>
+            </View>
           </TouchableOpacity>
-      </Modal>
+        </Modal>
 
         {/* Object Picker Sheet Modal */}
         <Modal visible={objectModal} transparent animationType="slide" onRequestClose={() => setObjectModal(false)}>
-          <TouchableOpacity 
-            style={styles.modalOverlay} 
+          <TouchableOpacity
+            style={styles.modalOverlay}
             onPress={() => setObjectModal(false)}
             activeOpacity={1}
           >
-            <View style={[styles.sheetModal, { 
+            <View style={[styles.sheetModal, {
               backgroundColor: theme.colors.card,
               height: '80%', // Stała wysokość
               maxHeight: 600 // Maksymalna wysokość
             }]}>
-                          <View style={styles.sheetHandle} />
-            <View style={styles.filterHeader}>
-              <Text style={[styles.sheetTitle, { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.bold,
-                marginBottom: 0
-              }]}>
-                Wybierz obiekt
-              </Text>
-              <View style={styles.filterIcon}>
-                <Home size={20} color={theme.colors.textSecondary} />
+              <View style={styles.sheetHandle} />
+              <View style={styles.filterHeader}>
+                <Text style={[styles.sheetTitle, {
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold,
+                  marginBottom: 0
+                }]}>
+                  Wybierz obiekt
+                </Text>
+                <View style={styles.filterIcon}>
+                  <Home size={20} color={theme.colors.textSecondary} />
+                </View>
               </View>
-            </View>
-            {selectedObjects.length > 0 && (
-              <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
-                Wybrane: {selectedObjects.length}
-              </Text>
-            )}
-              
+              {selectedObjects.length > 0 && (
+                <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
+                  Wybrane: {selectedObjects.length}
+                </Text>
+              )}
+
               {/* Search Bar */}
               <View style={styles.searchContainer}>
                 <Search size={20} color={theme.colors.textSecondary} />
                 <TextInput
-                  style={[styles.searchInput, { 
+                  style={[styles.searchInput, {
                     color: theme.colors.text,
                     fontFamily: theme.fontFamily.medium
                   }]}
@@ -2024,11 +1940,11 @@ export default function EventCalendarScreen() {
                   </TouchableOpacity>
                 )}
               </View>
-              
+
               {loadingFilters ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={theme.colors.primary} />
-                  <Text style={[styles.loadingText, { 
+                  <Text style={[styles.loadingText, {
                     color: theme.colors.textSecondary,
                     fontFamily: theme.fontFamily.medium
                   }]}>
@@ -2038,8 +1954,8 @@ export default function EventCalendarScreen() {
               ) : (
                 <>
                   <ScrollView style={styles.sheetContent} showsVerticalScrollIndicator={false}>
-                    <TouchableOpacity 
-                      style={styles.sheetItem} 
+                    <TouchableOpacity
+                      style={styles.sheetItem}
                       onPress={() => {
                         setSelectedObjects([]);
                         setObjectFilter(null);
@@ -2051,7 +1967,7 @@ export default function EventCalendarScreen() {
                         <View style={styles.categoryItemLeft}>
                           <View style={[
                             styles.categoryCheckbox,
-                            { 
+                            {
                               backgroundColor: !objectFilter ? theme.colors.primary : 'transparent',
                               borderColor: !objectFilter ? theme.colors.primary : theme.colors.border
                             }
@@ -2061,8 +1977,8 @@ export default function EventCalendarScreen() {
                             )}
                           </View>
                           <Text style={[
-                            styles.sheetItemText, 
-                            { 
+                            styles.sheetItemText,
+                            {
                               color: !objectFilter ? theme.colors.primary : theme.colors.text,
                               fontFamily: theme.fontFamily.medium,
                               marginLeft: 12
@@ -2073,11 +1989,11 @@ export default function EventCalendarScreen() {
                         </View>
                       </View>
                     </TouchableOpacity>
-                    
+
                     {/* Root objects with expand/collapse */}
                     {filteredObjectTree.rootObjects.map(obj => (
                       <View key={obj.id}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={styles.sheetItem}
                           onPress={() => {
                             if (obj.children && obj.children.length > 0) {
@@ -2089,13 +2005,13 @@ export default function EventCalendarScreen() {
                         >
                           <View style={styles.categoryItemContent}>
                             <View style={styles.categoryItemLeft}>
-                              <TouchableOpacity 
+                              <TouchableOpacity
                                 onPress={() => handleObjectToggle(obj.id.toString())}
                                 style={{ marginRight: 8 }}
                               >
                                 <View style={[
                                   styles.categoryCheckbox,
-                                  { 
+                                  {
                                     backgroundColor: selectedObjects.includes(obj.id.toString()) ? theme.colors.primary : 'transparent',
                                     borderColor: selectedObjects.includes(obj.id.toString()) ? theme.colors.primary : theme.colors.border
                                   }
@@ -2109,8 +2025,8 @@ export default function EventCalendarScreen() {
                                 )}
                               </TouchableOpacity>
                               <Text style={[
-                                styles.sheetItemText, 
-                                { 
+                                styles.sheetItemText,
+                                {
                                   color: selectedObjects.includes(obj.id.toString()) ? theme.colors.primary : theme.colors.text,
                                   fontFamily: theme.fontFamily.medium,
                                   marginLeft: 4
@@ -2122,7 +2038,7 @@ export default function EventCalendarScreen() {
                             <View style={styles.categoryItemRight}>
                               {obj.count && obj.count > 0 && (
                                 <View style={[styles.categoryCount, { backgroundColor: theme.colors.subtle }]}>
-                                  <Text style={[styles.categoryCountText, { 
+                                  <Text style={[styles.categoryCountText, {
                                     color: theme.colors.textSecondary,
                                     fontFamily: theme.fontFamily.semibold
                                   }]}>
@@ -2131,7 +2047,7 @@ export default function EventCalendarScreen() {
                                 </View>
                               )}
                               {obj.children && obj.children.length > 0 && (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                   onPress={() => toggleObjectExpansion(obj.id.toString())}
                                   style={styles.expandButton}
                                 >
@@ -2145,10 +2061,10 @@ export default function EventCalendarScreen() {
                             </View>
                           </View>
                         </TouchableOpacity>
-                        
+
                         {/* Render children if expanded */}
                         {expandedObjects.has(obj.id.toString()) && obj.children && obj.children.map((child: any) => (
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             key={child.id}
                             style={[styles.sheetItem, { paddingLeft: 32 }]}
                             onPress={() => handleObjectToggle(child.id.toString())}
@@ -2157,7 +2073,7 @@ export default function EventCalendarScreen() {
                               <View style={styles.categoryItemLeft}>
                                 <View style={[
                                   styles.categoryCheckbox,
-                                  { 
+                                  {
                                     backgroundColor: selectedObjects.includes(child.id.toString()) ? theme.colors.primary : 'transparent',
                                     borderColor: selectedObjects.includes(child.id.toString()) ? theme.colors.primary : theme.colors.border
                                   }
@@ -2167,8 +2083,8 @@ export default function EventCalendarScreen() {
                                   )}
                                 </View>
                                 <Text style={[
-                                  styles.sheetItemText, 
-                                  { 
+                                  styles.sheetItemText,
+                                  {
                                     color: selectedObjects.includes(child.id.toString()) ? theme.colors.primary : theme.colors.text,
                                     fontFamily: theme.fontFamily.medium,
                                     marginLeft: 12
@@ -2179,7 +2095,7 @@ export default function EventCalendarScreen() {
                               </View>
                               {child.count && child.count > 0 && (
                                 <View style={[styles.categoryCount, { backgroundColor: theme.colors.subtle }]}>
-                                  <Text style={[styles.categoryCountText, { 
+                                  <Text style={[styles.categoryCountText, {
                                     color: theme.colors.textSecondary,
                                     fontFamily: theme.fontFamily.semibold
                                   }]}>
@@ -2192,10 +2108,10 @@ export default function EventCalendarScreen() {
                         ))}
                       </View>
                     ))}
-                    
+
                     {/* Objects without parent at the bottom */}
                     {filteredObjectTree.objectsWithoutParent.map(obj => (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         key={obj.id}
                         style={styles.sheetItem}
                         onPress={() => handleObjectToggle(obj.id.toString())}
@@ -2204,7 +2120,7 @@ export default function EventCalendarScreen() {
                           <View style={styles.categoryItemLeft}>
                             <View style={[
                               styles.categoryCheckbox,
-                              { 
+                              {
                                 backgroundColor: selectedObjects.includes(obj.id.toString()) ? theme.colors.primary : 'transparent',
                                 borderColor: selectedObjects.includes(obj.id.toString()) ? theme.colors.primary : theme.colors.border
                               }
@@ -2214,8 +2130,8 @@ export default function EventCalendarScreen() {
                               )}
                             </View>
                             <Text style={[
-                              styles.sheetItemText, 
-                              { 
+                              styles.sheetItemText,
+                              {
                                 color: selectedObjects.includes(obj.id.toString()) ? theme.colors.primary : theme.colors.text,
                                 fontFamily: theme.fontFamily.medium,
                                 marginLeft: 12
@@ -2226,7 +2142,7 @@ export default function EventCalendarScreen() {
                           </View>
                           {obj.count && obj.count > 0 && (
                             <View style={[styles.categoryCount, { backgroundColor: theme.colors.subtle }]}>
-                              <Text style={[styles.categoryCountText, { 
+                              <Text style={[styles.categoryCountText, {
                                 color: theme.colors.textSecondary,
                                 fontFamily: theme.fontFamily.semibold
                               }]}>
@@ -2238,30 +2154,30 @@ export default function EventCalendarScreen() {
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
-                  
+
                   <View style={styles.modalActions}>
-                    <TouchableOpacity 
-                      style={[styles.actionBtn, { 
+                    <TouchableOpacity
+                      style={[styles.actionBtn, {
                         backgroundColor: theme.colors.subtle,
                         borderColor: theme.colors.border
-                      }]} 
+                      }]}
                       onPress={handleObjectFilterClear}
                     >
-                      <Text style={[styles.actionText, { 
+                      <Text style={[styles.actionText, {
                         color: theme.colors.textSecondary,
                         fontFamily: theme.fontFamily.medium
                       }]}>
                         Wyczyść
                       </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.actionBtn, { 
+                    <TouchableOpacity
+                      style={[styles.actionBtn, {
                         backgroundColor: theme.colors.primary,
                         borderColor: theme.colors.primary
-                      }]} 
+                      }]}
                       onPress={handleObjectFilterApply}
                     >
-                      <Text style={[styles.actionText, { 
+                      <Text style={[styles.actionText, {
                         color: '#fff',
                         fontFamily: theme.fontFamily.medium
                       }]}>
@@ -2275,353 +2191,353 @@ export default function EventCalendarScreen() {
           </TouchableOpacity>
         </Modal>
 
-      {/* City Picker Sheet Modal */}
-      <Modal visible={cityModal} transparent animationType="slide" onRequestClose={() => setCityModal(false)}>
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          onPress={() => setCityModal(false)}
-          activeOpacity={1}
-        >
-          <View style={[styles.sheetModal, { 
-            backgroundColor: theme.colors.card,
-            height: '80%',
-            maxHeight: 600
-          }]}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.filterHeader}>
-              <Text style={[styles.sheetTitle, { 
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.bold,
-                marginBottom: 0
-              }]}>
-                Wybierz miasto
-              </Text>
-              <View style={styles.filterIcon}>
-                <MapPin size={20} color={theme.colors.textSecondary} />
-              </View>
-            </View>
-            {selectedCities.length > 0 && (
-              <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
-                Wybrane: {selectedCities.length}
-              </Text>
-            )}
-            
-
-            
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-              <Search size={20} color={theme.colors.textSecondary} />
-              <TextInput
-                style={[styles.searchInput, { 
+        {/* City Picker Sheet Modal */}
+        <Modal visible={cityModal} transparent animationType="slide" onRequestClose={() => setCityModal(false)}>
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            onPress={() => setCityModal(false)}
+            activeOpacity={1}
+          >
+            <View style={[styles.sheetModal, {
+              backgroundColor: theme.colors.card,
+              height: '80%',
+              maxHeight: 600
+            }]}>
+              <View style={styles.sheetHandle} />
+              <View style={styles.filterHeader}>
+                <Text style={[styles.sheetTitle, {
                   color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium
-                }]}
-                placeholder="Szukaj miasta..."
-                placeholderTextColor={theme.colors.textSecondary}
-                value={citySearchText}
-                onChangeText={setCitySearchText}
-              />
-              {citySearchText.length > 0 && (
-                <TouchableOpacity onPress={() => setCitySearchText('')}>
-                  <X size={20} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              )}
-            </View>
-            
-            {loadingFilters ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={[styles.loadingText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.medium
+                  fontFamily: theme.fontFamily.bold,
+                  marginBottom: 0
                 }]}>
-                  Ładowanie miast...
+                  Wybierz miasto
                 </Text>
+                <View style={styles.filterIcon}>
+                  <MapPin size={20} color={theme.colors.textSecondary} />
+                </View>
               </View>
-            ) : (
-              <>
-                <ScrollView style={styles.sheetContent} showsVerticalScrollIndicator={false}>
-                  <TouchableOpacity 
-                    style={styles.sheetItem} 
-                    onPress={() => {
-                      setSelectedCities([]);
-                      setCityFilter(null);
-                      setCityModal(false);
-                      // reloadEvents will be called automatically by useEffect when cityFilter changes
-                    }}
-                  >
-                    <View style={styles.categoryItemContent}>
-                      <View style={styles.categoryItemLeft}>
-                        <View style={[
-                          styles.categoryCheckbox,
-                          { 
-                            backgroundColor: !cityFilter ? theme.colors.primary : 'transparent',
-                            borderColor: !cityFilter ? theme.colors.primary : theme.colors.border
-                          }
-                        ]}>
-                          {!cityFilter && (
-                            <Text style={[styles.checkmark, { color: '#fff' }]}>✓</Text>
-                          )}
-                        </View>
-                        <Text style={[
-                          styles.sheetItemText, 
-                          { 
-                            color: !cityFilter ? theme.colors.primary : theme.colors.text,
-                            fontFamily: theme.fontFamily.medium,
-                            marginLeft: 12
-                          }
-                        ]}>
-                          Wszystkie miasta
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                  
-                  {/* Cities list */}
-                  {cities
-                    .filter(city => 
-                      !citySearchText.trim() || 
-                      city.name.toLowerCase().includes(citySearchText.toLowerCase())
-                    )
-                    .map(city => (
-                      <TouchableOpacity 
-                        key={city.id}
-                        style={styles.sheetItem}
-                        onPress={() => {
+              {selectedCities.length > 0 && (
+                <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
+                  Wybrane: {selectedCities.length}
+                </Text>
+              )}
 
-                          handleCityToggle(city.name);
-                        }}
-                      >
-                        <View style={styles.categoryItemContent}>
-                          <View style={styles.categoryItemLeft}>
-                            <View style={[
-                              styles.categoryCheckbox,
-                              { 
-                                backgroundColor: selectedCities.includes(city.name) ? theme.colors.primary : 'transparent',
-                                borderColor: selectedCities.includes(city.name) ? theme.colors.primary : theme.colors.border
-                              }
-                            ]}>
-                              {selectedCities.includes(city.name) && (
-                                <Text style={[styles.checkmark, { color: '#fff' }]}>✓</Text>
-                              )}
-                            </View>
-                            {selectedCities.includes(city.name) && (
-                              <View style={styles.selectedItemIndicator} />
+
+
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <Search size={20} color={theme.colors.textSecondary} />
+                <TextInput
+                  style={[styles.searchInput, {
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium
+                  }]}
+                  placeholder="Szukaj miasta..."
+                  placeholderTextColor={theme.colors.textSecondary}
+                  value={citySearchText}
+                  onChangeText={setCitySearchText}
+                />
+                {citySearchText.length > 0 && (
+                  <TouchableOpacity onPress={() => setCitySearchText('')}>
+                    <X size={20} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {loadingFilters ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={theme.colors.primary} />
+                  <Text style={[styles.loadingText, {
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.medium
+                  }]}>
+                    Ładowanie miast...
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <ScrollView style={styles.sheetContent} showsVerticalScrollIndicator={false}>
+                    <TouchableOpacity
+                      style={styles.sheetItem}
+                      onPress={() => {
+                        setSelectedCities([]);
+                        setCityFilter(null);
+                        setCityModal(false);
+                        // reloadEvents will be called automatically by useEffect when cityFilter changes
+                      }}
+                    >
+                      <View style={styles.categoryItemContent}>
+                        <View style={styles.categoryItemLeft}>
+                          <View style={[
+                            styles.categoryCheckbox,
+                            {
+                              backgroundColor: !cityFilter ? theme.colors.primary : 'transparent',
+                              borderColor: !cityFilter ? theme.colors.primary : theme.colors.border
+                            }
+                          ]}>
+                            {!cityFilter && (
+                              <Text style={[styles.checkmark, { color: '#fff' }]}>✓</Text>
                             )}
-                            <Text style={[
-                              styles.sheetItemText, 
-                              { 
-                                color: selectedCities.includes(city.name) ? theme.colors.primary : theme.colors.text,
-                                fontFamily: theme.fontFamily.medium,
-                                marginLeft: 12
-                              }
-                            ]}>
-                              {city.name}
-                            </Text>
                           </View>
-                          {city.count && city.count > 0 && (
-                            <View style={[styles.categoryCount, { backgroundColor: theme.colors.subtle }]}>
-                              <Text style={[styles.categoryCountText, { 
-                                color: theme.colors.textSecondary,
-                                fontFamily: theme.fontFamily.semibold
-                              }]}>
-                                {city.count}
+                          <Text style={[
+                            styles.sheetItemText,
+                            {
+                              color: !cityFilter ? theme.colors.primary : theme.colors.text,
+                              fontFamily: theme.fontFamily.medium,
+                              marginLeft: 12
+                            }
+                          ]}>
+                            Wszystkie miasta
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Cities list */}
+                    {cities
+                      .filter(city =>
+                        !citySearchText.trim() ||
+                        city.name.toLowerCase().includes(citySearchText.toLowerCase())
+                      )
+                      .map(city => (
+                        <TouchableOpacity
+                          key={city.id}
+                          style={styles.sheetItem}
+                          onPress={() => {
+
+                            handleCityToggle(city.name);
+                          }}
+                        >
+                          <View style={styles.categoryItemContent}>
+                            <View style={styles.categoryItemLeft}>
+                              <View style={[
+                                styles.categoryCheckbox,
+                                {
+                                  backgroundColor: selectedCities.includes(city.name) ? theme.colors.primary : 'transparent',
+                                  borderColor: selectedCities.includes(city.name) ? theme.colors.primary : theme.colors.border
+                                }
+                              ]}>
+                                {selectedCities.includes(city.name) && (
+                                  <Text style={[styles.checkmark, { color: '#fff' }]}>✓</Text>
+                                )}
+                              </View>
+                              {selectedCities.includes(city.name) && (
+                                <View style={styles.selectedItemIndicator} />
+                              )}
+                              <Text style={[
+                                styles.sheetItemText,
+                                {
+                                  color: selectedCities.includes(city.name) ? theme.colors.primary : theme.colors.text,
+                                  fontFamily: theme.fontFamily.medium,
+                                  marginLeft: 12
+                                }
+                              ]}>
+                                {city.name}
                               </Text>
                             </View>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                </ScrollView>
-                
-                <View style={styles.modalActions}>
-                  <TouchableOpacity 
-                    style={[styles.actionBtn, { 
-                      backgroundColor: theme.colors.subtle,
-                      borderColor: theme.colors.border
-                    }]} 
-                    onPress={handleCityFilterClear}
-                  >
-                    <Text style={[styles.actionText, { 
-                      color: theme.colors.textSecondary,
-                      fontFamily: theme.fontFamily.medium
-                    }]}>
-                      Wyczyść
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.actionBtn, { 
-                      backgroundColor: theme.colors.primary,
-                      borderColor: theme.colors.primary
-                    }]} 
-                    onPress={handleCityFilterApply}
-                  >
-                    <Text style={[styles.actionText, { 
-                      color: '#fff',
-                      fontFamily: theme.fontFamily.medium
-                    }]}>
-                      Zastosuj ({selectedCities.length})
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-      
-      {/* Specific Date Picker Modal */}
-      <Modal visible={showSpecificDatePicker} transparent animationType="slide" onRequestClose={() => setShowSpecificDatePicker(false)}>
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          onPress={() => setShowSpecificDatePicker(false)}
-          activeOpacity={1}
-        >
-          <View style={[styles.sheetModal, { 
-            backgroundColor: theme.colors.card,
-            height: '60%', // Mniejsza wysokość dla pickera daty
-            maxHeight: 500
-          }]}>
-            <View style={styles.sheetHandle} />
-            <Text style={[styles.sheetTitle, { 
-              color: theme.colors.text,
-              fontFamily: theme.fontFamily.bold
-            }]}>
-              Wybierz konkretny dzień
-            </Text>
-            
-            <Text style={[styles.rangeInfo, { 
-              color: theme.colors.textSecondary,
-              fontFamily: theme.fontFamily.medium,
-              textAlign: 'center',
-              marginBottom: 20
-            }]}>
-              Zobacz wszystkie wydarzenia z wybranego dnia (nawet te starsze)
-            </Text>
-            
-            {/* Simple Date Picker */}
-            <View style={styles.datePickerContainer}>
-              <TouchableOpacity 
-                style={[styles.datePickerButton, { 
-                  backgroundColor: theme.colors.subtle,
-                  borderColor: theme.colors.border
-                }]}
-                onPress={() => {
-                  // Tutaj można dodać DatePickerAndroid lub DatePickerIOS
-                  // Na razie używam prostego wyboru daty
-                  const today = new Date();
-                  const selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                  handleSpecificDateSelect(selectedDate);
-                  setShowSpecificDatePicker(false);
-                }}
-              >
-                <CalendarIcon size={20} color={theme.colors.primary} />
-                <Text style={[styles.datePickerText, { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium,
-                  marginLeft: 8
-                }]}>
-                  Dzisiaj
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.datePickerButton, { 
-                  backgroundColor: theme.colors.subtle,
-                  borderColor: theme.colors.border
-                }]}
-                onPress={() => {
-                  const yesterday = new Date();
-                  yesterday.setDate(yesterday.getDate() - 1);
-                  handleSpecificDateSelect(yesterday);
-                  setShowSpecificDatePicker(false);
-                }}
-              >
-                <CalendarIcon size={20} color={theme.colors.primary} />
-                <Text style={[styles.datePickerText, { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium,
-                  marginLeft: 8
-                }]}>
-                  Wczoraj
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.datePickerButton, { 
-                  backgroundColor: theme.colors.subtle,
-                  borderColor: theme.colors.border
-                }]}
-                onPress={() => {
-                  const lastWeek = new Date();
-                  lastWeek.setDate(lastWeek.getDate() - 7);
-                  handleSpecificDateSelect(lastWeek);
-                  setShowSpecificDatePicker(false);
-                }}
-              >
-                <CalendarIcon size={20} color={theme.colors.primary} />
-                <Text style={[styles.datePickerText, { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium,
-                  marginLeft: 8
-                }]}>
-                  Tydzień temu
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.datePickerButton, { 
-                  backgroundColor: theme.colors.subtle,
-                  borderColor: theme.colors.border
-                }]}
-                onPress={() => {
-                  const lastMonth = new Date();
-                  lastMonth.setMonth(lastMonth.getMonth() - 1);
-                  handleSpecificDateSelect(lastMonth);
-                  setShowSpecificDatePicker(false);
-                }}
-              >
-                <CalendarIcon size={20} color={theme.colors.primary} />
-                <Text style={[styles.datePickerText, { 
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.medium,
-                  marginLeft: 8
-                }]}>
-                  Miesiąc temu
-                </Text>
-              </TouchableOpacity>
+                            {city.count && city.count > 0 && (
+                              <View style={[styles.categoryCount, { backgroundColor: theme.colors.subtle }]}>
+                                <Text style={[styles.categoryCountText, {
+                                  color: theme.colors.textSecondary,
+                                  fontFamily: theme.fontFamily.semibold
+                                }]}>
+                                  {city.count}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, {
+                        backgroundColor: theme.colors.subtle,
+                        borderColor: theme.colors.border
+                      }]}
+                      onPress={handleCityFilterClear}
+                    >
+                      <Text style={[styles.actionText, {
+                        color: theme.colors.textSecondary,
+                        fontFamily: theme.fontFamily.medium
+                      }]}>
+                        Wyczyść
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, {
+                        backgroundColor: theme.colors.primary,
+                        borderColor: theme.colors.primary
+                      }]}
+                      onPress={handleCityFilterApply}
+                    >
+                      <Text style={[styles.actionText, {
+                        color: '#fff',
+                        fontFamily: theme.fontFamily.medium
+                      }]}>
+                        Zastosuj ({selectedCities.length})
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
             </View>
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={[styles.actionBtn, { backgroundColor: theme.colors.subtle }]} 
-                onPress={() => {
-                  setShowSpecificDatePicker(false);
-                  handleSpecificDateSelect(null);
-                }}
-              >
-                <Text style={[styles.actionText, { 
-                  color: theme.colors.textSecondary,
-                  fontFamily: theme.fontFamily.medium
-                }]}>
-                  Wyczyść
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.actionBtn, { backgroundColor: theme.colors.primary }]} 
-                onPress={() => setShowSpecificDatePicker(false)}
-              >
-                <Text style={[styles.actionText, { 
-                  color: '#fff',
-                  fontFamily: theme.fontFamily.medium
-                }]}>
-                  Zamknij
-                </Text>
-              </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Specific Date Picker Modal */}
+        <Modal visible={showSpecificDatePicker} transparent animationType="slide" onRequestClose={() => setShowSpecificDatePicker(false)}>
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            onPress={() => setShowSpecificDatePicker(false)}
+            activeOpacity={1}
+          >
+            <View style={[styles.sheetModal, {
+              backgroundColor: theme.colors.card,
+              height: '60%', // Mniejsza wysokość dla pickera daty
+              maxHeight: 500
+            }]}>
+              <View style={styles.sheetHandle} />
+              <Text style={[styles.sheetTitle, {
+                color: theme.colors.text,
+                fontFamily: theme.fontFamily.bold
+              }]}>
+                Wybierz konkretny dzień
+              </Text>
+
+              <Text style={[styles.rangeInfo, {
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fontFamily.medium,
+                textAlign: 'center',
+                marginBottom: 20
+              }]}>
+                Zobacz wszystkie wydarzenia z wybranego dnia (nawet te starsze)
+              </Text>
+
+              {/* Simple Date Picker */}
+              <View style={styles.datePickerContainer}>
+                <TouchableOpacity
+                  style={[styles.datePickerButton, {
+                    backgroundColor: theme.colors.subtle,
+                    borderColor: theme.colors.border
+                  }]}
+                  onPress={() => {
+                    // Tutaj można dodać DatePickerAndroid lub DatePickerIOS
+                    // Na razie używam prostego wyboru daty
+                    const today = new Date();
+                    const selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    handleSpecificDateSelect(selectedDate);
+                    setShowSpecificDatePicker(false);
+                  }}
+                >
+                  <CalendarIcon size={20} color={theme.colors.primary} />
+                  <Text style={[styles.datePickerText, {
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium,
+                    marginLeft: 8
+                  }]}>
+                    Dzisiaj
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.datePickerButton, {
+                    backgroundColor: theme.colors.subtle,
+                    borderColor: theme.colors.border
+                  }]}
+                  onPress={() => {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    handleSpecificDateSelect(yesterday);
+                    setShowSpecificDatePicker(false);
+                  }}
+                >
+                  <CalendarIcon size={20} color={theme.colors.primary} />
+                  <Text style={[styles.datePickerText, {
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium,
+                    marginLeft: 8
+                  }]}>
+                    Wczoraj
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.datePickerButton, {
+                    backgroundColor: theme.colors.subtle,
+                    borderColor: theme.colors.border
+                  }]}
+                  onPress={() => {
+                    const lastWeek = new Date();
+                    lastWeek.setDate(lastWeek.getDate() - 7);
+                    handleSpecificDateSelect(lastWeek);
+                    setShowSpecificDatePicker(false);
+                  }}
+                >
+                  <CalendarIcon size={20} color={theme.colors.primary} />
+                  <Text style={[styles.datePickerText, {
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium,
+                    marginLeft: 8
+                  }]}>
+                    Tydzień temu
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.datePickerButton, {
+                    backgroundColor: theme.colors.subtle,
+                    borderColor: theme.colors.border
+                  }]}
+                  onPress={() => {
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    handleSpecificDateSelect(lastMonth);
+                    setShowSpecificDatePicker(false);
+                  }}
+                >
+                  <CalendarIcon size={20} color={theme.colors.primary} />
+                  <Text style={[styles.datePickerText, {
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.medium,
+                    marginLeft: 8
+                  }]}>
+                    Miesiąc temu
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: theme.colors.subtle }]}
+                  onPress={() => {
+                    setShowSpecificDatePicker(false);
+                    handleSpecificDateSelect(null);
+                  }}
+                >
+                  <Text style={[styles.actionText, {
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.medium
+                  }]}>
+                    Wyczyść
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => setShowSpecificDatePicker(false)}
+                >
+                  <Text style={[styles.actionText, {
+                    color: '#fff',
+                    fontFamily: theme.fontFamily.medium
+                  }]}>
+                    Zamknij
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </GestureHandlerRootView>
   );
@@ -3203,7 +3119,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  
+
   // New enhanced styles
   filterHeader: {
     flexDirection: 'row',

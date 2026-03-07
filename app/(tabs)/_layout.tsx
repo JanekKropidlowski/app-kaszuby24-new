@@ -133,6 +133,7 @@ export default function TabLayout() {
   return (
     <>
       <Tabs
+        initialRouteName="index"
         screenOptions={{
           tabBarActiveTintColor: theme.colors.primary,
           tabBarInactiveTintColor: theme.colors.textSecondary,
@@ -158,7 +159,7 @@ export default function TabLayout() {
           tabBarLabelStyle: {
             fontSize: Platform.OS === 'android' ? 13 : 12, // Larger font on Android
             fontFamily: theme.fontFamily.medium,
-            marginTop: Platform.OS === 'android' ? 8 : 8, // More spacing on Android
+            marginTop: 8,
             fontWeight: Platform.OS === 'android' ? '500' : '400', // Slightly bolder on Android
           },
           tabBarIconStyle: {
@@ -380,11 +381,16 @@ export default function TabLayout() {
             headerShown: false,
           }}
         />
-
         <Tabs.Screen
-          name="transport"
+          name="transport_v2"
           options={{
-            // Hidden from bottom bar buttons, but provides the UI layout!
+            href: null,
+            headerShown: false,
+          }}
+        />
+        <Tabs.Screen
+          name="airquality"
+          options={{
             href: null,
             headerShown: false,
           }}

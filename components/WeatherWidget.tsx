@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Modal, ScrollView, Platform } from 'react-native';
 import { Svg, Path, Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
 import { useThemeStore, Theme } from '@/store/themeStore';
 import { Thermometer, Droplets, Wind, Gauge, X, Info, TrendingUp, AlertTriangle } from 'lucide-react-native';
@@ -338,15 +338,15 @@ const getGaugeStyles = (theme: Theme) => StyleSheet.create({
     gaugeContainer: {
         width: '48%',
         backgroundColor: theme.colors.background,
-        borderRadius: 16,
+        borderRadius: Platform.OS === 'android' ? 20 : 16, // Większe zaokrąglenie na Androidzie
         padding: 16,
         marginBottom: 12,
         alignItems: 'center',
         shadowColor: theme.colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
-        elevation: 3,
+        shadowOffset: { width: 0, height: Platform.OS === 'android' ? 4 : 2 }, // Większy offset na Androidzie
+        shadowOpacity: Platform.OS === 'android' ? 0.12 : 0.05, // Większy cień na Androidzie
+        shadowRadius: Platform.OS === 'android' ? 8 : 5, // Większy radius na Androidzie
+        elevation: Platform.OS === 'android' ? 6 : 3, // Większa elevation na Androidzie
         borderWidth: 1,
         borderColor: theme.colors.border,
     },

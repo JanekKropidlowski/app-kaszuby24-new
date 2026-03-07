@@ -34,6 +34,9 @@ import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import RenderHtml from 'react-native-render-html';
+
+// Stałe poza komponentem — nie są tworzone przy każdym renderze
+const HTML_SYSTEM_FONTS = ['Poppins_Regular', 'Poppins_Bold', 'Poppins_SemiBold', 'Poppins_Medium', 'sans-serif', 'System'];
 import {
   ArrowLeft,
   Share2,
@@ -160,6 +163,40 @@ export default function ArticleScreen() {
   // Stan dla paska postępu czytania
   const [readingProgress, setReadingProgress] = useState(0);
   const [showReadingProgress, setShowReadingProgress] = useState(false);
+
+  // Memoizowane props dla RenderHtml — kluczowe dla wydajności
+  const htmlSource = useMemo(() => ({ html: cleanedContentHtml }), [cleanedContentHtml]);
+  const htmlBaseStyle = useMemo(() => ({
+    color: theme.colors.text,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'left' as const,
+    fontFamily: 'Poppins_Regular',
+  }), [theme.colors.text]);
+  const htmlTagsStyles = useMemo(() => getHtmlViewStyles(theme), [theme]);
+  const htmlRenderers = useMemo(() => ({
+    iframe: ({ tnode, ...props }: { tnode: any; [key: string]: any }) => {
+      const { src } = tnode.attributes;
+      return (
+        <View style={styles.iframeContainer}>
+          <WebView
+            source={{ uri: src }}
+            style={{ width: '100%', height: 200, borderRadius: 8 }}
+            allowsFullscreenVideo={true}
+            mediaPlaybackRequiresUserAction={false}
+            {...props}
+          />
+        </View>
+      );
+    },
+  }), []);
+  const htmlRenderersProps = useMemo(() => ({
+    a: {
+      onPress: (_event: any, href: string) => {
+        if (href) Linking.openURL(href).catch(() => {});
+      },
+    },
+  }), []);
 
   // Animowane style dla tooltip
   const tooltipAnimatedStyle = useAnimatedStyle(() => ({
@@ -899,10 +936,19 @@ export default function ArticleScreen() {
       {/* WARSTWA 1: UI APLIKACJI (STAŁE) */}
 
       {/* Nagłówek - jest poza animowanym widokiem */}
-      <View style={[styles.headerContainer, { zIndex: 10, paddingTop: insets.top }]}>
+      <View style={[styles.headerContainer, {
+        zIndex: 10,
+        paddingTop: insets.top,
+        height: HEADER_HEIGHT + insets.top,
+        backgroundColor: 'transparent',
+      }]}>
         <LinearGradient
-          colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0)']}
-          style={styles.headerGradient}
+          colors={
+            Platform.OS === 'android'
+              ? ['rgba(0,0,0,0.78)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.22)', 'rgba(0,0,0,0)']
+              : ['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0)']
+          }
+          style={[styles.headerGradient, { height: HEADER_HEIGHT + insets.top + 20 }]}
         />
         <TouchableOpacity
           style={styles.headerButton}
@@ -1017,7 +1063,8 @@ export default function ArticleScreen() {
                 {
                   color: theme.colors.text,
                   fontSize: getTitleFontSize(cleanTitle(article.title.rendered)),
-                  fontFamily: theme.fontFamily.bold,
+                  fontFamily: Platform.OS === 'android' ? 'Poppins_SemiBold' : theme.fontFamily.bold,
+                  fontWeight: Platform.OS === 'android' ? 'normal' : '700',
                 },
               ]}
               numberOfLines={4}
@@ -1063,46 +1110,13 @@ export default function ArticleScreen() {
             )}
 
             <RenderHtml
-              source={{ html: cleanedContentHtml }}
+              source={htmlSource}
               contentWidth={width - 40}
-              baseStyle={{
-                color: theme.colors.text,
-                fontSize: 15, // Zmniejszone z 16 na 15
-                lineHeight: 22, // Zmniejszone z 24 na 22
-                textAlign: 'left',
-                fontFamily: 'Poppins_Regular',
-              }}
-              systemFonts={['Poppins_Regular', 'Poppins_Bold', 'Poppins_SemiBold', 'Poppins_Medium', 'sans-serif', 'System']}
-              tagsStyles={getHtmlViewStyles(theme)}
-              renderers={{
-                iframe: ({ tnode, ...props }: { tnode: any;[key: string]: any }) => {
-                  const { src, width, height } = tnode.attributes;
-                  return (
-                    <View style={styles.iframeContainer}>
-                      <WebView
-                        source={{ uri: src }}
-                        style={{
-                          width: '100%',
-                          height: 200,
-                          borderRadius: 8,
-                        }}
-                        allowsFullscreenVideo={true}
-                        mediaPlaybackRequiresUserAction={false}
-                        {...props}
-                      />
-                    </View>
-                  );
-                },
-              }}
-              renderersProps={{
-                a: {
-                  onPress: (_event: any, href: string) => {
-                    if (href) {
-                      Linking.openURL(href).catch(() => { });
-                    }
-                  },
-                },
-              }}
+              baseStyle={htmlBaseStyle}
+              systemFonts={HTML_SYSTEM_FONTS}
+              tagsStyles={htmlTagsStyles}
+              renderers={htmlRenderers}
+              renderersProps={htmlRenderersProps}
             />
 
             {/* Źródło i informacje o zdjęciu - przeniesione pod treść artykułu */}
@@ -1599,7 +1613,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     marginLeft: 8,
-    marginTop: 35, // Dodany margines od góry
+    marginTop: Platform.OS === 'android' ? 8 : 35,
   },
   title: {
     fontSize: 32,
@@ -1996,7 +2010,7 @@ const styles = StyleSheet.create({
   },
   articleTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: Platform.OS === 'android' ? 'normal' : '700',
     marginBottom: 16,
     lineHeight: 32,
     textAlign: 'left',

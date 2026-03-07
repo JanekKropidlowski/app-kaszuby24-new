@@ -23,7 +23,18 @@ export const WASTE_RULES: WasteRule[] = [
             'Zeszyty, torebki papierowe',
             'Kartony i tekturę (także falistą)',
             'Papier pakowy',
-            'Wytłaczanki do jajek (czyste)'
+            'Wytłaczanki do jajek (czyste)',
+            'Blok rysunkowy i techniczny',
+            'Cukier - opakowanie papierowe',
+            'Czasopisma ilustrowane, Gazety',
+            'Kalendarze ścienne i kieszonkowe',
+            'Kartki papieru, Notatniki, Notesy',
+            'Karton po chusteczkach, lekach, mrożonkach',
+            'Karton po proszku do prania',
+            'Kartonik po perfumach, żarówce',
+            'Komiksy, Koperty papierowe',
+            'Książki i zeszyty',
+            'Listy, Mapy niepowlekane'
         ],
         forbidden: [
             'Tłustego lub zabrudzonego papieru',
@@ -43,7 +54,14 @@ export const WASTE_RULES: WasteRule[] = [
         allowed: [
             'Butelki po napojach i żywności',
             'Słoiki po dżemach, przetworach',
-            'Szklane opakowania po kosmetykach (o ile nie są trwale połączone z innymi surowcami)'
+            'Szklane opakowania po kosmetykach',
+            'Butelki po winie, wodzie, syropach',
+            'Butelki szklane po tabletkach i witaminach',
+            'Flakoniki po perfumach (szklane)',
+            'Kufle szklane',
+            'Opakowania po kremach (szklane)',
+            'Słoiki po kawie, konserwach, marmoladzie',
+            'Szkło opakowaniowe, Wazony szklane'
         ],
         forbidden: [
             'Ceramiki, doniczek, porcelany, fajansu',
@@ -67,9 +85,16 @@ export const WASTE_RULES: WasteRule[] = [
             'Opakowania po chemii gospodarczej i kosmetykach',
             'Puszki po żywności i napojach',
             'Kartony po mleku i sokach (tzw. tetrapaki)',
-            'Folię aluminiową',
-            'Torebki foliowe, reklamówki',
-            'Zakrętki od słoików i butelek'
+            'Folię aluminiową, Torebki foliowe, reklamówki',
+            'Zakrętki od słoików i butelek',
+            'Aluminiowe tacki (czyste), Aluminium',
+            'Antyperspirant (puste opakowanie)',
+            'Bidony plastikowe',
+            'Butelki po jogurcie, kefirze, ketchupie',
+            'Butelki po majonezie, mleku, musztardzie',
+            'Butelka po mydle w płynie, szamponie',
+            'Opakowania po Ajaxie, Domestosie, Krecie',
+            'Pojemniki po płynach do płukania, WC, szyb'
         ],
         forbidden: [
             'Butelek i pojemników z zawartością',
@@ -88,10 +113,15 @@ export const WASTE_RULES: WasteRule[] = [
         description: 'Odpady organiczne ulegające biodegradacji.',
         allowed: [
             'Obierki z warzyw i owoców',
+            'Obierki: Ananas, Arbuz, Awokado, Banan',
             'Resztki żywności (bez mięsa)',
-            'Fusy z kawy i herbaty',
+            'Fusy z kawy i herbaty, Filtry z fusami',
             'Zwiędłe kwiaty i rośliny doniczkowe',
-            'Skorupki jaj'
+            'Skorupki jaj, Bułki, Chleb, Ciasta',
+            'Resztki owoców i warzyw: Buraki, Cebula',
+            'Cukier wanilinowy i Cukierki (bez opakowań)',
+            'Cukinia, Cytrusy, Czosnek, Dynia, Fasola',
+            'Drożdże, Frytki'
         ],
         forbidden: [
             'Mięsa, kości, ości i tłuszczów zwierzęcych',
@@ -110,8 +140,14 @@ export const WASTE_RULES: WasteRule[] = [
         description: 'Odpady z ogrodu.',
         allowed: [
             'Liście, skoszona trawa',
-            'Rozdrobnione gałęzie',
-            'Trociny i kora drzew'
+            'Rozdrobnione gałęzie, Chrust, Patyki',
+            'Trociny i kora drzew, Szyszki',
+            'Choinka żywa (pocięta i zwiędła)',
+            'Chwasty, Części zielone roślin',
+            'Darń, Korzenie roślin',
+            'Kwiaty cięte i doniczkowe',
+            'Słoma, Torf, Żołędzie',
+            'Wieniec z żywych kwiatów'
         ],
         forbidden: [
             'Ziemi, kamieni',
@@ -143,9 +179,17 @@ export const WASTE_RULES: WasteRule[] = [
             'Zużyte środki higieniczne (pieluchy, chusteczki)',
             'Zabrudzony papier (tłusty)',
             'Potłuczone szkło stołowe i ceramika',
-            'Mięso, kości, ości',
+            'Mięso, kości, ości, Resztki ryb',
             'Żwirek dla kota',
-            'Wystudzone popioły (jeśli brak osobnego odbioru)'
+            'Agrowłóknina, Albumy fotograficzne',
+            'Aluminiowe tacki i torebki zabrudzone (np. po pizzy)',
+            'Bandaże, Bawełna, Bibuła',
+            'Blachy i blaszki do pieczenia (brudne)',
+            'Blistry po tabletkach (puste)',
+            'Bombki choinkowe, Brudne reklamówki',
+            'Butelki plastikowe po lekach',
+            'Buteleczka po podkładzie do twarzy',
+            'Papier zabrudzony, tłusty'
         ],
         forbidden: [
             'Odpadów niebezpiecznych (baterie, leki, chemikalia)',

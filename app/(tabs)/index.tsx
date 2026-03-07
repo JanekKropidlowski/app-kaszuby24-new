@@ -617,11 +617,13 @@ export default function HomeScreen() {
   // Update mixed content when articles or nekrologi change
   useEffect(() => {
     if (articles.length > 0 || nekrologi.length > 0) {
-      const mixed = mixContentWithNekrologi(articles, nekrologi);
+      // Nekrologi wstawiamy tylko na liście głównej (brak filtra kategorii)
+      const mixed = selectedCategory === null
+        ? mixContentWithNekrologi(articles, nekrologi)
+        : [...articles];
       setMixedContent(mixed);
-      // console.log(`Mixed content updated: ${mixed.length} items (${articles.length} articles + ${nekrologi.length} nekrologi)`);
     }
-  }, [articles, nekrologi, mixContentWithNekrologi]);
+  }, [articles, nekrologi, selectedCategory, mixContentWithNekrologi]);
 
   // Component mount/unmount tracking
   useEffect(() => {
@@ -800,7 +802,7 @@ export default function HomeScreen() {
               color: theme.colors.text,
               fontFamily: theme.fontFamily.semibold
             }]}>
-              {cleanArticleTitle(item.title.rendered)}
+              {cleanArticleTitle(item.title?.rendered ?? '')}
             </Text>
             <Text style={[styles.nekrologDate, {
               color: theme.colors.textSecondary,
@@ -1149,6 +1151,8 @@ export default function HomeScreen() {
       />
 
 
+
+
       <View style={{ padding: 10, alignItems: 'center', opacity: 0.3 }}>
         <Text style={{ fontSize: 10, color: theme.colors.text }}>
           Update: {Updates.updateId?.substring(0, 8) || 'embedded'}
@@ -1394,26 +1398,26 @@ const styles = StyleSheet.create({
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Platform.OS === 'android' ? 18 : 16, // More padding on Android
-    paddingVertical: Platform.OS === 'android' ? 12 : 10, // More padding on Android
-    borderRadius: Platform.OS === 'android' ? 22 : 20, // Larger radius on Android
+    paddingHorizontal: Platform.OS === 'android' ? 14 : 16,
+    paddingVertical: Platform.OS === 'android' ? 8 : 10,
+    borderRadius: Platform.OS === 'android' ? 20 : 20,
     borderWidth: 1.5,
-    marginRight: Platform.OS === 'android' ? 12 : 10, // More spacing on Android
+    marginRight: Platform.OS === 'android' ? 8 : 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
     backgroundColor: 'transparent', // Dodane przezroczyste tło
-    minHeight: Platform.OS === 'android' ? 48 : 44, // Minimum touch target on Android
+    minHeight: Platform.OS === 'android' ? 40 : 44,
   },
   categoryEmoji: {
-    fontSize: Platform.OS === 'android' ? 18 : 16, // Larger emoji on Android
-    marginRight: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
+    fontSize: Platform.OS === 'android' ? 16 : 16,
+    marginRight: Platform.OS === 'android' ? 8 : 8,
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   categoryText: {
-    fontSize: Platform.OS === 'android' ? 15 : 14, // Larger font on Android
+    fontSize: Platform.OS === 'android' ? 13 : 14,
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionHeader: {
@@ -1426,7 +1430,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionTitle: {
-    fontSize: Platform.OS === 'android' ? 24 : 22, // Larger font on Android
+    fontSize: Platform.OS === 'android' ? 20 : 22,
     backgroundColor: 'transparent', // Dodane przezroczyste tło
   },
   sectionMoreButton: {

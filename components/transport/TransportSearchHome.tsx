@@ -13,6 +13,8 @@ interface Props {
     onStopSelect: (stop: TransportStop) => void;
 }
 
+const tfs = (size: number) => (Platform.OS === 'android' ? Math.max(9, size - 3) : size);
+
 export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSearch, onShowMap, onStopSelect }) => {
     const [fromText, setFromText] = useState('');
     const [toText, setToText] = useState('');
@@ -40,9 +42,13 @@ export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSe
         const search = async () => {
             if (activeInput === 'from' && fromText.length > 2) {
                 const results = await TransportService.searchStops(fromText, allStopsCache);
+                console.log(`[UI SUGGESTIONS] From field: "${fromText}" | Results: ${results.length}`, 
+                    results.map(r => ({ name: r.name, agency: r.agency })));
                 setFromSuggestions(results);
             } else if (activeInput === 'to' && toText.length > 2) {
                 const results = await TransportService.searchStops(toText, allStopsCache);
+                console.log(`[UI SUGGESTIONS] To field: "${toText}" | Results: ${results.length}`, 
+                    results.map(r => ({ name: r.name, agency: r.agency })));
                 setToSuggestions(results);
             } else {
                 setFromSuggestions([]);
@@ -133,7 +139,13 @@ export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSe
                             >
                                 <MapPin size={14} color={theme.colors.textSecondary} />
                                 <Text style={[styles.suggestionText, { color: theme.colors.text }]}>{s.name}</Text>
-                                <Text style={[styles.suggestionAgency, { color: theme.colors.primary }]}>{s.agency?.toUpperCase()}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Text style={[styles.suggestionAgency, { color: theme.colors.primary }]}>{s.agency?.toUpperCase()}</Text>
+                                    {/* DEBUG: Show position badge */}
+                                    <Text style={{ fontSize: tfs(10), color: theme.colors.textSecondary, paddingHorizontal: 4, paddingVertical: 2, backgroundColor: theme.colors.background, borderRadius: 3 }}>
+                                        #{i + 1}
+                                    </Text>
+                                </View>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -172,7 +184,13 @@ export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSe
                             >
                                 <MapPin size={14} color={theme.colors.textSecondary} />
                                 <Text style={[styles.suggestionText, { color: theme.colors.text }]}>{s.name}</Text>
-                                <Text style={[styles.suggestionAgency, { color: theme.colors.primary }]}>{s.agency?.toUpperCase()}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Text style={[styles.suggestionAgency, { color: theme.colors.primary }]}>{s.agency?.toUpperCase()}</Text>
+                                    {/* DEBUG: Show position badge */}
+                                    <Text style={{ fontSize: tfs(10), color: theme.colors.textSecondary, paddingHorizontal: 4, paddingVertical: 2, backgroundColor: theme.colors.background, borderRadius: 3 }}>
+                                        #{i + 1}
+                                    </Text>
+                                </View>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -249,7 +267,7 @@ export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSe
                             onPress={() => { setFromText(s.from); setToText(s.to); onSearch(s.from, s.to); }}
                         >
                             <Text style={[styles.recentText, { color: theme.colors.text }]}>{s.to}</Text>
-                            <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>z: {s.from}</Text>
+                            <Text style={{ color: theme.colors.textSecondary, fontSize: tfs(12) }}>z: {s.from}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -262,31 +280,89 @@ export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSe
 const styles = StyleSheet.create({
     container: { flex: 1, paddingHorizontal: 20 },
     header: { marginTop: 60, marginBottom: 25 },
-    title: { fontSize: 32, fontWeight: '900', letterSpacing: -0.5, marginBottom: 5 },
-    subtitle: { fontSize: 16, fontWeight: '500' },
+    title: {
+        fontSize: tfs(32),
+        fontWeight: '900',
+        letterSpacing: -0.5,
+        marginBottom: 5,
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
+    subtitle: {
+        fontSize: tfs(16),
+        fontWeight: '500',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Medium' }, default: {} }),
+    },
     card: { borderRadius: 24, padding: 6, elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 15, shadowOffset: { width: 0, height: 5 } },
     inputRow: { flexDirection: 'row', alignItems: 'center', padding: 12 },
     iconBox: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-    input: { flex: 1, fontSize: 16, fontWeight: '600', height: 40 },
+    input: {
+        flex: 1,
+        fontSize: tfs(16),
+        fontWeight: '600',
+        height: 40,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
     cleanDivider: { height: 1, marginLeft: 60, opacity: 0.5 },
     searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 18, marginTop: 6, gap: 10 },
-    searchBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    searchBtnText: {
+        color: '#fff',
+        fontSize: tfs(16),
+        fontWeight: '800',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     mapBtn: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, borderWidth: 1, marginTop: 20, justifyContent: 'space-between' },
-    mapBtnText: { fontSize: 16, fontWeight: '700', flex: 1, marginLeft: 12 },
+    mapBtnText: {
+        fontSize: tfs(16),
+        fontWeight: '700',
+        flex: 1,
+        marginLeft: 12,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
     section: { marginTop: 30 },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 15, opacity: 0.7 },
-    sectionTitle: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
+    sectionTitle: {
+        fontSize: tfs(13),
+        fontWeight: '800',
+        letterSpacing: 0.5,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
     stopItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 18, marginBottom: 10, gap: 12 },
     stopIcon: { width: 40, height: 40, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-    stopName: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
-    stopDist: { fontSize: 12, fontWeight: '600' },
+    stopName: {
+        fontSize: tfs(16),
+        fontWeight: '700',
+        marginBottom: 2,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
+    stopDist: {
+        fontSize: tfs(12),
+        fontWeight: '600',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Medium' }, default: {} }),
+    },
     recentItem: { paddingVertical: 14, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    recentText: { fontSize: 16, fontWeight: '600' },
+    recentText: {
+        fontSize: tfs(16),
+        fontWeight: '600',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Medium' }, default: {} }),
+    },
     suggestionsContainer: { backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 12, borderRadius: 12, padding: 8, elevation: 2 },
     suggestionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, gap: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-    suggestionText: { fontSize: 14, fontWeight: '600', flex: 1 },
-    suggestionAgency: { fontSize: 10, fontWeight: '800' },
+    suggestionText: {
+        fontSize: tfs(14),
+        fontWeight: '600',
+        flex: 1,
+        ...Platform.select({ android: { fontFamily: 'Poppins_Medium' }, default: {} }),
+    },
+    suggestionAgency: {
+        fontSize: tfs(10),
+        fontWeight: '800',
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
     timeOptionsContainer: { flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 8, paddingHorizontal: 16 },
     timeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6' },
-    timeText: { fontSize: 13, fontWeight: '700' }
+    timeText: {
+        fontSize: tfs(13),
+        fontWeight: '700',
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    }
 });

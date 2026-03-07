@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  FlatList, 
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  FlatList,
   ActivityIndicator,
   TouchableOpacity,
   Platform,
@@ -14,16 +14,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { 
-  ChevronRight, 
-  RefreshCw, 
-  WifiOff, 
-  ArrowRight, 
-  Heart, 
-  Home, 
-  Bell, 
-  Search as SearchIcon, 
-  Bookmark, 
+import {
+  ChevronRight,
+  RefreshCw,
+  WifiOff,
+  ArrowRight,
+  Heart,
+  Home,
+  Bell,
+  Search as SearchIcon,
+  Bookmark,
   Settings,
   Eye,
   TrendingUp,
@@ -83,7 +83,7 @@ export default function SearchScreen() {
   const { theme } = useThemeStore();
   const { addRecentArticle } = useArticlesStore();
   const insets = useSafeAreaInsets();
-  
+
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,49 +95,52 @@ export default function SearchScreen() {
   const [selectedSort, setSelectedSort] = useState('date');
   const [showRegionSelect, setShowRegionSelect] = useState(false);
   const [showSortSelect, setShowSortSelect] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-  
+
   // Close all dropdowns
   const closeAllDropdowns = useCallback(() => {
     setShowRegionSelect(false);
     setShowSortSelect(false);
   }, []);
-  
+
   // Debounced search function
   const debouncedSearch = useCallback((searchQuery: string) => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-    
-    const timeout = setTimeout(() => {
+    searchTimeoutRef.current = setTimeout(() => {
       handleSearch(searchQuery);
-    }, 500); // 500ms delay
-    
-    setSearchTimeout(timeout);
-  }, [searchTimeout]);
-  
+    }, 500);
+  }, []);
+
   const handleSearch = async (searchQuery: string = query) => {
     const trimmedQuery = searchQuery.trim();
-    
+
     if (!trimmedQuery && !selectedCategory && !selectedRegion) {
       // If no filters, load all articles instead of clearing
       await loadAllArticles();
       return;
     }
-    
+
     try {
-      setLoading(true);
+      // Only set main loading if we don't have articles yet or if it's a major filter change
+      if (articles.length === 0) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true); // Re-use loadingMore for "fetching updates" state to keep list visible
+      }
+
       closeAllDropdowns(); // Close dropdowns when searching
-      
+
       let results;
-      
+
       // Use new API if region or category selected
       if ((selectedCategory && selectedCategory !== '') || (selectedRegion && selectedRegion !== '')) {
         // Ensure we have at least one valid filter
         const regionFilter = selectedRegion && selectedRegion !== '' ? selectedRegion : undefined;
         const categoryFilter = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
-        
+
         if (regionFilter || categoryFilter) {
           results = await fetchFilteredArticles(1, 20, regionFilter, categoryFilter);
         } else {
@@ -151,12 +154,12 @@ export default function SearchScreen() {
         // Fallback to general articles
         results = await fetchArticles(1, 20);
       }
-      
+
       let filteredResults = filterSponsoredArticles(results.articles || []);
-      
+
       // Apply sorting
       filteredResults = applySorting(filteredResults, selectedSort);
-      
+
       setArticles(filteredResults);
       setTotalPages(results.totalPages || 1);
       setPage(1);
@@ -165,6 +168,7 @@ export default function SearchScreen() {
       setArticles([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -175,7 +179,7 @@ export default function SearchScreen() {
       const results = await fetchArticles(1, 20);
       let filteredResults = filterSponsoredArticles(results.articles || []);
       filteredResults = applySorting(filteredResults, selectedSort);
-      
+
       setArticles(filteredResults);
       setTotalPages(results.totalPages || 1);
       setPage(1);
@@ -186,7 +190,7 @@ export default function SearchScreen() {
       setLoading(false);
     }
   };
-  
+
   const applySorting = (articles: Article[], sortType: string): Article[] => {
     const sorted = [...articles];
     switch (sortType) {
@@ -203,22 +207,22 @@ export default function SearchScreen() {
         return sorted;
     }
   };
-  
+
   const handleLoadMore = async () => {
     if (page >= totalPages || loadingMore) return;
-    
+
     try {
       setLoadingMore(true);
-      
+
       const nextPage = page + 1;
       let results;
-      
+
       // Use new API if region or category selected
       if ((selectedCategory && selectedCategory !== '') || (selectedRegion && selectedRegion !== '')) {
         // Ensure we have at least one valid filter
         const regionFilter = selectedRegion && selectedRegion !== '' ? selectedRegion : undefined;
         const categoryFilter = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
-        
+
         if (regionFilter || categoryFilter) {
           results = await fetchFilteredArticles(nextPage, 20, regionFilter, categoryFilter);
         } else {
@@ -230,9 +234,9 @@ export default function SearchScreen() {
       } else {
         results = await fetchArticles(nextPage, 20);
       }
-      
+
       let filteredResults = filterSponsoredArticles(results.articles || []);
-      
+
       // Apply sorting
       filteredResults = applySorting(filteredResults, selectedSort);
       setArticles((prev) => [...prev, ...filteredResults]);
@@ -243,39 +247,39 @@ export default function SearchScreen() {
       setLoadingMore(false);
     }
   };
-  
+
   const handleArticlePress = (article: Article) => {
     addRecentArticle(article);
     router.push(`/article/${article.id}`);
   };
-  
+
   const handleCategoryPress = async (categoryId: string) => {
     console.log('Category pressed:', categoryId);
-    
+
     // Close dropdowns first
     closeAllDropdowns();
-    
+
     // Update state
     setSelectedCategory(categoryId);
-    
+
     // Force immediate search for the category
     if (categoryId) {
       // Clear current results first
       setArticles([]);
       setLoading(true);
-      
+
       try {
         // Ensure we have at least one valid filter
         const regionFilter = selectedRegion && selectedRegion !== '' ? selectedRegion : undefined;
         const categoryFilter = categoryId && categoryId !== '' ? categoryId : undefined;
-        
+
         if (regionFilter || categoryFilter) {
           const results = await fetchFilteredArticles(1, 20, regionFilter, categoryFilter);
           let filteredResults = filterSponsoredArticles(results.articles || []);
-          
+
           // Apply sorting
           filteredResults = applySorting(filteredResults, selectedSort);
-          
+
           setArticles(filteredResults);
           setTotalPages(results.totalPages || 1);
           setPage(1);
@@ -293,34 +297,34 @@ export default function SearchScreen() {
       await loadAllArticles();
     }
   };
-  
+
   const handleRegionPress = async (regionId: string) => {
     console.log('Region pressed:', regionId);
-    
+
     // Close dropdowns first
     closeAllDropdowns();
-    
+
     // Update state
     setSelectedRegion(regionId);
-    
+
     // Force immediate search if we have active filters
     if (regionId || selectedCategory || query.trim()) {
       // Clear current results first
       setArticles([]);
       setLoading(true);
-      
+
       try {
         // Ensure we have at least one valid filter
         const regionFilter = regionId && regionId !== '' ? regionId : undefined;
         const categoryFilter = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
-        
+
         if (regionFilter || categoryFilter) {
           const results = await fetchFilteredArticles(1, 20, regionFilter, categoryFilter);
           let filteredResults = filterSponsoredArticles(results.articles || []);
-          
+
           // Apply sorting
           filteredResults = applySorting(filteredResults, selectedSort);
-          
+
           setArticles(filteredResults);
           setTotalPages(results.totalPages || 1);
           setPage(1);
@@ -338,7 +342,7 @@ export default function SearchScreen() {
       await loadAllArticles();
     }
   };
-  
+
   const handleSortPress = (sortId: string) => {
     setSelectedSort(sortId);
     setShowSortSelect(false);
@@ -347,24 +351,24 @@ export default function SearchScreen() {
       setArticles(sorted);
     }
   };
-  
+
   const clearFilters = () => {
     setSelectedCategory('');
     setSelectedRegion('');
     setSelectedSort('date');
     setQuery('');
     closeAllDropdowns();
-    
+
     // Clear any pending search
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-      setSearchTimeout(null);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
     }
-    
+
     // Load all articles when filters are cleared
     loadAllArticles();
   };
-  
+
   // Handle query changes with debounce
   const handleQueryChange = useCallback((text: string) => {
     setQuery(text);
@@ -375,16 +379,16 @@ export default function SearchScreen() {
       loadAllArticles();
     }
   }, [debouncedSearch]);
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchTimeout]);
-  
+  }, []);
+
   // Handle initial region if provided
   useEffect(() => {
     if (regionId && typeof regionId === 'string') {
@@ -399,21 +403,21 @@ export default function SearchScreen() {
       setInitialLoadComplete(true);
     }
   }, [initialLoadComplete]);
-  
+
   const hasActiveFilters = selectedCategory || selectedRegion || query.trim();
   const selectedRegionName = REGIONS.find(r => r.id === selectedRegion)?.name || 'Regiony';
   const selectedSortName = SORT_OPTIONS.find(s => s.id === selectedSort)?.name || 'Sortowanie';
-  
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Compact Header */}
-      <View style={[styles.header, { 
+      <View style={[styles.header, {
         backgroundColor: theme.colors.background,
         paddingTop: insets.top // Dodany bezpieczny margines od góry
       }]}>
         <Image
-          source={{ 
-            uri: theme.isDarkMode 
+          source={{
+            uri: theme.isDarkMode
               ? 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
               : 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
           }}
@@ -426,11 +430,11 @@ export default function SearchScreen() {
             console.warn('Search logo image failed to load');
           }}
         />
-        
+
         {/* Search Bar */}
         <View style={[
           styles.searchContainer,
-          { 
+          {
             backgroundColor: theme.colors.card,
             borderColor: theme.colors.border
           }
@@ -439,7 +443,7 @@ export default function SearchScreen() {
           <TextInput
             style={[
               styles.searchInput,
-              { 
+              {
                 color: theme.colors.text,
                 fontFamily: theme.fontFamily.regular
               }
@@ -454,219 +458,219 @@ export default function SearchScreen() {
           {/* Usunięto przycisk X - użytkownik może wyczyścić pole przez usunięcie tekstu */}
         </View>
       </View>
-      
+
       {/* Filters */}
       <TouchableWithoutFeedback onPress={closeAllDropdowns}>
         <View style={[styles.filtersContainer, { backgroundColor: theme.colors.background }]}>
           {/* Categories Row */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContent}>
-          {CATEGORIES.map((category) => {
-            const isSelected = selectedCategory === category.id;
-            return (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContent}>
+            {CATEGORIES.map((category) => {
+              const isSelected = selectedCategory === category.id;
+              return (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: isSelected ? theme.colors.primary : theme.colors.card,
+                      borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                    }
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => handleCategoryPress(category.id)}
+                >
+                  <category.icon
+                    size={14}
+                    color={isSelected ? '#FFFFFF' : theme.colors.primary}
+                  />
+                  <Text style={[
+                    styles.filterChipText,
+                    {
+                      color: isSelected ? '#FFFFFF' : theme.colors.text,
+                      fontFamily: theme.fontFamily.medium,
+                    }
+                  ]}>
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            {hasActiveFilters && (
               <TouchableOpacity
-                key={category.id}
+                style={[styles.clearButton, { backgroundColor: theme.colors.notification }]}
+                activeOpacity={0.8}
+                onPress={clearFilters}
+              >
+                {/* XCircle icon removed */}
+                <Text style={[styles.clearButtonText, { fontFamily: theme.fontFamily.medium }]}>
+                  Wyczyść
+                </Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+
+          {/* Region & Sort Row */}
+          <View style={styles.selectsRow}>
+            {/* Region Select */}
+            <View style={styles.selectColumn}>
+              <TouchableOpacity
                 style={[
-                  styles.filterChip,
+                  styles.selectButton,
                   {
-                    backgroundColor: isSelected ? theme.colors.primary : theme.colors.card,
-                    borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                    backgroundColor: theme.colors.card,
+                    borderColor: selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.border,
                   }
                 ]}
-                activeOpacity={0.8}
-                onPress={() => handleCategoryPress(category.id)}
+                activeOpacity={0.7}
+                onPress={() => {
+                  // Close other dropdowns first
+                  setShowSortSelect(false);
+                  // Toggle this dropdown
+                  setShowRegionSelect(prev => !prev);
+                }}
               >
-                <category.icon 
-                  size={14} 
-                  color={isSelected ? '#FFFFFF' : theme.colors.primary} 
-                />
+                <MapPin size={16} color={selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.textSecondary} />
                 <Text style={[
-                  styles.filterChipText,
+                  styles.selectButtonText,
                   {
-                    color: isSelected ? '#FFFFFF' : theme.colors.text,
+                    color: selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.text,
                     fontFamily: theme.fontFamily.medium,
                   }
                 ]}>
-                  {category.name}
+                  {selectedRegionName}
                 </Text>
+                <ChevronRight size={16} color={theme.colors.textSecondary} />
               </TouchableOpacity>
-            );
-          })}
-          
-          {hasActiveFilters && (
-            <TouchableOpacity
-              style={[styles.clearButton, { backgroundColor: theme.colors.notification }]}
-              activeOpacity={0.8}
-              onPress={clearFilters}
-            >
-              {/* XCircle icon removed */}
-              <Text style={[styles.clearButtonText, { fontFamily: theme.fontFamily.medium }]}>
-                Wyczyść
-              </Text>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-        
-        {/* Region & Sort Row */}
-        <View style={styles.selectsRow}>
-          {/* Region Select */}
-          <View style={styles.selectColumn}>
-            <TouchableOpacity
-              style={[
-                styles.selectButton,
-                { 
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.border,
-                }
-              ]}
-              activeOpacity={0.7}
-              onPress={() => {
-                // Close other dropdowns first
-                setShowSortSelect(false);
-                // Toggle this dropdown
-                setShowRegionSelect(prev => !prev);
-              }}
-            >
-              <MapPin size={16} color={selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.textSecondary} />
-              <Text style={[
-                styles.selectButtonText,
-                { 
-                  color: selectedRegion && selectedRegion !== '' ? theme.colors.primary : theme.colors.text,
-                  fontFamily: theme.fontFamily.medium,
-                }
-              ]}>
-                {selectedRegionName}
-              </Text>
-              <ChevronRight size={16} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-            
-            {showRegionSelect && (
-              <View style={[
-                styles.dropdown,
-                { 
-                  backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border,
-                  shadowColor: theme.colors.shadow
-                }
-              ]}>
-                <ScrollView 
-                  style={styles.dropdownScrollView}
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled
-                  onTouchStart={(e) => e.stopPropagation()}
-                >
-                  {REGIONS.map((region) => (
-                    <TouchableOpacity
-                      key={region.id}
-                      style={[
-                        styles.dropdownItem,
-                        { backgroundColor: selectedRegion === region.id ? theme.colors.subtle : 'transparent' }
-                      ]}
-                      activeOpacity={0.8}
-                      onPress={() => handleRegionPress(region.id)}
-                    >
-                      <MapPin size={14} color={theme.colors.primary} />
-                      <Text style={[
-                        styles.dropdownItemText,
-                        { 
-                          color: theme.colors.text,
-                          fontFamily: selectedRegion === region.id ? theme.fontFamily.semibold : theme.fontFamily.regular
-                        }
-                      ]}>
-                        {region.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+
+              {showRegionSelect && (
+                <View style={[
+                  styles.dropdown,
+                  {
+                    backgroundColor: theme.colors.card,
+                    borderColor: theme.colors.border,
+                    shadowColor: theme.colors.shadow
+                  }
+                ]}>
+                  <ScrollView
+                    style={styles.dropdownScrollView}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled
+                    onTouchStart={(e) => e.stopPropagation()}
+                  >
+                    {REGIONS.map((region) => (
+                      <TouchableOpacity
+                        key={region.id}
+                        style={[
+                          styles.dropdownItem,
+                          { backgroundColor: selectedRegion === region.id ? theme.colors.subtle : 'transparent' }
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={() => handleRegionPress(region.id)}
+                      >
+                        <MapPin size={14} color={theme.colors.primary} />
+                        <Text style={[
+                          styles.dropdownItemText,
+                          {
+                            color: theme.colors.text,
+                            fontFamily: selectedRegion === region.id ? theme.fontFamily.semibold : theme.fontFamily.regular
+                          }
+                        ]}>
+                          {region.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            {/* Sort Select */}
+            <View style={styles.selectColumn}>
+              <TouchableOpacity
+                style={[
+                  styles.selectButton,
+                  {
+                    backgroundColor: theme.colors.card,
+                    borderColor: selectedSort !== 'date' ? theme.colors.primary : theme.colors.border,
+                  }
+                ]}
+                activeOpacity={0.7}
+                onPress={() => {
+                  // Close other dropdowns first
+                  setShowRegionSelect(false);
+                  // Toggle this dropdown
+                  setShowSortSelect(prev => !prev);
+                }}
+              >
+                <Clock size={16} color={selectedSort !== 'date' ? theme.colors.primary : theme.colors.textSecondary} />
+                <Text style={[
+                  styles.selectButtonText,
+                  {
+                    color: selectedSort !== 'date' ? theme.colors.primary : theme.colors.text,
+                    fontFamily: theme.fontFamily.medium,
+                  }
+                ]}>
+                  {selectedSortName}
+                </Text>
+                <ChevronRight size={16} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+
+              {showSortSelect && (
+                <View style={[
+                  styles.dropdown,
+                  {
+                    backgroundColor: theme.colors.card,
+                    borderColor: theme.colors.border,
+                    shadowColor: theme.colors.shadow
+                  }
+                ]}>
+                  <ScrollView
+                    style={styles.dropdownScrollView}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled
+                    onTouchStart={(e) => e.stopPropagation()}
+                  >
+                    {SORT_OPTIONS.map((sort) => (
+                      <TouchableOpacity
+                        key={sort.id}
+                        style={[
+                          styles.dropdownItem,
+                          { backgroundColor: selectedSort === sort.id ? theme.colors.subtle : 'transparent' }
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={() => handleSortPress(sort.id)}
+                      >
+                        <sort.icon size={14} color={theme.colors.primary} />
+                        <Text style={[
+                          styles.dropdownItemText,
+                          {
+                            color: theme.colors.text,
+                            fontFamily: selectedSort === sort.id ? theme.fontFamily.semibold : theme.fontFamily.regular
+                          }
+                        ]}>
+                          {sort.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
           </View>
-          
-          {/* Sort Select */}
-          <View style={styles.selectColumn}>
-            <TouchableOpacity
-              style={[
-                styles.selectButton,
-                { 
-                  backgroundColor: theme.colors.card,
-                  borderColor: selectedSort !== 'date' ? theme.colors.primary : theme.colors.border,
-                }
-              ]}
-              activeOpacity={0.7}
-              onPress={() => {
-                // Close other dropdowns first
-                setShowRegionSelect(false);
-                // Toggle this dropdown
-                setShowSortSelect(prev => !prev);
-              }}
-            >
-              <Clock size={16} color={selectedSort !== 'date' ? theme.colors.primary : theme.colors.textSecondary} />
-              <Text style={[
-                styles.selectButtonText,
-                { 
-                  color: selectedSort !== 'date' ? theme.colors.primary : theme.colors.text,
-                  fontFamily: theme.fontFamily.medium,
-                }
-              ]}>
-                {selectedSortName}
-              </Text>
-              <ChevronRight size={16} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-            
-            {showSortSelect && (
-              <View style={[
-                styles.dropdown,
-                { 
-                  backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border,
-                  shadowColor: theme.colors.shadow
-                }
-              ]}>
-                <ScrollView 
-                  style={styles.dropdownScrollView}
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled
-                  onTouchStart={(e) => e.stopPropagation()}
-                >
-                  {SORT_OPTIONS.map((sort) => (
-                    <TouchableOpacity
-                      key={sort.id}
-                      style={[
-                        styles.dropdownItem,
-                        { backgroundColor: selectedSort === sort.id ? theme.colors.subtle : 'transparent' }
-                      ]}
-                      activeOpacity={0.8}
-                      onPress={() => handleSortPress(sort.id)}
-                    >
-                      <sort.icon size={14} color={theme.colors.primary} />
-                      <Text style={[
-                        styles.dropdownItemText,
-                        { 
-                          color: theme.colors.text,
-                          fontFamily: selectedSort === sort.id ? theme.fontFamily.semibold : theme.fontFamily.regular
-                        }
-                      ]}>
-                        {sort.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          </View>
-        </View>
         </View>
       </TouchableWithoutFeedback>
-      
+
       {/* Results */}
-      {loading ? (
+      {loading && articles.length === 0 ? (
         <SkeletonLoader type="search" count={5} immediate={true} />
       ) : (
         <FlatList
           data={articles}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <ArticleCard 
-              article={item} 
+            <ArticleCard
+              article={item}
               onPress={() => handleArticlePress(item)}
             />
           )}
@@ -675,8 +679,8 @@ export default function SearchScreen() {
             articles.length > 0 ? (
               <View style={[styles.resultsHeader, { backgroundColor: theme.colors.subtle }]}>
                 <Text style={[
-                  styles.resultsText, 
-                  { 
+                  styles.resultsText,
+                  {
                     color: theme.colors.text,
                     fontFamily: theme.fontFamily.medium
                   }
@@ -728,7 +732,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  
+
   // Compact Header
   header: {
     paddingTop: 0, // Usunięty niepotrzebny padding dla status bara
@@ -756,7 +760,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: Platform.OS === 'android' ? 15 : 15,
   },
-  
+
   // Filters
   filtersContainer: {
     paddingTop: Platform.OS === 'android' ? 16 : 12,
@@ -797,7 +801,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 4,
   },
-  
+
   // Selects Row
   selectsRow: {
     flexDirection: 'row',
@@ -855,7 +859,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
   },
-  
+
   // Results
   resultsHeader: {
     paddingHorizontal: 16,
@@ -864,7 +868,7 @@ const styles = StyleSheet.create({
   resultsText: {
     fontSize: 14,
   },
-  
+
   // Empty State
   emptyContainer: {
     flex: 1,
@@ -882,7 +886,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.7,
   },
-  
+
   // List
   listContent: {
     paddingBottom: 20,

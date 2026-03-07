@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Text, TouchableOpacity, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Settings, 
-  AlertCircle, 
-  WifiOff, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  TrendingUp, 
-  Thermometer, 
-  Cloud, 
-  Droplets, 
-  Wind, 
-  Eye, 
-  Sun, 
-  Info, 
-  AlertTriangle, 
+import {
+  Settings,
+  AlertCircle,
+  WifiOff,
+  MapPin,
+  Calendar,
+  Clock,
+  TrendingUp,
+  Thermometer,
+  Cloud,
+  Droplets,
+  Wind,
+  Eye,
+  Sun,
+  Info,
+  AlertTriangle,
   Bell,
   CloudRain,
   CloudSnow,
@@ -64,7 +64,7 @@ const mockHourlyData = Array.from({ length: 24 }, (_, i) => {
   const baseTemp = 15;
   const tempVariation = Math.sin((hour - 6) * Math.PI / 12) * 8;
   const temp = baseTemp + tempVariation + (Math.random() - 0.5) * 2;
-  
+
   return {
     time: new Date(Date.now() + i * 60 * 60 * 1000).toISOString(),
     temperature: Math.round(temp * 10) / 10,
@@ -79,7 +79,7 @@ const mockWeeklyData = Array.from({ length: 7 }, (_, i) => {
   const date = new Date(Date.now() + i * 24 * 60 * 60 * 1000);
   const dayOfWeek = date.getDay();
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  
+
   return {
     date: date.toISOString(),
     wmoCode: isWeekend ? (Math.random() > 0.6 ? 3 : 1) : (Math.random() > 0.8 ? 2 : 1),
@@ -95,19 +95,19 @@ const mockWeeklyData = Array.from({ length: 7 }, (_, i) => {
 export default function WeatherScreen() {
   const { theme, isDarkMode } = useThemeStore();
   const { config, setConfig, selectedStation, sectionOrder, setSectionOrder } = useWeatherConfigStore();
-  
-            // Debug log dla sectionOrder
-          console.log('WeatherScreen - sectionOrder:', sectionOrder);
-          console.log('WeatherScreen - config:', config);
+
+  // Debug log dla sectionOrder
+  console.log('WeatherScreen - sectionOrder:', sectionOrder);
+  console.log('WeatherScreen - config:', config);
   const router = useRouter();
   const handleOpenPushSettings = () => {
-     router.push('/(tabs)/preferences');
+    router.push('/(tabs)/preferences');
   };
-  
 
-  
 
-  
+
+
+
   // Simplified state management
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -121,6 +121,7 @@ export default function WeatherScreen() {
   const [alertFilters, setAlertFilters] = useState<{ severity: 'all' | 'low' | 'medium' | 'high'; type: 'all' | 'meteo' | 'hydro' }>({ severity: 'all', type: 'all' });
   const [showAllWarningsNationwide, setShowAllWarningsNationwide] = useState(false);
   const [nearestStation, setNearestStation] = useState<{ name: string; distance?: number } | null>(null);
+  const [userCityName, setUserCityName] = useState<string | null>(null);
   const [synopData, setSynopData] = useState<any | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [meteoNearest, setMeteoNearest] = useState<any | null>(null);
@@ -128,9 +129,9 @@ export default function WeatherScreen() {
   const [isOnline, setIsOnline] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [forecastData, setForecastData] = useState<any>(null);
-  
 
-  
+
+
   // Modal states
   const [configVisible, setConfigVisible] = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
@@ -150,24 +151,37 @@ export default function WeatherScreen() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== 'granted') {
         setError('Brak uprawnień do lokalizacji');
         setLoading(false);
         return;
       }
-      
+
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
         timeInterval: 10000,
         distanceInterval: 100,
       });
-      
-       setUserLocation(location);
-       await fetchWeatherData(location.coords);
-      
+
+      setUserLocation(location);
+
+      // Reverse geocoding: pobierz nazwę miasta dla przycisku nagłówka
+      try {
+        const geocode = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        if (geocode[0]) {
+          const city = geocode[0].city || geocode[0].district || geocode[0].subregion || geocode[0].region;
+          setUserCityName(city || null);
+        }
+      } catch (_) { }
+
+      await fetchWeatherData(location.coords);
+
     } catch (err) {
       console.error('Błąd pobierania lokalizacji:', err);
       setError('Nie udało się pobrać lokalizacji');
@@ -182,7 +196,7 @@ export default function WeatherScreen() {
       const online = await testNetworkConnectivity();
       setIsOnline(online);
       setError(null);
-      
+
       // Parallel fetch all data sources for better performance
       const [
         forecast,
@@ -205,7 +219,7 @@ export default function WeatherScreen() {
       // Process Open-Meteo forecast data
       if (forecast.status === 'fulfilled' && forecast.value) {
         setForecastData(forecast.value);
-        
+
         if (forecast.value.current_weather) {
           setCurrentWeather(prev => ({
             ...prev,
@@ -264,11 +278,11 @@ export default function WeatherScreen() {
 
       // Process Hydro (water temperature from nearest station)
       if (hydro.status === 'fulfilled' && Array.isArray(hydro.value)) {
-        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 15).find((h: any) => 
-          h?.temperatura_wody != null && 
-          String(h.temperatura_wody).trim() !== '' && 
+        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 15).find((h: any) =>
+          h?.temperatura_wody != null &&
+          String(h.temperatura_wody).trim() !== '' &&
           !isNaN(Number(h.temperatura_wody)) &&
-          Number(h.temperatura_wody) > -50 && 
+          Number(h.temperatura_wody) > -50 &&
           Number(h.temperatura_wody) < 50
         );
         if (nearestHydro) {
@@ -302,7 +316,7 @@ export default function WeatherScreen() {
 
         // Filter for Pomorskie and map to UI alerts for skrót na ekranie
         const relevant = filterWarningsForPomeranianVoivodeship(warnings.value);
-        
+
         const mapped = relevant
           .map((w: any) => ({
             id: w.id,
@@ -335,15 +349,14 @@ export default function WeatherScreen() {
         setAllAlerts([]);
       }
 
-      // Process nearest IMGW SYNOP station for data provenance
-      if (synop.status === 'fulfilled' && Array.isArray(synop.value)) {
-        const nearest = findNearestSynopStation(coords);
-        if (nearest?.id) {
+      // Najbliższa stacja SYNOP — ustawiamy zawsze (GPS badge + odległość w nagłówku)
+      const nearest = findNearestSynopStation(coords);
+      if (nearest) {
+        setNearestStation({ name: nearest.name, distance: nearest.distance });
+        // Spróbuj dopasować do dzisiejszych danych synoptycznych
+        if (synop.status === 'fulfilled' && Array.isArray(synop.value) && nearest.id) {
           const found = synop.value.find((s: any) => String(s.id_stacji) === String(nearest.id));
-          if (found) {
-            setSynopData(found);
-            setNearestStation({ name: nearest.name, distance: nearest.distance });
-          }
+          if (found) setSynopData(found);
         }
       }
 
@@ -377,11 +390,11 @@ export default function WeatherScreen() {
         sources.push({ label: 'Morze', source: 'Open‑Meteo Marine (grid)' });
       }
       if (hydro.status === 'fulfilled' && Array.isArray(hydro.value)) {
-        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 15).find((h: any) => 
-          h?.temperatura_wody != null && 
-          String(h.temperatura_wody).trim() !== '' && 
+        const nearestHydro = findNearestStationsWithDistance(coords, hydro.value, 15).find((h: any) =>
+          h?.temperatura_wody != null &&
+          String(h.temperatura_wody).trim() !== '' &&
           !isNaN(Number(h.temperatura_wody)) &&
-          Number(h.temperatura_wody) > -50 && 
+          Number(h.temperatura_wody) > -50 &&
           Number(h.temperatura_wody) < 50
         );
         if (nearestHydro) {
@@ -513,12 +526,32 @@ export default function WeatherScreen() {
           accessibilityLabel="Lokalizacja"
         >
           <MapPin size={16} color={theme.colors.primary} />
-          <Text
-            style={[styles.locationText, { color: theme.colors.text }]}
-            numberOfLines={1}
-          >
-            {selectedStation?.name || nearestStation?.name || 'Twoja lokalizacja'}
-          </Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text
+              style={[styles.locationText, { color: theme.colors.text }]}
+              numberOfLines={1}
+            >
+              {selectedStation?.cityName
+                ? selectedStation.cityName
+                : selectedStation
+                  ? selectedStation.name
+                  : (userCityName || nearestStation?.name || 'Twoja lokalizacja')}
+            </Text>
+            {selectedStation?.cityName ? (
+              <Text style={[styles.locationSubText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                Stacja: {selectedStation.name}
+              </Text>
+            ) : !selectedStation && nearestStation ? (
+              <Text style={[styles.locationSubText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                Stacja: {nearestStation.name}{nearestStation.distance != null ? ` • ${nearestStation.distance.toFixed(1)} km` : ''}
+              </Text>
+            ) : null}
+          </View>
+          {!selectedStation && nearestStation && (
+            <View style={[styles.nearestBadge, { backgroundColor: theme.colors.primary + '20' }]}>
+              <Text style={[styles.nearestBadgeText, { color: theme.colors.primary }]}>GPS</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -556,8 +589,8 @@ export default function WeatherScreen() {
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={handleRefresh}
             colors={[theme.colors.primary]}
             tintColor={theme.colors.primary}
@@ -567,7 +600,7 @@ export default function WeatherScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Weather hero - główna informacja pogodowa */}
-        <Animated.View 
+        <Animated.View
           style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
         >
           <WeatherHero
@@ -595,11 +628,11 @@ export default function WeatherScreen() {
 
 
 
-        {(sectionOrder || ['weekly','alerts','hourly','specialized']).map((sectionKey) => {
+        {(sectionOrder || ['weekly', 'alerts', 'hourly', 'specialized']).map((sectionKey) => {
           console.log('Processing section:', sectionKey, 'sectionOrder:', sectionOrder); // Debug log
           if (sectionKey === 'weekly' && config.showWeeklyForecast) {
             return (
-              <Animated.View key="weekly" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+              <Animated.View key="weekly" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <View style={styles.sectionHeader}>
                   <Calendar size={20} color={theme.colors.primary} />
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Prognoza 7-dniowa</Text>
@@ -614,14 +647,14 @@ export default function WeatherScreen() {
 
           if (sectionKey === 'alerts' && config.showAlerts) {
             return (
-              <Animated.View key="alerts" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+              <Animated.View key="alerts" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <View style={[styles.sectionHeader, { marginBottom: 12 }]}>
                   <AlertTriangle size={20} color={theme.colors.warning} />
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Ostrzeżenia pogodowe</Text>
                   <View style={{ flex: 1 }} />
                   {alerts.length > 0 && (
-                    <TouchableOpacity 
-                      onPress={() => setAlertsModalVisible(true)} 
+                    <TouchableOpacity
+                      onPress={() => setAlertsModalVisible(true)}
                       accessibilityRole="button"
                       style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.primary + '10' }}
                     >
@@ -631,16 +664,16 @@ export default function WeatherScreen() {
                     </TouchableOpacity>
                   )}
                 </View>
-                
+
                 {alerts.length > 0 ? (
                   <TouchableOpacity activeOpacity={0.85} onPress={() => setAlertsModalVisible(true)}>
-                    <View style={[styles.alertsContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                    <View style={[styles.alertsContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                       {alerts.slice(0, 3).map((alert, index) => (
-                        <View key={index} style={[styles.alertItem, { borderLeftColor: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}> 
+                        <View key={index} style={[styles.alertItem, { borderLeftColor: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                             <Text style={[styles.alertTitle, { color: theme.colors.text }]}>{alert.title}</Text>
-                            <View style={[styles.badge, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}> 
-                              <Text style={[styles.badgeText, { color: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}> 
+                            <View style={[styles.badge, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}>
+                              <Text style={[styles.badgeText, { color: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}>
                                 {alert.severity === 'high' ? 'Wysokie' : alert.severity === 'medium' ? 'Średnie' : 'Niskie'}
                               </Text>
                             </View>
@@ -676,7 +709,7 @@ export default function WeatherScreen() {
 
           if (sectionKey === 'hourly' && config.showHourlyForecast) {
             return (
-              <Animated.View key="hourly" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+              <Animated.View key="hourly" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <View style={styles.sectionHeader}>
                   <Clock size={20} color={theme.colors.primary} />
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Prognoza godzinowa</Text>
@@ -688,19 +721,19 @@ export default function WeatherScreen() {
 
           if (sectionKey === 'specialized' && config.showSpecializedWidgets) {
             return (
-              <Animated.View key="specialized" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+              <Animated.View key="specialized" style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <View style={styles.sectionHeader}>
                   <TrendingUp size={20} color={theme.colors.primary} />
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Pogoda specjalistyczna</Text>
                 </View>
-            <SpecializedWeatherWidgets 
+                <SpecializedWeatherWidgets
                   weatherData={currentWeather}
                   forecastData={forecastData}
-              meteoData={meteoNearest}
-              airQualityData={null}
-              synopData={synopData}
-              marineData={marineData}
-              dataSources={dataSources}
+                  meteoData={meteoNearest}
+                  airQualityData={null}
+                  synopData={synopData}
+                  marineData={marineData}
+                  dataSources={dataSources}
                   showAgricultural={config.showAgriculturalWeather}
                   showMarine={config.showMarineWeather}
                   showDriving={config.showDrivingWeather}
@@ -726,7 +759,7 @@ export default function WeatherScreen() {
         onClose={() => setLocationModalVisible(false)}
       />
 
-      
+
 
 
 
@@ -743,7 +776,7 @@ export default function WeatherScreen() {
           {currentWeather && (
             <View style={styles.weatherDetailsContainer}>
               {/* Podsumowanie */}
-              <View style={[styles.weatherSummaryCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+              <View style={[styles.weatherSummaryCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                 <View style={styles.weatherSummaryHeader}>
                   <View style={styles.weatherSummaryIcon}>
                     <MeteoconsWeatherIcon wmoCode={currentWeather.wmoCode} size={84} />
@@ -764,64 +797,64 @@ export default function WeatherScreen() {
 
               {/* Zwięzłe metryki */}
               <View style={styles.tilesGrid}>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
                     <Droplets size={18} color={theme.colors.primary} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Wilgotność</Text>
                   <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.humidity}%</Text>
                 </View>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.secondary + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.secondary + '15' }]}>
                     <Wind size={18} color={theme.colors.secondary} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Wiatr</Text>
                   <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.windSpeed} km/h</Text>
                 </View>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.error + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.error + '15' }]}>
                     <Eye size={18} color={theme.colors.error} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Ciśnienie</Text>
                   <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.pressure} hPa</Text>
                 </View>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
                     <Eye size={18} color={theme.colors.primary} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Widoczność</Text>
                   <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.visibility} km</Text>
                 </View>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.warning + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.warning + '15' }]}>
                     <Sun size={18} color={theme.colors.warning} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Indeks UV</Text>
                   <Text style={[styles.tileValue, { color: theme.colors.text }]}>{currentWeather.uvIndex}</Text>
                 </View>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.info + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.info + '15' }]}>
                     <Cloud size={18} color={theme.colors.info} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Zachmurzenie</Text>
                   <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.cloudcover?.[0] ?? '—'}%</Text>
                 </View>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.warning + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.warning + '15' }]}>
                     <Droplets size={18} color={theme.colors.warning} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Szansa opadów</Text>
                   <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.precipitation_probability?.[0] ?? '—'}%</Text>
                 </View>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
                     <Thermometer size={18} color={theme.colors.primary} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Punkt rosy</Text>
                   <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.dew_point_2m?.[0] != null ? `${Math.round(forecastData.hourly.dew_point_2m[0])}°C` : '—'}</Text>
                 </View>
-                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
-                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.secondary + '15' }]}> 
+                <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.secondary + '15' }]}>
                     <Wind size={18} color={theme.colors.secondary} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Porywy</Text>
@@ -830,14 +863,14 @@ export default function WeatherScreen() {
               </View>
 
               {/* Dodatkowe: miejsce + czas */}
-              <View style={styles.additionalRow}> 
-                <View style={[styles.additionalCell, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+              <View style={styles.additionalRow}>
+                <View style={[styles.additionalCell, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                   <Text style={[styles.additionalInfoLabel, { color: theme.colors.textSecondary }]}>Lokalizacja</Text>
                   <Text style={[styles.additionalInfoValue, { color: theme.colors.text }]}>
                     {selectedStation?.name || nearestStation?.name || 'Twoja lokalizacja'}
                   </Text>
                 </View>
-                <View style={[styles.additionalCell, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+                <View style={[styles.additionalCell, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                   <Text style={[styles.additionalInfoLabel, { color: theme.colors.textSecondary }]}>Wschód / zachód</Text>
                   <Text style={[styles.additionalInfoValue, { color: theme.colors.text }]}>
                     {forecastData?.daily?.sunrise?.[0] ? new Date(forecastData.daily.sunrise[0]).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '—'} / {forecastData?.daily?.sunset?.[0] ? new Date(forecastData.daily.sunset[0]).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '—'}
@@ -848,7 +881,7 @@ export default function WeatherScreen() {
               {/* Informacje o źródle danych */}
               <View style={[styles.dataSourceSection, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                 <Text style={[styles.dataSourceTitle, { color: theme.colors.text }]}>Źródło danych</Text>
-                
+
                 {/* Stacja IMGW */}
                 {nearestStation && (
                   <View style={styles.dataSourceItem}>
@@ -874,7 +907,7 @@ export default function WeatherScreen() {
                     <View style={styles.dataSourceInfo}>
                       <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Czas pomiaru</Text>
                       <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
-                        {synopData.data_pomiaru && synopData.godzina_pomiaru 
+                        {synopData.data_pomiaru && synopData.godzina_pomiaru
                           ? `${synopData.data_pomiaru} ${synopData.godzina_pomiaru}`
                           : 'Ostatnie dane dostępne'
                         }
@@ -937,8 +970,8 @@ export default function WeatherScreen() {
                   <View style={styles.dataSourceInfo}>
                     <Text style={[styles.dataSourceLabel, { color: theme.colors.textSecondary }]}>Aktualizacja</Text>
                     <Text style={[styles.dataSourceValue, { color: theme.colors.text }]}>
-                      {new Date().toLocaleString('pl-PL', { 
-                        hour: '2-digit', 
+                      {new Date().toLocaleString('pl-PL', {
+                        hour: '2-digit',
                         minute: '2-digit',
                         day: '2-digit',
                         month: '2-digit'
@@ -1026,7 +1059,7 @@ export default function WeatherScreen() {
           <View style={{ marginBottom: 16 }}>
             <Text style={[styles.filterLabel, { color: theme.colors.textSecondary }]}>Filtruj wg poziomu</Text>
             <View style={styles.filtersRow}>
-              {(['all','low','medium','high'] as const).map((sev) => (
+              {(['all', 'low', 'medium', 'high'] as const).map((sev) => (
                 <TouchableOpacity
                   key={sev}
                   style={[styles.filterChip, alertFilters.severity === sev && { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}
@@ -1040,7 +1073,7 @@ export default function WeatherScreen() {
             </View>
             <Text style={[styles.filterLabel, { color: theme.colors.textSecondary, marginTop: 12 }]}>Filtruj wg typu</Text>
             <View style={styles.filtersRow}>
-              {(['all','meteo','hydro'] as const).map((t) => (
+              {(['all', 'meteo', 'hydro'] as const).map((t) => (
                 <TouchableOpacity
                   key={t}
                   style={[styles.filterChip, alertFilters.type === t && { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}
@@ -1055,20 +1088,20 @@ export default function WeatherScreen() {
           </View>
 
           {filteredAlerts.map((alert) => (
-            <View key={alert.id} style={[styles.alertDetailCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}> 
+            <View key={alert.id} style={[styles.alertDetailCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <View style={styles.alertDetailHeader}>
-                <View style={[styles.sectionIconContainer, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}> 
+                <View style={[styles.sectionIconContainer, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}>
                   <AlertTriangle size={22} color={alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info} />
                 </View>
                 <Text style={[styles.alertDetailTitle, { color: theme.colors.text }]} numberOfLines={2}>
                   {alert.title}
                 </Text>
               </View>
-              
+
               <Text style={[styles.alertDetailDescription, { color: theme.colors.text }]}>
                 {alert.description || 'Brak opisu'}
               </Text>
-              
+
               {/* Dodatkowe informacje */}
               {alert.comment && alert.comment !== 'Brak' && (
                 <View style={styles.alertDetailSection}>
@@ -1076,14 +1109,14 @@ export default function WeatherScreen() {
                   <Text style={[styles.alertDetailValue, { color: theme.colors.text }]}>{alert.comment}</Text>
                 </View>
               )}
-              
+
               {alert.office && (
                 <View style={styles.alertDetailSection}>
                   <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Biuro:</Text>
                   <Text style={[styles.alertDetailValue, { color: theme.colors.text }]}>{alert.office}</Text>
                 </View>
               )}
-              
+
               {/* Szczegóły obszarów dla ostrzeżeń hydrologicznych */}
               {alert.obszary && alert.obszary.length > 0 && (
                 <View style={styles.alertDetailSection}>
@@ -1101,7 +1134,7 @@ export default function WeatherScreen() {
                   ))}
                 </View>
               )}
-              
+
               <View style={styles.alertDetailInfo}>
                 <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Typ: {alert.type === 'hydro' ? 'Hydrologiczne' : 'Meteorologiczne'}</Text>
                 <Text style={[styles.alertDetailLabel, { color: theme.colors.textSecondary }]}>Poziom: {alert.level}</Text>
@@ -1142,7 +1175,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 12,
     borderWidth: 1,
     minWidth: 0,
@@ -1155,6 +1188,20 @@ const styles = StyleSheet.create({
       default: 'Poppins_Medium',
       android: 'Poppins_Medium',
     }) || 'Poppins_Medium',
+  },
+  locationSubText: {
+    fontSize: 10,
+    fontFamily: 'Poppins_Regular',
+    marginTop: 1,
+  },
+  nearestBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  nearestBadgeText: {
+    fontSize: 10,
+    fontFamily: 'Poppins_Medium',
   },
   settingsButton: {
     width: 40,
@@ -1771,5 +1818,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-}); 
+});
 

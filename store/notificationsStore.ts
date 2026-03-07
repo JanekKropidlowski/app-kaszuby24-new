@@ -32,24 +32,24 @@ interface NotificationsState {
   // Expo Push token and location
   expoPushToken: string | null;
   userLocation: UserLocation | null;
-  
+
   // Preferences
   preferences: NotificationPreference[];
   notificationsEnabled: boolean;
-  
+
   // First time user experience
   isFirstTimeUser: boolean;
   hasSeenWelcome: boolean;
   bannerDismissed: boolean;
   hasSelectedLocation: boolean;
-  
+
   // Notification history
   notifications: Notification[];
-  
+
   // Daily weather push
   dailyWeatherEnabled: boolean;
   dailyWeatherHour: number; // 0-23, local time (default 8)
-  
+
   // Actions
   setExpoPushToken: (token: string) => void;
   setUserLocation: (location: UserLocation) => void;
@@ -62,17 +62,17 @@ interface NotificationsState {
   getUnreadCount: () => number;
   hasUnreadNotifications: () => boolean;
   incrementNotificationCount: () => void;
-  
+
   // Daily weather actions
   setDailyWeatherEnabled: (enabled: boolean) => void;
   setDailyWeatherHour: (hour: number) => void;
-  
+
   // First time user actions
   completeFirstTimeSetup: () => void;
   dismissBanner: () => void;
   shouldShowWelcome: () => boolean;
   shouldShowBanner: () => boolean;
-  
+
   // Initialize default preferences
   initializePreferences: () => void;
 }
@@ -117,20 +117,20 @@ export const useNotificationsStore = create<NotificationsState>()(
       preferences: [],
       notificationsEnabled: false,
       notifications: [],
-      
+
       // Daily weather defaults
       dailyWeatherEnabled: false,
       dailyWeatherHour: 8,
-      
+
       // First time user state
       isFirstTimeUser: true,
       hasSeenWelcome: false,
       bannerDismissed: false,
       hasSelectedLocation: false,
-      
+
       setExpoPushToken: (token: string) => set({ expoPushToken: token }),
-      
-      setUserLocation: (location: UserLocation) => 
+
+      setUserLocation: (location: UserLocation) =>
         set((state) => {
           // Update push notification location when user changes it
           setTimeout(async () => {
@@ -141,22 +141,22 @@ export const useNotificationsStore = create<NotificationsState>()(
               console.warn('Failed to update push location:', error);
             }
           }, 100);
-          
-          return { 
-            userLocation: location, 
-            hasSelectedLocation: true 
+
+          return {
+            userLocation: location,
+            hasSelectedLocation: true
           };
         }),
-      
-      toggleNotifications: () => 
+
+      toggleNotifications: () =>
         set((state) => ({ notificationsEnabled: !state.notificationsEnabled })),
-      
+
       updatePreference: (id: number, enabled: boolean) =>
         set((state) => {
           const updatedPreferences = state.preferences.map(pref =>
             pref.id === id ? { ...pref, enabled } : pref
           );
-          
+
           // Update push notification preferences when user changes settings
           setTimeout(async () => {
             try {
@@ -166,10 +166,10 @@ export const useNotificationsStore = create<NotificationsState>()(
               console.warn('Failed to update push preferences:', error);
             }
           }, 100);
-          
+
           return { preferences: updatedPreferences };
         }),
-      
+
       addNotification: (notification) => {
         set((state) => {
           const newNotification: Notification = {
@@ -184,43 +184,43 @@ export const useNotificationsStore = create<NotificationsState>()(
             image: notification.image,
             icon: notification.icon,
           };
-          
+
           return {
             notifications: [newNotification, ...state.notifications].slice(0, 100), // Keep last 100
           };
         });
       },
-      
+
       markAsRead: (notificationId: string) =>
         set((state) => ({
           notifications: state.notifications.map(notif =>
             notif.id === notificationId ? { ...notif, read: true } : notif
           )
         })),
-      
+
       markAllAsRead: () =>
         set((state) => ({
           notifications: state.notifications.map(notif => ({ ...notif, read: true }))
         })),
-      
+
       clearNotifications: () => set({ notifications: [] }),
-      
+
       getUnreadCount: () => {
         const state = get();
         return state.notifications.filter(notif => !notif.read).length;
       },
-      
+
       hasUnreadNotifications: () => {
         const state = get();
         return state.notifications.some(notif => !notif.read);
       },
-      
+
       incrementNotificationCount: () => {
         // This is for real-time notification count increment
         // The actual notification will be added via addNotification
         // This function can be used for UI updates
       },
-      
+
       // Daily weather actions
       setDailyWeatherEnabled: (enabled: boolean) => {
         set({ dailyWeatherEnabled: enabled });
@@ -255,31 +255,33 @@ export const useNotificationsStore = create<NotificationsState>()(
           }
         }, 0);
       },
-      
+
       // First time user actions
-      completeFirstTimeSetup: () => 
-        set({ 
-          isFirstTimeUser: false, 
+      completeFirstTimeSetup: () =>
+        set({
+          isFirstTimeUser: false,
           hasSeenWelcome: true,
-          bannerDismissed: true 
+          bannerDismissed: true
         }),
-      
-      dismissBanner: () => 
+
+
+
+      dismissBanner: () =>
         set({ bannerDismissed: true }),
-      
+
       shouldShowWelcome: () => {
         const state = get();
         return state.isFirstTimeUser && !state.hasSeenWelcome;
       },
-      
+
       shouldShowBanner: () => {
         const state = get();
-        return state.isFirstTimeUser && 
-               !state.notificationsEnabled && 
-               !state.bannerDismissed &&
-               state.hasSeenWelcome;
+        return state.isFirstTimeUser &&
+          !state.notificationsEnabled &&
+          !state.bannerDismissed &&
+          state.hasSeenWelcome;
       },
-      
+
       initializePreferences: () => {
         const state = get();
         if (state.preferences.length === 0) {

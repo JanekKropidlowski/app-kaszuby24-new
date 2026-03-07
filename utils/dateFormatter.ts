@@ -130,6 +130,7 @@ export const safeFormatTime = (dateInput: string | number | null | undefined): s
 
 export const getRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Nieznana data';
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
   

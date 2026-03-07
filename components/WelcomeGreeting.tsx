@@ -113,18 +113,18 @@ export const WelcomeGreeting = ({ compact = false, enlarged = false }: WelcomeGr
         activeOpacity={0.7}
       >
         <View style={styles.textContainer}>
-          <Text style={[styles.greetingText, { 
+          <Text style={[styles.greetingText, {
             color: theme.colors.textSecondary,
             fontFamily: theme.fontFamily.light,
-            fontSize: enlarged ? (Platform.OS === 'android' ? 15 : 14) : (Platform.OS === 'android' ? 13 : 12) // Większe fonty na Androidzie
+            fontSize: enlarged ? (Platform.OS === 'android' ? 13 : 14) : (Platform.OS === 'android' ? 11 : 12) // Zmniejszony font na Androidzie
           }]}>
             {greeting}
           </Text>
           {userName && (
-            <Text style={[styles.nameText, { 
+            <Text style={[styles.nameText, {
               color: theme.isDarkMode ? '#FFFFFF' : '#1E293B',
               fontFamily: theme.fontFamily.bold,
-              fontSize: enlarged ? (Platform.OS === 'android' ? 24 : 22) : (Platform.OS === 'android' ? 19 : 18) // Większe fonty na Androidzie
+              fontSize: enlarged ? (Platform.OS === 'android' ? 20 : 22) : (Platform.OS === 'android' ? 17 : 18) // Zmniejszony font na Androidzie
             }]}>
               {userName}
             </Text>
@@ -159,13 +159,13 @@ const styles = StyleSheet.create({
     gap: Platform.OS === 'android' ? -1 : -2, // Lepsze spacing na Androidzie
   },
   greetingText: {
-    fontSize: Platform.OS === 'android' ? 13 : 12, // Większy font na Androidzie
+    fontSize: Platform.OS === 'android' ? 11 : 12, // Zmniejszony font na Androidzie
     fontWeight: '300',
     letterSpacing: Platform.OS === 'android' ? 0.3 : 0.2, // Lepsze letter spacing na Androidzie
     opacity: 0.8,
   },
   nameText: {
-    fontSize: Platform.OS === 'android' ? 19 : 18, // Większy font na Androidzie
+    fontSize: Platform.OS === 'android' ? 17 : 18, // Zmniejszony font na Androidzie
     fontWeight: '700',
     letterSpacing: Platform.OS === 'android' ? -0.3 : -0.4, // Lepsze letter spacing na Androidzie
   },

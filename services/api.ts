@@ -32,15 +32,13 @@ export interface ExpoPushTokenRegistration {
 const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise<Response> => {
   const controller = new AbortController();
   const { signal } = controller;
-  
+
   const timeout = setTimeout(() => {
-    console.log(`Request timeout for: ${url}`);
     controller.abort();
   }, API_TIMEOUT);
-  
+
   try {
-    console.log(`Fetching: ${url} (attempt ${retries + 1})`);
-    
+
     const fetchOptions = {
       ...options,
       signal,
@@ -60,18 +58,17 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
         ...((options as any)?.headers || {}),
       },
     };
-    
+
     const response = await fetch(url, fetchOptions);
     clearTimeout(timeout);
-    
-    console.log(`Response status: ${response.status} for ${url}`);
-    
+
+
     return response;
   } catch (error: any) {
     clearTimeout(timeout);
-    
+
     console.error(`Fetch error for ${url}:`, error);
-    
+
     // Enhanced Android-specific error handling
     const isAndroidNetworkError = Platform.OS === 'android' && (
       error.message?.includes('java.io.IOException') ||
@@ -83,44 +80,40 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
 
     if (isAndroidNetworkError) {
       console.warn('Android-specific network error detected:', error.message);
-      
+
       if (retries < MAX_RETRIES) {
         // Use longer delay for Android network issues
         const delay = Math.min(2000 * Math.pow(2, retries), 6000);
-        console.log(`Retrying Android network request (${retries + 1}/${MAX_RETRIES}) after ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchWithTimeout(url, options, retries + 1);
       }
-      
+
       throw new Error('Problem z połączeniem sieciowym na Androidzie. Sprawdź ustawienia aplikacji i spróbuj ponownie.');
     }
-    
+
     // Handle AbortError specifically - don't retry if manually aborted
     if (error.name === 'AbortError') {
-      console.log(`Request aborted for: ${url}`);
       // Check if this was a timeout abort or manual abort
       if (retries < MAX_RETRIES) {
-        console.log(`Retrying aborted request (${retries + 1}/${MAX_RETRIES})...`);
         const delay = Math.min(1000 * Math.pow(2, retries), 3000);
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchWithTimeout(url, options, retries + 1);
       }
       throw new Error('Zapytanie zostało przerwane. Spróbuj ponownie.');
     }
-    
+
     // Retry logic for other errors
     if (retries < MAX_RETRIES) {
       const delay = Math.min(1000 * Math.pow(2, retries), 5000);
-      console.log(`Retrying request (${retries + 1}/${MAX_RETRIES}) after ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithTimeout(url, options, retries + 1);
     }
-    
+
     // Enhanced error handling
     if (error.message?.includes('Network request failed') || error.message?.includes('fetch')) {
       throw new Error('Brak połączenia z internetem. Sprawdź ustawienia sieci.');
     }
-    
+
     throw error;
   }
 };
@@ -132,9 +125,9 @@ const cacheDataWithSWR = async (key: string, data: any) => {
       data,
       timestamp: Date.now(),
     };
-    
+
     const serializedData = JSON.stringify(timestampedData);
-    
+
     // Only cache if data is reasonable size (< 1MB)
     if (serializedData.length < 1024 * 1024) {
       await AsyncStorage.setItem(key, serializedData);
@@ -151,7 +144,7 @@ const getCachedDataWithSWR = async (key: string) => {
     if (cached) {
       const { data, timestamp } = JSON.parse(cached);
       const age = Date.now() - timestamp;
-      
+
       if (age < CACHE_DURATION) {
         // Fresh data
         return { data, isStale: false, shouldRevalidate: false };
@@ -160,13 +153,13 @@ const getCachedDataWithSWR = async (key: string) => {
         return { data, isStale: true, shouldRevalidate: true };
       } else {
         // Too old, remove from cache
-        AsyncStorage.removeItem(key).catch(() => {});
+        AsyncStorage.removeItem(key).catch(() => { });
         return null;
       }
     }
   } catch (error) {
     console.warn('Cache read failed:', error);
-    AsyncStorage.removeItem(key).catch(() => {});
+    AsyncStorage.removeItem(key).catch(() => { });
   }
   return null;
 };
@@ -190,17 +183,17 @@ const getCachedData = async (key: string) => {
     if (cached) {
       const { data, timestamp } = JSON.parse(cached);
       const age = Date.now() - timestamp;
-      
+
       if (age < CACHE_DURATION) {
         return data;
       } else {
-        AsyncStorage.removeItem(key).catch(() => {});
+        AsyncStorage.removeItem(key).catch(() => { });
         return null;
       }
     }
   } catch (error) {
     console.warn('Cache read failed:', error);
-    AsyncStorage.removeItem(key).catch(() => {});
+    AsyncStorage.removeItem(key).catch(() => { });
   }
   return null;
 };
@@ -209,56 +202,50 @@ const getCachedData = async (key: string) => {
 const deduplicateRequest = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
   // Check if there's already a pending request
   if (pendingRequests.has(key)) {
-    console.log(`Reusing existing request for: ${key}`);
     return pendingRequests.get(key)!;
   }
-  
+
   const promise = requestFn().finally(() => {
-    console.log(`Cleaning up request: ${key}`);
     pendingRequests.delete(key);
   });
-  
+
   pendingRequests.set(key, promise);
   return promise;
 };
 
 // Function to cancel all pending requests
 export const cancelAllRequests = () => {
-  console.log(`Clearing ${pendingRequests.size} pending requests`);
   pendingRequests.clear();
 };
 
 // Function to cancel specific request
 export const cancelRequest = (key: string) => {
   if (pendingRequests.has(key)) {
-    console.log(`Cancelling specific request: ${key}`);
     pendingRequests.delete(key);
   }
 };
 
 export const fetchArticles = async (
-  page = 1, 
+  page = 1,
   perPage = 15, // Reduced for better infinite scroll performance
   categories?: number[]
 ): Promise<{ articles: Article[], totalPages: number }> => {
   const requestKey = `articles_${page}_${perPage}_${categories?.join(',') || 'all'}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
-      console.log(`Loading articles: page=${page}, perPage=${perPage}, categories=${categories?.join(',') || 'all'}`);
-      
+
       // Try to get from cache first for faster initial load (only for first page)
       if (page === 1) {
         const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
         const cachedData = await getCachedDataWithSWR(cacheKey);
         if (cachedData && !cachedData.shouldRevalidate) {
-          console.log('Using cached articles data');
           return cachedData.data;
         }
       }
-      
+
       let url = `${API_BASE_URL}/posts?_embed&page=${page}&per_page=${perPage}`;
-      
+
       // Filter out sponsored category (554) from categories filter
       if (categories && categories.length > 0) {
         const filteredCategories = categories.filter(catId => catId !== 554);
@@ -266,20 +253,29 @@ export const fetchArticles = async (
           url += `&categories=${filteredCategories.join(',')}`;
         }
       }
-      
+
       // Exclude sponsored category from all requests and ensure newest first
       url += `&categories_exclude=554&orderby=date&order=desc`;
-      
+
       // Add a small random parameter to prevent caching issues
       url += `&_=${Date.now()}`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
-        console.error(`API Error: ${response.status} ${response.statusText}`);
+        console.error(`API Error for Articles [${response.status}] URL: ${url}`);
         if (response.status === 429) {
           throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
         } else if (response.status >= 500) {
+          // If server error, try to return cache if it's the first page
+          if (page === 1) {
+            const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
+            const cachedData = await getCachedDataWithSWR(cacheKey);
+            if (cachedData) {
+              console.warn('Returning cached articles after 500 error');
+              return cachedData.data;
+            }
+          }
           throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
         } else if (response.status === 404) {
           throw new Error('Nie znaleziono artykułów.');
@@ -287,69 +283,66 @@ export const fetchArticles = async (
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
       const articles = await response.json();
-      
-      console.log(`Loaded ${articles.length} articles, total pages: ${totalPages}`);
-      
+
+
       if (!Array.isArray(articles)) {
         console.error('Invalid API response format:', articles);
         throw new Error('Nieprawidłowy format odpowiedzi API');
       }
-      
+
       // Process articles to extract featured image URL
       const processedArticles = articles.map((article: Article) => {
         let featured_media_url = undefined;
-        
-        if (article._embedded && 
-            article._embedded['wp:featuredmedia'] && 
-            article._embedded['wp:featuredmedia'][0]) {
+
+        if (article._embedded &&
+          article._embedded['wp:featuredmedia'] &&
+          article._embedded['wp:featuredmedia'][0]) {
           featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
         }
-        
+
         return {
           ...article,
           featured_media_url
         };
       });
-      
+
       // Filter out sponsored content (as additional safety measure) and sort by date (newest first)
       // Note: Backend already excludes category 554, but this is extra safety
       const filteredArticles = processedArticles
         .filter(article => !isSponsoredContent(article))
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
-      console.log(`After filtering and sorting: ${filteredArticles.length} articles`);
-      
+
+
       // Cache the articles (only first page to avoid memory issues)
       if (page === 1) {
         const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
         await cacheDataWithSWR(cacheKey, { articles: filteredArticles, totalPages });
       }
-      
-      return { 
-        articles: filteredArticles, 
-        totalPages 
+
+      return {
+        articles: filteredArticles,
+        totalPages
       };
     } catch (error: any) {
       console.error('Error in fetchArticles:', error);
-      
+
       // Attempt to load from cache if fetch fails and it's first page
       if (page === 1) {
         const cacheKey = `${CACHE_KEY_ARTICLES}_${categories?.join(',') || 'all'}`;
         const cachedData = await getCachedDataWithSWR(cacheKey);
         if (cachedData) {
-          console.log('Using cached articles data after error');
           return cachedData.data;
         }
       }
-      
+
       // Provide more user-friendly error messages
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas ładowania artykułów. Sprawdź połączenie internetowe i spróbuj ponownie.');
     }
   });
@@ -358,24 +351,21 @@ export const fetchArticles = async (
 // Function to prefetch article by ID
 export const prefetchArticleById = async (id: number): Promise<void> => {
   const requestKey = `prefetch_article_${id}`;
-  
+
   // Check if already cached
   const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_${id}`;
   const cached = await getCachedDataWithSWR(cacheKey);
   if (cached && !cached.shouldRevalidate) {
-    console.log(`Article ${id} already cached, skipping prefetch`);
     return;
   }
-  
+
   // Don't prefetch if already in progress
   if (pendingRequests.has(requestKey)) {
     return;
   }
-  
+
   try {
-    console.log(`Prefetching article ${id}`);
     const article = await fetchArticleById(id);
-    console.log(`Successfully prefetched article ${id}`);
   } catch (error) {
     console.warn(`Failed to prefetch article ${id}:`, error);
   }
@@ -384,24 +374,21 @@ export const prefetchArticleById = async (id: number): Promise<void> => {
 // Function to prefetch article by slug
 export const prefetchArticleBySlug = async (slug: string): Promise<void> => {
   const requestKey = `prefetch_article_slug_${slug}`;
-  
+
   // Check if already cached
   const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_slug_${slug}`;
   const cached = await getCachedDataWithSWR(cacheKey);
   if (cached && !cached.shouldRevalidate) {
-    console.log(`Article ${slug} already cached, skipping prefetch`);
     return;
   }
-  
+
   // Don't prefetch if already in progress
   if (pendingRequests.has(requestKey)) {
     return;
   }
-  
+
   try {
-    console.log(`Prefetching article ${slug}`);
     const article = await fetchArticleBySlug(slug);
-    console.log(`Successfully prefetched article ${slug}`);
   } catch (error) {
     console.warn(`Failed to prefetch article ${slug}:`, error);
   }
@@ -411,61 +398,57 @@ export const prefetchArticleBySlug = async (slug: string): Promise<void> => {
 export const fetchArticleById = async (id: number): Promise<Article> => {
   const requestKey = `article_${id}`;
   const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_${id}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       // Try cache first (stale-while-revalidate)
       const cached = await getCachedDataWithSWR(cacheKey);
-      
+
       if (cached) {
         if (!cached.shouldRevalidate) {
           // Fresh data, return immediately
-          console.log(`Using fresh cached article ${id}`);
           return cached.data;
         } else {
           // Stale data, return immediately but revalidate in background
-          console.log(`Using stale cached article ${id}, revalidating in background`);
-          
+
           // Start background revalidation
           setTimeout(async () => {
             try {
               const timestamp = new Date().getTime();
               const url = `${API_BASE_URL}/posts/${id}?_embed&_=${timestamp}`;
-              
+
               const response = await fetchWithTimeout(url);
               if (response.ok) {
                 const article = await response.json();
-                
+
                 let featured_media_url = undefined;
-                if (article._embedded && 
-                    article._embedded['wp:featuredmedia'] && 
-                    article._embedded['wp:featuredmedia'][0]) {
+                if (article._embedded &&
+                  article._embedded['wp:featuredmedia'] &&
+                  article._embedded['wp:featuredmedia'][0]) {
                   featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
                 }
-                
+
                 const processedArticle = { ...article, featured_media_url };
-                
+
                 if (!isSponsoredContent(processedArticle)) {
                   await cacheDataWithSWR(cacheKey, processedArticle);
-                  console.log(`Background revalidation completed for article ${id}`);
                 }
               }
             } catch (error) {
               console.warn(`Background revalidation failed for article ${id}:`, error);
             }
           }, 100);
-          
+
           return cached.data;
         }
       }
-      
+
       // No cache, fetch fresh data
       const timestamp = new Date().getTime();
       const url = `${API_BASE_URL}/posts/${id}?_embed&_=${timestamp}`;
-      
-      console.log(`Fetching fresh article with ID: ${id}`);
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         console.error(`Error fetching article ${id}: ${response.status} ${response.statusText}`);
         if (response.status === 404) {
@@ -478,42 +461,41 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const article = await response.json();
-      console.log(`Successfully fetched fresh article ${id}`);
-      
+
       let featured_media_url = undefined;
-      if (article._embedded && 
-          article._embedded['wp:featuredmedia'] && 
-          article._embedded['wp:featuredmedia'][0]) {
+      if (article._embedded &&
+        article._embedded['wp:featuredmedia'] &&
+        article._embedded['wp:featuredmedia'][0]) {
         featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
       }
-      
+
       const processedArticle = { ...article, featured_media_url };
-      
+
       if (isSponsoredContent(processedArticle)) {
         throw new Error('Artykuł nie został znaleziony.');
       }
-      
+
       // Cache the fresh data
       await cacheDataWithSWR(cacheKey, processedArticle);
-      
+
       return processedArticle;
     } catch (error: any) {
       console.error('Error in fetchArticleById:', error);
-      
+
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
-      } else if (error instanceof DOMException && error.name === 'AbortError') {
+      } else if (error?.name === 'AbortError') {
         throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
       } else if (error.message === 'Failed to fetch') {
         throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
       }
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas ładowania artykułu. Spróbuj ponownie później.');
     }
   });
@@ -522,44 +504,41 @@ export const fetchArticleById = async (id: number): Promise<Article> => {
 export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
   const requestKey = `article_slug_${slug}`;
   const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_slug_${slug}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       // Try cache first (stale-while-revalidate)
       const cached = await getCachedDataWithSWR(cacheKey);
-      
+
       if (cached) {
         if (!cached.shouldRevalidate) {
-          console.log(`Using fresh cached article ${slug}`);
           return cached.data;
         } else {
-          console.log(`Using stale cached article ${slug}, revalidating in background`);
-          
+
           // Start background revalidation
           setTimeout(async () => {
             try {
               const timestamp = new Date().getTime();
               const url = `${API_BASE_URL}/posts?slug=${encodeURIComponent(slug)}&_embed&_=${timestamp}`;
-              
+
               const response = await fetchWithTimeout(url);
               if (response.ok) {
                 const articles = await response.json();
-                
+
                 if (Array.isArray(articles) && articles.length > 0) {
                   const article = articles[0];
-                  
+
                   let featured_media_url = undefined;
-                  if (article._embedded && 
-                      article._embedded['wp:featuredmedia'] && 
-                      article._embedded['wp:featuredmedia'][0]) {
+                  if (article._embedded &&
+                    article._embedded['wp:featuredmedia'] &&
+                    article._embedded['wp:featuredmedia'][0]) {
                     featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
                   }
-                  
+
                   const processedArticle = { ...article, featured_media_url };
-                  
+
                   if (!isSponsoredContent(processedArticle)) {
                     await cacheDataWithSWR(cacheKey, processedArticle);
-                    console.log(`Background revalidation completed for article ${slug}`);
                   }
                 }
               }
@@ -567,18 +546,17 @@ export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
               console.warn(`Background revalidation failed for article ${slug}:`, error);
             }
           }, 100);
-          
+
           return cached.data;
         }
       }
-      
+
       // No cache, fetch fresh data
       const timestamp = new Date().getTime();
       const url = `${API_BASE_URL}/posts?slug=${encodeURIComponent(slug)}&_embed&_=${timestamp}`;
-      
-      console.log(`Fetching fresh article with slug: ${slug}`);
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         console.error(`Error fetching article ${slug}: ${response.status} ${response.statusText}`);
         if (response.status === 404) {
@@ -591,48 +569,47 @@ export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const articles = await response.json();
-      
+
       if (!Array.isArray(articles) || articles.length === 0) {
         throw new Error('Artykuł nie został znaleziony.');
       }
-      
+
       const article = articles[0];
-      console.log(`Successfully fetched fresh article ${slug}`);
-      
+
       let featured_media_url = undefined;
-      if (article._embedded && 
-          article._embedded['wp:featuredmedia'] && 
-          article._embedded['wp:featuredmedia'][0]) {
+      if (article._embedded &&
+        article._embedded['wp:featuredmedia'] &&
+        article._embedded['wp:featuredmedia'][0]) {
         featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
       }
-      
+
       const processedArticle = { ...article, featured_media_url };
-      
+
       if (isSponsoredContent(processedArticle)) {
         throw new Error('Artykuł nie został znaleziony.');
       }
-      
+
       // Cache the fresh data
       await cacheDataWithSWR(cacheKey, processedArticle);
-      
+
       return processedArticle;
     } catch (error: any) {
       console.error('Error in fetchArticleBySlug:', error);
-      
+
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
-      } else if (error instanceof DOMException && error.name === 'AbortError') {
+      } else if (error?.name === 'AbortError') {
         throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
       } else if (error.message === 'Failed to fetch') {
         throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
       }
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas wyszukiwania artykułów. Spróbuj ponownie później.');
     }
   });
@@ -640,14 +617,14 @@ export const fetchArticleBySlug = async (slug: string): Promise<Article> => {
 
 export const fetchCategories = async (): Promise<Category[]> => {
   const requestKey = 'categories';
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       const timestamp = new Date().getTime();
       const url = `${API_BASE_URL}/categories?per_page=100&exclude=554&_=${timestamp}`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
@@ -657,37 +634,36 @@ export const fetchCategories = async (): Promise<Category[]> => {
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const categories = await response.json();
-      
+
       // Filter out sponsored categories as additional safety measure
       const filteredCategories = filterSponsoredCategories(categories);
-      
+
       // Cache the categories
       await cacheData(CACHE_KEY_CATEGORIES, filteredCategories);
-      
+
       return filteredCategories;
     } catch (error: any) {
       // Attempt to load from cache if fetch fails
       const cachedData = await getCachedData(CACHE_KEY_CATEGORIES);
       if (cachedData) {
-        console.log('Using cached categories data');
         // Filter cached data as well
         return filterSponsoredCategories(cachedData);
       }
-      
+
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
-      } else if (error instanceof DOMException && error.name === 'AbortError') {
+      } else if (error?.name === 'AbortError') {
         throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
       } else if (error.message === 'Failed to fetch') {
         throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
       }
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas ładowania kategorii. Spróbuj ponownie później.');
     }
   });
@@ -696,16 +672,16 @@ export const fetchCategories = async (): Promise<Category[]> => {
 // Function to fetch artist information by ID
 export const fetchArtist = async (artistId: number): Promise<Artist | null> => {
   if (!artistId) return null;
-  
+
   const requestKey = `artist_${artistId}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       const timestamp = new Date().getTime();
       const url = `https://kaszuby24.pl/wp-json/wp/v2/artysta/${artistId}?meta=true&_=${timestamp}`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           return null;
@@ -713,7 +689,7 @@ export const fetchArtist = async (artistId: number): Promise<Artist | null> => {
         console.warn(`Failed to fetch artist ${artistId}: ${response.status}`);
         return null;
       }
-      
+
       const artist = await response.json();
       return artist;
     } catch (error: any) {
@@ -726,16 +702,16 @@ export const fetchArtist = async (artistId: number): Promise<Artist | null> => {
 // Function to fetch venue information by ID
 export const fetchVenue = async (venueId: number): Promise<Venue | null> => {
   if (!venueId) return null;
-  
+
   const requestKey = `venue_${venueId}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       const timestamp = new Date().getTime();
       const url = `https://kaszuby24.pl/wp-json/wp/v2/obiekt/${venueId}?meta=true&_=${timestamp}`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           return null;
@@ -743,7 +719,7 @@ export const fetchVenue = async (venueId: number): Promise<Venue | null> => {
         console.warn(`Failed to fetch venue ${venueId}: ${response.status}`);
         return null;
       }
-      
+
       const venue = await response.json();
       return venue;
     } catch (error: any) {
@@ -759,7 +735,7 @@ export const searchArticles = async (
   perPage = 10
 ): Promise<{ articles: Article[], totalPages: number }> => {
   const requestKey = `search_${query}_${page}_${perPage}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       // Provide haptic feedback when search starts (on native platforms)
@@ -770,15 +746,15 @@ export const searchArticles = async (
           // Ignore vibration errors
         }
       }
-      
+
       const timestamp = new Date().getTime();
       let url = `${API_BASE_URL}/posts?_embed&search=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&_=${timestamp}`;
-      
+
       // Exclude sponsored category from search results
       url += `&categories_exclude=554`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
@@ -788,50 +764,50 @@ export const searchArticles = async (
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
       const articles = await response.json();
-      
+
       if (!Array.isArray(articles)) {
         throw new Error('Nieprawidłowy format odpowiedzi API');
       }
-      
+
       // Process articles to extract featured image URL
       const processedArticles = articles.map((article: Article) => {
         let featured_media_url = undefined;
-        
-        if (article._embedded && 
-            article._embedded['wp:featuredmedia'] && 
-            article._embedded['wp:featuredmedia'][0]) {
+
+        if (article._embedded &&
+          article._embedded['wp:featuredmedia'] &&
+          article._embedded['wp:featuredmedia'][0]) {
           featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
         }
-        
+
         return {
           ...article,
           featured_media_url
         };
       });
-      
+
       // Filter out sponsored content as additional safety measure
       const filteredArticles = filterSponsoredArticles(processedArticles);
-      
-      return { 
-        articles: filteredArticles, 
-        totalPages 
+
+      return {
+        articles: filteredArticles,
+        totalPages
       };
     } catch (error: any) {
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
-      } else if (error instanceof DOMException && error.name === 'AbortError') {
+      } else if (error?.name === 'AbortError') {
         throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
       } else if (error.message === 'Failed to fetch') {
         throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
       }
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas wyszukiwania artykułów. Spróbuj ponownie później.');
     }
   });
@@ -842,25 +818,25 @@ export const fetchMediaByIds = async (ids: string[]): Promise<MediaItem[]> => {
   if (!ids || ids.length === 0) {
     return [];
   }
-  
+
   const requestKey = `media_${ids.join(',')}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       const timestamp = new Date().getTime();
       const idsString = ids.join(',');
       const cacheKey = `${CACHE_KEY_MEDIA}_${idsString}`;
-      
+
       // Check cache first
       const cachedData = await getCachedData(cacheKey);
       if (cachedData) {
         return cachedData;
       }
-      
+
       const url = `${API_BASE_URL}/media?include=${idsString}&per_page=100&_=${timestamp}`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           return []; // No media found
@@ -872,20 +848,20 @@ export const fetchMediaByIds = async (ids: string[]): Promise<MediaItem[]> => {
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const media = await response.json();
-      
+
       if (!Array.isArray(media)) {
         return [];
       }
-      
+
       // Cache the media data
       await cacheData(cacheKey, media);
-      
+
       return media;
     } catch (error: any) {
       console.warn('Error fetching media:', error);
-      
+
       // Return empty array on error to not break the UI
       return [];
     }
@@ -900,56 +876,56 @@ export const fetchRelatedArticles = async (
   page = 1 // Dodany parametr page dla paginacji
 ): Promise<{ sliderArticles: Article[], listArticles: Article[] }> => {
   const requestKey = `related_${currentArticleId}_${categories.join(',')}_${limit}_${page}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       const timestamp = new Date().getTime();
-      
+
       // Filter out sponsored category from categories
       const filteredCategories = categories.filter(catId => catId !== 554);
-      
+
       let url = `${API_BASE_URL}/posts?_embed&per_page=${limit * 2}&exclude=${currentArticleId}&page=${page}&_=${timestamp}`;
-      
+
       // If we have categories, use them for related articles
       if (filteredCategories.length > 0) {
         url += `&categories=${filteredCategories.join(',')}`;
       }
-      
+
       // Always exclude sponsored category
       url += `&categories_exclude=554`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         // If categories-based search fails, try without categories
         if (filteredCategories.length > 0) {
           const fallbackUrl = `${API_BASE_URL}/posts?_embed&per_page=${limit * 2}&exclude=${currentArticleId}&categories_exclude=554&page=${page}&_=${timestamp}`;
           const fallbackResponse = await fetchWithTimeout(fallbackUrl);
-          
+
           if (!fallbackResponse.ok) {
             return { sliderArticles: [], listArticles: [] };
           }
-          
+
           const fallbackArticles = await fallbackResponse.json();
           if (!Array.isArray(fallbackArticles)) {
             return { sliderArticles: [], listArticles: [] };
           }
-          
+
           const processedFallbackArticles = fallbackArticles.map((article: Article) => {
             let featured_media_url = undefined;
-            
-            if (article._embedded && 
-                article._embedded['wp:featuredmedia'] && 
-                article._embedded['wp:featuredmedia'][0]) {
+
+            if (article._embedded &&
+              article._embedded['wp:featuredmedia'] &&
+              article._embedded['wp:featuredmedia'][0]) {
               featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
             }
-            
+
             return {
               ...article,
               featured_media_url
             };
           });
-          
+
           // Filter out sponsored content and split results
           const filteredFallbackArticles = filterSponsoredArticles(processedFallbackArticles);
           return {
@@ -957,32 +933,32 @@ export const fetchRelatedArticles = async (
             listArticles: filteredFallbackArticles.slice(5, 8) // Take next 3
           };
         }
-        
+
         return { sliderArticles: [], listArticles: [] };
       }
-      
+
       const articles = await response.json();
-      
+
       if (!Array.isArray(articles)) {
         return { sliderArticles: [], listArticles: [] };
       }
-      
+
       // Process articles to extract featured image URL
       const processedArticles = articles.map((article: Article) => {
         let featured_media_url = undefined;
-        
-        if (article._embedded && 
-            article._embedded['wp:featuredmedia'] && 
-            article._embedded['wp:featuredmedia'][0]) {
+
+        if (article._embedded &&
+          article._embedded['wp:featuredmedia'] &&
+          article._embedded['wp:featuredmedia'][0]) {
           featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
         }
-        
+
         return {
           ...article,
           featured_media_url
         };
       });
-      
+
       // Filter out sponsored content and split results
       const filteredArticles = filterSponsoredArticles(processedArticles);
       return {
@@ -1002,51 +978,51 @@ export const getAdjacentArticle = async (
   direction: 'next' | 'prev'
 ): Promise<Article | null> => {
   const requestKey = `adjacent_${currentArticleId}_${direction}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       const timestamp = new Date().getTime();
-      
+
       // For next article, get articles with ID greater than current
       // For prev article, get articles with ID less than current
       const operator = direction === 'next' ? 'after' : 'before';
       const order = direction === 'next' ? 'asc' : 'desc';
-      
+
       let url = `${API_BASE_URL}/posts?_embed&per_page=1&${operator}=${currentArticleId}&order=${order}&categories_exclude=554&_=${timestamp}`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         return null;
       }
-      
+
       const articles = await response.json();
-      
+
       if (!Array.isArray(articles) || articles.length === 0) {
         return null;
       }
-      
+
       const article = articles[0];
-      
+
       // Process article to extract featured image URL
       let featured_media_url = undefined;
-      
-      if (article._embedded && 
-          article._embedded['wp:featuredmedia'] && 
-          article._embedded['wp:featuredmedia'][0]) {
+
+      if (article._embedded &&
+        article._embedded['wp:featuredmedia'] &&
+        article._embedded['wp:featuredmedia'][0]) {
         featured_media_url = article._embedded['wp:featuredmedia'][0].source_url;
       }
-      
+
       const processedArticle = {
         ...article,
         featured_media_url
       };
-      
+
       // Check if this is sponsored content
       if (isSponsoredContent(processedArticle)) {
         return null;
       }
-      
+
       return processedArticle;
     } catch (error: any) {
       console.warn('Error fetching adjacent article:', error);
@@ -1059,7 +1035,7 @@ export const getAdjacentArticle = async (
 export const registerExpoPushToken = async (registration: ExpoPushTokenRegistration): Promise<void> => {
   try {
     const url = 'https://kaszuby24.pl/wp-json/kaszuby24/v1/register-expo-push-token';
-    
+
     const response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
@@ -1067,12 +1043,11 @@ export const registerExpoPushToken = async (registration: ExpoPushTokenRegistrat
       },
       body: JSON.stringify(registration),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to register Expo Push token: ${response.status}`);
     }
-    
-    console.log('Expo Push token registered successfully');
+
   } catch (error) {
     // Don't throw here - we don't want to break the app if registration fails
     console.warn('Expo Push token registration failed:', error);
@@ -1082,26 +1057,23 @@ export const registerExpoPushToken = async (registration: ExpoPushTokenRegistrat
 // Clear all caches (useful for debugging or when user wants to refresh)
 export const clearAllCaches = async (): Promise<void> => {
   try {
-    console.log('Clearing all caches...');
-    
+
     // Clear AsyncStorage cache
     const keys = await AsyncStorage.getAllKeys();
-    const cacheKeys = keys.filter(key => 
-      key.includes(CACHE_KEY_ARTICLES) || 
+    const cacheKeys = keys.filter(key =>
+      key.includes(CACHE_KEY_ARTICLES) ||
       key.includes(CACHE_KEY_CATEGORIES) ||
       key.includes(CACHE_KEY_MEDIA) ||
       key.includes(CACHE_KEY_SINGLE_ARTICLE)
     );
-    
+
     if (cacheKeys.length > 0) {
       await AsyncStorage.multiRemove(cacheKeys);
-      console.log(`Cleared ${cacheKeys.length} cache entries`);
     }
-    
+
     // Clear pending requests
     cancelAllRequests();
-    
-    console.log('All caches cleared successfully');
+
   } catch (error) {
     console.error('Error clearing caches:', error);
   }
@@ -1113,23 +1085,29 @@ export const fetchNekrologi = async (
   perPage = 10
 ): Promise<{ nekrologi: Nekrolog[], totalPages: number }> => {
   const requestKey = `nekrologi_${page}_${perPage}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
-      console.log(`Loading nekrologi: page=${page}, perPage=${perPage}`);
-      
+
       let url = `${API_BASE_URL}/nekrolog?page=${page}&per_page=${perPage}&orderby=date&order=desc`;
-      
+
       // Add timestamp to prevent caching issues
       url += `&_=${Date.now()}`;
-      
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
-        console.error(`API Error for nekrologi: ${response.status} ${response.statusText}`);
+        console.error(`API Error for Nekrologi [${response.status}] URL: ${url}`);
         if (response.status === 429) {
           throw new Error('Zbyt wiele zapytań. Proszę spróbować ponownie za chwilę.');
         } else if (response.status >= 500) {
+          // Try cache fallback
+          const cacheKey = `cached_nekrologi_${page}`;
+          const cached = await getCachedData(cacheKey);
+          if (cached) {
+            console.warn('Returning cached nekrologi after 500 error');
+            return cached;
+          }
           throw new Error('Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.');
         } else if (response.status === 404) {
           throw new Error('Nie znaleziono nekrologów.');
@@ -1137,35 +1115,33 @@ export const fetchNekrologi = async (
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
       const nekrologi = await response.json();
-      
-      console.log(`Loaded ${nekrologi.length} nekrologi, total pages: ${totalPages}`);
-      
+
+
       if (!Array.isArray(nekrologi)) {
         console.error('Invalid nekrologi API response format:', nekrologi);
         throw new Error('Nieprawidłowy format odpowiedzi API');
       }
-      
+
       // Sort nekrologi by date (newest first)
-      const sortedNekrologi = nekrologi.sort((a, b) => 
+      const sortedNekrologi = nekrologi.sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      
-      console.log(`After sorting: ${sortedNekrologi.length} nekrologi`);
-      
-      return { 
-        nekrologi: sortedNekrologi, 
-        totalPages 
+
+
+      return {
+        nekrologi: sortedNekrologi,
+        totalPages
       };
     } catch (error: any) {
       console.error('Error in fetchNekrologi:', error);
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas ładowania nekrologów. Sprawdź połączenie internetowe i spróbuj ponownie.');
     }
   });
@@ -1175,47 +1151,43 @@ export const fetchNekrologi = async (
 export const fetchNekrologById = async (id: number): Promise<Nekrolog> => {
   const requestKey = `nekrolog_${id}`;
   const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_nekrolog_${id}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       // Try cache first
       const cached = await getCachedDataWithSWR(cacheKey);
-      
+
       if (cached) {
         if (!cached.shouldRevalidate) {
-          console.log(`Using fresh cached nekrolog ${id}`);
           return cached.data;
         } else {
-          console.log(`Using stale cached nekrolog ${id}, revalidating in background`);
-          
+
           // Start background revalidation
           setTimeout(async () => {
             try {
               const timestamp = new Date().getTime();
               const url = `${API_BASE_URL}/nekrolog/${id}?_=${timestamp}`;
-              
+
               const response = await fetchWithTimeout(url);
               if (response.ok) {
                 const nekrolog = await response.json();
                 await cacheDataWithSWR(cacheKey, nekrolog);
-                console.log(`Background revalidation completed for nekrolog ${id}`);
               }
             } catch (error) {
               console.warn(`Background revalidation failed for nekrolog ${id}:`, error);
             }
           }, 100);
-          
+
           return cached.data;
         }
       }
-      
+
       // No cache, fetch fresh data
       const timestamp = new Date().getTime();
       const url = `${API_BASE_URL}/nekrolog/${id}?_=${timestamp}`;
-      
-      console.log(`Fetching fresh nekrolog with ID: ${id}`);
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         console.error(`Error fetching nekrolog ${id}: ${response.status} ${response.statusText}`);
         if (response.status === 404) {
@@ -1228,29 +1200,28 @@ export const fetchNekrologById = async (id: number): Promise<Nekrolog> => {
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const nekrolog = await response.json();
-      console.log(`Successfully fetched fresh nekrolog ${id}`);
-      
+
       // Cache the fresh data
       await cacheDataWithSWR(cacheKey, nekrolog);
-      
+
       return nekrolog;
     } catch (error: any) {
       console.error('Error in fetchNekrologById:', error);
-      
+
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
-      } else if (error instanceof DOMException && error.name === 'AbortError') {
+      } else if (error?.name === 'AbortError') {
         throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
       } else if (error.message === 'Failed to fetch') {
         throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
       }
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas ładowania nekrologu. Spróbuj ponownie później.');
     }
   });
@@ -1266,25 +1237,20 @@ export const fetchFilteredArticles = async (
   if (regionId && regionId !== '') url += `&region=${parseInt(regionId)}`;
   if (dzialId && dzialId !== '') url += `&dzial=${parseInt(dzialId)}`;
 
-  console.log('fetchFilteredArticles - URL:', url);
-  console.log('fetchFilteredArticles - regionId:', regionId, 'dzialId:', dzialId);
 
   try {
     const response = await fetchWithTimeout(url);
-    console.log('fetchFilteredArticles - response status:', response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('fetchFilteredArticles - error response:', errorText);
-      
+
       // Fallback to standard WordPress REST API
-      console.log('fetchFilteredArticles - falling back to standard WordPress API');
       return await fetchArticlesWithCategories(page, perPage, regionId, dzialId);
     }
-    
+
     const data = await response.json();
-    console.log('fetchFilteredArticles - response data:', data);
-    
+
     // API zwraca { posts: [...], total_pages: n }
     return {
       articles: Array.isArray(data.posts) ? data.posts : [],
@@ -1292,9 +1258,8 @@ export const fetchFilteredArticles = async (
     };
   } catch (error) {
     console.error('fetchFilteredArticles - error:', error);
-    
+
     // Fallback to standard WordPress REST API
-    console.log('fetchFilteredArticles - falling back to standard WordPress API due to error');
     return await fetchArticlesWithCategories(page, perPage, regionId, dzialId);
   }
 };
@@ -1307,26 +1272,25 @@ const fetchArticlesWithCategories = async (
   dzialId?: string
 ): Promise<{ articles: Article[]; totalPages: number }> => {
   let url = `https://kaszuby24.pl/wp-json/wp/v2/posts?page=${page}&per_page=${perPage}&_embed`;
-  
+
   // Add category filters
   const categories: number[] = [];
   if (regionId && regionId !== '') categories.push(parseInt(regionId));
   if (dzialId && dzialId !== '') categories.push(parseInt(dzialId));
-  
+
   if (categories.length > 0) {
     url += `&categories=${categories.join(',')}`;
   }
-  
-  console.log('fetchArticlesWithCategories - URL:', url);
-  
+
+
   const response = await fetchWithTimeout(url);
   if (!response.ok) {
     throw new Error('Błąd pobierania artykułów (fallback)');
   }
-  
+
   const articles = await response.json();
   const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1');
-  
+
   return {
     articles: Array.isArray(articles) ? articles : [],
     totalPages: totalPages,
@@ -1341,13 +1305,13 @@ export const fetchRelatedEvents = async (
   limit = 6
 ): Promise<any[]> => {
   const requestKey = `related_events_${currentEventId}_${categories.join(',')}_${location}_${limit}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       const timestamp = new Date().getTime();
-      
+
       // Try the new related-events endpoint first
-      let url = `https://kaszuby24.pl/wp-json/kaszuby24/v1/related-events?event_id=${currentEventId}&limit=${limit}&_embed&_=${timestamp}`;    
+      let url = `https://kaszuby24.pl/wp-json/kaszuby24/v1/related-events?event_id=${currentEventId}&limit=${limit}&_embed&_=${timestamp}`;
 
       // Add category filter if available
       if (categories && categories.length > 0) {
@@ -1359,18 +1323,15 @@ export const fetchRelatedEvents = async (
         url += `&location=${encodeURIComponent(location)}`;
       }
 
-      console.log('Trying related-events endpoint:', url);
       const response = await fetchWithTimeout(url);
 
       if (response.ok) {
         const events = await response.json();
-        console.log('Related events from new endpoint:', events.length);
         return Array.isArray(events) ? events.slice(0, limit) : [];
       }
 
       // Fallback to standard WordPress events endpoint
-      console.log('Falling back to standard WordPress events endpoint');
-      let fallbackUrl = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?per_page=${limit * 2}&exclude=${currentEventId}&_embed&_=${timestamp}`;    
+      let fallbackUrl = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?per_page=${limit * 2}&exclude=${currentEventId}&_embed&_=${timestamp}`;
 
       // Add category filter if available
       if (categories && categories.length > 0) {
@@ -1385,7 +1346,6 @@ export const fetchRelatedEvents = async (
       }
 
       const fallbackEvents = await fallbackResponse.json();
-      console.log('Related events from fallback endpoint:', fallbackEvents.length);
       return Array.isArray(fallbackEvents) ? fallbackEvents.slice(0, limit) : [];
     } catch (error: any) {
       console.warn('Error fetching related events:', error);
@@ -1398,49 +1358,45 @@ export const fetchRelatedEvents = async (
 export const fetchEventBySlug = async (slug: string): Promise<any> => {
   const requestKey = `event_slug_${slug}`;
   const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_event_slug_${slug}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       // Try cache first
       const cached = await getCachedDataWithSWR(cacheKey);
-      
+
       if (cached) {
         if (!cached.shouldRevalidate) {
-          console.log(`Using fresh cached event ${slug}`);
           return cached.data;
         } else {
-          console.log(`Using stale cached event ${slug}, revalidating in background`);
-          
+
           // Start background revalidation
           setTimeout(async () => {
             try {
               const timestamp = new Date().getTime();
               const url = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?slug=${encodeURIComponent(slug)}&_=${timestamp}`;
-              
+
               const response = await fetchWithTimeout(url);
               if (response.ok) {
                 const events = await response.json();
                 if (Array.isArray(events) && events.length > 0) {
                   await cacheDataWithSWR(cacheKey, events[0]);
-                  console.log(`Background revalidation completed for event ${slug}`);
                 }
               }
             } catch (error) {
               console.warn(`Background revalidation failed for event ${slug}:`, error);
             }
           }, 100);
-          
+
           return cached.data;
         }
       }
-      
+
       // No cache, fetch fresh data
       const timestamp = new Date().getTime();
       const url = `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?slug=${encodeURIComponent(slug)}&_=${timestamp}`;
-      
-      console.log(`Fetching fresh event with slug: ${slug}`);
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         console.error(`Error fetching event ${slug}: ${response.status} ${response.statusText}`);
         if (response.status === 404) {
@@ -1453,35 +1409,34 @@ export const fetchEventBySlug = async (slug: string): Promise<any> => {
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const events = await response.json();
-      
+
       if (!Array.isArray(events) || events.length === 0) {
         throw new Error('Wydarzenie nie zostało znalezione.');
       }
-      
+
       const event = events[0];
-      console.log(`Successfully fetched fresh event ${slug}`);
-      
+
       // Cache the fresh data
       await cacheDataWithSWR(cacheKey, event);
-      
+
       return event;
     } catch (error: any) {
       console.error('Error in fetchEventBySlug:', error);
-      
+
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
-      } else if (error instanceof DOMException && error.name === 'AbortError') {
+      } else if (error?.name === 'AbortError') {
         throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
       } else if (error.message === 'Failed to fetch') {
         throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
       }
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas wyszukiwania wydarzenia. Spróbuj ponownie później.');
     }
   });
@@ -1491,49 +1446,45 @@ export const fetchEventBySlug = async (slug: string): Promise<any> => {
 export const fetchNekrologBySlug = async (slug: string): Promise<Nekrolog> => {
   const requestKey = `nekrolog_slug_${slug}`;
   const cacheKey = `${CACHE_KEY_SINGLE_ARTICLE}_nekrolog_slug_${slug}`;
-  
+
   return deduplicateRequest(requestKey, async () => {
     try {
       // Try cache first
       const cached = await getCachedDataWithSWR(cacheKey);
-      
+
       if (cached) {
         if (!cached.shouldRevalidate) {
-          console.log(`Using fresh cached nekrolog ${slug}`);
           return cached.data;
         } else {
-          console.log(`Using stale cached nekrolog ${slug}, revalidating in background`);
-          
+
           // Start background revalidation
           setTimeout(async () => {
             try {
               const timestamp = new Date().getTime();
               const url = `https://kaszuby24.pl/wp-json/wp/v2/nekrolog?slug=${encodeURIComponent(slug)}&_=${timestamp}`;
-              
+
               const response = await fetchWithTimeout(url);
               if (response.ok) {
                 const nekrologi = await response.json();
                 if (Array.isArray(nekrologi) && nekrologi.length > 0) {
                   await cacheDataWithSWR(cacheKey, nekrologi[0]);
-                  console.log(`Background revalidation completed for nekrolog ${slug}`);
                 }
               }
             } catch (error) {
               console.warn(`Background revalidation failed for nekrolog ${slug}:`, error);
             }
           }, 100);
-          
+
           return cached.data;
         }
       }
-      
+
       // No cache, fetch fresh data
       const timestamp = new Date().getTime();
       const url = `https://kaszuby24.pl/wp-json/wp/v2/nekrolog?slug=${encodeURIComponent(slug)}&_=${timestamp}`;
-      
-      console.log(`Fetching fresh nekrolog with slug: ${slug}`);
+
       const response = await fetchWithTimeout(url);
-      
+
       if (!response.ok) {
         console.error(`Error fetching nekrolog ${slug}: ${response.status} ${response.statusText}`);
         if (response.status === 404) {
@@ -1546,35 +1497,34 @@ export const fetchNekrologBySlug = async (slug: string): Promise<Nekrolog> => {
           throw new Error(`Błąd API: ${response.status}`);
         }
       }
-      
+
       const nekrologi = await response.json();
-      
+
       if (!Array.isArray(nekrologi) || nekrologi.length === 0) {
         throw new Error('Nekrolog nie został znaleziony.');
       }
-      
+
       const nekrolog = nekrologi[0];
-      console.log(`Successfully fetched fresh nekrolog ${slug}`);
-      
+
       // Cache the fresh data
       await cacheDataWithSWR(cacheKey, nekrolog);
-      
+
       return nekrolog;
     } catch (error: any) {
       console.error('Error in fetchNekrologBySlug:', error);
-      
+
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Brak połączenia z internetem. Sprawdź swoje połączenie i spróbuj ponownie.');
-      } else if (error instanceof DOMException && error.name === 'AbortError') {
+      } else if (error?.name === 'AbortError') {
         throw new Error('Zapytanie przekroczyło limit czasu. Spróbuj ponownie.');
       } else if (error.message === 'Failed to fetch') {
         throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe i spróbuj ponownie.');
       }
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Wystąpił problem podczas wyszukiwania nekrologu. Spróbuj ponownie później.');
     }
   });

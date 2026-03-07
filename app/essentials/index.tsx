@@ -10,6 +10,8 @@ export default function EssentialsScreen() {
         aedPoints,
         generalHospitals,
         pharmacies,
+        mevoBikes,
+        mevoStations,
         activeFilter,
         setActiveFilter,
         fetchByViewport,

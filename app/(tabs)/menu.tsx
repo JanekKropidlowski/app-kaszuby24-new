@@ -6,6 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,14 +16,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Settings,
   ChevronRight,
-  MapPin,
   Bus,
   Trash2,
   CloudSun,
+  Bike,
+  Cross,
+  Wind,
+  HeartHandshake
 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
 import * as Updates from 'expo-updates';
 import * as Application from 'expo-application';
+import UpdateChecker from '@/components/UpdateChecker';
 
 export default function MenuHubScreen() {
   const insets = useSafeAreaInsets();
@@ -29,39 +36,43 @@ export default function MenuHubScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.topHeader, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+        <Image
+          source={{
+            uri: theme.isDarkMode
+              ? 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-1-scaled.png'
+              : 'https://kaszuby24.pl/wp-content/uploads/2025/07/Bez-nazwy-2-01-scaled.png'
+          }}
+          style={styles.topHeaderLogo}
+          resizeMode="contain"
+        />
+      </View>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 20, paddingBottom: 100 },
+          { paddingTop: Platform.OS === 'android' ? 10 : 4, paddingBottom: 100 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Menu
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
-          Wybierz kategorię
-        </Text>
-
         <View style={styles.gridContainer}>
           {/* --- OPCJA: NIEZBĘDNIK --- */}
           <TouchableOpacity
             activeOpacity={0.9}
-            style={[styles.hubCard, styles.halfWidth, { shadowColor: '#059669' }]}
-            onPress={() => router.push('/essentials')}
+            style={[styles.hubCard, styles.halfWidth, { shadowColor: '#0D9488' }]}
+            onPress={() => router.push('/essentials/niezbednik2')}
           >
             <LinearGradient
-              colors={theme.isDarkMode ? ['#064e3b', '#065f46'] : ['#10b981', '#059669']}
+              colors={theme.isDarkMode ? ['#134e4a', '#115e59'] : ['#14B8A6', '#0D9488']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.hubGradient}
             >
               <View style={styles.hubIconCircleSmall}>
-                <MapPin size={24} color="#FFFFFF" strokeWidth={2.5} />
+                <Cross size={24} color="#FFFFFF" strokeWidth={2.5} />
               </View>
-              <Text style={styles.hubTitleSmall}>Niezbędnik</Text>
+              <Text style={styles.hubTitleSmall}>Pomoc</Text>
               <Text style={styles.hubDescriptionSmall} numberOfLines={2}>
-                Usługi medyczne i AED
+                Szpitale, apteki, AED
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -69,11 +80,11 @@ export default function MenuHubScreen() {
           {/* --- OPCJA: KOMUNIKACJA --- */}
           <TouchableOpacity
             activeOpacity={0.9}
-            style={[styles.hubCard, styles.halfWidth, { shadowColor: '#2563EB' }]}
-            onPress={() => router.push('/transport')}
+            style={[styles.hubCard, styles.halfWidth, { shadowColor: '#D97706' }]}
+            onPress={() => router.push('/transport_v2')}
           >
             <LinearGradient
-              colors={theme.isDarkMode ? ['#1e3a8a', '#1e40af'] : ['#3b82f6', '#2563eb']}
+              colors={theme.isDarkMode ? ['#78350f', '#92400e'] : ['#F59E0B', '#D97706']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.hubGradient}
@@ -87,6 +98,30 @@ export default function MenuHubScreen() {
               </Text>
             </LinearGradient>
           </TouchableOpacity>
+
+          {/* --- OPCJA: MEVO (ukryta na Androidzie) --- */}
+          {Platform.OS !== 'android' && (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.hubCard, styles.halfWidth, { shadowColor: '#DC2626' }]}
+              onPress={() => router.push('/mevo/mevo2')}
+            >
+              <LinearGradient
+                colors={theme.isDarkMode ? ['#7f1d1d', '#991b1b'] : ['#DC2626', '#B91C1C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.hubGradient}
+              >
+                <View style={styles.hubIconCircleSmall}>
+                  <Bike size={24} color="#FFFFFF" strokeWidth={2.5} />
+                </View>
+                <Text style={styles.hubTitleSmall}>Mevo</Text>
+                <Text style={styles.hubDescriptionSmall} numberOfLines={2}>
+                  Mapa rowerów miejskich
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           {/* --- OPCJA: HARMONOGRAM ODPADÓW --- */}
           <TouchableOpacity
@@ -132,6 +167,50 @@ export default function MenuHubScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* --- OPCJA: JAKOŚĆ POWIETRZA --- */}
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[styles.hubCard, styles.halfWidth, { shadowColor: '#059669' }]}
+            onPress={() => router.push('/(tabs)/airquality')}
+          >
+            <LinearGradient
+              colors={theme.isDarkMode ? ['#064e3b', '#065f46'] : ['#10b981', '#059669']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.hubGradient}
+            >
+              <View style={styles.hubIconCircleSmall}>
+                <Wind size={24} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+              <Text style={styles.hubTitleSmall}>Powietrze</Text>
+              <Text style={styles.hubDescriptionSmall} numberOfLines={2}>
+                Jakość powietrza GIOŚ
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* --- OPCJA: KONTAKT I WSPARCIE --- */}
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[styles.hubCard, styles.halfWidth, { shadowColor: '#0f766e' }]}
+            onPress={() => router.push('/contact')}
+          >
+            <LinearGradient
+              colors={theme.isDarkMode ? ['#134e4a', '#0f766e'] : ['#0d9488', '#0f766e']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.hubGradient}
+            >
+              <View style={styles.hubIconCircleSmall}>
+                <HeartHandshake size={24} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+              <Text style={styles.hubTitleSmall}>Kontakt</Text>
+              <Text style={styles.hubDescriptionSmall} numberOfLines={2}>
+                Napisz i wesprzyj
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
           {/* --- OPCJA: USTAWIENIA --- */}
           <TouchableOpacity
             activeOpacity={0.9}
@@ -142,27 +221,35 @@ export default function MenuHubScreen() {
               colors={theme.isDarkMode ? ['#334155', '#1E293B'] : ['#94A3B8', '#64748B']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.hubGradientRow}
+              style={styles.hubGradient}
             >
-              <View style={[styles.hubIconCircleSmall, { marginBottom: 0, marginRight: 16 }]}>
-                <Settings size={28} color="#FFFFFF" strokeWidth={2.5} />
+              <View style={styles.hubIconCircleSmall}>
+                <Settings size={24} color="#FFFFFF" strokeWidth={2.5} />
               </View>
-              <View style={styles.hubContent}>
-                <Text style={styles.hubTitle}>Ustawienia</Text>
-                <Text style={styles.hubDescription}>
-                  Powiadomienia, motyw, regiony
-                </Text>
-              </View>
-              <View style={styles.arrowContainer}>
-                <ChevronRight size={24} color="#FFFFFF" />
-              </View>
+              <Text style={styles.hubTitleSmall}>Ustawienia</Text>
+              <Text style={styles.hubDescriptionSmall} numberOfLines={2}>
+                Powiadomienia, motyw, regiony
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* --- UPDATE INFO FOOTER --- */}
+        {/* --- UPDATE CHECKER --- */}
+        <UpdateChecker />
 
-
+        {/* --- FOOTER BRANDING --- */}
+        <View style={styles.developerContainer}>
+          <Text style={[styles.developerText, { color: theme.colors.textSecondary }]}>
+            Aplikacja stworzona przez
+          </Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://kropidlowscy.pl')}>
+            <Image
+              source={{ uri: 'https://kropidlowscy.pl/LOGO-KROPIDLOWSCY-03.png' }}
+              style={styles.developerLogo}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -212,7 +299,7 @@ const styles = StyleSheet.create({
   },
   fullWidth: {
     width: '100%',
-    height: 100,
+    height: 160,
     marginTop: 4,
   },
   hubGradient: {
@@ -273,5 +360,67 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     opacity: 0.8,
   },
-
+  newBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  newBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    fontFamily: 'Poppins_Bold',
+    color: '#DC2626',
+    letterSpacing: 0.5,
+  },
+  logoFooter: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  logoImg: {
+    width: 160,
+    height: 48,
+    opacity: 0.6,
+  },
+  topHeader: {
+    paddingBottom: Platform.OS === 'android' ? 18 : 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+  },
+  topHeaderLogo: {
+    width: 110,
+    height: 30,
+    marginTop: Platform.OS === 'android' ? 12 : 8,
+    marginBottom: Platform.OS === 'android' ? 4 : 0,
+  },
+  developerContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+    marginTop: 16,
+  },
+  developerText: {
+    fontSize: 12,
+    fontFamily: 'Poppins_Medium',
+    marginBottom: 8,
+    opacity: 0.7,
+  },
+  developerLogo: {
+    width: 160,
+    height: 48,
+    opacity: 0.8,
+  },
 });

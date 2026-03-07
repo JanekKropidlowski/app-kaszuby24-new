@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { StyleSheet, View, Modal, Text, TouchableOpacity, ActivityIndicator, ScrollView, Linking, Platform, Dimensions } from 'react-native';
+import { StyleSheet, View, Modal, Text, TouchableOpacity, ActivityIndicator, ScrollView, Linking, Platform, Dimensions, Image, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 import MapViewClustering from 'react-native-map-clustering';
 import { SorHospital, SorService, SorDataResponse } from '@/services/sor';
@@ -49,75 +49,96 @@ const getWheelchairLabel = (wheelchair?: string) => {
     return 'Brak danych';
 };
 
+// ─── Android PNG markers (no View rendering = no clipping) ───────────────────
+const AM_SIZE = 48; // Android Marker image size
+const AM = Platform.OS === 'android' ? {
+    aed_green: require('@/assets/images/markers/marker_aed_green.png'),
+    aed_red: require('@/assets/images/markers/marker_aed_red.png'),
+    aed_blue: require('@/assets/images/markers/marker_aed_blue.png'),
+    aed_orange: require('@/assets/images/markers/marker_aed_orange.png'),
+    pharmacy: require('@/assets/images/markers/marker_pharmacy.png'),
+    pharmacy_24h: require('@/assets/images/markers/marker_pharmacy_24h.png'),
+    sor: require('@/assets/images/markers/marker_sor.png'),
+    hospital: require('@/assets/images/markers/marker_hospital.png'),
+} : null;
+
 // Memoized Marker Components to prevent re-rendering thrashing
 const AedMarker = React.memo(({ item, coordinate, onPress }: { item: AEDPoint, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
+    if (Platform.OS === 'android' && AM) {
+        const acc = item.access?.toLowerCase() || '';
+        const img = acc === 'private' || acc === 'no' ? AM.aed_red
+            : acc === 'customers' ? AM.aed_blue
+                : item.indoor === 'yes' ? AM.aed_orange
+                    : AM.aed_green;
+        return (
+            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }} icon={img} />
+        );
+    }
     const color = getColorBadge(item.access, item.indoor);
-    const icon = "heart-flash"; // Unified as per user request
-
     return (
-        <Marker
-            coordinate={coordinate}
-            onPress={onPress}
-            tracksViewChanges={false} // Static content, render once
-        >
-            <View style={[
-                styles.markerContainer,
-                { backgroundColor: color, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 5 }
-            ]}>
-                <MaterialCommunityIcons
-                    name={icon}
-                    size={16}
-                    color="#fff"
-                />
+        <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false}>
+            <View style={[styles.markerContainer, { backgroundColor: color, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 5 }]}>
+                <MaterialCommunityIcons name="heart-flash" size={16} color="#fff" />
             </View>
         </Marker>
     );
 });
 
-const PharmacyMarker = React.memo(({ item, coordinate, onPress }: { item: PharmacyPoint, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => (
-    <Marker
-        coordinate={coordinate}
-        onPress={onPress}
-        tracksViewChanges={false}
-    >
-        <View style={[styles.markerContainer, { backgroundColor: item.is24h ? '#1E293B' : '#8B5CF6' }]}>
-            {item.is24h ? (
-                <MaterialCommunityIcons name="weather-night" size={16} color="#FACC15" />
-            ) : (
-                <Ionicons name="medical" size={14} color="#fff" />
-            )}
-            {item.is24h && (
-                <View style={[styles.badge24h, { backgroundColor: '#FACC15' }]}>
-                    <Text style={[styles.badge24hText, { color: '#1E293B' }]}>24h</Text>
-                </View>
-            )}
-        </View>
-    </Marker>
-));
+const PharmacyMarker = React.memo(({ item, coordinate, onPress }: { item: PharmacyPoint, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
+    if (Platform.OS === 'android' && AM) {
+        const img = item.is24h ? AM.pharmacy_24h : AM.pharmacy;
+        return (
+            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }} icon={img} />
+        );
+    }
+    return (
+        <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false}>
+            <View style={[styles.markerContainer, { backgroundColor: item.is24h ? '#1E293B' : '#8B5CF6' }]}>
+                {item.is24h ? (
+                    <MaterialCommunityIcons name="weather-night" size={16} color="#FACC15" />
+                ) : (
+                    <Ionicons name="medical" size={14} color="#fff" />
+                )}
+                {item.is24h && (
+                    <View style={[styles.badge24h, { backgroundColor: '#FACC15' }]}>
+                        <Text style={[styles.badge24hText, { color: '#1E293B' }]}>24h</Text>
+                    </View>
+                )}
+            </View>
+        </Marker>
+    );
+});
 
-const SorMarker = React.memo(({ item, coordinate, onPress }: { item: SorHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => (
-    <Marker
-        coordinate={coordinate}
-        onPress={onPress}
-        tracksViewChanges={false}
-    >
-        <View style={[styles.markerContainer, { backgroundColor: item.type === 'NiSOZ' || !item.numer_ksiegi ? '#3B82F6' : '#EF4444' }]}>
-            <MaterialCommunityIcons name={item.type === 'NiSOZ' || !item.numer_ksiegi ? "hospital-building" : "hospital-box"} size={16} color="#fff" />
-        </View>
-    </Marker>
-));
+const SorMarker = React.memo(({ item, coordinate, onPress }: { item: SorHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
+    if (Platform.OS === 'android' && AM) {
+        const img = item.type === 'NiSOZ' || !item.numer_ksiegi ? AM.hospital : AM.sor;
+        return (
+            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }} icon={img} />
+        );
+    }
+    return (
+        <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false}>
+            <View style={[styles.markerContainer, { backgroundColor: item.type === 'NiSOZ' || !item.numer_ksiegi ? '#3B82F6' : '#EF4444' }]}>
+                <MaterialCommunityIcons name={item.type === 'NiSOZ' || !item.numer_ksiegi ? "hospital-building" : "hospital-box"} size={16} color="#fff" />
+            </View>
+        </Marker>
+    );
+});
 
-const GeneralHospitalMarker = React.memo(({ item, coordinate, onPress }: { item: GeneralHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => (
-    <Marker
-        coordinate={coordinate}
-        onPress={onPress}
-        tracksViewChanges={false}
-    >
-        <View style={[styles.markerContainer, { backgroundColor: '#3B82F6' }]}>
-            <MaterialCommunityIcons name="hospital-building" size={16} color="#fff" />
-        </View>
-    </Marker>
-));
+const GeneralHospitalMarker = React.memo(({ item, coordinate, onPress }: { item: GeneralHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
+    if (Platform.OS === 'android' && AM) {
+        return (
+            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }} icon={AM.hospital} />
+        );
+    }
+    return (
+        <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false}>
+            <View style={[styles.markerContainer, { backgroundColor: '#3B82F6' }]}>
+                <MaterialCommunityIcons name="hospital-building" size={16} color="#fff" />
+            </View>
+        </Marker>
+    );
+});
 
 interface EssentialsMapProps {
     hospitals: SorHospital[];
@@ -141,7 +162,6 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
     const [showEmergencyModal, setShowEmergencyModal] = useState(false);
 
     const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-    const [showOnly24h, setShowOnly24h] = useState(false);
     const [searchingNearest, setSearchingNearest] = useState(false);
     const [showHint, setShowHint] = useState(true);
 
@@ -159,8 +179,40 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         latitude: 54.3520, longitude: 18.6466, latitudeDelta: 0.1, longitudeDelta: 0.1
     });
 
+    const formatWaitTime = (wait: string | undefined): string => {
+        if (!wait) return '';
+        // Remove any existing "min" to avoid duplication
+        let cleanWait = wait.replace(/\s*min\s*/gi, '').replace(/\,/g, '.').trim();
+        const minutes = parseInt(cleanWait, 10);
+
+        if (isNaN(minutes)) return wait; // Return original if not a number (e.g. "Brak danych")
+        if (minutes === 0) return "0 min";
+
+        const hours = Math.floor(minutes / 60);
+        const remMin = minutes % 60;
+
+        if (hours > 0) {
+            return `${hours} h ${remMin} min`;
+        }
+        return `${minutes} min`;
+    };
+
+    const hasValidQueueData = useMemo(() => {
+        if (!queueData?.data) return false;
+        return queueData.data.some(q => {
+            const w = q.wait?.toLowerCase().trim();
+            return w && w !== '' && w !== 'brak danych' && w !== 'nie dotyczy' && w !== 'null';
+        });
+    }, [queueData]);
+
     const searchTimer = useRef<NodeJS.Timeout | null>(null);
     const lastFetchRegion = useRef<Region | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+        };
+    }, []);
     const lastAutoZoom = useRef<FilterType | null>(null); // To prevent auto-zoom loops
 
     useEffect(() => {
@@ -189,8 +241,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         try {
             const data = await SorService.fetchQueueTimes(hospital.numer_ksiegi);
             setQueueData(data);
-        } catch (e) {
-            console.error("Queue fetch error:", e);
+        } catch {
         } finally {
             setLoadingQueue(false);
         }
@@ -275,19 +326,22 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         });
 
         if (nearest && mapRef.current) {
-            mapRef.current.animateToRegion({
+            const targetRegion = {
                 latitude: nearest.lat,
                 longitude: nearest.lon,
                 latitudeDelta: 0.02,
                 longitudeDelta: 0.02
-            }, 800);
+            };
+            // Keep controlled `region` in sync; Android sometimes ignores visual zoom if state lags.
+            setRegion(targetRegion);
+            mapRef.current.animateToRegion(targetRegion, Platform.OS === 'android' ? 950 : 800);
         }
 
     }, [activeFilter, userLocation]); // Only re-run if filter or user location changes explicitly
 
     const findNearestPoint = () => {
         if (!userLocation) {
-            alert("Nie można określić Twojej lokalizacji.");
+            Alert.alert('Brak lokalizacji', 'Nie można określić Twojej lokalizacji.');
             return;
         }
 
@@ -330,12 +384,15 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
             }
         });
 
-        mapRef.current?.animateToRegion({
+        const targetRegion = {
             latitude: nearest.lat,
             longitude: nearest.lon,
             latitudeDelta: 0.012,
             longitudeDelta: 0.012,
-        }, 1000);
+        };
+        // Keep controlled `region` in sync with animation (important on Android).
+        setRegion(targetRegion);
+        mapRef.current?.animateToRegion(targetRegion, Platform.OS === 'android' ? 1200 : 1000);
 
         setTimeout(() => {
             setSelectedItem({ type: (nearest as any).subType === 'SOR' ? 'SOR' : type, data: nearest.data });
@@ -465,7 +522,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         }
 
         return { markers, counts: { h: hCount, p: pCount, a: aCount }, isCapped };
-    }, [activeFilter, hospitals, generalHospitals, pharmacies, aedPoints, region.latitudeDelta, region.latitude, region.longitude, showOnly24h]);
+    }, [activeFilter, hospitals, generalHospitals, pharmacies, aedPoints, region.latitudeDelta, region.latitude, region.longitude]);
 
     const getModalInfo = () => {
         if (!selectedItem) return null;
@@ -476,7 +533,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         let address = "Brak adresu";
         let city = "";
         let phone = "";
-        let category = "Pomoc Medyczna";
+        let category = "Szpitale";
 
         if (type === 'SOR') {
             title = d.nazwa_swd || "SOR";
@@ -615,7 +672,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                 </TouchableOpacity>
                 <View style={styles.headerTitleContainer}>
                     <Text style={styles.headerTitle}>Niezbędnik</Text>
-                    <Text style={styles.headerSub}>Pomoc medyczna i ratownictwo</Text>
+                    <Text style={styles.headerSub}>Szpitale, apteki i ratownictwo</Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowEmergencyModal(true)} style={[styles.headerBtn, { backgroundColor: '#EF4444' }]}>
                     <Ionicons name="call" size={20} color="#fff" />
@@ -694,7 +751,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
             <View style={styles.filterWrapper}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
                     {[
-                        { id: 'MEDICAL', label: 'Pomoc Medyczna', icon: 'medical' },
+                        { id: 'MEDICAL', label: 'Szpitale', icon: 'medical' },
                         { id: 'PHARMACY', label: 'Apteki', icon: 'flask' }, // Changed icon to distinguish
                         { id: 'AED', label: 'AED', icon: 'flash' }
                     ].map(f => (
@@ -817,8 +874,8 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                 ) : null}
                             </View>
 
-                            {/* SOR Specific Info - Only show if data is available */}
-                            {selectedItem?.type === 'SOR' && (loadingQueue || (queueData?.data && queueData.data.length > 0)) && (
+                            {/* SOR Specific Info - Only show if data is available and contains valid wait times */}
+                            {selectedItem?.type === 'SOR' && (loadingQueue || hasValidQueueData) && (
                                 <View style={styles.sectionContainer}>
                                     <Text style={styles.sectionTitle}>Status Oddziału i Kolejki</Text>
                                     {loadingQueue ? (
@@ -832,7 +889,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                                 <View style={styles.queueTop}>
                                                     <Text style={styles.queueName}>{q.name}</Text>
                                                     <View style={[styles.queueBadge, { backgroundColor: parseInt(q.wait) > 180 ? '#EF4444' : '#10B981' }]}>
-                                                        <Text style={styles.queueValue}>{q.wait} min</Text>
+                                                        <Text style={styles.queueValue}>{formatWaitTime(q.wait)}</Text>
                                                     </View>
                                                 </View>
                                                 {q.triage && (

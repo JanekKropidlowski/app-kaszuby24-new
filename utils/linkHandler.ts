@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { fetchArticleBySlug, fetchEventBySlug, fetchNekrologBySlug } from '@/services/api';
 
 export interface DeepLinkInfo {
-  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'home' | 'wydarzenia' | 'nekrologi' | 'unknown';
+  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'home' | 'wydarzenia' | 'nekrologi' | 'external' | 'unknown';
   slug?: string;
   id?: number;
   query?: string;
   path?: string;
+  url?: string;
 }
 
 /**
@@ -68,7 +70,22 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
       const path = pathname.replace(/^\/+|\/+$/g, '');
       const pathSegments = path.split('/').filter(s => s.length > 0);
 
-      console.log('Web URL detected. Path segments:', pathSegments);
+      // Ścieżki systemowe WP — otwórz w przeglądarce
+      const wpSystemPaths = ['wp-admin', 'wp-content', 'wp-json', 'wp-login.php', 'wp-includes', 'feed', 'sitemap', 'xmlrpc.php'];
+      if (pathSegments.length > 0 && wpSystemPaths.some(p => pathSegments[0].startsWith(p))) {
+        return { type: 'external', url };
+      }
+
+      // WP numeryczny ID: /?p=123 lub /?page_id=123
+      const pId = urlObj.searchParams.get('p') || urlObj.searchParams.get('page_id');
+      if (pId) {
+        const numId = parseInt(pId);
+        if (!isNaN(numId)) return { type: 'article', id: numId };
+      }
+
+      // WP search: /?s=query
+      const wpSearch = urlObj.searchParams.get('s');
+      if (wpSearch && pathSegments.length === 0) return { type: 'search', query: wpSearch };
 
       if (pathSegments.length === 0 || path === '') {
         return { type: 'home' };
@@ -76,7 +93,7 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
 
       // Main pages
       if (pathSegments[0] === 'wydarzenia') return { type: 'wydarzenia' };
-      if (pathSegments[0] === 'nekrologi-2') return { type: 'nekrologi' };
+      if (pathSegments[0] === 'nekrologi' || pathSegments[0] === 'nekrologi-2') return { type: 'nekrologi' };
 
       // Nekrolog by slug: /nekrolog/nazwa-nekrologu
       if (pathSegments[0] === 'nekrolog' && pathSegments[1]) {
@@ -96,29 +113,34 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
         }
       }
 
-      // Category: /category/wiadomosci
-      if (pathSegments[0] === 'category' && pathSegments[1]) {
+      // WP Category: /category/wiadomosci lub /kategoria/wiadomosci
+      if ((pathSegments[0] === 'category' || pathSegments[0] === 'kategoria') && pathSegments[1]) {
         return { type: 'category', slug: pathSegments[1] };
       }
 
-      // Search: /search?q=query
-      if (pathSegments[0] === 'search') {
-        const query = urlObj.searchParams.get('q') || '';
+      // Search: /search?q=query lub /szukaj
+      if (pathSegments[0] === 'search' || pathSegments[0] === 'szukaj') {
+        const query = urlObj.searchParams.get('q') || urlObj.searchParams.get('s') || '';
         return { type: 'search', query, path: 'search' };
       }
 
       // Weather: /weather
       if (pathSegments[0] === 'weather') return { type: 'weather', path: 'weather' };
 
-      // Article by slug: /nazwa-artykulu (default case)
-      // Resilient check: exclude known non-article roots
-      const reservedRoots = ['event', 'category', 'search', 'weather', 'kalendarz', 'nekrolog', 'wydarzenia', 'nekrologi-2'];
+      // Strony które mają być otwierane w przeglądarce
+      const externalPaths = ['kontakt', 'o-nas', 'reklama', 'polityka-prywatnosci', 'regulamin', 'reklama-w-serwisie', 'mediakit', 'o-portalu'];
+      if (externalPaths.includes(pathSegments[0].toLowerCase())) {
+        return { type: 'external', url };
+      }
+
+      // Artykuł po slugu: /nazwa-artykulu (domyślny przypadek)
+      const reservedRoots = ['event', 'category', 'kategoria', 'search', 'szukaj', 'weather', 'kalendarz', 'nekrolog', 'wydarzenia', 'nekrologi', 'nekrologi-2'];
       if (pathSegments.length === 1 && !reservedRoots.includes(pathSegments[0])) {
         return { type: 'article', slug: pathSegments[0] };
       }
 
-      // Default to article if no specific pattern matches and we have a path
-      if (pathSegments.length > 0) {
+      // Głębsze ścieżki — ostatni segment jako slug artykułu
+      if (pathSegments.length > 1) {
         return { type: 'article', slug: pathSegments[pathSegments.length - 1] };
       }
     }
@@ -137,23 +159,21 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
   try {
     switch (linkInfo.type) {
       case 'article':
-        if (linkInfo.slug) {
-          console.log('Navigating to article with slug:', linkInfo.slug);
-          // Fetch article by slug, then navigate by ID
+        if (linkInfo.id) {
+          // Bezpośredni link po ID (np. /?p=123)
+          router.push(`/article/${linkInfo.id}`);
+        } else if (linkInfo.slug) {
           try {
             const article = await fetchArticleBySlug(linkInfo.slug);
             if (article?.id) {
               router.push(`/article/${article.id}`);
             } else {
-              console.warn('Article not found for slug, navigating home');
               router.push('/(tabs)');
             }
           } catch (e) {
-            console.warn('Failed to fetch article by slug, navigating home', e);
             router.push('/(tabs)');
           }
         } else {
-          console.log('No slug provided, navigating to home');
           router.push('/(tabs)');
         }
         break;
@@ -246,6 +266,13 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
         router.push('/(tabs)');
         break;
 
+      case 'external':
+        if (linkInfo.url) {
+          console.log('Opening external link in browser:', linkInfo.url);
+          WebBrowser.openBrowserAsync(linkInfo.url);
+        }
+        break;
+
       default:
         console.log('Unknown link type, navigating to home');
         router.push('/(tabs)');
@@ -312,9 +339,9 @@ export const extractSlugFromUrl = (url: string): string | null => {
  */
 export const isValidSlug = (slug: string): boolean => {
   if (!slug || slug.length === 0) return false;
-
-  // Basic validation - slug should contain letters/numbers and hyphens
-  const slugRegex = /^[a-zA-Z0-9\-_]+$/;
+  if (slug.length > 200) return false;
+  // Dopuszcza litery, cyfry, myślniki, podkreślenia i kropki (WP slugs)
+  const slugRegex = /^[a-zA-Z0-9\-_.]+$/;
   return slugRegex.test(slug);
 };
 

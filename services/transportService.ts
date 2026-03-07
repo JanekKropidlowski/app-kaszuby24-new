@@ -2,6 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PKSScraperService } from './pksScraperService';
 import { PolishTransportApiService } from './polishTransportApiService';
+import { tileCache } from './tileCache';
 
 // Simple Polyline Decoder
 const decodePolyline = (encoded: string) => {
@@ -153,6 +154,9 @@ const TIMETABLE_CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes (timetables change)
 // Request deduplication - prevent multiple simultaneous calls to same endpoint
 const pendingRequests: Map<string, Promise<any>> = new Map();
 
+// Request cancellation - "latest wins" strategy
+let currentBboxController: AbortController | null = null;
+
 export const TransportService = {
 
     // --- IN-MEMORY CACHE FOR OFFLINE-FIRST STRATEGY ---
@@ -163,7 +167,6 @@ export const TransportService = {
         // Return memory cache if fresh (< 24h)
         const CACHE_AGE = Date.now() - this._lastFetch;
         if (!forceRefresh && this._stopsCache.length > 0 && CACHE_AGE < 24 * 60 * 60 * 1000) {
-            console.log(`[MEMORY] Returning ${this._stopsCache.length} stops from RAM`);
             return this._stopsCache;
         }
 
@@ -177,16 +180,14 @@ export const TransportService = {
                 if (data && data.length > 500 && (Date.now() - timestamp) < 24 * 60 * 60 * 1000 && !forceRefresh && hasPKS) {
                     this._stopsCache = data;
                     this._lastFetch = timestamp;
-                    console.log(`[DISK] Loaded ${data.length} stops from storage (v5). PKS present: ${hasPKS}`);
                     return data;
                 } else if (!hasPKS) {
-                    console.log('[DISK] Cache exists but is missing PKS data. Forcing API fetch.');
                 }
             }
         } catch (e) { }
 
+        const results: any[] = [];
         // Fetch fresh from API
-        console.log('[API] Fetching FULL stop list with explicit tagging & smart merging...');
         try {
             // Aggregation: Fetch each source explicitly
             const requestConfigs = [
@@ -200,20 +201,36 @@ export const TransportService = {
                 { id: 'intercity', label: 'ic_rail' }
             ];
 
-            const results: any[] = [];
             for (const config of requestConfigs) {
                 try {
-                    console.log(`[API] Fetching ${config.id}...`);
-                    const res = await axios.get(`${WP_API_BASE}/stops?agency=${config.id}`, {
+                    const useV2 = config.id === 'skm' || config.id === 'polregio';
+                    const url = useV2
+                        ? `https://kaszuby24.pl/wp-json/kaszuby24/v2/stops?agency=${config.id}`
+                        : `${WP_API_BASE}/stops?agency=${config.id}`;
+
+                    const res = await axios.get(url, {
                         timeout: 60000,
                         transformResponse: [(data) => this.safeJsonParse(data)]
                     });
-                    const stops = (Array.isArray(res.data) ? res.data : []).map((s: any) => ({
+
+                    // Flatten V2 GeoJSON to flat list of properties
+                    let stops = [];
+                    if (useV2 && res.data && res.data.features) {
+                        stops = res.data.features.map((f: any) => ({
+                            ...f.properties,
+                            lat: f.geometry.coordinates[1],
+                            lon: f.geometry.coordinates[0]
+                        }));
+                    } else {
+                        stops = Array.isArray(res.data) ? res.data : [];
+                    }
+
+                    const normalized = stops.map((s: any) => ({
                         ...s,
                         api_source: config.label,
                         agency: (s.agency && s.agency !== 'all' && s.agency !== 'unknown') ? s.agency : config.label
                     }));
-                    results.push(stops);
+                    results.push(normalized);
                     // Add a tiny delay to breathe
                     await new Promise(r => setTimeout(r, 100));
                 } catch (e: any) {
@@ -230,9 +247,7 @@ export const TransportService = {
 
             // Flatten all results
             let rawStops = [...results.flat(), ...stopsFallback];
-            console.log(`[API] Total raw stops: ${rawStops.length}. Checking PKS...`);
             const pksCountRaw = rawStops.filter(s => (s.agency || '').toLowerCase().includes('pks') || s.api_source === 'pks_gdynia').length;
-            console.log(`[API] Found ${pksCountRaw} PKS stops in raw data.`);
 
             // 1. NORMALIZE & CLEAN
             rawStops = rawStops.map(s => {
@@ -256,7 +271,6 @@ export const TransportService = {
                 };
             }).filter(s => !isNaN(s.lat) && !isNaN(s.lon) && s.lat !== 0);
 
-            console.log(`[API] After normalization: ${rawStops.length} stops. PKS count: ${rawStops.filter(s => s.agency === 'pks_gdynia').length}`);
 
             // 2. SMART MERGE (Clustering)
             // Group stops by name and location (rounded to ~150m for merging directions)
@@ -291,6 +305,7 @@ export const TransportService = {
                 }
             });
 
+            // Sort stops by priority: 🚆 SKM > 🚂 POLREGIO > � PKS Gdynia > 🚌 MZK Wejherowo > others
             const HUBS = ['gdynia główna', 'gdańsk główny', 'gdańsk wrzeszcz', 'sopot', 'reda', 'rumia', 'wejherowo'];
             const allStops = Array.from(mergedMap.values()).sort((a, b) => {
                 const aAg = (a.agency || '').toLowerCase();
@@ -298,23 +313,29 @@ export const TransportService = {
                 const aName = a.name.toLowerCase();
                 const bName = b.name.toLowerCase();
 
-                // 1. Major Hubs always first
+                // Priority hierarchy: 🚆 SKM > 🚂 POLREGIO > 🚍 PKS Gdynia > 🚌 MZK Wejherowo > other rail > buses
+                // This is the MOST IMPORTANT sorting criterion!
+                const getPriority = (ag: string) => {
+                    if (ag.includes('skm')) return 1000;        // 🚆 SKM - HIGHEST
+                    if (ag.includes('polregio') || ag.includes('regio') || ag === 'regio_rail') return 900;  // 🚂 POLREGIO
+                    if (ag.includes('pks') || ag.includes('pksgdynia')) return 850;  // 🚍 PKS Gdynia
+                    if (ag.includes('mzk') || ag.includes('wejherowo')) return 800;  // 🚌 MZK Wejherowo
+                    if (ag.includes('rail') || ag.includes('pkp') || ag.includes('ic_rail')) return 700;
+                    if (ag.includes('mevo')) return 500;
+                    return 0;
+                };
+
+                const aPriority = getPriority(aAg);
+                const bPriority = getPriority(bAg);
+
+                // Priority is the main sorting criterion
+                if (aPriority !== bPriority) return bPriority - aPriority;
+
+                // Secondary: Major Hubs (only if same agency priority)
                 const aIsHub = HUBS.some(h => aName.includes(h));
                 const bIsHub = HUBS.some(h => bName.includes(h));
                 if (aIsHub && !bIsHub) return -1;
                 if (!aIsHub && bIsHub) return 1;
-
-                // 2. Rail priority
-                const aIsRail = aAg.includes('rail') || aAg.includes('skm') || aAg.includes('pkp') || aAg.includes('ic_rail');
-                const bIsRail = bAg.includes('rail') || bAg.includes('skm') || bAg.includes('pkp') || bAg.includes('ic_rail');
-                if (aIsRail && !bIsRail) return -1;
-                if (!aIsRail && bIsRail) return 1;
-
-                // 3. Mevo priority over buses
-                const aIsMevo = aAg.includes('mevo');
-                const bIsMevo = bAg.includes('mevo');
-                if (aIsMevo && !bIsMevo) return -1;
-                if (!aIsMevo && bIsMevo) return 1;
 
                 return 0;
             });
@@ -327,7 +348,6 @@ export const TransportService = {
                 timestamp: this._lastFetch
             })).catch(e => console.warn('Cache save failed', e));
 
-            console.log(`[API] Aggregated & Merged ${allStops.length} pins from ${rawStops.length} raw stops.`);
             return allStops;
 
         } catch (error) {
@@ -335,6 +355,181 @@ export const TransportService = {
             if (this._stopsCache.length > 0) return this._stopsCache;
         }
         return [];
+    },
+
+    /**
+     * SYNC MODE: Fetches ALL static stops at once (cached for 24h).
+     * Used for offline-first feeling and instant filtering.
+     * Excludes heavy dynamic sources (Mevo, Live Vehicles).
+     */
+    async getStaticStops(): Promise<TransportStop[]> {
+        const CACHE_KEY = 'transport_static_stops_v1';
+        const TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+        try {
+            // 1. Try Cache
+            const cached = await AsyncStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const { data, timestamp } = JSON.parse(cached);
+                if (Date.now() - timestamp < TTL) {
+                    return data;
+                }
+            }
+
+            // 2. Network Request
+            const response = await axios.get(`${WP_API_BASE}/stops_lite`, {
+                params: { agency: 'all_static' }
+            });
+
+            // 3. Map lightweight keys (n->name, a->agency) to full objects
+            const stops: TransportStop[] = response.data.map((s: any) => ({
+                id: s.id,
+                name: s.n || s.name,
+                agency: s.a || s.agency,
+                lat: Number(s.lat),
+                lon: Number(s.lon),
+                type: 'bus_stop' // Default
+            }));
+
+            // 4. Save to Cache
+            await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({
+                data: stops,
+                timestamp: Date.now()
+            }));
+
+            return stops;
+
+        } catch (error) {
+            console.warn('[SYNC] Failed to sync stops, trying stale cache', error);
+            // Fallback to stale cache if available
+            const cached = await AsyncStorage.getItem(CACHE_KEY);
+            if (cached) {
+                return JSON.parse(cached).data;
+            }
+            return [];
+        }
+    },
+
+    /**
+     * NEW: Bbox-based fetching with request cancellation and caching
+     * - Only fetches stops in visible viewport
+     * - Implements "latest wins" strategy (cancels previous requests)
+     * - Uses tile-based cache for performance
+     * - Applies zoom-based limits
+     */
+    async getStopsInBbox(
+        bbox: { minLat: number; maxLat: number; minLon: number; maxLon: number },
+        agency: string = 'all',
+        latitudeDelta: number = 0.1
+    ): Promise<TransportStop[]> {
+        // Cancel previous request (latest wins)
+        if (currentBboxController) {
+            currentBboxController.abort();
+        }
+
+        // Create new controller for this request
+        currentBboxController = new AbortController();
+        const signal = currentBboxController.signal;
+
+        // Calculate zoom-based limit
+        const limit = this.getMarkerLimit(latitudeDelta);
+
+        // Generate cache key based on rounded bbox
+        const cacheKey = this.getBboxCacheKey(bbox, agency, latitudeDelta);
+
+        try {
+            // Try cache first
+            const cached = await tileCache.get<TransportStop[]>(cacheKey);
+            if (cached) {
+                return cached.data.slice(0, limit);
+            }
+
+
+            // Fetch from backend with bbox parameters
+            const response = await axios.get(`${WP_API_BASE}/stops_lite`, {
+                params: {
+                    agency,
+                    min_lat: bbox.minLat,
+                    max_lat: bbox.maxLat,
+                    min_lon: bbox.minLon,
+                    max_lon: bbox.maxLon,
+                    limit: limit + 50 // Fetch extra for cache, limit on client
+                },
+                timeout: 10000,
+                signal,
+                transformResponse: [(data) => this.safeJsonParse(data)]
+            });
+
+            let stops = Array.isArray(response.data) ? response.data : [];
+
+            // Fallback to standard /stops if /stops_lite doesn't exist yet
+            if (stops.length === 0 || response.status === 404) {
+                const fallbackResponse = await axios.get(`${WP_API_BASE}/stops`, {
+                    params: {
+                        agency,
+                        min_lat: bbox.minLat,
+                        max_lat: bbox.maxLat,
+                        min_lon: bbox.minLon,
+                        max_lon: bbox.maxLon
+                    },
+                    timeout: 10000,
+                    signal
+                });
+                stops = Array.isArray(fallbackResponse.data) ? fallbackResponse.data : [];
+            }
+
+            // Ensure agency field exists
+            stops = stops.map(s => ({
+                ...s,
+                agency: s.agency || agency
+            }));
+
+            // Cache the result
+            await tileCache.set(cacheKey, stops);
+
+            // Return limited results
+            return stops.slice(0, limit);
+
+        } catch (error: any) {
+            // Don't log abort errors (expected when "latest wins")
+            if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+                return [];
+            }
+
+            console.warn('[BBOX] Error fetching stops:', error.message);
+            return [];
+        }
+    },
+
+    /**
+     * Calculate marker limit based on zoom level (latitudeDelta)
+     */
+    getMarkerLimit(latitudeDelta: number): number {
+        if (latitudeDelta > 0.2) return 60;   // Very zoomed out (city level)
+        if (latitudeDelta > 0.1) return 100;  // Zoomed out (district level)
+        if (latitudeDelta > 0.05) return 150; // Medium zoom (neighborhood level)
+        return 250;                            // Zoomed in (street level)
+    },
+
+    /**
+     * Generate cache key for bbox (tile-based)
+     */
+    getBboxCacheKey(
+        bbox: { minLat: number; maxLat: number; minLon: number; maxLon: number },
+        agency: string,
+        latitudeDelta: number
+    ): string {
+        // Round to 2 decimals (~1km precision) for cache key
+        const precision = 100;
+        const minLat = Math.round(bbox.minLat * precision) / precision;
+        const minLon = Math.round(bbox.minLon * precision) / precision;
+
+        // Include zoom level in key for different limits
+        const zoomCategory = latitudeDelta > 0.2 ? 'far' :
+            latitudeDelta > 0.1 ? 'medium' :
+                latitudeDelta > 0.05 ? 'close' : 'veryclose';
+
+        return `${minLat}_${minLon}_${agency}_${zoomCategory}`;
     },
 
     getAgencyLabel(agency: string | null | undefined): string {
@@ -414,8 +609,12 @@ export const TransportService = {
             else if (ag === 'ic_rail' || ag === 'intercity') apiAgency = 'pkp'; // Intercity uses PKP endpoint often
 
             try {
-                console.log(`[DEBUG_TT] Requesting timetable: agency=${apiAgency} stop=${realId} allDay=${allDay}`);
-                const response = await axios.get<any[]>(`${WP_API_BASE}/timetable`, {
+
+                // Use V2 for agencies fixed on backend (OOM fix)
+                const useV2 = apiAgency === 'skm' || apiAgency === 'polregio';
+                const endpoint = useV2 ? 'https://kaszuby24.pl/wp-json/kaszuby24/v2/timetable' : `${WP_API_BASE}/timetable`;
+
+                const response = await axios.get<any[]>(endpoint, {
                     params: {
                         agency: apiAgency,
                         stop_id: realId,
@@ -427,9 +626,7 @@ export const TransportService = {
 
                 let data = response.data || [];
 
-                // FALLBACK for Gdynia departures if proxy fails
                 if (data.length === 0 && (apiAgency === 'gdynia' || apiAgency === 'zkm')) {
-                    console.log('[FALLBACK] Gdynia timetable empty, trying direct API...');
                     const directDeps = await this.fetchPolishDepartures('zkm_gdynia', realId);
                     if (directDeps.length > 0) {
                         data = directDeps.map(d => ({
@@ -442,7 +639,7 @@ export const TransportService = {
                     }
                 }
 
-                console.log(`[DEBUG_TT] Success. Received ${data.length} departures.`);
+
                 return data;
             } catch (error: any) {
                 console.warn(`[DEBUG_TT] Error fetching ${apiAgency}/${realId}:`, error.message);
@@ -582,7 +779,6 @@ export const TransportService = {
 
         // Check for pending request (deduplication)
         if (pendingRequests.has(requestKey)) {
-            console.log(`[CACHE] Reusing pending request for ${requestKey}`);
             return pendingRequests.get(requestKey)!;
         }
 
@@ -598,10 +794,8 @@ export const TransportService = {
                     const isSuspiciouslyEmpty = data.length < 5 && agency !== 'place_search';
 
                     if (!isTooOld && !isSuspiciouslyEmpty) {
-                        console.log(`[CACHE] Using cached stops for ${agency} (age: ${Math.round(age / 1000 / 60)}min, count: ${data.length})`);
                         return data;
                     } else {
-                        console.log(`[CACHE] Invalidating cache for ${agency} (Age: ${Math.round(age / 60000)}min, Count: ${data.length})`);
                     }
                 } catch (e) {
                     console.warn('[CACHE] Failed to parse cached stops', e);
@@ -609,7 +803,6 @@ export const TransportService = {
             }
         }
 
-        console.log(`[DEBUG] Fetching stops for ${agency}`);
         const perfKey = `fetchStops_${agency}_${Date.now()}`;
         console.time(perfKey);
 
@@ -630,10 +823,8 @@ export const TransportService = {
                 // CRITICAL FALLBACK for Gdynia (if backend proxy fails/empty)
                 if (data.length === 0 && (agency === 'gdynia' || agency === 'zkm' || agency === 'all')) {
                     try {
-                        console.log(`[FALLBACK] Attempting direct fetch for ${agency}...`);
                         const directStops = await this.fetchPolishStops('zkm_gdynia', bbox);
                         if (directStops.length > 0) {
-                            console.log(`[FALLBACK] Success! Found ${directStops.length} Gdynia stops via direct API.`);
                             // Ensure agency field is set for all stops to satisfy TS
                             const normalizedStops = directStops.map(s => ({ ...s, agency: s.agency || 'gdynia' }));
                             data = agency === 'all' ? [...data, ...normalizedStops] : normalizedStops;
@@ -684,7 +875,8 @@ export const TransportService = {
 
         const candidates = source.filter(s => s && s.name && typeof s.name === 'string');
 
-        // Scoring system
+        // Scoring system with AGENCY PRIORITY
+        // Priority: 🚆 SKM (highest) > 🚂 POLREGIO > � PKS Gdynia > 🚌 MZK Wejherowo > others
         const scored = candidates.map(s => {
             const name = s.name.toLowerCase();
             let score = 0;
@@ -692,18 +884,30 @@ export const TransportService = {
             else if (name.startsWith(q)) score += 50;
             else if (name.includes(` ${q}`)) score += 30; // Starts word
             else if (name.includes(q)) score += 10;
+
+            // AGENCY PRIORITY BONUS - HIGH VALUES to ensure trains appear first!
+            const agency = (s.agency || '').toLowerCase();
+            if (agency.includes('skm')) score += 10000;        // 🚆 SKM - HIGHEST
+            else if (agency.includes('polregio') || agency.includes('regio') || agency === 'regio_rail') score += 9000;  // 🚂 POLREGIO
+            else if (agency.includes('pks') || agency.includes('pksgdynia')) score += 8500;  // 🚍 PKS Gdynia
+            else if (agency.includes('mzk') || agency.includes('wejherowo')) score += 8000;  // 🚌 MZK Wejherowo
+            else if (agency.includes('rail') || agency.includes('pkp')) score += 7000;
+
             return { s, score };
         });
 
-        // Sort by score DESC, then by Name Length ASC (shorter is usually main stop)
-        return scored
+        // Sort by score DESC (agency priority first!), then by Name Length ASC
+        const sorted = scored
             .filter(i => i.score > 0)
             .sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
                 return a.s.name.length - b.s.name.length;
             })
-            .slice(0, 10)
-            .map(i => i.s);
+            .slice(0, 10);
+
+        // DEBUG: Log top results with scores
+
+        return sorted.map(i => i.s);
     },
 
     async geocodeAddress(query: string) {
@@ -806,7 +1010,6 @@ export const TransportService = {
 
         if (!startStop || !endStop) return [];
 
-        console.log(`[Router] Planning ${startStop.name} -> ${endStop.name}`);
 
         const results: TripResult[] = [];
         const HUBS = ['Gdynia Główna', 'Gdańsk Główny', 'Gdańsk Wrzeszcz', 'Sopot', 'Reda', 'Rumia', 'Wejherowo'];
@@ -1275,7 +1478,6 @@ export const TransportService = {
      */
     async preloadPopularAgencies(): Promise<void> {
         const popularAgencies = ['polregio', 'skm', 'pkp', 'wejherowo'];
-        console.log('[PRELOAD] Starting background cache for popular agencies');
 
         // Run all in parallel but don't block/await
         Promise.all(
@@ -1285,7 +1487,6 @@ export const TransportService = {
                 })
             )
         ).then(() => {
-            console.log('[PRELOAD] Background cache complete');
         });
     },
 

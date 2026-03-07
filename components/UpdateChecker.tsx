@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
 import { useThemeStore } from '@/store/themeStore';
 
 export default function UpdateChecker() {
@@ -9,6 +10,12 @@ export default function UpdateChecker() {
   const { theme } = useThemeStore();
 
   useEffect(() => {
+    // Skip update checks inside Expo Go (not supported)
+    if (Constants.appOwnership === 'expo') {
+      console.log('Skipping update checks in Expo Go');
+      return;
+    }
+
     checkForUpdates();
   }, []);
 

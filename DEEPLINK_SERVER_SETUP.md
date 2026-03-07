@@ -4,6 +4,12 @@ Aby linki `https://kaszuby24.pl/...` otwierały się w aplikacji mobilnej, nale�
 
 ---
 
+## ⚠️ **WAŻNE: Aktualizacja wymagana na serwerze**
+
+**Obecny plik `apple-app-site-association` na serwerze ma tylko `"paths": ["*"]`, ale dla lepszej kompatybilności zalecamy zaktualizowanie go zgodnie z poniższymi instrukcjami.**
+
+---
+
 ## 1. Konfiguracja dla iOS (Universal Links)
 
 **Krok 1: Utwórz plik**
@@ -19,7 +25,13 @@ Nazwij plik `apple-app-site-association` (bez żadnego rozszerzenia, np. `.txt` 
     "details": [
       {
         "appID": "Y73JSC36P8.app.kaszuby24",
-        "paths": ["*"]
+        "paths": [
+          "*",
+          "/nekrolog/*",
+          "/kalendarz/*",
+          "/wydarzenia",
+          "/nekrologi-2"
+        ]
       }
     ]
   }
@@ -50,11 +62,14 @@ Nazwij plik `assetlinks.json`.
   "target": {
     "namespace": "android_app",
     "package_name": "app.kaszuby24",
-    "sha256_cert_fingerprints": ["B3:26:2A:42:0B:A9:63:39:6C:C5:3C:93:31:73:7D:81:4A:A4:4E:2A:80:A2:35:0E:64:99:95:67:3E:C5:9F:8A"]
+    "sha256_cert_fingerprints": [
+      "B3:26:2A:42:0B:A9:63:39:6C:C5:3C:93:31:73:7D:81:4A:A4:4E:2A:80:A2:35:0E:64:99:95:67:3E:C5:9F:8A",
+      "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"
+    ]
   }
 }]
 ```
-*Uwaga: Odcisk palca SHA256 został pobrany z Twojego konta Expo dla builda produkcyjnego.*
+*Uwaga: pierwszy odcisk to build produkcyjny, drugi to debug keystore (do testów lokalnych).*
 
 **Krok 3: Umieść plik na serwerze**
 
@@ -62,6 +77,49 @@ Plik musi być dostępny pod adresem:
 - `https://kaszuby24.pl/.well-known/assetlinks.json`
 
 **Ważne:** Serwer musi serwować ten plik z nagłówkiem `Content-Type: application/json` i nie może być żadnych przekierowań.
+
+---
+
+## 3. Obsługiwane ścieżki deeplinków
+
+Aplikacja obsługuje następujące typy linków:
+
+### **Strony główne:**
+- `https://kaszuby24.pl/` → Strona główna
+- `https://kaszuby24.pl/wydarzenia/` → Tab wydarzeń
+- `https://kaszuby24.pl/nekrologi-2/` → Sekcja nekrologów
+
+### **Artykuły:**
+- `https://kaszuby24.pl/nazwa-artykulu/` → Artykuł po slug
+
+### **Nekrologi:**
+- `https://kaszuby24.pl/nekrolog/nazwa-nekrologu/` → Nekrolog po slug
+
+### **Wydarzenia:**
+- `https://kaszuby24.pl/kalendarz/nazwa-wydarzenia/` → Wydarzenie po slug
+- `https://kaszuby24.pl/event/123/` → Wydarzenie po ID
+
+### **Inne:**
+- `https://kaszuby24.pl/search?q=query` → Wyszukiwanie
+- `https://kaszuby24.pl/weather/` → Pogoda
+
+---
+
+## 4. Status konfiguracji serwera (stan na 2025-08-15)
+
+### ✅ **Zaimplementowane:**
+- Plik `apple-app-site-association` dostępny pod `/.well-known/`
+- Plik `assetlinks.json` dostępny pod `/.well-known/`
+- Podstawowa konfiguracja iOS i Android
+
+### ⚠️ **Wymaga aktualizacji:**
+- Plik `apple-app-site-association` ma tylko `"paths": ["*"]` zamiast szczegółowych ścieżek
+- Zalecana aktualizacja dla lepszej kompatybilności
+
+### 🔧 **Endpointy API działają:**
+- ✅ Artykuły: `https://kaszuby24.pl/wp-json/wp/v2/posts?slug=...`
+- ✅ Nekrologi: `https://kaszuby24.pl/wp-json/wp/v2/nekrolog?slug=...`
+- ✅ Wydarzenia: `https://kaszuby24.pl/wp-json/wp/v2/kalendarz?slug=...`
 
 ---
 

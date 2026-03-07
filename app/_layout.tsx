@@ -14,6 +14,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { handleDeepLinkWithValidation } from '@/utils/linkHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
+import { analyticsService } from '@/services/analyticsService';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -31,23 +33,41 @@ export default function RootLayout() {
   // Load fonts - must be before any conditional returns
   const [fontsLoaded, fontError] = useFonts({
     'Poppins_Thin': require('../assets/fonts/Poppins/Poppins_Thin.ttf'),
+    'Poppins-Thin': require('../assets/fonts/Poppins/Poppins_Thin.ttf'),
     'Poppins_ThinItalic': require('../assets/fonts/Poppins/Poppins_ThinItalic.ttf'),
+    'Poppins-ThinItalic': require('../assets/fonts/Poppins/Poppins_ThinItalic.ttf'),
     'Poppins_ExtraLight': require('../assets/fonts/Poppins/Poppins_ExtraLight.ttf'),
+    'Poppins-ExtraLight': require('../assets/fonts/Poppins/Poppins_ExtraLight.ttf'),
     'Poppins_ExtraLightItalic': require('../assets/fonts/Poppins/Poppins_ExtraLightItalic.ttf'),
+    'Poppins-ExtraLightItalic': require('../assets/fonts/Poppins/Poppins_ExtraLightItalic.ttf'),
     'Poppins_Light': require('../assets/fonts/Poppins/Poppins_Light.ttf'),
+    'Poppins-Light': require('../assets/fonts/Poppins/Poppins_Light.ttf'),
     'Poppins_LightItalic': require('../assets/fonts/Poppins/Poppins_LightItalic.ttf'),
+    'Poppins-LightItalic': require('../assets/fonts/Poppins/Poppins_LightItalic.ttf'),
     'Poppins_Regular': require('../assets/fonts/Poppins/Poppins_Regular.ttf'),
+    'Poppins-Regular': require('../assets/fonts/Poppins/Poppins_Regular.ttf'),
     'Poppins_Italic': require('../assets/fonts/Poppins/Poppins_Italic.ttf'),
+    'Poppins-Italic': require('../assets/fonts/Poppins/Poppins_Italic.ttf'),
     'Poppins_Medium': require('../assets/fonts/Poppins/Poppins_Medium.ttf'),
+    'Poppins-Medium': require('../assets/fonts/Poppins/Poppins_Medium.ttf'),
     'Poppins_MediumItalic': require('../assets/fonts/Poppins/Poppins_MediumItalic.ttf'),
+    'Poppins-MediumItalic': require('../assets/fonts/Poppins/Poppins_MediumItalic.ttf'),
     'Poppins_SemiBold': require('../assets/fonts/Poppins/Poppins_SemiBold.ttf'),
+    'Poppins-SemiBold': require('../assets/fonts/Poppins/Poppins_SemiBold.ttf'),
     'Poppins_SemiBoldItalic': require('../assets/fonts/Poppins/Poppins_SemiBoldItalic.ttf'),
+    'Poppins-SemiBoldItalic': require('../assets/fonts/Poppins/Poppins_SemiBoldItalic.ttf'),
     'Poppins_Bold': require('../assets/fonts/Poppins/Poppins_Bold.ttf'),
+    'Poppins-Bold': require('../assets/fonts/Poppins/Poppins_Bold.ttf'),
     'Poppins_BoldItalic': require('../assets/fonts/Poppins/Poppins_BoldItalic.ttf'),
+    'Poppins-BoldItalic': require('../assets/fonts/Poppins/Poppins_BoldItalic.ttf'),
     'Poppins_ExtraBold': require('../assets/fonts/Poppins/Poppins_ExtraBold.ttf'),
+    'Poppins-ExtraBold': require('../assets/fonts/Poppins/Poppins_ExtraBold.ttf'),
     'Poppins_ExtraBoldItalic': require('../assets/fonts/Poppins/Poppins_ExtraBoldItalic.ttf'),
+    'Poppins-ExtraBoldItalic': require('../assets/fonts/Poppins/Poppins_ExtraBoldItalic.ttf'),
     'Poppins_Black': require('../assets/fonts/Poppins/Poppins_Black.ttf'),
+    'Poppins-Black': require('../assets/fonts/Poppins/Poppins_Black.ttf'),
     'Poppins_BlackItalic': require('../assets/fonts/Poppins/Poppins_BlackItalic.ttf'),
+    'Poppins-BlackItalic': require('../assets/fonts/Poppins/Poppins_BlackItalic.ttf'),
   });
 
   // Wait for theme to be ready with timeout
@@ -77,11 +97,9 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Check for OTA updates
-        if (Updates.isEnabled) {
+        // Check for OTA updates (skip in Expo Go where Updates APIs aren't available)
+        if (Updates.isEnabled && Constants.appOwnership !== 'expo') {
           try {
-            // Log current update info
-            const currentUpdate = Updates.manifest;
             console.log('📱 Current Update Info:', {
               channel: Updates.channel,
               runtimeVersion: Updates.runtimeVersion,
@@ -100,10 +118,21 @@ export default function RootLayout() {
           } catch (updateError) {
             console.warn('Error checking for updates:', updateError);
           }
+        } else if (Constants.appOwnership === 'expo') {
+          console.log('Skipping OTA update check in Expo Go');
         }
 
         // Initialize notification service
         await notificationService.setupNotificationHandlers();
+
+        // Initialize Firebase Analytics
+        try {
+          await analyticsService.initialize();
+          await analyticsService.logAppOpen('direct');
+          console.log('✅ Firebase Analytics initialized');
+        } catch (analyticsError) {
+          console.warn('Analytics initialization failed:', analyticsError);
+        }
 
         // Memory optimization - no initialization needed
 

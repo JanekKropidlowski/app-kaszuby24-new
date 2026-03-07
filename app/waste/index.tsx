@@ -7,7 +7,6 @@ import {
     TextInput,
     FlatList,
     ActivityIndicator,
-    SafeAreaView,
     StatusBar,
     ScrollView,
     Modal,
@@ -17,6 +16,7 @@ import {
     Platform,
     Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import {
@@ -41,28 +41,16 @@ import {
     CheckCircle2
 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
-import { wasteScheduleService, WasteScheduleData, WasteRegion, City } from '@/services/WasteScheduleService';
-import { WASTE_RULES, WasteRule } from './wasteRules';
+import { wasteScheduleService, WasteScheduleData, WasteRegion, City, WasteNewsArticle } from '@/services/WasteScheduleService';
+import { WASTE_RULES, WasteRule } from '@/constants/wasteRules';
 import { WasteNotificationService, NotificationSettings } from '@/services/WasteNotificationService';
 import { WasteCalendarService } from '@/services/WasteCalendarService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Settings, Calendar as CalendarIcon, List, Bell, Share2, Megaphone, X as CloseIcon, ChevronLeft } from 'lucide-react-native';
+import { Settings, Calendar as CalendarIcon, List, Newspaper, Share2, Megaphone, X as CloseIcon, ChevronLeft, Bell } from 'lucide-react-native';
 import RenderHtml from 'react-native-render-html';
 import GlobalTabBar from '@/components/GlobalTabBar';
 import { useWindowDimensions } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
-
-interface WasteAnnouncement {
-    id: number;
-    date: string;
-    title: { rendered: string };
-    content: { rendered: string };
-    link: string;
-    excerpt: { rendered: string };
-    _embedded?: {
-        'wp:featuredmedia'?: Array<{ source_url: string }>
-    };
-}
 
 const STORAGE_KEY = '@kaszuby24_waste_selection';
 
@@ -107,7 +95,7 @@ export default function WasteScheduleScreen() {
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
     const [settingsVisible, setSettingsVisible] = useState(false);
     const [newsModalVisible, setNewsModalVisible] = useState(false);
-    const [selectedArticle, setSelectedArticle] = useState<WasteAnnouncement | null>(null);
+    const [selectedArticle, setSelectedArticle] = useState<WasteNewsArticle | null>(null);
     const [selectedDayDetails, setSelectedDayDetails] = useState<{ date: string, types: string[] } | null>(null);
     const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
         enabled: true,
@@ -116,11 +104,46 @@ export default function WasteScheduleScreen() {
         reminderDayOffset: 1,
         enabledTypes: []
     });
-    const [announcements, setAnnouncements] = useState<WasteAnnouncement[]>([]);
-    const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+    const [newsArticles, setNewsArticles] = useState<WasteNewsArticle[]>([]);
+    const [newsLoading, setNewsLoading] = useState(false);
     const [isImageViewVisible, setIsImageViewVisible] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [images, setImages] = useState<{ uri: string }[]>([]);
+
+    // Waste Search State
+    const [isWasteSearchVisible, setIsWasteSearchVisible] = useState(false);
+    const [wasteSearchQuery, setWasteSearchQuery] = useState('');
+    const [wasteSearchResults, setWasteSearchResults] = useState<any[]>([]);
+    const [wasteSearchLoading, setWasteSearchLoading] = useState(false);
+
+    useEffect(() => {
+        const searchWaste = async () => {
+            if (wasteSearchQuery.length < 3) {
+                setWasteSearchResults([]);
+                return;
+            }
+
+            setWasteSearchLoading(true);
+            try {
+                // Assuming the WP plugin is installed on kaszuby24.pl or the relevant domain. 
+                // If testing locally, might need headers or specific URL.
+                // For now using a generic placeholder URL that points to the plugin's endpoint.
+                // Ideally this should be configurable.
+                const response = await fetch(`https://kaszuby24.pl/wp-json/kaszuby24/v2/waste-search?q=${encodeURIComponent(wasteSearchQuery)}`);
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    setWasteSearchResults(data);
+                }
+            } catch (e) {
+                console.log('Error searching waste:', e);
+            } finally {
+                setWasteSearchLoading(false);
+            }
+        };
+
+        const timeout = setTimeout(searchWaste, 500);
+        return () => clearTimeout(timeout);
+    }, [wasteSearchQuery]);
 
     useEffect(() => {
         loadInitialState();
@@ -150,7 +173,7 @@ export default function WasteScheduleScreen() {
                     if (exists) {
                         setSelectedStreet({ street: parsed.street, regionId: parsed.regionId });
                         setStep('schedule');
-                        if (city.id === 'reda') fetchAnnouncements();
+                        fetchNewsArticles(city);
                     } else {
                         setStep('street');
                     }
@@ -160,18 +183,27 @@ export default function WasteScheduleScreen() {
         setLoading(false);
     };
 
-    const fetchAnnouncements = async () => {
+    const fetchNewsArticles = async (city: City) => {
         try {
-            setAnnouncementsLoading(true);
-            const response = await fetch('https://miasto.reda.pl/wp-json/wp/v2/posts?categories=11&per_page=3&_embed');
-            if (response.ok) {
-                const data = await response.json();
-                setAnnouncements(data);
+            setNewsLoading(true);
+            console.log('[WasteNews] Fetching for city:', city.name, 'URL:', city.news_api_url, 'Category:', city.news_category_id);
+            if (city.news_api_url) {
+                const articles = await wasteScheduleService.getNewsArticles(
+                    city.news_api_url,
+                    city.news_category_id,
+                    5
+                );
+                console.log('[WasteNews] Fetched', articles.length, 'articles');
+                setNewsArticles(articles);
+            } else {
+                console.log('[WasteNews] No news_api_url configured for this city');
+                setNewsArticles([]);
             }
         } catch (error) {
-            console.log('Error fetching announcements:', error);
+            console.log('[WasteNews] Error fetching news articles:', error);
+            setNewsArticles([]);
         } finally {
-            setAnnouncementsLoading(false);
+            setNewsLoading(false);
         }
     };
 
@@ -183,7 +215,7 @@ export default function WasteScheduleScreen() {
         setData(cityData);
         setStep('street');
         setLoading(false);
-        if (city.id === 'reda') fetchAnnouncements();
+        fetchNewsArticles(city);
     };
 
     const handleStreetSelect = async (street: string, regionId: string) => {
@@ -293,13 +325,66 @@ export default function WasteScheduleScreen() {
     };
 
     const openWasteDetails = (type: string) => {
-        const rule = WASTE_RULES.find(r => r.id.toLowerCase() === type.toLowerCase()) || WASTE_RULES.find(r => type.toLowerCase().includes(r.id.toLowerCase()));
+        console.log(`[WasteDebug] openWasteDetails called with type: "${type}"`);
+        if (!type) {
+            console.warn('[WasteDebug] No type provided to openWasteDetails');
+            return;
+        }
+
+        // 1. Normalization (remove special chars for easier matching)
+        const normalize = (s: string) => s.toLowerCase()
+            .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e')
+            .replace(/ł/g, 'l').replace(/ń/g, 'n').replace(/ó/g, 'o')
+            .replace(/ś/g, 's').replace(/ź/g, 'z').replace(/ż/g, 'z')
+            .trim();
+
+        const normalizedInput = normalize(type);
+        console.log(`[WasteDebug] Normalized input: "${normalizedInput}"`);
+
+        // 2. Keyword Mapping (Synonyms)
+        const getMappedId = (input: string): string => {
+            if (input.includes('plastik') || input.includes('metal') || input.includes('tworzyw')) return 'Plastik i metale';
+            if (input.includes('papier') || input.includes('makulatur')) return 'Papier';
+            if (input.includes('szklo')) return 'Szkło';
+            if (input.includes('bio') || input.includes('kuchn') || input.includes('jedzen')) return 'Bio';
+            if (input.includes('ogrod') || input.includes('zielon') || input.includes('traw') || input.includes('lisci')) return 'Odpady zielone';
+            if (input.includes('popiol')) return 'Popiół';
+            if (input.includes('zmieszan') || input.includes('pozostal')) return 'Zmieszane';
+            if (input.includes('gabaryt') || input.includes('mebl') || input.includes('wielkogabaryt')) return 'Gabaryty';
+            if (input.includes('niebezpiecz') || input.includes('elektro')) return 'Zmieszane'; // Or a dedicated rule if exists
+            return input;
+        };
+
+        const mappedId = getMappedId(normalizedInput);
+        console.log(`[WasteDebug] Mapped ID: "${mappedId}"`);
+
+        // 3. Find Rule - Multi-step search
+        const rule =
+            // Exact match on Mapped ID or Original
+            WASTE_RULES.find(r => r.id.toLowerCase() === mappedId.toLowerCase()) ||
+            WASTE_RULES.find(r => r.id.toLowerCase() === type.toLowerCase()) ||
+            // Partial match
+            WASTE_RULES.find(r => mappedId.toLowerCase().includes(r.id.toLowerCase())) ||
+            WASTE_RULES.find(r => normalize(r.id).includes(normalizedInput));
+
         if (rule) {
-            setSelectedRule(rule);
-            setModalVisible(true);
+            console.log(`[WasteDebug] Found rule: "${rule.title}" (ID: ${rule.id})`);
+            console.log(`[WasteDebug] Allowed items count: ${rule.allowed.length}`);
+            console.log(`[WasteDebug] Forbidden items count: ${rule.forbidden.length}`);
+
+            // Close search modal first
+            setIsWasteSearchVisible(false);
+
+            // Small timeout to let the search modal close before opening details
+            // prevents focus/visibility issues on some devices
+            setTimeout(() => {
+                setSelectedRule(rule);
+                setModalVisible(true);
+                console.log('[WasteDebug] Details Modal marked as visible now');
+            }, 300);
         } else {
-            // Fallback for types not strictly defined but mapped
-            // e.g., mapping 'Odpady zielone' to 'Bio' if strict rule missing, but we have specific rules now.
+            console.error(`[WasteDebug] No rule found for category: "${type}" (Normalized: "${normalizedInput}", Mapped: "${mappedId}")`);
+            // Optional: Alert the user or show a general "Info" rule
         }
     };
 
@@ -474,6 +559,37 @@ export default function WasteScheduleScreen() {
                         </View>
                         <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>Zmień</Text>
                     </TouchableOpacity>
+
+                    {newsArticles && newsArticles.length > 0 && (
+                        <View style={{ marginBottom: 20 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 0, color: theme.colors.text }]}>Aktualności ({newsArticles.length})</Text>
+                                <TouchableOpacity onPress={() => setNewsModalVisible(true)}>
+                                    <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>Zobacz wszystkie</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                                {newsArticles.map(ann => (
+                                    <TouchableOpacity
+                                        key={ann.id}
+                                        style={[styles.miniAnnCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                                        onPress={() => {
+                                            setSelectedArticle(ann);
+                                            setNewsModalVisible(true);
+                                        }}
+                                    >
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                                            <Newspaper size={14} color={theme.colors.primary} />
+                                            <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginLeft: 6 }}>
+                                                {new Date(ann.date).toLocaleDateString('pl-PL')}
+                                            </Text>
+                                        </View>
+                                        <Text numberOfLines={2} style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>{ann.title.rendered}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
                 </View>
             }
             renderItem={({ item, index }) => {
@@ -585,18 +701,13 @@ export default function WasteScheduleScreen() {
                 </View>
             }
             ListFooterComponent={
-                <View style={{ padding: 20, paddingTop: 10, opacity: 0.8 }}>
-                    <Text style={{ fontSize: 13, color: theme.colors.textSecondary, marginBottom: 10, lineHeight: 18, fontFamily: 'Poppins_Regular' }}>
-                        Odpady w pojemnikach lub workach należy wystawiać przed posesję na jeden dzień przed planowanym terminem odbioru lub do godziny 6:00 w dniu wywozu.
-                    </Text>
-                    <Text style={{ fontSize: 13, color: theme.colors.textSecondary, marginBottom: 10, lineHeight: 18, fontFamily: 'Poppins_Regular' }}>
-                        Reklamacje odnośnie odbioru należy zgłaszać najpóźniej dzień roboczy po planowanej zbiórce.{'\n'}
-                        <Text style={{ fontWeight: '700' }}>Tel.: 58 785 76 31 lub 58 678 80 21</Text>
-                    </Text>
-                    <Text style={{ fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18, fontFamily: 'Poppins_Regular', fontStyle: 'italic' }}>
-                        Wystawianie odpadów po godzinie 6:00 w dniu planowanego odbioru nie jest podstawą do reklamacji.
-                    </Text>
-                </View>
+                data?.footer_text ? (
+                    <View style={{ padding: 20, paddingTop: 10, opacity: 0.8 }}>
+                        <Text style={{ fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18, fontFamily: 'Poppins_Regular' }}>
+                            {data.footer_text}
+                        </Text>
+                    </View>
+                ) : null
             }
         />
     );
@@ -703,6 +814,91 @@ export default function WasteScheduleScreen() {
         setIsImageViewVisible(true);
     };
 
+    // Memoizowane props dla RenderHtml — nie są tworzone przy każdym renderze
+    const wasteHtmlSource = useMemo(() => ({
+        html: selectedArticle?.content?.rendered || (selectedArticle?.content as any) || '',
+    }), [selectedArticle?.content]);
+    const wasteHtmlBaseStyle = useMemo(() => ({
+        color: theme.colors.text, fontSize: 16, lineHeight: 24, fontFamily: 'Poppins_Regular' as any,
+    }), [theme.colors.text]);
+    const wasteHtmlTagsStyles = useMemo(() => ({
+        body: { fontFamily: 'Poppins_Regular' as any },
+        p: { marginBottom: 14, fontFamily: 'Poppins_Regular' as any, lineHeight: 24 },
+        h1: { fontSize: 24, fontWeight: 'bold' as any, fontFamily: 'Poppins_Bold' as any, marginTop: 20, marginBottom: 10, lineHeight: 32 },
+        h2: { fontSize: 22, fontWeight: 'bold' as any, fontFamily: 'Poppins_Bold' as any, marginTop: 18, marginBottom: 8, lineHeight: 30 },
+        h3: { fontSize: 20, fontWeight: 'bold' as any, fontFamily: 'Poppins_SemiBold' as any, marginTop: 16, marginBottom: 6, lineHeight: 28 },
+        h4: { fontSize: 18, fontWeight: '600' as any, fontFamily: 'Poppins_SemiBold' as any, marginTop: 14, marginBottom: 6, lineHeight: 26 },
+        h5: { fontSize: 16, fontWeight: '600' as any, fontFamily: 'Poppins_SemiBold' as any, marginTop: 12, marginBottom: 4, lineHeight: 24 },
+        h6: { fontSize: 14, fontWeight: '600' as any, fontFamily: 'Poppins_Medium' as any, marginTop: 10, marginBottom: 4, lineHeight: 22 },
+        a: { color: theme.colors.primary, textDecorationLine: 'none' as any, fontFamily: 'Poppins_Medium' as any },
+        strong: { fontWeight: 'bold' as any, fontFamily: 'Poppins_Bold' as any },
+        b: { fontWeight: 'bold' as any, fontFamily: 'Poppins_Bold' as any },
+        em: { fontStyle: 'italic' as any, fontFamily: 'Poppins_Italic' as any },
+        i: { fontStyle: 'italic' as any, fontFamily: 'Poppins_Italic' as any },
+        ul: { marginBottom: 14, paddingLeft: 24, fontFamily: 'Poppins_Regular' as any },
+        ol: { marginBottom: 14, paddingLeft: 24, fontFamily: 'Poppins_Regular' as any },
+        li: { marginBottom: 8, fontFamily: 'Poppins_Regular' as any, lineHeight: 22 },
+        blockquote: { marginLeft: 16, paddingLeft: 16, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 14, fontStyle: 'italic' as any, fontFamily: 'Poppins_Italic' as any },
+        img: { width: '100%' as any, borderRadius: 12, marginVertical: 16 },
+        figure: { marginVertical: 16, width: '100%' as any },
+        figcaption: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 8, textAlign: 'center' as any, fontFamily: 'Poppins_Regular' as any, fontStyle: 'italic' as any },
+        table: { marginVertical: 16, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8 },
+        th: { padding: 12, fontFamily: 'Poppins_SemiBold' as any, backgroundColor: theme.colors.card },
+        td: { padding: 12, fontFamily: 'Poppins_Regular' as any, borderTopWidth: 1, borderTopColor: theme.colors.border },
+        code: { fontFamily: 'Courier' as any, backgroundColor: theme.colors.card, padding: 4, borderRadius: 4, fontSize: 14 },
+        pre: { backgroundColor: theme.colors.card, padding: 16, borderRadius: 8, marginVertical: 16 },
+    }), [theme.colors.text, theme.colors.primary, theme.colors.textSecondary, theme.colors.border, theme.colors.card]);
+    const wasteHtmlRenderers = useMemo(() => ({
+        img: (props: any) => {
+            const uri = props.tnode.attributes.src;
+            if (!uri) return null;
+            return (
+                <TouchableOpacity
+                    onPress={() => handleImagePress(uri)}
+                    style={{ marginVertical: 16, borderRadius: 12, overflow: 'hidden', width: '100%' }}
+                >
+                    <Image
+                        source={{ uri }}
+                        style={{ width: '100%', height: 250, borderRadius: 12 }}
+                        resizeMode="cover"
+                    />
+                </TouchableOpacity>
+            );
+        },
+        iframe: (props: any) => {
+            const src = props.tnode.attributes.src;
+            if (!src) return null;
+            if (src.includes('youtube.com') || src.includes('youtu.be')) {
+                return (
+                    <View style={{ marginVertical: 16, borderRadius: 12, overflow: 'hidden', backgroundColor: '#000' }}>
+                        <View style={{ paddingTop: '56.25%', position: 'relative' }}>
+                            <Text style={{ position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -50 }, { translateY: -50 }], color: '#fff', fontFamily: 'Poppins_Regular' }}>
+                                🎥 Wideo YouTube
+                            </Text>
+                        </View>
+                    </View>
+                );
+            }
+            return (
+                <View style={{ marginVertical: 16, padding: 20, backgroundColor: theme.colors.card, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border }}>
+                    <Text style={{ color: theme.colors.text, fontFamily: 'Poppins_Regular' }}>📄 Osadzony content</Text>
+                    <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 4, fontFamily: 'Poppins_Regular' }}>
+                        {src.length > 50 ? src.substring(0, 50) + '...' : src}
+                    </Text>
+                </View>
+            );
+        },
+        figure: (props: any) => (
+            <View style={{ marginVertical: 16, width: '100%' }}>
+                {props.TDefaultRenderer && <props.TDefaultRenderer {...props} />}
+            </View>
+        ),
+    }), [handleImagePress, theme.colors.text, theme.colors.textSecondary, theme.colors.card, theme.colors.border]);
+    const wasteHtmlRenderersProps = useMemo(() => ({
+        img: { enableExperimentalPercentWidth: true, initialDimensions: { width: width - 40, height: 300 } },
+        a: { onPress: (_event: any, href: string) => { if (href) {} } },
+    }), [width]);
+
     // --- Render Logic ---
 
     // Header Right Actions
@@ -710,25 +906,23 @@ export default function WasteScheduleScreen() {
         if (step !== 'schedule') return null;
         return (
             <View style={{ flexDirection: 'row', gap: 10 }}>
-                {selectedCity?.id === 'reda' && (
+                {newsArticles && newsArticles.length > 0 && (
                     <TouchableOpacity
                         onPress={() => setNewsModalVisible(true)}
                         style={{ padding: 6, position: 'relative' }}
                     >
-                        <Bell color={theme.colors.text} size={22} />
-                        {announcements.length > 0 && (
-                            <View style={{
-                                position: 'absolute',
-                                top: 4,
-                                right: 6,
-                                width: 8,
-                                height: 8,
-                                borderRadius: 4,
-                                backgroundColor: 'red',
-                                borderWidth: 1,
-                                borderColor: theme.colors.background
-                            }} />
-                        )}
+                        <Newspaper color={theme.colors.text} size={22} />
+                        <View style={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 6,
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: 'red',
+                            borderWidth: 1,
+                            borderColor: theme.colors.background
+                        }} />
                     </TouchableOpacity>
                 )}
 
@@ -795,6 +989,193 @@ export default function WasteScheduleScreen() {
                     )}
                 </>
             )}
+
+            {/* FAB SEARCH BUTTON */}
+            <TouchableOpacity
+                style={{
+                    position: 'absolute',
+                    bottom: 120,
+                    right: 20,
+                    backgroundColor: theme.colors.primary,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderRadius: 30,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    elevation: 5,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                    zIndex: 100
+                }}
+                onPress={() => setIsWasteSearchVisible(true)}
+            >
+                <Search color="#FFF" size={20} style={{ marginRight: 8 }} />
+                <Text style={{ color: '#FFF', fontFamily: 'Poppins-SemiBold', fontSize: 14 }}>Gdzie wyrzucić?</Text>
+            </TouchableOpacity>
+
+            {/* WASTE SEARCH MODAL */}
+            <Modal
+                visible={isWasteSearchVisible}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setIsWasteSearchVisible(false)}
+            >
+                <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+                    <View style={{
+                        paddingTop: 20,
+                        paddingBottom: 24,
+                        paddingHorizontal: 20,
+                        backgroundColor: theme.colors.primary,
+                        borderBottomLeftRadius: 30,
+                        borderBottomRightRadius: 30,
+                        shadowColor: theme.colors.primary,
+                        shadowOffset: { width: 0, height: 10 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 15,
+                        elevation: 10,
+                        zIndex: 10
+                    }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                            <View>
+                                <Text style={{ fontSize: 24, fontFamily: 'Poppins-Bold', color: '#FFF' }}>Gdzie wyrzucić?</Text>
+                                <Text style={{ fontSize: 13, fontFamily: 'Poppins-Medium', color: 'rgba(255,255,255,0.8)', marginTop: -4 }}>Wyszukiwarka segregacji odpadów</Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setIsWasteSearchVisible(false)}
+                                style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 12 }}
+                            >
+                                <X color="#FFF" size={24} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: '#FFF',
+                            borderRadius: 16,
+                            paddingHorizontal: 16,
+                            height: 56,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 8,
+                            elevation: 5
+                        }}>
+                            <Search color={theme.colors.primary} size={22} style={{ marginRight: 12 }} />
+                            <TextInput
+                                style={{ flex: 1, color: '#1F2937', fontFamily: 'Poppins-Medium', fontSize: 16 }}
+                                placeholder="Np. słoik, opona, karton..."
+                                placeholderTextColor="#9CA3AF"
+                                value={wasteSearchQuery}
+                                onChangeText={setWasteSearchQuery}
+                                autoFocus
+                            />
+                            {wasteSearchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setWasteSearchQuery('')}>
+                                    <XCircle color="#9CA3AF" size={20} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+
+                    <FlatList
+                        data={wasteSearchResults}
+                        keyExtractor={(item, idx) => `waste-${idx}`}
+                        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+                        keyboardShouldPersistTaps="handled"
+                        ListEmptyComponent={() => (
+                            !wasteSearchLoading && wasteSearchQuery.length >= 3 ? (
+                                <View style={{ alignItems: 'center', marginTop: 60, paddingHorizontal: 40 }}>
+                                    <View style={{ backgroundColor: theme.colors.card, padding: 20, borderRadius: 50, marginBottom: 16 }}>
+                                        <Search size={40} color={theme.colors.textSecondary} opacity={0.3} />
+                                    </View>
+                                    <Text style={{ fontSize: 18, fontFamily: 'Poppins-Bold', color: theme.colors.text, textAlign: 'center' }}>
+                                        Nie znaleziono odpadu
+                                    </Text>
+                                    <Text style={{ fontSize: 14, fontFamily: 'Poppins-Regular', color: theme.colors.textSecondary, textAlign: 'center', marginTop: 8 }}>
+                                        Spróbuj wpisać inną nazwę lub sprawdź czy nie ma literówek.
+                                    </Text>
+                                </View>
+                            ) : wasteSearchQuery.length > 0 && wasteSearchQuery.length < 3 ? (
+                                <View style={{ alignItems: 'center', marginTop: 60 }}>
+                                    <Text style={{ fontSize: 14, fontFamily: 'Poppins-Regular', color: theme.colors.textSecondary }}>
+                                        Wpisz co najmniej 3 znaki...
+                                    </Text>
+                                </View>
+                            ) : null
+                        )}
+                        ListHeaderComponent={() => (
+                            wasteSearchLoading ? (
+                                <View style={{ paddingVertical: 20 }}>
+                                    <ActivityIndicator color={theme.colors.primary} />
+                                </View>
+                            ) : null
+                        )}
+                        renderItem={({ item }) => {
+                            let IconComponent = Search;
+                            if (item.icon === 'recycle') IconComponent = Recycle;
+                            else if (item.icon === 'glass-fragile') IconComponent = GlassWater;
+                            else if (item.icon === 'file-document') IconComponent = FileText;
+                            else if (item.icon === 'leaf') IconComponent = Leaf;
+                            else if (item.icon === 'sprout') IconComponent = Leaf;
+                            else if (item.icon === 'trash') IconComponent = Trash2;
+                            else if (item.icon === 'help') IconComponent = Info;
+
+                            return (
+                                <TouchableOpacity
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        padding: 16,
+                                        backgroundColor: theme.colors.card,
+                                        marginBottom: 12,
+                                        borderRadius: 16,
+                                        borderWidth: 1,
+                                        borderColor: theme.colors.border,
+                                        shadowColor: '#000',
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.05,
+                                        shadowRadius: 4,
+                                        elevation: 2
+                                    }}
+                                    onPress={() => openWasteDetails(item.category)}
+                                >
+                                    <View style={{
+                                        width: 48,
+                                        height: 48,
+                                        borderRadius: 12,
+                                        backgroundColor: (item.color || '#888') + '15',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginRight: 16,
+                                        borderWidth: 1,
+                                        borderColor: (item.color || '#888') + '30'
+                                    }}>
+                                        <IconComponent size={24} color={item.color || '#888'} />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ fontSize: 16, fontFamily: 'Poppins-Bold', color: theme.colors.text }}>{item.name}</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                            <View style={{
+                                                width: 8,
+                                                height: 8,
+                                                borderRadius: 4,
+                                                backgroundColor: item.color || '#888',
+                                                marginRight: 6
+                                            }} />
+                                            <Text style={{ fontSize: 13, fontFamily: 'Poppins-Medium', color: theme.colors.textSecondary }}>
+                                                {item.category}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        }}
+                    />
+                </SafeAreaView>
+            </Modal>
 
             {/* SETTINGS MODAL */}
             <Modal
@@ -863,6 +1244,7 @@ export default function WasteScheduleScreen() {
                             <Text style={{ textAlign: 'center', color: theme.colors.textSecondary, fontSize: 12 }}>
                                 Powiadomienia przychodzą dzień przed odbiorem o godz. {notifSettings.hour}:{notifSettings.minute < 10 ? '0' + notifSettings.minute : notifSettings.minute}.
                             </Text>
+
                         </ScrollView>
                     </View>
                 </View>
@@ -890,27 +1272,22 @@ export default function WasteScheduleScreen() {
                             </TouchableOpacity>
                         )}
                         <Text style={[styles.modalTitle, { color: theme.colors.text, flex: 1, textAlign: 'center' }]}>
-                            {selectedArticle ? 'Artykuł' : 'Komunikaty'}
+                            {selectedArticle ? 'Aktualności' : 'Aktualności'}
                         </Text>
                         <View style={{ width: 28 }} />
                     </View>
 
                     {selectedArticle ? (
                         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 50 }}>
-                            {selectedArticle._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-                                <TouchableOpacity
-                                    onPress={() => selectedArticle._embedded && handleImagePress(selectedArticle._embedded['wp:featuredmedia'][0].source_url)}
-                                    style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden' }}
-                                >
-                                    <Image
-                                        source={{ uri: selectedArticle._embedded?.['wp:featuredmedia']?.[0]?.source_url || '' }}
-                                        style={{ width: '100%', height: 200, borderRadius: 12 }}
-                                        resizeMode="cover"
-                                    />
-                                </TouchableOpacity>
+                            {selectedArticle.featured_media_url && (
+                                <Image 
+                                    source={{ uri: selectedArticle.featured_media_url }}
+                                    style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 16 }}
+                                    resizeMode="cover"
+                                />
                             )}
                             <Text style={{ fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 10, fontFamily: 'Poppins_Bold' }}>
-                                {selectedArticle.title.rendered.replace(/&#8211;/g, '-').replace(/&#8222;/g, '„').replace(/&#8221;/g, '”')}
+                                {selectedArticle.title.rendered}
                             </Text>
                             <Text style={{ fontSize: 13, color: theme.colors.textSecondary, marginBottom: 20, fontFamily: 'Poppins_Medium' }}>
                                 {new Date(selectedArticle.date).toLocaleDateString('pl-PL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -918,51 +1295,16 @@ export default function WasteScheduleScreen() {
 
                             <RenderHtml
                                 contentWidth={width - 40}
-                                source={{ html: selectedArticle.content.rendered }}
-                                baseStyle={{ color: theme.colors.text, fontSize: 16, lineHeight: 24, fontFamily: 'Poppins_Regular' }}
-                                tagsStyles={{
-                                    p: { marginBottom: 14, fontFamily: 'Poppins_Regular', lineHeight: 24 },
-                                    h1: { fontSize: 24, fontWeight: 'bold', fontFamily: 'Poppins_Bold', marginTop: 20, marginBottom: 10, lineHeight: 32 },
-                                    h2: { fontSize: 22, fontWeight: 'bold', fontFamily: 'Poppins_Bold', marginTop: 18, marginBottom: 8, lineHeight: 30 },
-                                    h3: { fontSize: 20, fontWeight: 'bold', fontFamily: 'Poppins_SemiBold', marginTop: 16, marginBottom: 6, lineHeight: 28 },
-                                    a: { color: theme.colors.primary, textDecorationLine: 'none', fontFamily: 'Poppins_Medium' },
-                                    strong: { fontWeight: 'bold', fontFamily: 'Poppins_Bold' },
-                                    em: { fontStyle: 'italic', fontFamily: 'Poppins_Italic' },
-                                    ul: { marginBottom: 14, paddingLeft: 24 },
-                                    ol: { marginBottom: 14, paddingLeft: 24 },
-                                    li: { marginBottom: 8, fontFamily: 'Poppins_Regular', lineHeight: 22 },
-                                    blockquote: { marginLeft: 16, paddingLeft: 16, borderLeftWidth: 4, borderLeftColor: theme.colors.primary, marginBottom: 14, fontStyle: 'italic' },
-                                    img: { width: '100%', borderRadius: 12, marginVertical: 16 }
-                                }}
-                                renderers={{
-                                    img: (props: any) => {
-                                        const uri = props.tnode.attributes.src;
-                                        if (!uri) return null;
-                                        return (
-                                            <TouchableOpacity
-                                                onPress={() => handleImagePress(uri)}
-                                                style={{ marginVertical: 16, borderRadius: 12, overflow: 'hidden', width: '100%' }}
-                                            >
-                                                <Image
-                                                    source={{ uri }}
-                                                    style={{ width: '100%', height: 250, borderRadius: 12 }}
-                                                    resizeMode="cover"
-                                                />
-                                            </TouchableOpacity>
-                                        );
-                                    }
-                                }}
-                                renderersProps={{
-                                    img: {
-                                        enableExperimentalPercentWidth: true,
-                                        initialDimensions: { width: width - 40, height: 300 }
-                                    }
-                                }}
+                                source={wasteHtmlSource}
+                                baseStyle={wasteHtmlBaseStyle}
+                                tagsStyles={wasteHtmlTagsStyles}
+                                renderers={wasteHtmlRenderers}
+                                renderersProps={wasteHtmlRenderersProps}
                             />
                         </ScrollView>
                     ) : (
                         <FlatList
-                            data={announcements}
+                            data={newsArticles}
                             keyExtractor={(item) => item.id.toString()}
                             contentContainerStyle={{ padding: 16 }}
                             renderItem={({ item }) => (
@@ -984,13 +1326,13 @@ export default function WasteScheduleScreen() {
                                         </Text>
                                     </View>
                                     <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.text, marginBottom: 4 }}>
-                                        {item.title.rendered.replace(/&#8211;/g, '-').replace(/&#8222;/g, '„').replace(/&#8221;/g, '”')}
+                                        {item.title.rendered}
                                     </Text>
                                 </TouchableOpacity>
                             )}
                             ListEmptyComponent={
                                 <View style={{ padding: 40, alignItems: 'center' }}>
-                                    <Text style={{ color: theme.colors.textSecondary }}>Brak nowych komunikatów.</Text>
+                                    <Text style={{ color: theme.colors.textSecondary }}>Brak aktualności dla tego miasta.</Text>
                                 </View>
                             }
                         />
@@ -1033,27 +1375,31 @@ export default function WasteScheduleScreen() {
                                     <View style={styles.ruleSection}>
                                         <View style={styles.ruleSectionHeader}>
                                             <CheckCircle2 color={theme.colors.success} size={20} />
-                                            <Text style={[styles.ruleSectionTitle, { color: theme.colors.text }]}>WRZUCAMY</Text>
+                                            <Text style={[styles.ruleSectionTitle, { color: theme.colors.text }]}>WRZUCAMY ({selectedRule.allowed.length})</Text>
                                         </View>
-                                        {selectedRule.allowed.map((item, i) => (
+                                        {selectedRule.allowed.length > 0 ? selectedRule.allowed.map((item, i) => (
                                             <View key={i} style={styles.ruleItem}>
                                                 <View style={[styles.bullet, { backgroundColor: theme.colors.success }]} />
                                                 <Text style={[styles.ruleText, { color: theme.colors.textSecondary }]}>{item}</Text>
                                             </View>
-                                        ))}
+                                        )) : (
+                                            <Text style={{ color: theme.colors.textSecondary, marginLeft: 26, fontStyle: 'italic' }}>Brak sprecyzowanych elementów</Text>
+                                        )}
                                     </View>
 
                                     <View style={styles.ruleSection}>
                                         <View style={styles.ruleSectionHeader}>
                                             <XCircle color={theme.colors.error} size={20} />
-                                            <Text style={[styles.ruleSectionTitle, { color: theme.colors.text }]}>NIE WRZUCAMY</Text>
+                                            <Text style={[styles.ruleSectionTitle, { color: theme.colors.text }]}>NIE WRZUCAMY ({selectedRule.forbidden.length})</Text>
                                         </View>
-                                        {selectedRule.forbidden.map((item, i) => (
+                                        {selectedRule.forbidden.length > 0 ? selectedRule.forbidden.map((item, i) => (
                                             <View key={i} style={styles.ruleItem}>
                                                 <View style={[styles.bullet, { backgroundColor: theme.colors.error }]} />
                                                 <Text style={[styles.ruleText, { color: theme.colors.textSecondary }]}>{item}</Text>
                                             </View>
-                                        ))}
+                                        )) : (
+                                            <Text style={{ color: theme.colors.textSecondary, marginLeft: 26, fontStyle: 'italic' }}>Brak sprecyzowanych elementów</Text>
+                                        )}
                                     </View>
 
                                     {selectedRule.tips && (
@@ -1569,4 +1915,47 @@ const styles = StyleSheet.create({
         opacity: 0.3,
         marginBottom: 20,
     },
+    testNotifButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+    },
+    announcementCard: {
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        marginBottom: 16,
+    },
+    announcementHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 10,
+    },
+    announcementTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        fontFamily: 'Poppins_Bold',
+        flex: 1,
+    },
+    announcementContent: {
+        fontSize: 14,
+        lineHeight: 20,
+        marginBottom: 12,
+        fontFamily: 'Poppins_Regular',
+    },
+    announcementDate: {
+        fontSize: 12,
+        fontFamily: 'Poppins_Medium',
+    },
+    miniAnnCard: {
+        width: 220,
+        padding: 12,
+        borderRadius: 14,
+        borderWidth: 1,
+    }
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 
 interface ReadingProgressBarProps {
   progress: number; // 0-100
@@ -28,20 +28,20 @@ export const ReadingProgressBar = ({ progress, currentPosition, totalHeight }: R
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 90, // Wyżej umieszczony (było 100)
+    bottom: Platform.OS === 'android' ? 116 : 90,
     left: 0,
     right: 0,
-    backgroundColor: '#ffffff',
+    backgroundColor: Platform.OS === 'android' ? 'transparent' : '#ffffff',
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
     paddingHorizontal: 0, // Usunięty padding poziomy
     paddingVertical: 0, // Usunięty padding pionowy - pasek wypełni całą wysokość
-    zIndex: 5,
+    zIndex: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: Platform.OS === 'android' ? 20 : 3,
   },
   progressBarBg: {
     height: 35, // Jeszcze grubszy pasek (było 20)

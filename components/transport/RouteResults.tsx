@@ -17,6 +17,8 @@ interface RouteResultsProps {
     onShowMore?: () => void;
 }
 
+const tfs = (size: number) => (Platform.OS === 'android' ? Math.max(9, size - 3) : size);
+
 export const RouteResults: React.FC<RouteResultsProps> = ({
     results,
     onClose,
@@ -127,7 +129,7 @@ export const RouteResults: React.FC<RouteResultsProps> = ({
                         onPress={onClose}
                         style={[styles.closeButton, { backgroundColor: theme.colors.border + '40' }]}
                     >
-                        <Text style={{ color: theme.colors.text, fontSize: 16 }}>✕</Text>
+                        <Text style={{ color: theme.colors.text, fontSize: tfs(16) }}>✕</Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -271,7 +273,11 @@ const styles = StyleSheet.create({
     card: { borderTopLeftRadius: 36, borderTopRightRadius: 36, maxHeight: '95%', paddingBottom: 20 },
     dragIndicator: { width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 15 },
     header: { paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    title: { fontSize: 22, fontWeight: '900' },
+    title: {
+        fontSize: tfs(22),
+        fontWeight: '900',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     closeButton: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
     list: { paddingHorizontal: 16 },
     listContent: { gap: 12, paddingBottom: 140 },
@@ -279,11 +285,24 @@ const styles = StyleSheet.create({
     itemHeader: { padding: 16 },
     itemHeaderMain: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     lineBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    lineName: { fontSize: 16, fontWeight: '800' },
+    lineName: {
+        fontSize: tfs(16),
+        fontWeight: '800',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     timeInfo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    duration: { fontSize: 18, fontWeight: '900' },
+    duration: {
+        fontSize: tfs(18),
+        fontWeight: '900',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     routePreview: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-    cityText: { fontSize: 14, fontWeight: '600', flexShrink: 1 },
+    cityText: {
+        fontSize: tfs(14),
+        fontWeight: '600',
+        flexShrink: 1,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
     expandIcon: { position: 'absolute', right: 16, bottom: 12 },
     details: { padding: 15, borderTopWidth: 1, borderTopColor: '#eee' },
     stepRow: { flexDirection: 'row', gap: 12, marginBottom: 15 },
@@ -291,19 +310,51 @@ const styles = StyleSheet.create({
     stepDot: { width: 8, height: 8, borderRadius: 4 },
     stepLine: { width: 2, flex: 1, marginVertical: 4 },
     stepContent: { flex: 1 },
-    stepText: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
-    stepDuration: { fontSize: 11 },
+    stepText: {
+        fontSize: tfs(13),
+        fontWeight: '600',
+        marginBottom: 2,
+        ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
+    },
+    stepDuration: { fontSize: tfs(11) },
     actionButtons: { flexDirection: 'row', gap: 10, marginTop: 10 },
     showOnMapBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14, borderRadius: 16, elevation: 2 },
-    actionBtnText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+    actionBtnText: {
+        color: '#fff',
+        fontSize: tfs(12),
+        fontWeight: '900',
+        letterSpacing: 0.5,
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     moreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderRadius: 16, borderWidth: 1.5, marginTop: 15, borderStyle: 'dashed' },
-    moreText: { fontSize: 16, fontWeight: '800' },
+    moreText: {
+        fontSize: tfs(16),
+        fontWeight: '800',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     agencyTag: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6, marginRight: 6 },
-    agencyTagText: { color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+    agencyTagText: {
+        color: '#fff',
+        fontSize: tfs(11),
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     countdownBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 4 },
-    countdownText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+    countdownText: {
+        fontSize: tfs(11),
+        fontWeight: '900',
+        letterSpacing: 0.5,
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
     skeletonItem: { height: 100, borderRadius: 20, marginBottom: 12 },
     emptyState: { flex: 1, padding: 40, justifyContent: 'center', alignItems: 'center' },
-    emptyTitle: { fontSize: frontWidth > 500 ? 20 : 18, fontWeight: '800', marginBottom: 10, textAlign: 'center' },
-    emptySub: { fontSize: 14, textAlign: 'center', opacity: 0.7 }
+    emptyTitle: {
+        fontSize: frontWidth > 500 ? 20 : 18,
+        fontWeight: '800',
+        marginBottom: 10,
+        textAlign: 'center',
+        ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
+    },
+    emptySub: { fontSize: tfs(14), textAlign: 'center', opacity: 0.7 }
 });

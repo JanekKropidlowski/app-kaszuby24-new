@@ -7,7 +7,7 @@ import {
   Info, 
   Droplets, 
   Wind, 
-  Sun, 
+  SunMedium,
   ChevronUp,
   Cloud,
   CloudRain,
@@ -127,7 +127,7 @@ export const WeatherHero: React.FC<WeatherHeroProps> = ({
             ]}
           >
             <View style={[styles.statIconBackground, { backgroundColor: getStatIconColor('uv') + '15' }]}>
-              <Sun size={20} color={getStatIconColor('uv')} />
+              <SunMedium size={20} color={getStatIconColor('uv')} />
             </View>
             <Text style={[styles.statIconValue, { color: theme.colors.text }]}>
               {uvIndex !== undefined ? `UV ${uvIndex}` : '--'}
@@ -227,28 +227,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 12,
-    borderRadius: 18,
+    borderRadius: Platform.OS === 'android' ? 20 : 18,
+    borderWidth: Platform.OS === 'android' ? 1 : 0,
+    borderColor: Platform.OS === 'android' ? 'rgba(15,23,42,0.06)' : 'transparent',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
+    shadowOpacity: Platform.OS === 'android' ? 0.12 : 0.08,
     shadowRadius: 6,
-    elevation: 3,
+    elevation: Platform.OS === 'android' ? 6 : 3,
     minHeight: 100,
     justifyContent: 'center',
     maxWidth: 110,
+    overflow: Platform.OS === 'android' ? 'hidden' : 'visible',
   },
   statIconBackground: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    elevation: 2,
+    elevation: Platform.OS === 'android' ? 3 : 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
+    overflow: 'hidden',
   },
   statIconValue: {
     fontSize: 13,
@@ -300,6 +304,5 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 });
-
 
 
