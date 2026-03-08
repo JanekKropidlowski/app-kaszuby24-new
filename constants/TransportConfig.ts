@@ -7,9 +7,9 @@ export const TRANSPORT_CONFIG = {
     // Set to false to fallback to legacy TransportRoutingEngine client-side logic
     USE_OTP: true,
 
-    // OTP Server Configuration
-    OTP_API_BASE: 'http://46.29.18.195:8012/otp/routers/default', // Dedicated OTP Server on port 8012
-    OTP_GRAPHQL: 'http://46.29.18.195:8012/otp/routers/default/index/graphql',
+    // OTP Server Configuration — przez HTTPS proxy na WordPress (http blokowane przez iOS/Android)
+    OTP_API_BASE: 'https://kaszuby24.pl/wp-json/kaszuby24/v1/otp',
+    OTP_GRAPHQL: 'https://kaszuby24.pl/wp-json/kaszuby24/v1/otp',
 
     // Default OTP Parameters
     OTP_DEFAULTS: {
