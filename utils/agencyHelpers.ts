@@ -13,12 +13,14 @@ export function getAgencyIcon(agency: string | undefined): string {
     // Train/rail agencies
     if (agencyLower.includes('skm')) return 'train'; // SKM - Fast Urban Railway
     if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return 'train'; // POLREGIO
+    if (agencyLower.includes('intercity') || agencyLower.includes('pkp ic') || agencyLower.includes('regiojet')) return 'train'; // IC/RegioJet
     if (agencyLower.includes('pkp') || agencyLower.includes('rail')) return 'train';
-    
+
     // Bus agencies
     if (agencyLower.includes('pks') || agencyLower.includes('pksgdynia')) return 'bus'; // PKS Gdynia
     if (agencyLower.includes('mzk') || agencyLower.includes('wejherowo')) return 'bus'; // MZK Wejherowo
-    if (agencyLower.includes('ztm') || agencyLower.includes('zkm')) return 'bus';
+    if (agencyLower.includes('zkm')) return 'bus'; // ZKM Gdynia
+    if (agencyLower.includes('ztm')) return 'tram'; // ZTM Gdańsk (tramwaje)
     
     // Default
     return 'bus-outline';
@@ -35,10 +37,11 @@ export function getAgencyColor(agency: string | undefined): string {
     if (agencyLower.includes('skm')) return 'FFB300'; // Yellow/Gold
     if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return '1A6ADD'; // Blue
     if (agencyLower.includes('pks') || agencyLower.includes('pksgdynia')) return '388E3C'; // Green
-    if (agencyLower.includes('mzk') || agencyLower.includes('wejherowo')) return '1A237E'; // Dark Blue
-    if (agencyLower.includes('pkp')) return 'D32F2F'; // Red
-    if (agencyLower.includes('ztm')) return 'D32F2F'; // Red
-    if (agencyLower.includes('zkm')) return '1976D2'; // Blue
+    if (agencyLower.includes('mzk') || agencyLower.includes('wejherowo')) return '1A237E'; // Dark Blue MZK Wejherowo
+    if (agencyLower.includes('zkm')) return 'E53935'; // Red ZKM Gdynia
+    if (agencyLower.includes('ztm')) return 'F57C00'; // Orange ZTM Gdańsk
+    if (agencyLower.includes('intercity') || agencyLower.includes('pkp ic') || agencyLower.includes('regiojet')) return '1A237E'; // Dark Blue IC/RegioJet
+    if (agencyLower.includes('pkp')) return '37474F'; // Dark Gray PKP
     
     return '718096'; // Default gray
 }
@@ -55,9 +58,11 @@ export function getAgencyDisplayName(agency: string | undefined): string {
     if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return 'POLREGIO';
     if (agencyLower.includes('pks') || agencyLower.includes('pksgdynia')) return 'PKS Gdynia';
     if (agencyLower.includes('mzk') || agencyLower.includes('wejherowo')) return 'MZK Wejherowo';
+    if (agencyLower.includes('zkm')) return 'ZKM Gdynia';
+    if (agencyLower.includes('ztm')) return 'ZTM Gdańsk';
+    if (agencyLower.includes('regiojet')) return 'RegioJet';
+    if (agencyLower.includes('intercity') || agencyLower.includes('pkp ic')) return 'PKP IC';
     if (agencyLower.includes('pkp')) return 'PKP';
-    if (agencyLower.includes('ztm')) return 'ZTM';
-    if (agencyLower.includes('zkm')) return 'ZKM';
     
     return agency;
 }

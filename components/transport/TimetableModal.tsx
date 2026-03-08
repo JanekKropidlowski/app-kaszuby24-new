@@ -25,7 +25,7 @@ LocaleConfig.locales['pl'] = {
 };
 LocaleConfig.defaultLocale = 'pl';
 
-type TimetableProvider = 'SKM' | 'POLREGIO' | 'MZK' | 'PKS' | 'SEARCH';
+type TimetableProvider = 'SKM' | 'POLREGIO' | 'MZK' | 'PKS' | 'ZKM' | 'ZTM' | 'TRAINS' | 'SEARCH';
 
 interface TimetableModalProps {
     visible: boolean;
@@ -75,7 +75,8 @@ const DepartureItem = React.memo<{
     selectedDate: string;
 }>(({ item, isSkm, isPolregio, selectedDate }) => {
     const timeRemaining = isToday(selectedDate) ? getTimeRemaining(item.time) : null;
-    const iconName = isSkm || isPolregio ? 'train' : 'bus';
+    const iconNameFromOperator = getAgencyIcon(item.operator);
+    const iconName = (isSkm || isPolregio || iconNameFromOperator === 'train') ? 'train' : iconNameFromOperator;
     // Dynamiczny kolor na podstawie operatora/agencji
     const agencyColor = `#${getAgencyColor(item.operator)}`;
     return (
@@ -192,9 +193,12 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
         let agencyFilter: string[] = [];
         if (selectedProvider === 'SKM') agencyFilter = ['skm'];
         else if (selectedProvider === 'POLREGIO') agencyFilter = ['polregio'];
-        else if (selectedProvider === 'PKS') agencyFilter = ['pks', 'pksgdynia', 'pks gdynia'];
-        else if (selectedProvider === 'MZK' || isMzkSearchMode) agencyFilter = ['mzk', 'mzk wejherowo', 'mzk_wejherowo'];
-        else if (isPksSearchMode) agencyFilter = ['pks', 'pksgdynia', 'pks gdynia'];
+        else if (selectedProvider === 'PKS' || isPksSearchMode) agencyFilter = ['pks', 'pksgdynia', 'pks gdynia'];
+        else if (selectedProvider === 'MZK') agencyFilter = ['mzk', 'mzk wejherowo', 'mzk_wejherowo'];
+        else if (selectedProvider === 'ZKM') agencyFilter = ['zkm', 'zkm gdynia', 'zkm_gdynia'];
+        else if (selectedProvider === 'ZTM') agencyFilter = ['ztm', 'ztm gdansk', 'ztm gdańsk', 'ztm_gdansk'];
+        else if (selectedProvider === 'TRAINS') agencyFilter = ['pkp ic', 'pkpic', 'ic', 'regiojet', 'intercity'];
+        else if (isMzkSearchMode) agencyFilter = ['mzk', 'mzk wejherowo', 'mzk_wejherowo'];
 
         return stops
             .filter(s => {
@@ -231,13 +235,14 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
     const handleProviderSelect = (provider: TimetableProvider) => {
         setSelectedProvider(provider);
-        // Dla SKM i POLREGIO natychmiast włącz tryb search
-        if (provider === 'SKM' || provider === 'POLREGIO') {
-            setIsMzkSearchMode(false);
-        }
+        setIsMzkSearchMode(false);
         // Dla PKS pobierz listę linii
         if (provider === 'PKS') {
             fetchPksLines();
+        }
+        // ZKM i ZTM działają jak MZK — wyszukiwanie przystanku
+        if (provider === 'ZKM' || provider === 'ZTM' || provider === 'TRAINS') {
+            setIsMzkSearchMode(true);
         }
     };
 
@@ -366,6 +371,27 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                     <MaterialCommunityIcons name="bus" size={24} color="#FFF" />
                 </View>
                 <Text style={styles.cardLabel}>MZK Wejherowo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('ZKM')}>
+                <View style={[styles.iconCircle, { backgroundColor: '#E53935' }]}>
+                    <MaterialCommunityIcons name="bus" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.cardLabel}>ZKM Gdynia</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('ZTM')}>
+                <View style={[styles.iconCircle, { backgroundColor: '#F57C00' }]}>
+                    <MaterialCommunityIcons name="tram" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.cardLabel}>ZTM Gdańsk</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('TRAINS')}>
+                <View style={[styles.iconCircle, { backgroundColor: '#1A237E' }]}>
+                    <MaterialCommunityIcons name="train-variant" size={24} color="#FFF" />
+                </View>
+                <Text style={styles.cardLabel}>Pociągi (IC/RegioJet)</Text>
             </TouchableOpacity>
         </View>
     );
@@ -741,6 +767,9 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
         const isPolregio = selectedProvider === 'POLREGIO' || agencyLower.includes('polregio');
         const isPks = selectedProvider === 'PKS' || agencyLower.includes('pks');
         const isMzk = selectedProvider === 'MZK' || agencyLower.includes('mzk');
+        const isZkm = selectedProvider === 'ZKM' || agencyLower.includes('zkm');
+        const isZtm = selectedProvider === 'ZTM' || agencyLower.includes('ztm');
+        const isTrains = selectedProvider === 'TRAINS' || agencyLower.includes('intercity') || agencyLower.includes('regiojet');
 
         return (
             <View style={{ flex: 1 }}>
@@ -1272,7 +1301,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                 />
                 <View style={[
                     styles.content,
-                    (selectedProvider === 'MZK' || selectedProvider === 'SKM' || selectedProvider === 'POLREGIO' || selectedProvider === 'PKS') ? { height: '80%' } : null
+                    (selectedProvider === 'MZK' || selectedProvider === 'SKM' || selectedProvider === 'POLREGIO' || selectedProvider === 'PKS' || selectedProvider === 'ZKM' || selectedProvider === 'ZTM' || selectedProvider === 'TRAINS') ? { height: '80%' } : null
                 ]}>
                     <View style={styles.handle} />
 

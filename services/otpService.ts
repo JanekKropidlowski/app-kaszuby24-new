@@ -26,6 +26,18 @@ export const OTPService = {
             'mzk': 4,
             'mzk wejherowo': 4,
             'mzk_wejherowo': 4,
+            'zkm': 5,
+            'zkm gdynia': 5,
+            'zkm_gdynia': 5,
+            'ztm': 6,
+            'ztm gdansk': 6,
+            'ztm_gdansk': 6,
+            'pkp': 7,
+            'ic': 7,
+            'pkp ic': 7,
+            'pkpic': 7,
+            'regiojet': 7,
+            'intercity': 7,
         };
         
         const feedId = feedMapping[agency.toLowerCase()] || 1;
@@ -495,6 +507,159 @@ export const OTPService = {
     },
 
     /**
+     * Get all stops and departures for a ZKM Gdynia line using OTP GraphQL (feed 5)
+     */
+    async getZKMLineTimetable(lineNumber: string, date?: string): Promise<any> {
+        return this._getGenericLineTimetable('5', 'ZKM', lineNumber, date);
+    },
+
+    /**
+     * Get all stops and departures for a ZTM Gdańsk line using OTP GraphQL (feed 6)
+     */
+    async getZTMLineTimetable(lineNumber: string, date?: string): Promise<any> {
+        return this._getGenericLineTimetable('6', 'ZTM', lineNumber, date);
+    },
+
+    /**
+     * Get all stops and departures for trains (PKP IC, RegioJet, PolRegio, SKM) from feed 7
+     */
+    async getTrainLineTimetable(lineNumber: string, date?: string): Promise<any> {
+        return this._getGenericLineTimetable('7', 'Pociągi', lineNumber, date);
+    },
+
+    /**
+     * Generic timetable fetcher — shared logic for ZKM, ZTM, trains and future feeds
+     */
+    async _getGenericLineTimetable(feedId: string, agencyLabel: string, lineNumber: string, date?: string): Promise<any> {
+        try {
+            const targetDate = date || new Date().toISOString().split('T')[0];
+
+            const routeQuery = `
+                query GetGenericRoute($lineNumber: String!) {
+                    routes(feeds: ["${feedId}"], name: $lineNumber) {
+                        gtfsId
+                        shortName
+                        longName
+                        patterns {
+                            code
+                            headsign
+                            tripsForDate(serviceDate: "${targetDate}") {
+                                gtfsId
+                                stoptimesForDate(serviceDate: "${targetDate}") {
+                                    stop {
+                                        gtfsId
+                                        name
+                                        lat
+                                        lon
+                                    }
+                                    scheduledDeparture
+                                }
+                            }
+                        }
+                    }
+                }
+            `;
+
+            const routeResult = await this.executeGraphQL(routeQuery, { lineNumber });
+
+            if (!routeResult.routes || routeResult.routes.length === 0) {
+                console.warn(`[OTPService] No ${agencyLabel} route found for line: ${lineNumber}`);
+                return { stops: [], stopsByDirection: {}, availableDirections: [], directionTrips: {} };
+            }
+
+            const route = routeResult.routes[0];
+            const stopsByDirection: { [direction: string]: Map<string, any> } = {};
+            const directionTrips: { [direction: string]: string[] } = {};
+            const directionStopOrder: { [direction: string]: string[] } = {};
+            const directionOrderSet: { [direction: string]: boolean } = {};
+
+            route.patterns.forEach((pattern: any) => {
+                const direction = pattern.headsign || route.longName || 'Unknown';
+
+                if (!stopsByDirection[direction]) {
+                    stopsByDirection[direction] = new Map();
+                    directionTrips[direction] = [];
+                    directionStopOrder[direction] = [];
+                    directionOrderSet[direction] = false;
+                }
+
+                if (pattern.tripsForDate && pattern.tripsForDate.length > 0) {
+                    pattern.tripsForDate.forEach((trip: any) => {
+                        directionTrips[direction].push(trip.gtfsId);
+
+                        if (trip.stoptimesForDate && trip.stoptimesForDate.length > 0) {
+                            if (!directionOrderSet[direction]) {
+                                directionStopOrder[direction] = trip.stoptimesForDate.map((st: any) => st.stop.gtfsId);
+                                directionOrderSet[direction] = true;
+                            }
+
+                            trip.stoptimesForDate.forEach((stoptime: any) => {
+                                const stop = stoptime.stop;
+                                const stopKey = stop.gtfsId;
+
+                                if (!stopsByDirection[direction].has(stopKey)) {
+                                    stopsByDirection[direction].set(stopKey, {
+                                        stop_id: stop.gtfsId.split(':')[1],
+                                        stop_name: stop.name,
+                                        stop_lat: stop.lat,
+                                        stop_lon: stop.lon,
+                                        departures: []
+                                    });
+                                }
+
+                                stopsByDirection[direction].get(stopKey).departures.push({
+                                    time: this.formatDepartureTime(stoptime.scheduledDeparture),
+                                    line: lineNumber,
+                                    direction: direction,
+                                    trip_id: trip.gtfsId
+                                });
+                            });
+                        }
+                    });
+                }
+            });
+
+            const formattedStopsByDirection: { [direction: string]: any[] } = {};
+
+            Object.keys(stopsByDirection).forEach(direction => {
+                const stopOrder = directionStopOrder[direction];
+                const stopsMap = stopsByDirection[direction];
+                const stopsArray: any[] = [];
+
+                stopOrder.forEach((stopKey, index) => {
+                    if (stopsMap.has(stopKey)) {
+                        const stop = stopsMap.get(stopKey);
+                        stop.stop_sequence = index;
+                        stop.departures.sort((a: any, b: any) => a.time.localeCompare(b.time));
+                        stopsArray.push(stop);
+                    }
+                });
+
+                formattedStopsByDirection[direction] = stopsArray;
+            });
+
+            const availableDirections = Object.keys(formattedStopsByDirection);
+            const firstDirection = availableDirections[0];
+            const stopsWithDepartures = firstDirection ? formattedStopsByDirection[firstDirection] : [];
+
+            if (stopsWithDepartures.length === 0) {
+                console.warn(`[OTPService] No departures found for ${agencyLabel} line ${lineNumber} on ${targetDate}`);
+            }
+
+            return {
+                stops: stopsWithDepartures,
+                stopsByDirection: formattedStopsByDirection,
+                availableDirections: availableDirections,
+                directionTrips: directionTrips
+            };
+
+        } catch (error) {
+            console.error(`[OTPService] Error fetching ${agencyLabel} line timetable:`, error);
+            return { stops: [], stopsByDirection: {}, availableDirections: [], directionTrips: {} };
+        }
+    },
+
+    /**
      * Helper for GraphQL requests
      */
     async executeGraphQL(query: string, variables: any = {}) {
@@ -837,8 +1002,10 @@ export const OTPService = {
             if (searchStr.includes('skm') || searchStr.includes('szybka kolej')) brand = 'SKM';
             else if (searchStr.includes('polregio') || searchStr.includes('regio') || searchStr.includes(':pr') || agencyId.toLowerCase() === 'pr') brand = 'POLREGIO';
             else if (searchStr.includes('mzk') || searchStr.includes('wejherowo')) brand = 'MZK';
-            else if (searchStr.includes('ztm')) brand = 'ZTM';
-            else if (searchStr.includes('zkm')) brand = 'ZKM';
+            else if (searchStr.includes('zkm') || searchStr.includes('zkm gdynia')) brand = 'ZKM';
+            else if (searchStr.includes('ztm') || searchStr.includes('ztm gdansk') || searchStr.includes('ztm gdańsk')) brand = 'ZTM';
+            else if (searchStr.includes('regiojet')) brand = 'RegioJet';
+            else if (searchStr.includes('intercity') || searchStr.includes('pkp ic') || searchStr.includes('ic ')) brand = 'IC';
             else if (searchStr.includes('pks')) brand = 'PKS';
             else if (searchStr.includes('pkp')) brand = 'PKP';
 

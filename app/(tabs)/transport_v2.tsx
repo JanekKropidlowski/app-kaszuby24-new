@@ -542,6 +542,10 @@ export default function TransportSearchScreen() {
         const isSkm = agencies.some(a => a.toLowerCase().includes('skm'));
         const isPolregio = agencies.some(a => a.toLowerCase().includes('polregio') || a.toLowerCase() === 'reg' || a.toLowerCase() === 'regio');
         const isPks = agencies.some(a => a.toLowerCase().includes('pks') || a.toLowerCase().includes('pksgdynia'));
+        const isZkm = agencies.some(a => a.toLowerCase().includes('zkm'));
+        const isZtm = agencies.some(a => a.toLowerCase().includes('ztm'));
+        const isIC = agencies.some(a => a.toLowerCase().includes('intercity') || a.toLowerCase().includes('pkp ic') || a.toLowerCase() === 'ic');
+        const isRegioJet = agencies.some(a => a.toLowerCase().includes('regiojet'));
 
         const renderIcon = () => {
             if (isSkm) return (
@@ -554,6 +558,11 @@ export default function TransportSearchScreen() {
                     <MaterialCommunityIcons name="train" size={20} color="#FFF" />
                 </View>
             );
+            if (isIC || isRegioJet) return (
+                <View style={[styles.miniBadge, { backgroundColor: '#1A237E', width: 36, height: 36, borderRadius: 10 }]}>
+                    <MaterialCommunityIcons name="train-variant" size={20} color="#FFF" />
+                </View>
+            );
             if (isPks) return (
                 <View style={[styles.miniBadge, { backgroundColor: '#388E3C', width: 36, height: 36, borderRadius: 10 }]}>
                     <MaterialCommunityIcons name="bus" size={20} color="white" />
@@ -562,6 +571,16 @@ export default function TransportSearchScreen() {
             if (isMzk) return (
                 <View style={[styles.miniBadge, { backgroundColor: '#1A237E', width: 36, height: 36, borderRadius: 10 }]}>
                     <MaterialCommunityIcons name="bus-clock" size={20} color="white" />
+                </View>
+            );
+            if (isZkm) return (
+                <View style={[styles.miniBadge, { backgroundColor: '#E53935', width: 36, height: 36, borderRadius: 10 }]}>
+                    <MaterialCommunityIcons name="bus" size={20} color="white" />
+                </View>
+            );
+            if (isZtm) return (
+                <View style={[styles.miniBadge, { backgroundColor: '#F57C00', width: 36, height: 36, borderRadius: 10 }]}>
+                    <MaterialCommunityIcons name="tram" size={20} color="white" />
                 </View>
             );
             return (
@@ -646,8 +665,20 @@ export default function TransportSearchScreen() {
                                         text = leg.line ? `MZK ${leg.line}` : 'MZK'; // Show "MZK 9" if line number exists
                                         style = { backgroundColor: '#1A237E', color: '#FFFFFF' }; // White text for MZK
                                     } else if (leg.brand === 'PKS' || leg.brand === 'PKS Gdynia' || leg.brand?.includes('PKS')) {
-                                        text = leg.line ? `${leg.line}` : 'PKS'; // Show "650" if line number exists
-                                        style = { backgroundColor: '#388E3C', color: '#FFFFFF' }; // Green background for PKS
+                                        text = leg.line ? `${leg.line}` : 'PKS';
+                                        style = { backgroundColor: '#388E3C', color: '#FFFFFF' }; // Zielony PKS Gdynia
+                                    } else if (leg.brand === 'ZKM') {
+                                        text = leg.line ? `ZKM ${leg.line}` : 'ZKM';
+                                        style = { backgroundColor: '#E53935', color: '#FFFFFF' }; // Czerwony ZKM Gdynia
+                                    } else if (leg.brand === 'ZTM') {
+                                        text = leg.line ? `ZTM ${leg.line}` : 'ZTM';
+                                        style = { backgroundColor: '#F57C00', color: '#FFFFFF' }; // Pomarańczowy ZTM Gdańsk
+                                    } else if (leg.brand === 'IC' || leg.brand === 'RegioJet') {
+                                        text = leg.line ? `${leg.brand} ${leg.line}` : (leg.brand || 'IC');
+                                        style = { backgroundColor: '#1A237E', color: '#FFFFFF' }; // Granatowy IC/RegioJet
+                                    } else if (leg.brand === 'PKP') {
+                                        text = leg.line ? `PKP ${leg.line}` : 'PKP';
+                                        style = { backgroundColor: '#37474F', color: '#FFFFFF' }; // Ciemnoszary PKP
                                     }
 
                                     return { text, style, label };
