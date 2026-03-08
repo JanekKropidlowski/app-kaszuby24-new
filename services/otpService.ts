@@ -1003,9 +1003,10 @@ export const OTPService = {
             else if (searchStr.includes('polregio') || searchStr.includes('regio') || searchStr.includes(':pr') || agencyId.toLowerCase() === 'pr') brand = 'POLREGIO';
             else if (searchStr.includes('mzk') || searchStr.includes('wejherowo')) brand = 'MZK';
             else if (searchStr.includes('zkm') || searchStr.includes('zkm gdynia')) brand = 'ZKM';
-            else if (searchStr.includes('ztm') || searchStr.includes('ztm gdansk') || searchStr.includes('ztm gdańsk')) brand = 'ZTM';
+            else if (searchStr.includes('ztm') || searchStr.includes('ztm gdansk') || searchStr.includes('ztm gdańsk') || searchStr.includes('zarząd transportu miejskiego') || searchStr.includes('zarzad transportu')) brand = 'ZTM';
             else if (searchStr.includes('regiojet')) brand = 'RegioJet';
-            else if (searchStr.includes('intercity') || searchStr.includes('pkp ic') || searchStr.includes('ic ')) brand = 'IC';
+            else if (searchStr.includes('intercity') || searchStr.includes('pkp ic') || searchStr.includes(':ic') || agencyId.toLowerCase().endsWith(':ic')) brand = 'IC';
+            else if (searchStr.includes('leo express') || searchStr.includes('arriva') || searchStr.includes('koleje') || searchStr.includes('lka') || searchStr.includes('km ') || searchStr.includes('kw ') || searchStr.includes('ks ')) brand = 'PKP';
             else if (searchStr.includes('pks')) brand = 'PKS';
             else if (searchStr.includes('pkp')) brand = 'PKP';
 
