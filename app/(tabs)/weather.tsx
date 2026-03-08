@@ -670,15 +670,15 @@ export default function WeatherScreen() {
                     <View style={[styles.alertsContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                       {alerts.slice(0, 3).map((alert, index) => (
                         <View key={index} style={[styles.alertItem, { borderLeftColor: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <Text style={[styles.alertTitle, { color: theme.colors.text }]}>{alert.title}</Text>
-                            <View style={[styles.badge, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20' }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6, gap: 8 }}>
+                            <Text style={[styles.alertTitle, { color: theme.colors.text, flex: 1 }]}>{alert.title}</Text>
+                            <View style={[styles.badge, { backgroundColor: (alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info) + '20', flexShrink: 0 }]}>
                               <Text style={[styles.badgeText, { color: alert.severity === 'high' ? theme.colors.error : alert.severity === 'medium' ? theme.colors.warning : theme.colors.info }]}>
                                 {alert.severity === 'high' ? 'Wysokie' : alert.severity === 'medium' ? 'Średnie' : 'Niskie'}
                               </Text>
                             </View>
                           </View>
-                          <Text style={[styles.alertDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+                          <Text style={[styles.alertDescription, { color: theme.colors.textSecondary }]}>
                             {alert.description}
                           </Text>
                           <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 8, fontFamily: Platform.select({ default: 'Poppins_Regular', android: 'Poppins_Regular' }) || 'Poppins_Regular' }}>

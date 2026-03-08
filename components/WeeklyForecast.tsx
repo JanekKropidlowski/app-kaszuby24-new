@@ -131,14 +131,14 @@ export const WeeklyForecast: React.FC<WeeklyForecastProps> = ({ data }) => {
             </View>
             
             <View style={styles.precipitationContainer}>
-              <View style={[
-                styles.precipitationBadge,
-                { backgroundColor: getPrecipitationColor(day.precipitation) + '20' }
-              ]}>
-                <Text style={[styles.precipitation, { color: getPrecipitationColor(day.precipitation) }]}>
-                  {Math.round(day.precipitation)} mm
-                </Text>
-              </View>
+              {day.precipitation > 0.5 && (
+                <View style={[
+                  styles.precipitationBadge,
+                  { backgroundColor: getPrecipitationColor(day.precipitation) + '20' }
+                ]}>
+                  <Droplets size={12} color={getPrecipitationColor(day.precipitation)} />
+                </View>
+              )}
             </View>
           </Pressable>
         ))}
