@@ -108,6 +108,16 @@ export const AirQualityMap: React.FC<AirQualityMapProps> = ({
         return () => clearTimeout(timer);
     }, [validStations.length]);
 
+    if (Platform.OS === 'android') {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }]}>
+                <Text style={{ fontSize: 40 }}>🗺️</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1f2937', marginTop: 12 }}>Mapa niedostępna</Text>
+                <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 6, textAlign: 'center', paddingHorizontal: 32 }}>Mapa na Androidzie wymaga aktualizacji aplikacji ze sklepu Play.</Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <MapViewClustering

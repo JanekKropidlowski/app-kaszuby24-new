@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { StyleSheet, View, Platform } from 'react-native';
+import { StyleSheet, View, Text, Platform } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
 import { GeoJSONFeature, Shape } from './types';
@@ -144,6 +144,16 @@ export const TransportMap = ({
             ));
     }, [shapes, showTracks, region]);
 
+    if (Platform.OS === 'android') {
+        return (
+            <View style={[styles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }]}>
+                <Text style={{ fontSize: 40 }}>🗺️</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1f2937', marginTop: 12 }}>Mapa niedostępna</Text>
+                <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 6, textAlign: 'center', paddingHorizontal: 32 }}>Mapa na Androidzie wymaga aktualizacji aplikacji ze sklepu Play.</Text>
+            </View>
+        );
+    }
+
     return (
         <MapView
             ref={mapRef}
@@ -158,18 +168,6 @@ export const TransportMap = ({
             pitchEnabled={false}
             toolbarEnabled={false}
             provider={PROVIDER_DEFAULT}
-            customMapStyle={[
-                {
-                    "featureType": "poi",
-                    "elementType": "labels",
-                    "stylers": [{ "visibility": "off" }]
-                },
-                {
-                    "featureType": "transit",
-                    "elementType": "labels",
-                    "stylers": [{ "visibility": "off" }]
-                }
-            ]}
         >
             {renderedTracks}
 
