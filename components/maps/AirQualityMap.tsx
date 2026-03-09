@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region } from 'react-native-maps';
+import { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { ClusterMarker } from './ClusterMarker';
 import MapViewClustering from 'react-native-map-clustering';
 import { aqCategoryToColor, AqStationResult } from '@/services/airQualityService';
-import { OSMMapView, OSMMarker } from './OSMMapView';
 
 interface AirQualityMapProps {
     center: { lat: number; lon: number };
@@ -109,43 +108,11 @@ export const AirQualityMap: React.FC<AirQualityMapProps> = ({
         return () => clearTimeout(timer);
     }, [validStations.length]);
 
-    if (Platform.OS === 'android') {
-        const osmMarkers: OSMMarker[] = validStations.map(station => {
-            const color = aqCategoryToColor(station.index?.indexCategory || null);
-            return {
-                id: String(station.id),
-                latitude: station.lat,
-                longitude: station.lon,
-                color,
-                title: station.city || station.name || '',
-                subtitle: station.index?.indexCategory || '',
-                icon: 'default',
-            };
-        });
-
-        return (
-            <View style={styles.container}>
-                <OSMMapView
-                    markers={osmMarkers}
-                    initialLat={center.lat}
-                    initialLon={center.lon}
-                    initialZoom={11}
-                    onMarkerPress={(id) => {
-                        const station = validStations.find(s => String(s.id) === id);
-                        if (station) onStationPress(station);
-                    }}
-                    showUserLocation
-                    style={styles.map}
-                />
-            </View>
-        );
-    }
-
     return (
         <View style={styles.container}>
             <MapViewClustering
                 ref={mapViewRef}
-                provider={PROVIDER_DEFAULT}
+                provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={{
                     ...DEFAULT_REGION,

@@ -11,7 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import MapViewClustering from 'react-native-map-clustering';
-import { Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region } from 'react-native-maps';
+import { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ClusterMarker } from './ClusterMarker';
@@ -241,7 +241,7 @@ export const MevoMap2: React.FC<MevoMap2Props> = ({
       {/* MAPA */}
       <MapViewClustering
         ref={mapRef}
-        provider={PROVIDER_DEFAULT}
+        provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={initialRegion}
         showsUserLocation

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface LineMapModalProps {
@@ -132,7 +132,7 @@ export const LineMapModal: React.FC<LineMapModalProps> = ({ visible, onClose, li
                         <MapView
                             ref={mapRef}
                             style={styles.map}
-                            provider={PROVIDER_DEFAULT}
+                            provider={PROVIDER_GOOGLE}
                             initialRegion={{
                                 latitude: 54.6,
                                 longitude: 18.4,

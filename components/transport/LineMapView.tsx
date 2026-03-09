@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { StyleSheet, View, ActivityIndicator, Text, Platform } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
+import { StyleSheet, View, ActivityIndicator, Text } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface Stop {
@@ -56,7 +56,7 @@ export const LineMapView: React.FC<LineMapViewProps> = ({ stops, lineNumber, age
         <View style={styles.container}>
             <MapView
                 ref={mapRef}
-                provider={PROVIDER_DEFAULT}
+                provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={{
                     latitude: stops[0].stop_lat,
