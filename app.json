@@ -39,7 +39,12 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.kaszuby24",
-      "versionCode": 44,
+      "versionCode": 45,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB-G2GxsRyJ3sxeHOy0JdffImZTaEPqRJo"
+        }
+      },
       "intentFilters": [
         {
           "action": "VIEW",
