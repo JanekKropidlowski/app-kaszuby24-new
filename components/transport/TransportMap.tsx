@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
 import { GeoJSONFeature, Shape } from './types';
 import { SKMMarker, ClusterMarker, PolRegioMarker, CombinedMarker, getYellowClusterImage } from './MapMarkers';
@@ -157,7 +157,7 @@ export const TransportMap = ({
             rotateEnabled={false}
             pitchEnabled={false}
             toolbarEnabled={false}
-            provider={PROVIDER_GOOGLE}
+            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
             customMapStyle={[
                 {
                     "featureType": "poi",

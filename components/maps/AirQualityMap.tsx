@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import { Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 import { ClusterMarker } from './ClusterMarker';
 import MapViewClustering from 'react-native-map-clustering';
 import { aqCategoryToColor, AqStationResult } from '@/services/airQualityService';
@@ -112,7 +112,7 @@ export const AirQualityMap: React.FC<AirQualityMapProps> = ({
         <View style={styles.container}>
             <MapViewClustering
                 ref={mapViewRef}
-                provider={PROVIDER_GOOGLE}
+                provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
                 style={styles.map}
                 initialRegion={{
                     ...DEFAULT_REGION,
