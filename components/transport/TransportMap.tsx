@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, Platform } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
 import { GeoJSONFeature, Shape } from './types';
 import { SKMMarker, ClusterMarker, PolRegioMarker, CombinedMarker, getYellowClusterImage } from './MapMarkers';
+import { OSMMapView, OSMMarker } from '../maps/OSMMapView';
 
 interface TransportMapProps {
     allStops: GeoJSONFeature[];
@@ -145,12 +146,38 @@ export const TransportMap = ({
     }, [shapes, showTracks, region]);
 
     if (Platform.OS === 'android') {
+        // Kolory wg przewoźnika
+        const agencyColor = (agency: string): string => {
+            if (agency === 'polregio') return '#EF4444';
+            if (agency === 'pks_gdynia') return '#F59E0B';
+            if (agency === 'mzk_wejherowo') return '#8B5CF6';
+            return '#1E3A5F'; // SKM / domyślny
+        };
+
+        const osmMarkers: OSMMarker[] = allStops
+            .filter(s => s.geometry?.coordinates?.length === 2)
+            .map(s => ({
+                id: s.properties.uid || s.properties.id,
+                latitude: s.geometry.coordinates[1],
+                longitude: s.geometry.coordinates[0],
+                color: agencyColor(s.properties.agency),
+                title: s.properties.name,
+                icon: 'station',
+            }));
+
         return (
-            <View style={[styles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }]}>
-                <Text style={{ fontSize: 40 }}>🗺️</Text>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1f2937', marginTop: 12 }}>Mapa niedostępna</Text>
-                <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 6, textAlign: 'center', paddingHorizontal: 32 }}>Mapa na Androidzie wymaga aktualizacji aplikacji ze sklepu Play.</Text>
-            </View>
+            <OSMMapView
+                markers={osmMarkers}
+                initialLat={initialRegion.latitude}
+                initialLon={initialRegion.longitude}
+                initialZoom={11}
+                onMarkerPress={(id) => {
+                    const stop = allStops.find(s => (s.properties.uid || s.properties.id) === id);
+                    if (stop) onStopPress(stop);
+                }}
+                showUserLocation
+                style={styles.map}
+            />
         );
     }
 

@@ -4,6 +4,7 @@ import { Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region } from 'react-native-
 import { ClusterMarker } from './ClusterMarker';
 import MapViewClustering from 'react-native-map-clustering';
 import { aqCategoryToColor, AqStationResult } from '@/services/airQualityService';
+import { OSMMapView, OSMMarker } from './OSMMapView';
 
 interface AirQualityMapProps {
     center: { lat: number; lon: number };
@@ -109,11 +110,33 @@ export const AirQualityMap: React.FC<AirQualityMapProps> = ({
     }, [validStations.length]);
 
     if (Platform.OS === 'android') {
+        const osmMarkers: OSMMarker[] = validStations.map(station => {
+            const color = aqCategoryToColor(station.index?.indexCategory || null);
+            return {
+                id: String(station.id),
+                latitude: station.lat,
+                longitude: station.lon,
+                color,
+                title: station.city || station.name || '',
+                subtitle: station.index?.indexCategory || '',
+                icon: 'default',
+            };
+        });
+
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }]}>
-                <Text style={{ fontSize: 40 }}>🗺️</Text>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1f2937', marginTop: 12 }}>Mapa niedostępna</Text>
-                <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 6, textAlign: 'center', paddingHorizontal: 32 }}>Mapa na Androidzie wymaga aktualizacji aplikacji ze sklepu Play.</Text>
+            <View style={styles.container}>
+                <OSMMapView
+                    markers={osmMarkers}
+                    initialLat={center.lat}
+                    initialLon={center.lon}
+                    initialZoom={11}
+                    onMarkerPress={(id) => {
+                        const station = validStations.find(s => String(s.id) === id);
+                        if (station) onStationPress(station);
+                    }}
+                    showUserLocation
+                    style={styles.map}
+                />
             </View>
         );
     }
