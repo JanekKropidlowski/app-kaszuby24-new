@@ -132,7 +132,7 @@ export const LineMapModal: React.FC<LineMapModalProps> = ({ visible, onClose, li
                         <MapView
                             ref={mapRef}
                             style={styles.map}
-                            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+                            provider={PROVIDER_DEFAULT}
                             initialRegion={{
                                 latitude: 54.6,
                                 longitude: 18.4,

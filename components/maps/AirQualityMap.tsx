@@ -112,7 +112,7 @@ export const AirQualityMap: React.FC<AirQualityMapProps> = ({
         <View style={styles.container}>
             <MapViewClustering
                 ref={mapViewRef}
-                provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+                provider={PROVIDER_DEFAULT}
                 style={styles.map}
                 initialRegion={{
                     ...DEFAULT_REGION,

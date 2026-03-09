@@ -241,7 +241,7 @@ export const MevoMap2: React.FC<MevoMap2Props> = ({
       {/* MAPA */}
       <MapViewClustering
         ref={mapRef}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+        provider={PROVIDER_DEFAULT}
         style={styles.map}
         initialRegion={initialRegion}
         showsUserLocation

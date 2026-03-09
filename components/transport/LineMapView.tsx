@@ -56,7 +56,7 @@ export const LineMapView: React.FC<LineMapViewProps> = ({ stops, lineNumber, age
         <View style={styles.container}>
             <MapView
                 ref={mapRef}
-                provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+                provider={PROVIDER_DEFAULT}
                 style={styles.map}
                 initialRegion={{
                     latitude: stops[0].stop_lat,

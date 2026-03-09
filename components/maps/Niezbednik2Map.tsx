@@ -427,7 +427,7 @@ export const Niezbednik2Map: React.FC<Niezbednik2MapProps> = ({
       {/* MAP */}
       <MapView
         ref={mapRef}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+        provider={PROVIDER_DEFAULT}
         style={styles.map}
         initialRegion={initialRegion}
         onRegionChange={handleRegionChange}

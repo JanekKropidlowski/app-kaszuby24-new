@@ -157,7 +157,7 @@ export const TransportMap = ({
             rotateEnabled={false}
             pitchEnabled={false}
             toolbarEnabled={false}
-            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+            provider={PROVIDER_DEFAULT}
             customMapStyle={[
                 {
                     "featureType": "poi",
