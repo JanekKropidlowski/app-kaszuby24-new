@@ -122,11 +122,26 @@ class AnalyticsService {
   }
 
   /**
-   * Track article view
+   * Track article view.
+   *
+   * Wysyła DWA eventy:
+   * 1) `page_view` z `page_location` matching the web URL — żeby GA4 łączyło
+   *    odsłony web + mobile na poziomie property w jednym pageviewie. Dashboard
+   *    `getPageViewsMap()` queries `pagePath` dimension i widzi sumarycznie.
+   * 2) `article_view` mobile-specific event z bogatszymi parametrami (id, slug,
+   *    category) — do funnelów i custom raportów per platform.
    */
-  async logArticleView(articleId: number, title: string, categoryId?: number) {
+  async logArticleView(articleId: number, title: string, slug: string, categoryId?: number) {
+    if (slug) {
+      await this.sendEvent('page_view', {
+        page_location: `https://kaszuby24.pl/${slug}`,
+        page_title: title,
+        page_referrer: 'app',
+      });
+    }
     await this.sendEvent('article_view', {
       article_id: articleId,
+      article_slug: slug || '',
       article_title: title,
       category_id: categoryId || null,
       content_type: 'article',
@@ -134,20 +149,36 @@ class AnalyticsService {
   }
 
   /**
-   * Track nekrolog view
+   * Track nekrolog view. Same dual-event pattern as articles — page_view
+   * z `/nekrolog/<slug>` matching web URL + nekrolog_view z mobile-specific
+   * params do funnelów (deceased name, region itp.).
    */
-  async logNekrologView(nekrologId: number, deceased: string) {
+  async logNekrologView(nekrologId: number, deceased: string, slug?: string) {
+    if (slug) {
+      await this.sendEvent('page_view', {
+        page_location: `https://kaszuby24.pl/nekrolog/${slug}`,
+        page_title: `Nekrolog: ${deceased}`,
+        page_referrer: 'app',
+      });
+    }
     await this.sendEvent('nekrolog_view', {
       nekrolog_id: nekrologId,
+      nekrolog_slug: slug || '',
       deceased_name: deceased,
       content_type: 'nekrolog',
     });
   }
 
   /**
-   * Track event view from calendar
+   * Track event view from calendar. Web używa `/wydarzenia/<id>` jako URL —
+   * mirror w page_view dla atrybucji.
    */
   async logEventView(eventId: number, eventTitle: string, eventType?: string) {
+    await this.sendEvent('page_view', {
+      page_location: `https://kaszuby24.pl/wydarzenia/${eventId}`,
+      page_title: eventTitle,
+      page_referrer: 'app',
+    });
     await this.sendEvent('calendar_event_view', {
       event_id: eventId,
       event_title: eventTitle,

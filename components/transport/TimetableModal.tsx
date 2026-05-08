@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Linking, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Linking, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, Image } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -84,7 +84,7 @@ const DepartureItem = React.memo<{
             <View style={styles.trainDepartureRow}>
                 <View style={styles.trainDepartureLeft}>
                     <MaterialCommunityIcons
-                        name={iconName}
+                        name={iconName as any}
                         size={24}
                         color={agencyColor}
                         style={{ marginRight: 12 }}
@@ -346,50 +346,51 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
         <View style={styles.grid}>
 
             <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('SKM')}>
-                <View style={[styles.iconCircle, { backgroundColor: '#FFD54F' }]}>
-                    <MaterialCommunityIcons name="train" size={24} color="#000" />
+                <View style={[styles.iconCircle, { backgroundColor: '#FFFFFF' }]}>
+                    <Image source={{ uri: 'https://rozklady.kaszuby24.pl/logos/skm.webp' }} style={{ width: 56, height: 56, resizeMode: 'contain' }} />
                 </View>
                 <Text style={styles.cardLabel}>SKM Trójmiasto</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('POLREGIO')}>
-                <View style={[styles.iconCircle, { backgroundColor: '#D32F2F' }]}>
-                    <MaterialCommunityIcons name="train" size={24} color="#FFF" />
+                <View style={[styles.iconCircle, { backgroundColor: '#FFFFFF' }]}>
+                    <Image source={{ uri: 'https://rozklady.kaszuby24.pl/logos/polregio.webp' }} style={{ width: 62, height: 56, resizeMode: 'contain' }} />
                 </View>
                 <Text style={styles.cardLabel}>Polregio</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('PKS')}>
-                <View style={[styles.iconCircle, { backgroundColor: '#388E3C' }]}>
-                    <MaterialCommunityIcons name="bus" size={24} color="#FFF" />
+                <View style={[styles.iconCircle, { backgroundColor: '#FFFFFF' }]}>
+                    <Image source={{ uri: 'https://rozklady.kaszuby24.pl/logos/pks-gdynia.webp' }} style={{ width: 56, height: 56, resizeMode: 'contain' }} />
                 </View>
                 <Text style={styles.cardLabel}>PKS Gdynia</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('MZK')}>
-                <View style={[styles.iconCircle, { backgroundColor: '#1A237E' }]}>
-                    <MaterialCommunityIcons name="bus" size={24} color="#FFF" />
+                <View style={[styles.iconCircle, { backgroundColor: '#FFFFFF' }]}>
+                    <Image source={{ uri: 'https://rozklady.kaszuby24.pl/logos/mzk-wejherowo.webp' }} style={{ width: 62, height: 56, resizeMode: 'contain' }} />
                 </View>
                 <Text style={styles.cardLabel}>MZK Wejherowo</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('ZKM')}>
-                <View style={[styles.iconCircle, { backgroundColor: '#E53935' }]}>
-                    <MaterialCommunityIcons name="bus" size={24} color="#FFF" />
+                <View style={[styles.iconCircle, { backgroundColor: '#FFFFFF' }]}>
+                    <Image source={{ uri: 'https://rozklady.kaszuby24.pl/logos/zkm-gdynia.webp' }} style={{ width: 62, height: 56, resizeMode: 'contain' }} />
                 </View>
                 <Text style={styles.cardLabel}>ZKM Gdynia</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('ZTM')}>
-                <View style={[styles.iconCircle, { backgroundColor: '#F57C00' }]}>
-                    <MaterialCommunityIcons name="tram" size={24} color="#FFF" />
+                <View style={[styles.iconCircle, { backgroundColor: '#FFFFFF' }]}>
+                    <Image source={{ uri: 'https://rozklady.kaszuby24.pl/logos/ztm-gdansk.webp' }} style={{ width: 56, height: 56, resizeMode: 'contain' }} />
                 </View>
                 <Text style={styles.cardLabel}>ZTM Gdańsk</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('TRAINS')}>
-                <View style={[styles.iconCircle, { backgroundColor: '#1A237E' }]}>
-                    <MaterialCommunityIcons name="train-variant" size={24} color="#FFF" />
+                <View style={[styles.iconCircle, { backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 6, width: 'auto', paddingHorizontal: 12 }]}>
+                    <Image source={{ uri: 'https://rozklady.kaszuby24.pl/logos/intercity.webp' }} style={{ width: 44, height: 44, resizeMode: 'contain' }} />
+                    <Image source={{ uri: 'https://rozklady.kaszuby24.pl/logos/regiojet.webp' }} style={{ width: 44, height: 44, resizeMode: 'contain' }} />
                 </View>
                 <Text style={styles.cardLabel}>Pociągi (IC/RegioJet)</Text>
             </TouchableOpacity>
@@ -965,10 +966,10 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                             style={styles.stopItem}
                             onPress={() => fetchTimetable(item)}
                         >
-                            <View style={[styles.stopItemIcon, { backgroundColor: `${agencyColor}20` }]}>
-                                <MaterialCommunityIcons name={agencyIconName} size={20} color={agencyColor} />
+                            <View style={[styles.stopIcon, { backgroundColor: `${agencyColor}20` }]}>
+                                <MaterialCommunityIcons name={agencyIconName as any} size={20} color={agencyColor} />
                             </View>
-                            <View style={styles.stopItemText}>
+                            <View style={styles.stopTextContainer}>
                                 <Text style={styles.stopItemName}>{item.name}</Text>
                                 <Text style={[styles.stopItemAgency, { color: agencyColor }]}>{getAgencyDisplayName(item.agency)}</Text>
                             </View>
@@ -1495,13 +1496,14 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                     <RouteMapModal
                         visible={showStopMap}
                         onClose={() => setShowStopMap(false)}
-                        stop={{
+                        stops={[{
                             stop_id: selectedStop.id || String(selectedStop.name || ''),
                             stop_name: selectedStop.name,
                             stop_lat: selectedStop.lat || 0,
                             stop_lon: selectedStop.lon || 0,
-                        }}
-                        agencyName={getAgencyDisplayName(selectedStop?.agency)}
+                            departures: []
+                        }]}
+                        agency={getAgencyDisplayName(selectedStop?.agency)}
                         lineNumber={selectedStop.agency || ''}
                         color="#4A5568"
                     />
@@ -1522,9 +1524,9 @@ const styles = StyleSheet.create({
     title: { fontSize: tfs(20), fontFamily: 'Poppins-Bold', color: '#1A202C' },
     closeBtn: { padding: 4 },
     grid: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-    card: { flex: 1, minWidth: '45%', backgroundColor: '#F7FAFC', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#EDF2F7' },
+    card: { flex: 1, minWidth: '45%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#EDF2F7' },
     cardAcc: { elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
-    iconCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    iconCircle: { minWidth: 64, height: 64, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
     providerText: { fontSize: tfs(14), fontFamily: 'Poppins-Bold' },
     cardLabel: { fontSize: tfs(14), fontFamily: 'Poppins-SemiBold', color: '#2D3748', textAlign: 'center' },
 
@@ -1543,6 +1545,7 @@ const styles = StyleSheet.create({
     stopItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F0F4F8' },
     stopIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
     stopItemName: { fontSize: tfs(15), fontFamily: 'Poppins-SemiBold', color: '#2D3748' },
+    stopTextContainer: { flex: 1, marginRight: 8 },
     stopItemAgency: { fontSize: tfs(11), fontFamily: 'Poppins-Medium', color: '#A0AEC0' },
     noResults: { textAlign: 'center', marginTop: 20, color: '#A0AEC0', fontFamily: 'Poppins-Medium' },
 

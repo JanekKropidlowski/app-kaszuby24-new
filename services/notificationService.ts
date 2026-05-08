@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { registerExpoPushToken } from './api';
 import { router } from 'expo-router';
+import { analyticsService } from './analyticsService';
 
 // Sprawdź czy działa w Expo Go (nie wspiera push notifications od SDK 53)
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -116,6 +117,19 @@ class NotificationService {
       if (data.notification_id) {
         this.trackNotificationAnalytics(data.notification_id as string, 'received', data.articleId as string);
       }
+
+      // GA4: notification_received event — dzielimy przez notification_clicked
+      // żeby policzyć Open Rate per kampanię/typ. Foreground delivery only —
+      // background delivery iOS nie odpala tego callbacka, więc to NIE jest
+      // total delivery, tylko foreground delivery (partial Open Rate).
+      const notificationType = (data?.type as string) ||
+                                (data?.articleId ? 'article' : data?.slug ? 'article' : 'general');
+      analyticsService.logCustomEvent('notification_received', {
+        notification_id: (data?.notification_id as string) || 'unknown',
+        notification_type: notificationType,
+        platform: Platform.OS,
+        in_foreground: true,
+      });
       
       addNotification({
         title: notification.request.content.title || 'Nowe powiadomienie',
@@ -141,14 +155,33 @@ class NotificationService {
   private handleNotificationResponse = (response: Notifications.NotificationResponse) => {
     try {
       console.log('Expo Push notification opened:', response);
-      
+
       const notification = response.notification;
       const data = notification.request.content.data || {};
-      
-      // Track notification clicked analytics
+
+      // Track notification clicked analytics — stary WP endpoint (legacy)
       if (data.notification_id) {
         this.trackNotificationAnalytics(data.notification_id as string, 'clicked', data.articleId as string);
       }
+
+      // GA4: notification_open event z bogatym kontekstem (typ, route, article).
+      // Pozwoli zbudować w dashboardzie funnel "push wysłany → otwarty → przeczytany"
+      // i policzyć CTR per typ powiadomienia.
+      const notificationType = (data?.type as string) ||
+                                (data?.articleId ? 'article' : data?.slug ? 'article' : 'general');
+      analyticsService.logNotificationOpen(
+        notificationType,
+        (data?.notification_id as string) || (notification.request.identifier || 'unknown'),
+      );
+      // Dodatkowy custom event z pełnym kontekstem — dla głębszej analizy w GA4 Explore
+      analyticsService.logCustomEvent('notification_clicked', {
+        notification_id: (data?.notification_id as string) || 'unknown',
+        notification_type: notificationType,
+        article_id: data?.articleId ? parseInt(data.articleId as string) : null,
+        article_slug: (data?.slug as string) || null,
+        route: (data?.route as string) || null,
+        platform: Platform.OS,
+      });
       
       // Mark as read - fix type error by ensuring we have a string identifier
       const { markAsRead } = useNotificationsStore.getState();

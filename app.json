@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.43",
+    "version": "1.0.46",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaszuby24",
@@ -18,7 +18,9 @@
       "buildNumber": "13",
       "associatedDomains": [
         "applinks:kaszuby24.pl",
-        "applinks:www.kaszuby24.pl"
+        "applinks:www.kaszuby24.pl",
+        "applinks:pogoda.kaszuby24.pl",
+        "applinks:rozklady.kaszuby24.pl"
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -58,6 +60,16 @@
             {
               "scheme": "https",
               "host": "www.kaszuby24.pl",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "pogoda.kaszuby24.pl",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "rozklady.kaszuby24.pl",
               "pathPrefix": "/"
             }
           ],
@@ -102,11 +114,13 @@
       "eas": {
         "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
       },
-      "gaMeasurementId": "G-XXXXXXXXXX",
-      "gaApiSecret": "YOUR_API_SECRET"
+      "gaMeasurementId": "G-P22DC12PTH",
+      "gaApiSecret": "1ALeOXiRTweFoXTtO0JA3A",
+      "sentryDsn": "https://15b760709d0686c67f386a303ccc7c54@o4511064310480896.ingest.de.sentry.io/4511064518819920"
     },
-    "runtimeVersion": "1.0.43",
+    "runtimeVersion": "1.0.45",
     "plugins": [
+      "@sentry/react-native/expo",
       [
         "expo-notifications",
         {

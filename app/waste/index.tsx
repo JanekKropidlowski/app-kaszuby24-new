@@ -13,8 +13,10 @@ import {
     Alert,
     Switch,
     KeyboardAvoidingView,
+    Keyboard,
     Platform,
     Image,
+    Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -35,19 +37,37 @@ import {
     Clock,
     CalendarDays,
     Building2,
+    Home,
     Check,
     Info,
     XCircle,
     CheckCircle2
 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
-import { wasteScheduleService, WasteScheduleData, WasteRegion, City, WasteNewsArticle } from '@/services/WasteScheduleService';
+import {
+    wasteScheduleService,
+    WasteScheduleData,
+    WasteRegion,
+    City,
+    WasteNewsArticle,
+    getCityUiMode,
+    expandVillages,
+    flattenRedaStreets,
+    findWielorodzinneRegion,
+    normalizeWasteSearch,
+    prettyVillageName,
+    type VillageItem,
+    type RedaStreetEntry,
+    type WasteUiMode,
+    WASTE_SEARCH_URL,
+} from '@/services/WasteScheduleService';
 import { WASTE_RULES, WasteRule } from '@/constants/wasteRules';
 import { WasteNotificationService, NotificationSettings } from '@/services/WasteNotificationService';
 import { WasteCalendarService } from '@/services/WasteCalendarService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Settings, Calendar as CalendarIcon, List, Newspaper, Share2, Megaphone, X as CloseIcon, ChevronLeft, Bell } from 'lucide-react-native';
 import RenderHtml from 'react-native-render-html';
+import WasteCascadePicker from '@/components/waste/WasteCascadePicker';
 import GlobalTabBar from '@/components/GlobalTabBar';
 import { useWindowDimensions } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
@@ -82,8 +102,8 @@ export default function WasteScheduleScreen() {
     const [selectedCity, setSelectedCity] = useState<City | null>(null);
     const [selectedStreet, setSelectedStreet] = useState<{ street: string; regionId: string } | null>(null);
 
-    // UI States
-    const [step, setStep] = useState<'city' | 'street' | 'schedule'>('city');
+    // UI States — 'cascade' = address picker for search-mode cities (Gdynia)
+    const [step, setStep] = useState<'city' | 'cascade' | 'street' | 'schedule'>('city');
     const [isSearching, setIsSearching] = useState(false);
 
     // Modal & GPS States
@@ -116,6 +136,17 @@ export default function WasteScheduleScreen() {
     const [wasteSearchResults, setWasteSearchResults] = useState<any[]>([]);
     const [wasteSearchLoading, setWasteSearchLoading] = useState(false);
 
+    // Reda building-type modal state — shown when picked street exists in
+    // both Jednorodzinne and Wielorodzinne and we need user to disambiguate.
+    // (RedaPickModal removed — Reda flow now uses flat per-(street, type) list)
+
+    // Per-city UI mode — drives placeholder copy, building-type buttons,
+    // and whether we list streets or villages.
+    const cityMode: WasteUiMode = useMemo(
+        () => getCityUiMode(selectedCity?.id || ''),
+        [selectedCity]
+    );
+
     useEffect(() => {
         const searchWaste = async () => {
             if (wasteSearchQuery.length < 3) {
@@ -129,7 +160,7 @@ export default function WasteScheduleScreen() {
                 // If testing locally, might need headers or specific URL.
                 // For now using a generic placeholder URL that points to the plugin's endpoint.
                 // Ideally this should be configurable.
-                const response = await fetch(`https://kaszuby24.pl/wp-json/kaszuby24/v2/waste-search?q=${encodeURIComponent(wasteSearchQuery)}`);
+                const response = await fetch(`${WASTE_SEARCH_URL}?q=${encodeURIComponent(wasteSearchQuery)}`);
                 const data = await response.json();
                 if (Array.isArray(data)) {
                     setWasteSearchResults(data);
@@ -165,17 +196,33 @@ export default function WasteScheduleScreen() {
 
             if (city && city.active) {
                 setSelectedCity(city);
-                const cityData = await wasteScheduleService.getSchedule(city.id);
-                if (cityData) {
-                    setData(cityData);
-                    // Verify street
-                    const exists = cityData.regions.find(r => r.id === parsed.regionId && r.streets.includes(parsed.street));
-                    if (exists) {
-                        setSelectedStreet({ street: parsed.street, regionId: parsed.regionId });
-                        setStep('schedule');
-                        fetchNewsArticles(city);
+                // Search-mode (Gdynia): restore directly via region id (skip 7.5 MB fetch)
+                if (city.mode === 'search') {
+                    if (parsed.regionId) {
+                        const regionData = await wasteScheduleService.getRegionWithSchedule(parsed.regionId);
+                        if (regionData) {
+                            setData(regionData);
+                            setSelectedStreet({ street: parsed.street || 'Twój adres', regionId: String(parsed.regionId) });
+                            setStep('schedule');
+                            fetchNewsArticles(city);
+                        } else {
+                            setStep('cascade');
+                        }
                     } else {
-                        setStep('street');
+                        setStep('cascade');
+                    }
+                } else {
+                    const cityData = await wasteScheduleService.getSchedule(city.id, city.mode);
+                    if (cityData) {
+                        setData(cityData);
+                        const exists = cityData.regions.find(r => r.id === parsed.regionId && r.streets.includes(parsed.street));
+                        if (exists) {
+                            setSelectedStreet({ street: parsed.street, regionId: parsed.regionId });
+                            setStep('schedule');
+                            fetchNewsArticles(city);
+                        } else {
+                            setStep('street');
+                        }
                     }
                 }
             }
@@ -211,11 +258,49 @@ export default function WasteScheduleScreen() {
         if (!city.active) return;
         setLoading(true);
         setSelectedCity(city);
-        const cityData = await wasteScheduleService.getSchedule(city.id);
+        // Search-mode (Gdynia): skip 7.5 MB schedule fetch, render cascade picker
+        if (city.mode === 'search') {
+            setData(null);
+            setStep('cascade');
+            setLoading(false);
+            fetchNewsArticles(city);
+            return;
+        }
+        const cityData = await wasteScheduleService.getSchedule(city.id, city.mode);
         setData(cityData);
         setStep('street');
         setLoading(false);
         fetchNewsArticles(city);
+    };
+
+    // Called from WasteCascadePicker when user finishes the address pick.
+    // Fetches the chosen region by id (small payload) and jumps to schedule step.
+    const handleCascadePicked = async (regionId: number, label: { dzielnica: string; ulica: string; numer: string; zabudowa: string }) => {
+        if (!selectedCity) return;
+        setLoading(true);
+        try {
+            const regionData = await wasteScheduleService.getRegionWithSchedule(regionId);
+            if (regionData) {
+                setData(regionData);
+                const region = regionData.regions[0];
+                const streetLabel = `${label.ulica} ${label.numer} (${label.zabudowa})`;
+                setSelectedStreet({ street: streetLabel, regionId: region.id });
+                setStep('schedule');
+                await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    cityId: selectedCity.id, street: streetLabel, regionId: region.id,
+                }));
+                if (region) {
+                    await WasteNotificationService.scheduleNotificationsForRegion(region.schedule);
+                }
+            } else {
+                Alert.alert('Błąd', 'Nie udało się pobrać harmonogramu dla wybranego adresu.');
+            }
+        } catch (e: any) {
+            console.error('[WasteCascade]', e.message);
+            Alert.alert('Błąd', 'Wystąpił błąd podczas pobierania harmonogramu.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleStreetSelect = async (street: string, regionId: string) => {
@@ -235,6 +320,7 @@ export default function WasteScheduleScreen() {
         }
     };
 
+    // Streets mode (Puck, fallback): one row per street with its region.
     const allStreets = useMemo(() => {
         if (!data) return [];
         const streets: { street: string; regionId: string }[] = [];
@@ -247,16 +333,39 @@ export default function WasteScheduleScreen() {
     }, [data]);
 
     const filteredStreets = useMemo(() => {
-        if (!searchQuery) return allStreets.slice(0, 10); // Suggestions when empty
-
-        const query = searchQuery.toLowerCase();
-        // 1. Exact matches / starts with
-        const directMatches = allStreets.filter(s => s.street.toLowerCase().startsWith(query));
-        // 2. Includes
-        const includeMatches = allStreets.filter(s => s.street.toLowerCase().includes(query) && !s.street.toLowerCase().startsWith(query));
-
+        if (!searchQuery) return allStreets.slice(0, 10);
+        const query = normalizeWasteSearch(searchQuery);
+        const directMatches = allStreets.filter(s => normalizeWasteSearch(s.street).startsWith(query));
+        const includeMatches = allStreets.filter(s => normalizeWasteSearch(s.street).includes(query) && !normalizeWasteSearch(s.street).startsWith(query));
         return [...directMatches, ...includeMatches].slice(0, 20);
     }, [searchQuery, allStreets]);
+
+    // Villages mode (Gmina Puck): one row per village with parent group.
+    const allVillages = useMemo<VillageItem[]>(
+        () => (data && cityMode === 'villages' ? expandVillages(data.regions) : []),
+        [data, cityMode]
+    );
+    const filteredVillages = useMemo(() => {
+        if (!searchQuery) return allVillages.slice(0, 12);
+        const q = normalizeWasteSearch(searchQuery);
+        return allVillages.filter(v => normalizeWasteSearch(v.village).includes(q)).slice(0, 20);
+    }, [searchQuery, allVillages]);
+
+    // Reda mode: dedup street with badges showing which building types apply.
+    // Reda list = ONLY jednorodzinne streets. Blocks (wielorodzinne) are
+    // handled by the "Mieszkam w Bloku" fast-path button — single region for
+    // all blocks city-wide, no point duplicating each street in the list.
+    const redaStreets = useMemo<RedaStreetEntry[]>(
+        () => (data && cityMode === 'reda'
+            ? flattenRedaStreets(data.regions).filter((e) => e.type === 'jednorodzinna')
+            : []),
+        [data, cityMode]
+    );
+    const filteredRedaStreets = useMemo(() => {
+        if (!searchQuery) return redaStreets.slice(0, 12);
+        const q = normalizeWasteSearch(searchQuery);
+        return redaStreets.filter(s => normalizeWasteSearch(s.street).includes(q)).slice(0, 20);
+    }, [searchQuery, redaStreets]);
 
     const currentSchedule = useMemo(() => {
         if (!data || !selectedStreet) return [];
@@ -430,117 +539,212 @@ export default function WasteScheduleScreen() {
         </View>
     );
 
-    const renderStreetSelection = () => (
-        <View style={styles.stepContainer}>
-            <View style={styles.stepHeader}>
-                <TouchableOpacity onPress={() => setStep('city')} style={styles.backLink}>
-                    <Text style={{ color: theme.colors.primary }}>← Zmień miasto ({selectedCity?.name})</Text>
-                </TouchableOpacity>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: 10 }]}>Znajdź swoją ulicę</Text>
-            </View>
+    const renderStreetSelection = () => {
+        // Copy + behavior swap per city mode.
+        const stepTitle =
+            cityMode === 'villages' ? 'Znajdź swoją miejscowość' :
+            cityMode === 'reda' ? 'Znajdź swoją ulicę' :
+            'Znajdź swoją ulicę';
+        const placeholder =
+            cityMode === 'villages' ? 'np. Brudzewo, Połchowo, Strzelno...' :
+            'np. Sienkiewicza, Gdańska, Sobieskiego...';
+        const emptyText =
+            cityMode === 'villages'
+                ? `Nie znaleziono miejscowości w ${selectedCity?.name}`
+                : `Nie znaleziono ulicy w mieście ${selectedCity?.name}`;
+        const suggestionHeader =
+            cityMode === 'villages' ? 'Wszystkie miejscowości' : 'Najczęściej wybierane / Sugestie';
 
-            <TouchableOpacity
-                style={[styles.gpsButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary, marginBottom: 15 }]}
-                onPress={handleUseLocation}
-                disabled={locationLoading}
-            >
-                {locationLoading ? (
-                    <ActivityIndicator size="small" color={theme.colors.primary} />
-                ) : (
-                    <MapPin size={20} color={theme.colors.primary} />
-                )}
-                <Text style={[styles.gpsButtonText, { color: theme.colors.primary }]}>
-                    {locationLoading ? 'Namierzanie...' : 'Użyj mojej lokalizacji (GPS)'}
-                </Text>
-            </TouchableOpacity>
+        const wielorodzinneRegion = cityMode === 'reda' ? findWielorodzinneRegion(data) : null;
 
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
-                <TouchableOpacity
-                    style={[styles.gpsButton, { flex: 1, backgroundColor: theme.colors.card, borderColor: theme.colors.border, flexDirection: 'column', alignItems: 'center', padding: 15, height: 'auto', marginBottom: 0 }]}
-                    onPress={() => {
-                        const blockStreet = data?.regions
-                            .flatMap(r => r.streets.map(s => ({ street: s, regionId: r.id })))
-                            .find(s => s.street.toLowerCase().includes('wielorodzinna') || s.regionId === 'wielorodzinna');
+        // Picker handlers — different shape per mode but converge to handleStreetSelect.
+        const handleVillagePick = (v: VillageItem) =>
+            handleStreetSelect(v.village, v.regionId);
 
-                        if (blockStreet) {
-                            handleStreetSelect(blockStreet.street, blockStreet.regionId);
-                        } else {
-                            Alert.alert('Informacja', 'Dla tego miasta nie zdefiniowano oddzielnego harmonogramu dla bloków.');
-                        }
-                    }}
-                >
-                    <Building2 size={28} color={theme.colors.primary} style={{ marginBottom: 8 }} />
-                    <Text style={{ color: theme.colors.text, fontWeight: '600', textAlign: 'center' }}>Mieszkam w Bloku</Text>
-                    <Text style={{ color: theme.colors.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 4 }}>(Zabudowa wielorodzinna)</Text>
-                </TouchableOpacity>
+        // Reda list shows only jednorodzinne streets. Blocks go through the
+        // "Mieszkam w Bloku" button above (one schedule for all city blocks).
+        const handleRedaPick = (entry: RedaStreetEntry) => {
+            handleStreetSelect(entry.street, entry.regionId);
+        };
 
-                <TouchableOpacity
-                    style={[styles.gpsButton, { flex: 1, backgroundColor: theme.colors.primary + '10', borderColor: theme.colors.primary, flexDirection: 'column', alignItems: 'center', padding: 15, height: 'auto', marginBottom: 0 }]}
-                    activeOpacity={1}
-                >
-                    <MapPin size={28} color={theme.colors.primary} style={{ marginBottom: 8 }} />
-                    <Text style={{ color: theme.colors.text, fontWeight: '600', textAlign: 'center' }}>Dom Jednorodzinny</Text>
-                    <Text style={{ color: theme.colors.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 4 }}>(Wpisz ulicę poniżej)</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View style={[styles.searchInputWrapper, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-                <Search size={20} color={theme.colors.textSecondary} style={styles.searchIcon} />
-                <TextInput
-                    style={[styles.searchInput, { color: theme.colors.text }]}
-                    placeholder="Wpisz nazwę ulicy..."
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={searchQuery}
-                    onChangeText={(text) => {
-                        setSearchQuery(text);
-                        setIsSearching(true);
-                    }}
-                    autoFocus
-                />
-                {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <X size={20} color={theme.colors.textSecondary} />
+        return (
+            <View style={styles.stepContainer}>
+                <View style={styles.stepHeader}>
+                    <TouchableOpacity onPress={() => setStep('city')} style={styles.backLink}>
+                        <Text style={{ color: theme.colors.primary }}>← Zmień miasto ({selectedCity?.name})</Text>
                     </TouchableOpacity>
-                )}
-            </View>
+                    <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: 10 }]}>{stepTitle}</Text>
+                </View>
 
-            <KeyboardAvoidingView
-                style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-            >
-                <FlatList
-                    data={filteredStreets}
-                    keyExtractor={(item, index) => `${item.regionId}-${item.street}-${index}`}
-                    style={styles.resultsList}
-                    contentContainerStyle={{ paddingBottom: 100 }}
-                    keyboardShouldPersistTaps="handled"
-                    renderItem={({ item }) => (
+                <TouchableOpacity
+                    style={[styles.gpsButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary, marginBottom: 15 }]}
+                    onPress={handleUseLocation}
+                    disabled={locationLoading}
+                >
+                    {locationLoading ? (
+                        <ActivityIndicator size="small" color={theme.colors.primary} />
+                    ) : (
+                        <MapPin size={20} color={theme.colors.primary} />
+                    )}
+                    <Text style={[styles.gpsButtonText, { color: theme.colors.primary }]}>
+                        {locationLoading ? 'Namierzanie...' : 'Użyj mojej lokalizacji (GPS)'}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Building-type fast paths — Reda only, where same street can fall
+                    into Jednorodzinne or Wielorodzinne with different schedules. */}
+                {cityMode === 'reda' && (
+                    <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
                         <TouchableOpacity
-                            style={[styles.resultItem, { borderBottomColor: theme.colors.border }]}
-                            onPress={() => handleStreetSelect(item.street, item.regionId)}
+                            style={[styles.gpsButton, { flex: 1, backgroundColor: theme.colors.card, borderColor: theme.colors.border, flexDirection: 'column', alignItems: 'center', padding: 15, height: 'auto', marginBottom: 0 }]}
+                            onPress={() => {
+                                if (wielorodzinneRegion) {
+                                    handleStreetSelect('Wielorodzinne (bloki)', wielorodzinneRegion.id);
+                                } else {
+                                    Alert.alert('Informacja', 'Brak harmonogramu dla zabudowy wielorodzinnej w tym mieście.');
+                                }
+                            }}
                         >
-                            <View style={styles.resultItemContent}>
-                                <MapPin size={16} color={theme.colors.textSecondary} style={{ marginRight: 10 }} />
-                                <Text style={[styles.resultText, { color: theme.colors.text }]}>{item.street}</Text>
-                            </View>
-                            <ChevronRight size={18} color={theme.colors.textSecondary} />
+                            <Building2 size={28} color="#D97706" strokeWidth={2.2} style={{ marginBottom: 8 }} />
+                            <Text style={{ color: theme.colors.text, fontFamily: 'Poppins_Bold', textAlign: 'center' }}>Mieszkam w Bloku</Text>
+                            <Text style={{ color: theme.colors.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 4, fontFamily: 'Poppins_Regular' }}>(Zabudowa wielorodzinna)</Text>
+                        </TouchableOpacity>
+
+                        <View style={[styles.gpsButton, { flex: 1, backgroundColor: theme.colors.primary + '10', borderColor: theme.colors.primary, flexDirection: 'column', alignItems: 'center', padding: 15, height: 'auto', marginBottom: 0 }]}>
+                            <Home size={28} color="#059669" strokeWidth={2.2} style={{ marginBottom: 8 }} />
+                            <Text style={{ color: theme.colors.text, fontFamily: 'Poppins_Bold', textAlign: 'center' }}>Dom Jednorodzinny</Text>
+                            <Text style={{ color: theme.colors.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 4, fontFamily: 'Poppins_Regular' }}>(Wpisz ulicę poniżej)</Text>
+                        </View>
+                    </View>
+                )}
+
+                <View style={[styles.searchInputWrapper, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                    <Search size={20} color={theme.colors.textSecondary} style={styles.searchIcon} />
+                    <TextInput
+                        style={[styles.searchInput, { color: theme.colors.text }]}
+                        placeholder={placeholder}
+                        placeholderTextColor={theme.colors.textSecondary}
+                        value={searchQuery}
+                        onChangeText={(text) => {
+                            setSearchQuery(text);
+                            setIsSearching(true);
+                        }}
+                        autoFocus
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <X size={20} color={theme.colors.textSecondary} />
                         </TouchableOpacity>
                     )}
-                    ListHeaderComponent={
-                        <Text style={[styles.listHeader, { color: theme.colors.textSecondary }]}>
-                            {searchQuery ? 'Wyniki wyszukiwania' : 'Najczęściej wybierane / Sugestie'}
-                        </Text>
-                    }
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Text style={{ color: theme.colors.textSecondary }}>Nie znaleziono ulicy w mieście {selectedCity?.name}</Text>
-                        </View>
-                    }
-                />
-            </KeyboardAvoidingView>
-        </View>
-    );
+                </View>
+
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+                >
+                    {cityMode === 'villages' ? (
+                        <FlatList
+                            data={filteredVillages}
+                            keyExtractor={(item, index) => `village-${item.regionId}-${item.village}-${index}`}
+                            style={styles.resultsList}
+                            contentContainerStyle={{ paddingBottom: 100 }}
+                            keyboardShouldPersistTaps="handled"
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.resultItem, { borderBottomColor: theme.colors.border }]}
+                                    onPress={() => handleVillagePick(item)}
+                                >
+                                    <View style={[styles.resultItemContent, { flex: 1 }]}>
+                                        <MapPin size={16} color={theme.colors.textSecondary} style={{ marginRight: 10 }} />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.resultText, { color: theme.colors.text }]}>{item.pretty}</Text>
+                                            {item.groupSiblings.length > 0 && (
+                                                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>
+                                                    Wspólny harmonogram: +{item.groupSiblings.length} miejscowości
+                                                </Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                    <ChevronRight size={18} color={theme.colors.textSecondary} />
+                                </TouchableOpacity>
+                            )}
+                            ListHeaderComponent={
+                                <Text style={[styles.listHeader, { color: theme.colors.textSecondary }]}>
+                                    {searchQuery ? 'Wyniki wyszukiwania' : suggestionHeader}
+                                </Text>
+                            }
+                            ListEmptyComponent={
+                                <View style={styles.emptyContainer}>
+                                    <Text style={{ color: theme.colors.textSecondary }}>{emptyText}</Text>
+                                </View>
+                            }
+                        />
+                    ) : cityMode === 'reda' ? (
+                        <FlatList
+                            data={filteredRedaStreets}
+                            keyExtractor={(item, index) => `reda-${item.regionId}-${item.street}-${index}`}
+                            style={styles.resultsList}
+                            contentContainerStyle={{ paddingBottom: 100 }}
+                            keyboardShouldPersistTaps="handled"
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.resultItem, { borderBottomColor: theme.colors.border }]}
+                                    onPress={() => handleRedaPick(item)}
+                                >
+                                    <View style={styles.resultItemContent}>
+                                        <MapPin size={16} color={theme.colors.textSecondary} style={{ marginRight: 10 }} />
+                                        <Text style={[styles.resultText, { color: theme.colors.text }]}>{item.street}</Text>
+                                    </View>
+                                    <ChevronRight size={18} color={theme.colors.textSecondary} />
+                                </TouchableOpacity>
+                            )}
+                            ListHeaderComponent={
+                                <Text style={[styles.listHeader, { color: theme.colors.textSecondary }]}>
+                                    {searchQuery ? 'Wyniki wyszukiwania' : suggestionHeader}
+                                </Text>
+                            }
+                            ListEmptyComponent={
+                                <View style={styles.emptyContainer}>
+                                    <Text style={{ color: theme.colors.textSecondary }}>{emptyText}</Text>
+                                </View>
+                            }
+                        />
+                    ) : (
+                        <FlatList
+                            data={filteredStreets}
+                            keyExtractor={(item, index) => `${item.regionId}-${item.street}-${index}`}
+                            style={styles.resultsList}
+                            contentContainerStyle={{ paddingBottom: 100 }}
+                            keyboardShouldPersistTaps="handled"
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.resultItem, { borderBottomColor: theme.colors.border }]}
+                                    onPress={() => handleStreetSelect(item.street, item.regionId)}
+                                >
+                                    <View style={styles.resultItemContent}>
+                                        <MapPin size={16} color={theme.colors.textSecondary} style={{ marginRight: 10 }} />
+                                        <Text style={[styles.resultText, { color: theme.colors.text }]}>{item.street}</Text>
+                                    </View>
+                                    <ChevronRight size={18} color={theme.colors.textSecondary} />
+                                </TouchableOpacity>
+                            )}
+                            ListHeaderComponent={
+                                <Text style={[styles.listHeader, { color: theme.colors.textSecondary }]}>
+                                    {searchQuery ? 'Wyniki wyszukiwania' : suggestionHeader}
+                                </Text>
+                            }
+                            ListEmptyComponent={
+                                <View style={styles.emptyContainer}>
+                                    <Text style={{ color: theme.colors.textSecondary }}>{emptyText}</Text>
+                                </View>
+                            }
+                        />
+                    )}
+                </KeyboardAvoidingView>
+            </View>
+        );
+    };
 
     const renderSchedule = () => (
         <FlatList
@@ -555,7 +759,11 @@ export default function WasteScheduleScreen() {
                     >
                         <View style={styles.previewInfo}>
                             <Text style={[styles.previewCity, { color: theme.colors.textSecondary }]}>{selectedCity?.name}</Text>
-                            <Text style={[styles.previewStreet, { color: theme.colors.text }]}>{selectedStreet?.street}</Text>
+                            <Text style={[styles.previewStreet, { color: theme.colors.text }]}>
+                                {cityMode === 'villages' && selectedStreet?.street
+                                    ? prettyVillageName(selectedStreet.street)
+                                    : selectedStreet?.street}
+                            </Text>
                         </View>
                         <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>Zmień</Text>
                     </TouchableOpacity>
@@ -961,6 +1169,27 @@ export default function WasteScheduleScreen() {
             ) : (
                 <>
                     {step === 'city' && renderCitySelection()}
+                    {step === 'cascade' && selectedCity && (
+                        <View style={styles.stepContainer}>
+                            <View style={styles.stepHeader}>
+                                <TouchableOpacity onPress={() => setStep('city')} style={styles.backLink}>
+                                    <ChevronLeft size={20} color={theme.colors.primary} />
+                                    <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>Zmień miasto</Text>
+                                </TouchableOpacity>
+                                <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: 10 }]}>
+                                    {selectedCity.name} — wpisz adres
+                                </Text>
+                            </View>
+                            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }}>
+                                <WasteCascadePicker
+                                    citySlug={selectedCity.id}
+                                    cityName={selectedCity.name}
+                                    theme={theme as any}
+                                    onPicked={handleCascadePicked}
+                                />
+                            </ScrollView>
+                        </View>
+                    )}
                     {step === 'street' && renderStreetSelection()}
                     {step === 'schedule' && (
                         <>
@@ -1185,7 +1414,7 @@ export default function WasteScheduleScreen() {
                 onRequestClose={() => setSettingsVisible(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { height: '60%', backgroundColor: theme.colors.card }]}>
+                    <View style={[styles.modalContent, { height: '78%', backgroundColor: theme.colors.card }]}>
                         <View style={[styles.modalHeader, { backgroundColor: theme.colors.background }]}>
                             <View style={styles.modalTitleRow}>
                                 <Bell color={theme.colors.text} size={24} />
@@ -1198,9 +1427,9 @@ export default function WasteScheduleScreen() {
 
                         <ScrollView style={styles.modalBody}>
                             <View style={styles.settingRow}>
-                                <View>
+                                <View style={{ flex: 1 }}>
                                     <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Włącz przypomnienia</Text>
-                                    <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Powiadomienia o odbiorze</Text>
+                                    <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Push o nadchodzącym odbiorze</Text>
                                 </View>
                                 <Switch
                                     value={notifSettings.enabled}
@@ -1211,7 +1440,80 @@ export default function WasteScheduleScreen() {
 
                             <View style={styles.settingDivider} />
 
-                            <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 15, color: theme.colors.text }]}>Jakie frakcje przypominać?</Text>
+                            {/* Kiedy powiadamiać */}
+                            <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12, color: theme.colors.text }]}>Kiedy?</Text>
+                            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                                {[
+                                    { offset: 1, label: 'Dzień przed' },
+                                    { offset: 0, label: 'Tego samego dnia' },
+                                ].map(({ offset, label }) => {
+                                    const active = notifSettings.reminderDayOffset === offset;
+                                    return (
+                                        <TouchableOpacity
+                                            key={offset}
+                                            disabled={!notifSettings.enabled}
+                                            onPress={async () => {
+                                                const next = { ...notifSettings, reminderDayOffset: offset };
+                                                setNotifSettings(next);
+                                                await WasteNotificationService.saveSettings(next);
+                                                refreshNotifications(next);
+                                            }}
+                                            style={{
+                                                flex: 1,
+                                                paddingVertical: 12,
+                                                borderRadius: 12,
+                                                borderWidth: 1.5,
+                                                alignItems: 'center',
+                                                backgroundColor: active ? theme.colors.primary + '15' : 'transparent',
+                                                borderColor: active ? theme.colors.primary : theme.colors.border,
+                                                opacity: notifSettings.enabled ? 1 : 0.5,
+                                            }}
+                                        >
+                                            <Text style={{ color: active ? theme.colors.primary : theme.colors.text, fontWeight: '600', fontSize: 13 }}>{label}</Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+
+                            {/* O której godzinie — preset chipy */}
+                            <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12, color: theme.colors.text }]}>O której godzinie?</Text>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                                {[7, 8, 12, 17, 18, 19, 20, 21].map((h) => {
+                                    const active = notifSettings.hour === h && notifSettings.minute === 0;
+                                    return (
+                                        <TouchableOpacity
+                                            key={h}
+                                            disabled={!notifSettings.enabled}
+                                            onPress={async () => {
+                                                const next = { ...notifSettings, hour: h, minute: 0 };
+                                                setNotifSettings(next);
+                                                await WasteNotificationService.saveSettings(next);
+                                                refreshNotifications(next);
+                                            }}
+                                            style={{
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 14,
+                                                borderRadius: 999,
+                                                borderWidth: 1,
+                                                backgroundColor: active ? theme.colors.primary : 'transparent',
+                                                borderColor: active ? theme.colors.primary : theme.colors.border,
+                                                opacity: notifSettings.enabled ? 1 : 0.5,
+                                            }}
+                                        >
+                                            <Text style={{ color: active ? '#FFF' : theme.colors.text, fontWeight: '600', fontSize: 13 }}>
+                                                {h.toString().padStart(2, '0')}:00
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+
+                            <View style={styles.settingDivider} />
+
+                            <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12, color: theme.colors.text }]}>Jakie frakcje przypominać?</Text>
+                            <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginBottom: 12 }}>
+                                Domyślnie wszystkie (poza Choinkami). Wybierz konkretne, by zawęzić.
+                            </Text>
 
                             <View style={styles.typesContainer}>
                                 {Object.keys(WASTE_ICONS).filter(t => t !== 'Choinki').map((type, idx) => {
@@ -1240,11 +1542,58 @@ export default function WasteScheduleScreen() {
                                 })}
                             </View>
 
-                            <View style={{ height: 20 }} />
-                            <Text style={{ textAlign: 'center', color: theme.colors.textSecondary, fontSize: 12 }}>
-                                Powiadomienia przychodzą dzień przed odbiorem o godz. {notifSettings.hour}:{notifSettings.minute < 10 ? '0' + notifSettings.minute : notifSettings.minute}.
-                            </Text>
+                            <View style={{ height: 16 }} />
 
+                            <TouchableOpacity
+                                disabled={!notifSettings.enabled}
+                                onPress={async () => {
+                                    const result = await WasteNotificationService.sendTestNotification();
+                                    if (result.ok) {
+                                        Alert.alert(
+                                            'Wysłano testowe powiadomienie',
+                                            'Powinno pojawić się za 2 sekundy. Jeśli go nie widzisz, sprawdź ustawienia systemowe powiadomień.'
+                                        );
+                                        return;
+                                    }
+                                    if (result.reason === 'permission-denied') {
+                                        Alert.alert(
+                                            'Brak uprawnień',
+                                            'Aplikacja nie ma zgody na powiadomienia. Otwórz ustawienia systemu i włącz powiadomienia dla Kaszuby24.',
+                                            [
+                                                { text: 'Anuluj', style: 'cancel' },
+                                                {
+                                                    text: 'Otwórz ustawienia',
+                                                    onPress: () => {
+                                                        Linking.openSettings().catch(() => {});
+                                                    },
+                                                },
+                                            ]
+                                        );
+                                        return;
+                                    }
+                                    // schedule-error — surface raw error so we can debug from a real device
+                                    Alert.alert(
+                                        'Nie udało się wysłać powiadomienia',
+                                        `Błąd techniczny: ${result.error || 'nieznany'}.\n\nSpróbuj zrestartować aplikację. Jeśli problem się utrzymuje — zgłoś nam ten komunikat.`
+                                    );
+                                }}
+                                style={{
+                                    paddingVertical: 12,
+                                    borderRadius: 12,
+                                    backgroundColor: theme.colors.primary,
+                                    alignItems: 'center',
+                                    opacity: notifSettings.enabled ? 1 : 0.5,
+                                }}
+                            >
+                                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Wyślij testowe powiadomienie</Text>
+                            </TouchableOpacity>
+
+                            <View style={{ height: 12 }} />
+                            <Text style={{ textAlign: 'center', color: theme.colors.textSecondary, fontSize: 12 }}>
+                                {notifSettings.reminderDayOffset === 0 ? 'Tego samego dnia' : 'Dzień przed'} o godz.{' '}
+                                {notifSettings.hour.toString().padStart(2, '0')}:{notifSettings.minute.toString().padStart(2, '0')}.
+                            </Text>
+                            <View style={{ height: 24 }} />
                         </ScrollView>
                     </View>
                 </View>
@@ -1470,6 +1819,11 @@ export default function WasteScheduleScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* (Reda building-type modal removed — Reda streets are now flat:
+                each street with both types appears as TWO entries in the list,
+                clearly labeled with icon + colored badge) */}
+
             <GlobalTabBar activeTab="menu" />
         </SafeAreaView>
     );

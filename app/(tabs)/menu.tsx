@@ -99,8 +99,11 @@ export default function MenuHubScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* --- OPCJA: MEVO (ukryta na Androidzie) --- */}
-          {Platform.OS !== 'android' && (
+          {/* --- OPCJA: MEVO — UKRYTA NA OBYDWÓCH PLATFORMACH ---
+              Wcześniej widoczna tylko na iOS (Platform.OS !== 'android'). Teraz
+              globalnie ukryta na żądanie usera. Komponent zostawiony w kodzie —
+              żeby przywrócić, zmień `false` na warunek docelowy. --- */}
+          {false && (
             <TouchableOpacity
               activeOpacity={0.9}
               style={[styles.hubCard, styles.halfWidth, { shadowColor: '#DC2626' }]}
@@ -211,10 +214,13 @@ export default function MenuHubScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* --- OPCJA: USTAWIENIA --- */}
+          {/* --- OPCJA: USTAWIENIA — pełna szerokość na obu platformach.
+              Wcześniej iOS=halfWidth bo MEVO uzupełniało rząd. Teraz że MEVO jest
+              globalnie ukryte, liczba kafelków jest nieparzysta (7) na obu, więc
+              Ustawienia muszą być fullWidth żeby zamknąć rząd ładnie. --- */}
           <TouchableOpacity
             activeOpacity={0.9}
-            style={[styles.hubCard, Platform.OS === 'ios' ? styles.halfWidth : styles.fullWidth, { shadowColor: '#64748B' }]}
+            style={[styles.hubCard, styles.fullWidth, { shadowColor: '#64748B' }]}
             onPress={() => router.push('/settings')}
           >
             <LinearGradient

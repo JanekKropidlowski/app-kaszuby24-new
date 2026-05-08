@@ -3,7 +3,62 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, Linking } from 'react-native';
+import { Platform, Linking, Text as RNText, TextInput as RNTextInput } from 'react-native';
+import * as Sentry from '@sentry/react-native';
+import * as Clarity from '@microsoft/react-native-clarity';
+import Constants from 'expo-constants';
+
+// Sentry init MUST być na samej górze pliku — przed dowolnym importem appki —
+// żeby errory w innych modułach (load order, top-level code) były złapane.
+// DSN siedzi w app.json `extra.sentryDsn` — Constants.expoConfig.extra to read.
+const sentryDsn = (Constants.expoConfig as any)?.extra?.sentryDsn || (Constants as any).manifest?.extra?.sentryDsn;
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    // Środowisko: 'production' dla store builds, 'development' dla Expo Go / dev client.
+    // expo-updates channel jest najpewniejszym wskaźnikiem — production / preview / development.
+    environment: ((Constants.expoConfig as any)?.updates?.requestHeaders?.['expo-channel-name']) || 'production',
+    // Release tag: app version + build = "1.0.44+46". Sentry agreguje crashes per release,
+    // żeby widzieć regresje gdy nowa wersja zaczyna sypać.
+    release: `kaszuby24@${Constants.expoConfig?.version || '0.0.0'}+${Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode || '0'}`,
+    // 10% sesji wysyłane do Sentry Performance — wystarczy do złapania regresji
+    // (RN startup time, screen transition lag), bez zalewania quota.
+    tracesSampleRate: 0.1,
+    // Replay sesji wyłączone — żre baterię i waga bundla. Crashy bez replay
+    // i tak mają breadcrumbs (nawigacja, network calls, console).
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
+    // Ignorujemy 2 najczęstsze "noise" errors w RN apkach — ScreenStackHostView
+    // memory warnings (iOS, niezwiązane z naszym kodem) i AbortError z fetch
+    // (user cancel, normal flow).
+    ignoreErrors: [
+      'Non-Error promise rejection captured',
+      /AbortError/,
+      /Network request failed/,
+    ],
+  });
+}
+
+// Microsoft Clarity init — heatmaps + session replay. Native module, działa
+// tylko w EAS build (nie w Expo Go). try/catch żeby dev na symulatorze bez
+// natywnego linkowania nie wywalał startup.
+try {
+  Clarity.initialize('wnk4loedj7', { logLevel: Clarity.LogLevel.None });
+} catch (e) {
+  // dev/Expo Go — native module niedostępny, pomijamy
+}
+
+// Set Poppins as default font for ALL <Text> and <TextInput> in the app.
+// Without this, RN Text falls back to the platform default (San Francisco / Roboto)
+// even though Poppins is loaded via useFonts. Per-style fontFamily still overrides.
+{
+  const TextAny = RNText as unknown as { defaultProps?: any };
+  TextAny.defaultProps = TextAny.defaultProps || {};
+  TextAny.defaultProps.style = [{ fontFamily: 'Poppins_Regular' }, TextAny.defaultProps.style];
+  const TextInputAny = RNTextInput as unknown as { defaultProps?: any };
+  TextInputAny.defaultProps = TextInputAny.defaultProps || {};
+  TextInputAny.defaultProps.style = [{ fontFamily: 'Poppins_Regular' }, TextInputAny.defaultProps.style];
+}
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/store/themeStore';
 import { notificationService } from '@/services/notificationService';
@@ -14,13 +69,12 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { handleDeepLinkWithValidation } from '@/utils/linkHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Updates from 'expo-updates';
-import Constants from 'expo-constants';
 import { analyticsService } from '@/services/analyticsService';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootLayout() {
   const { isDarkMode, theme } = useThemeStore();
   const router = useRouter();
   const [appIsReady, setAppIsReady] = useState(false);
@@ -111,7 +165,8 @@ export default function RootLayout() {
             if (update.isAvailable) {
               console.log('✅ Update available, downloading...');
               await Updates.fetchUpdateAsync();
-              console.log('✅ Update downloaded, will reload on next app start');
+              console.log('✅ Update downloaded, reloading...');
+              await Updates.reloadAsync();
             } else {
               console.log('✅ App is up to date');
             }
@@ -310,3 +365,7 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+// Sentry.wrap() owija root żeby errory w React tree (crashes podczas render)
+// były automatycznie wysłane. Wrap NO-OP gdy DSN nie ustawione (dev/Expo Go).
+export default sentryDsn ? Sentry.wrap(RootLayout) : RootLayout;

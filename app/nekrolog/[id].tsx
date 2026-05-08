@@ -33,6 +33,7 @@ const NEKROLOG_TAGS_STYLES = {
 };
 
 import { fetchNekrologById } from '@/services/api';
+import { analyticsService } from '@/services/analyticsService';
 import { Nekrolog } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
@@ -83,6 +84,15 @@ export default function NekrologDetailScreen() {
         
         if (isMounted.current) {
           setNekrolog(nekrologData);
+
+          // GA4: page_view z `/nekrolog/<slug>` matching web URL — dashboard
+          // sumuje web + mobile odsłony per slug. nekrolog_view event ma id +
+          // deceased name jako mobile-specific signal.
+          analyticsService.logNekrologView(
+            nekrologData.id,
+            (nekrologData.title?.rendered || '').replace(/<[^>]*>/g, ''),
+            nekrologData.slug || '',
+          );
           
           // Load featured image if available
           if (nekrologData.featured_media) {

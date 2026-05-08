@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Platform, View, Animated, StyleSheet, Text, Dimensions, PanResponder } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
+import { analyticsService } from '@/services/analyticsService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Bell, Bookmark, Search, Calendar as CalendarIcon, Settings, CloudRain, LayoutGrid, MapPin, Bus } from 'lucide-react-native';
 import { Image } from 'expo-image';
@@ -85,6 +86,25 @@ export default function TabLayout() {
   const tabBarTranslateY = React.useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const tts = useTTSStore();
+
+  // GA4 screen tracking — wysyła screen_view + page_view (z fake URL pasującym
+  // do struktury webu) przy każdej zmianie taba. Centralne miejsce zamiast
+  // useFocusEffect w 6 osobnych ekranach. usePathname() reaguje na każdą
+  // nawigację w expo-router, włącznie z tab switch.
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!pathname) return;
+    const screenName = pathname.replace(/^\/+/, '') || 'home';
+    analyticsService.logScreenView(screenName);
+    // page_view z fake-app URL żeby dashboard pageviews map widział mobile
+    // odsłony tabów. Dodajemy `app://` prefix żeby nie kolidowało z webowym
+    // pageviewem (np. /wydarzenia ma odpowiednik na webie).
+    analyticsService.logCustomEvent('page_view', {
+      page_location: `app://kaszuby24${pathname}`,
+      page_title: screenName,
+      page_referrer: 'app',
+    });
+  }, [pathname]);
 
   // Oblicz właściwy padding dla Androida z safe area
   const getBottomPadding = () => {

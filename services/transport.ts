@@ -22,7 +22,7 @@ export const TransportService = {
             },
             {
                 id: '2',
-                operator: 'mzK Wejherowo',
+                operator: 'MZK Wejherowo',
                 line: 'J',
                 direction: 'Rumia Dworzec PKP',
                 nextDepartures: ['14:10', '14:30', '14:50'],

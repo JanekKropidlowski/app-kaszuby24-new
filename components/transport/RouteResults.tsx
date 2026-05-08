@@ -85,34 +85,37 @@ export const RouteResults: React.FC<RouteResultsProps> = ({
         }
     };
 
+    // Order matters. Two pułapki:
+    //   1) `agency === 'pks'` exact-match nie łapał `pks_gdynia`/`pksgdynia` (formaty
+    //      z OTP / nasz panel) → linia 650 spadała do PKP fallback (badge "PKP 650").
+    //   2) "PKP Szybka Kolej Miejska" zawiera 'pkp' — SKM/PKS check muszą być przed
+    //      PKP/IC (które obejmuje 'pkp'), inaczej PKS wpada do PKP/IC.
+    // Dlatego używamy `includes` zamiast exact-match list i ścisłej kolejności:
+    // SKM → POLREGIO → PKS → ZTM → ZKM → MZK → IC → fallback PKP.
     const getStopColor = (agency: string = '') => {
-        const agStr = agency.toLowerCase();
-        const agencies = agStr.split(',').map(a => a.trim());
-        const matches = (list: string[]) => agencies.some(a => list.includes(a));
-
-        if (matches(['regio_rail', 'polregio', 'regio'])) return '#1E40AF'; // Polregio - Blue
-        if (matches(['ic_rail', 'pkp', 'intercity'])) return '#003399'; // PKP - Dark Blue
-        if (matches(['skm_rail', 'skm'])) return '#FBBC05'; // SKM - Yellow
-        if (matches(['ztm_gdansk', 'gdansk', 'ztm'])) return '#E11D48'; // Gdansk - Rose
-        if (matches(['zkm_gdynia', 'gdynia', 'zkm'])) return '#2563EB'; // Gdynia - Blue
-        if (matches(['mzk_wejherowo', 'wejherowo', 'mzk'])) return '#047857'; // Wejherowo - Green
-        if (matches(['pks_gdynia', 'pksgdynia', 'pks'])) return '#10B981'; // PKS - Emerald
+        const a = agency.toLowerCase();
+        if (a.includes('skm')) return '#FBBC05';                     // SKM - Yellow
+        if (a.includes('regio')) return '#1E40AF';                   // PolRegio - Blue
+        if (a.includes('pks')) return '#10B981';                     // PKS - Emerald
+        if (a.includes('ztm') || a.includes('gdansk')) return '#E11D48';   // ZTM - Rose
+        if (a.includes('zkm') || a.includes('gdynia')) return '#2563EB';   // ZKM - Blue
+        if (a.includes('mzk') || a.includes('wejherowo')) return '#047857'; // MZK - Green
+        if (a.includes('intercity') || a.includes('ic_rail')) return '#003399'; // IC - Dark Blue
+        if (a.includes('pkp')) return '#003399';                     // generic PKP fallback
         return theme.colors.primary;
     };
 
     const getAgencyLabel = (agency: string = '') => {
-        const agStr = agency.toLowerCase();
-        const agencies = agStr.split(',').map(a => a.trim());
-
-        if (agencies.some(a => a.includes('skm'))) return 'SKM';
-        if (agencies.some(a => a.includes('ic_rail') || a === 'pkp')) return 'PKP/IC';
-        if (agencies.some(a => a.includes('regio'))) return 'REGIO';
-        if (agencies.some(a => a === 'gdansk' || a === 'ztm')) return 'ZTM';
-        if (agencies.some(a => a === 'gdynia' || a === 'zkm')) return 'ZKM';
-        if (agencies.some(a => a === 'mzk' || a === 'wejherowo')) return 'MZK';
-        if (agencies.some(a => a === 'pks')) return 'PKS';
-
-        return agencies[0]?.toUpperCase() || 'BUS';
+        const a = agency.toLowerCase();
+        if (a.includes('skm')) return 'SKM';
+        if (a.includes('regio')) return 'REGIO';
+        if (a.includes('pks')) return 'PKS';
+        if (a.includes('ztm') || a.includes('gdansk')) return 'ZTM';
+        if (a.includes('zkm') || a.includes('gdynia')) return 'ZKM';
+        if (a.includes('mzk') || a.includes('wejherowo')) return 'MZK';
+        if (a.includes('intercity') || a.includes('ic_rail')) return 'IC';
+        if (a.includes('pkp')) return 'PKP';
+        return agency?.split(',')[0]?.toUpperCase() || 'BUS';
     };
 
     return (

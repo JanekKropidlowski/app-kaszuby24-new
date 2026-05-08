@@ -71,7 +71,11 @@ const AedMarker = React.memo(({ item, coordinate, onPress }: { item: AEDPoint, c
                 : item.indoor === 'yes' ? AM.aed_orange
                     : AM.aed_green;
         return (
-            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }} icon={img} />
+            <Marker coordinate={coordinate} onPress={onPress}>
+                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
+                </View>
+            </Marker>
         );
     }
     const color = getColorBadge(item.access, item.indoor);
@@ -88,7 +92,11 @@ const PharmacyMarker = React.memo(({ item, coordinate, onPress }: { item: Pharma
     if (Platform.OS === 'android' && AM) {
         const img = item.is24h ? AM.pharmacy_24h : AM.pharmacy;
         return (
-            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }} icon={img} />
+            <Marker coordinate={coordinate} onPress={onPress}>
+                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
+                </View>
+            </Marker>
         );
     }
     return (
@@ -113,7 +121,11 @@ const SorMarker = React.memo(({ item, coordinate, onPress }: { item: SorHospital
     if (Platform.OS === 'android' && AM) {
         const img = item.type === 'NiSOZ' || !item.numer_ksiegi ? AM.hospital : AM.sor;
         return (
-            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }} icon={img} />
+            <Marker coordinate={coordinate} onPress={onPress}>
+                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
+                </View>
+            </Marker>
         );
     }
     return (
@@ -128,7 +140,11 @@ const SorMarker = React.memo(({ item, coordinate, onPress }: { item: SorHospital
 const GeneralHospitalMarker = React.memo(({ item, coordinate, onPress }: { item: GeneralHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
     if (Platform.OS === 'android' && AM) {
         return (
-            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }} icon={AM.hospital} />
+            <Marker coordinate={coordinate} onPress={onPress}>
+                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image source={AM.hospital} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
+                </View>
+            </Marker>
         );
     }
     return (

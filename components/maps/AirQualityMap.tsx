@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable, Modal, Image } from 'react-native';
 import { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { ClusterMarker } from './ClusterMarker';
 import MapViewClustering from 'react-native-map-clustering';
@@ -164,8 +164,11 @@ export const AirQualityMap: React.FC<AirQualityMapProps> = ({
                                 onPress={() => onStationPress(station)}
                                 tracksViewChanges={tracksViewChanges}
                                 anchor={{ x: 0.5, y: 0.5 }}
-                                icon={getAqiIcon(category)}
-                            />
+                            >
+                                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
+                                    <Image source={getAqiIcon(category)} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
+                                </View>
+                            </Marker>
                         );
                     }
 

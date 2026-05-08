@@ -30,11 +30,13 @@ import {
   Clock,
   Calendar,
   MapPin,
-  XCircle
+  XCircle,
+  BookOpen
 } from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { searchArticles, fetchArticles, fetchFilteredArticles } from '@/services/api';
-import { Article } from '@/types/article';
+import { searchArticles, fetchArticles, fetchFilteredArticles, searchNekrologi, fetchNekrologi } from '@/services/api';
+import { Article, Nekrolog } from '@/types/article';
+import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
 import ArticleCard from '@/components/ArticleCard';
 import EmptyState from '@/components/EmptyState';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -43,9 +45,13 @@ import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
 import { filterSponsoredArticles } from '@/utils/contentFilter';
 
-// Real categories from your system
+// Real categories from your system. The `nekrologi` pin is a sentinel — its
+// id is not a numeric WP category, so handleCategoryPress detects it and
+// flips contentType instead of forwarding it to fetchFilteredArticles.
+const NEKROLOGI_PIN_ID = 'nekrologi';
 const CATEGORIES = [
   { id: '', name: 'Wszystkie', icon: Heart },
+  { id: NEKROLOGI_PIN_ID, name: 'Nekrologi', icon: BookOpen },
   { id: '17', name: 'Bezpieczeństwo', icon: Eye },
   { id: '11', name: 'Biznes', icon: Home },
   { id: '24', name: 'Sport', icon: TrendingUp },
@@ -86,6 +92,7 @@ export default function SearchScreen() {
 
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
+  const [nekrologi, setNekrologi] = useState<Nekrolog[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -93,6 +100,10 @@ export default function SearchScreen() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedSort, setSelectedSort] = useState('date');
+  // Content type filter: 'all' = mix nekrologi every 5th, 'articles' = only
+  // articles, 'nekrologi' = only obituaries. Default 'all' so users see
+  // both without flipping a setting.
+  const [contentType, setContentType] = useState<'all' | 'articles' | 'nekrologi'>('all');
   const [showRegionSelect, setShowRegionSelect] = useState(false);
   const [showSortSelect, setShowSortSelect] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -125,7 +136,7 @@ export default function SearchScreen() {
 
     try {
       // Only set main loading if we don't have articles yet or if it's a major filter change
-      if (articles.length === 0) {
+      if (articles.length === 0 && nekrologi.length === 0) {
         setLoading(true);
       } else {
         setLoadingMore(true); // Re-use loadingMore for "fetching updates" state to keep list visible
@@ -133,59 +144,77 @@ export default function SearchScreen() {
 
       closeAllDropdowns(); // Close dropdowns when searching
 
-      let results;
+      // Articles fetch — same as before, but skipped when user filters to "Nekrologi only".
+      const articlesPromise: Promise<{ articles: Article[]; totalPages: number }> =
+        contentType === 'nekrologi'
+          ? Promise.resolve({ articles: [], totalPages: 0 })
+          : (selectedCategory || selectedRegion)
+            ? fetchFilteredArticles(
+                1, 20,
+                selectedRegion || undefined,
+                selectedCategory || undefined
+              )
+            : trimmedQuery
+              ? searchArticles(trimmedQuery, 1)
+              : fetchArticles(1, 20);
 
-      // Use new API if region or category selected
-      if ((selectedCategory && selectedCategory !== '') || (selectedRegion && selectedRegion !== '')) {
-        // Ensure we have at least one valid filter
-        const regionFilter = selectedRegion && selectedRegion !== '' ? selectedRegion : undefined;
-        const categoryFilter = selectedCategory && selectedCategory !== '' ? selectedCategory : undefined;
+      // Nekrologi fetch — only when there's a free-text query (server endpoint
+      // doesn't filter by category/region for nekrologi) AND user hasn't
+      // restricted to articles only. Falls back gracefully on error.
+      const nekrologiPromise: Promise<Nekrolog[]> =
+        contentType === 'articles' || !trimmedQuery
+          ? Promise.resolve([])
+          : searchNekrologi(trimmedQuery, 1, 10).then((r) => r.nekrologi);
 
-        if (regionFilter || categoryFilter) {
-          results = await fetchFilteredArticles(1, 20, regionFilter, categoryFilter);
-        } else {
-          // Fallback to general articles if no valid filters
-          results = await fetchArticles(1, 20);
-        }
-      } else if (trimmedQuery) {
-        // Use text search
-        results = await searchArticles(trimmedQuery, 1);
-      } else {
-        // Fallback to general articles
-        results = await fetchArticles(1, 20);
-      }
+      const [articleResults, nekrologiResults] = await Promise.all([
+        articlesPromise,
+        nekrologiPromise,
+      ]);
 
-      let filteredResults = filterSponsoredArticles(results.articles || []);
-
-      // Apply sorting
+      let filteredResults = filterSponsoredArticles(articleResults.articles || []);
       filteredResults = applySorting(filteredResults, selectedSort);
 
       setArticles(filteredResults);
-      setTotalPages(results.totalPages || 1);
+      setNekrologi(nekrologiResults);
+      setTotalPages(articleResults.totalPages || 1);
       setPage(1);
     } catch (err) {
       console.error('Error searching articles:', err);
       setArticles([]);
+      setNekrologi([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
   };
 
-  // New function to load all articles
+  // New function to load all articles + a slice of recent nekrologi for the
+  // mixed default view (no active query/filters).
   const loadAllArticles = async () => {
     try {
       setLoading(true);
-      const results = await fetchArticles(1, 20);
+      const articlesPromise =
+        contentType === 'nekrologi'
+          ? Promise.resolve({ articles: [], totalPages: 0 })
+          : fetchArticles(1, 20);
+      const nekrologiPromise =
+        contentType === 'articles'
+          ? Promise.resolve({ nekrologi: [] as Nekrolog[], totalPages: 0 })
+          : fetchNekrologi(1, 8);
+
+      const [results, nekrologiRes] = await Promise.all([articlesPromise, nekrologiPromise]);
+
       let filteredResults = filterSponsoredArticles(results.articles || []);
       filteredResults = applySorting(filteredResults, selectedSort);
 
       setArticles(filteredResults);
+      setNekrologi(nekrologiRes.nekrologi || []);
       setTotalPages(results.totalPages || 1);
       setPage(1);
     } catch (err) {
       console.error('Error loading all articles:', err);
       setArticles([]);
+      setNekrologi([]);
     } finally {
       setLoading(false);
     }
@@ -258,6 +287,32 @@ export default function SearchScreen() {
 
     // Close dropdowns first
     closeAllDropdowns();
+
+    // Special "Nekrologi" pin — switch to obituary-only mode. We don't pass
+    // it as a category filter (it isn't a real WP category id); instead we
+    // flip contentType so the list re-renders with nekrologi only.
+    if (categoryId === NEKROLOGI_PIN_ID) {
+      setSelectedCategory(NEKROLOGI_PIN_ID);
+      setContentType('nekrologi');
+      setArticles([]);
+      setLoading(true);
+      try {
+        // Pull a generous slice — nekrolog endpoint already orders newest-first.
+        const { nekrologi: list } = await fetchNekrologi(1, 40);
+        setNekrologi(list);
+        setTotalPages(1);
+        setPage(1);
+      } catch (err) {
+        console.error('Error loading nekrologi:', err);
+        setNekrologi([]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Any other category exits nekrolog-only mode and resumes the mixed view.
+    if (contentType === 'nekrologi') setContentType('all');
 
     // Update state
     setSelectedCategory(categoryId);
@@ -357,6 +412,7 @@ export default function SearchScreen() {
     setSelectedRegion('');
     setSelectedSort('date');
     setQuery('');
+    setContentType('all');
     closeAllDropdowns();
 
     // Clear any pending search
@@ -407,6 +463,57 @@ export default function SearchScreen() {
   const hasActiveFilters = selectedCategory || selectedRegion || query.trim();
   const selectedRegionName = REGIONS.find(r => r.id === selectedRegion)?.name || 'Regiony';
   const selectedSortName = SORT_OPTIONS.find(s => s.id === selectedSort)?.name || 'Sortowanie';
+
+  // Mixed feed: insert one nekrolog every 5 articles so the list still feels
+  // article-driven but obituaries are discoverable. When contentType is locked
+  // to one type the pure list is shown.
+  const mixedItems = useMemo<Array<Article | Nekrolog>>(() => {
+    if (contentType === 'nekrologi') return nekrologi as Nekrolog[];
+    if (contentType === 'articles' || nekrologi.length === 0) return articles as Article[];
+    const out: Array<Article | Nekrolog> = [];
+    let nekIdx = 0;
+    articles.forEach((a, i) => {
+      out.push(a);
+      if ((i + 1) % 5 === 0 && nekIdx < nekrologi.length) {
+        out.push(nekrologi[nekIdx++]);
+      }
+    });
+    // Append leftover obituaries the search returned but didn't fit into the
+    // every-5th slots — better than dropping matches the user might want.
+    while (nekIdx < nekrologi.length) out.push(nekrologi[nekIdx++]);
+    return out;
+  }, [articles, nekrologi, contentType]);
+
+  const renderNekrologItem = (item: Nekrolog) => (
+    <TouchableOpacity
+      style={[styles.nekrologCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+      onPress={() => router.push(`/nekrolog/${item.id}`)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.nekrologRow}>
+        <View style={styles.nekrologRibbonBox}>
+          <Image
+            source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2023/05/514697-PIHZZ2-291-01.png' }}
+            style={styles.nekrologRibbon}
+            contentFit="cover"
+            transition={200}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.nekrologBadge, { fontFamily: theme.fontFamily.semibold }]}>Nekrolog</Text>
+          <Text
+            style={[styles.nekrologTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}
+            numberOfLines={2}
+          >
+            {cleanArticleTitle(item.title?.rendered ?? '')}
+          </Text>
+          <Text style={[styles.nekrologDate, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
+            {new Date(item.date).toLocaleDateString('pl-PL')}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -662,21 +769,25 @@ export default function SearchScreen() {
       </TouchableWithoutFeedback>
 
       {/* Results */}
-      {loading && articles.length === 0 ? (
+      {loading && mixedItems.length === 0 ? (
         <SkeletonLoader type="search" count={5} immediate={true} />
       ) : (
         <FlatList
-          data={articles}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <ArticleCard
-              article={item}
-              onPress={() => handleArticlePress(item)}
-            />
-          )}
+          data={mixedItems}
+          keyExtractor={(item) => `${item.type === 'nekrolog' ? 'n' : 'a'}_${item.id}`}
+          renderItem={({ item }) =>
+            item.type === 'nekrolog' ? (
+              renderNekrologItem(item as Nekrolog)
+            ) : (
+              <ArticleCard
+                article={item as Article}
+                onPress={() => handleArticlePress(item as Article)}
+              />
+            )
+          }
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            articles.length > 0 ? (
+            mixedItems.length > 0 ? (
               <View style={[styles.resultsHeader, { backgroundColor: theme.colors.subtle }]}>
                 <Text style={[
                   styles.resultsText,
@@ -685,7 +796,7 @@ export default function SearchScreen() {
                     fontFamily: theme.fontFamily.medium
                   }
                 ]}>
-                  {articles.length} wyników
+                  {mixedItems.length} {nekrologi.length > 0 && contentType !== 'articles' ? `wyników (w tym ${nekrologi.length} nekrologów)` : 'wyników'}
                 </Text>
               </View>
             ) : null
@@ -890,5 +1001,66 @@ const styles = StyleSheet.create({
   // List
   listContent: {
     paddingBottom: 20,
+  },
+
+  // Content type filter (Wszystko / Artykuły / Nekrologi)
+  contentTypeRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  contentTypeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  contentTypeChipText: {
+    fontSize: 13,
+  },
+
+  // Nekrolog row (search results)
+  nekrologCard: {
+    marginHorizontal: 16,
+    marginVertical: 6,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  nekrologRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  nekrologRibbonBox: {
+    width: 56,
+    height: 72,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  nekrologRibbon: {
+    width: '100%',
+    height: '100%',
+  },
+  nekrologBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#000',
+    color: '#FFF',
+    fontSize: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 6,
+    overflow: 'hidden',
+  },
+  nekrologTitle: {
+    fontSize: 15,
+    lineHeight: 19,
+    marginBottom: 4,
+  },
+  nekrologDate: {
+    fontSize: 12,
   },
 });

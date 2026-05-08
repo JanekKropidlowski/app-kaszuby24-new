@@ -9,6 +9,7 @@ import {
   Linking,
   Pressable,
   Modal,
+  Image,
 } from 'react-native';
 import MapViewClustering from 'react-native-map-clustering';
 import { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
@@ -296,8 +297,11 @@ export const MevoMap2: React.FC<MevoMap2Props> = ({
                   onPress={() => handleMarkerPress(point)}
                   tracksViewChanges={tracksViewChanges}
                   anchor={{ x: 0.5, y: 0.5 }}
-                  icon={MA_BIKE}
-                />
+                >
+                  <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image source={MA_BIKE} style={{ width: 28, height: 28, resizeMode: 'contain' }} />
+                  </View>
+                </Marker>
               );
             }
             return (
@@ -327,8 +331,11 @@ export const MevoMap2: React.FC<MevoMap2Props> = ({
                 onPress={() => handleMarkerPress(point)}
                 tracksViewChanges={tracksViewChanges}
                 anchor={{ x: 0.5, y: 0.5 }}
-                icon={getAndroidStationIcon(avail)}
-              />
+              >
+                <View collapsable={false} style={{ width: 38, height: 38, justifyContent: 'center', alignItems: 'center' }}>
+                  <Image source={getAndroidStationIcon(avail)} style={{ width: 34, height: 34, resizeMode: 'contain' }} />
+                </View>
+              </Marker>
             );
           }
 

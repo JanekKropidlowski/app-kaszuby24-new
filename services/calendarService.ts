@@ -138,11 +138,14 @@ class CalendarService {
   }
 
   private openAppSettings(): void {
-    if (Platform.OS === 'ios') {
-      Linking.openURL('app-settings:');
-    } else {
-      Linking.openSettings();
-    }
+    // `Linking.openSettings()` działa na iOS+Android od RN 0.69. Wcześniej
+    // trzeba było rozdzielić: iOS używał URL schemu `app-settings:`. Ale ten
+    // schemat wymaga rejestracji w `LSApplicationQueriesSchemes` w Info.plist
+    // — bez tego rzuca "Unable to open URL". Złapane przez Sentry 2026-05-05
+    // w trakcie Apple review (iPhone 16 Pro, iOS 26.4.2).
+    Linking.openSettings().catch((err) => {
+      console.warn('[calendarService] Linking.openSettings failed:', err);
+    });
   }
 
   // Helper method to create event from event data

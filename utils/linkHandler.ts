@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { fetchArticleBySlug, fetchEventBySlug, fetchNekrologBySlug } from '@/services/api';
 
 export interface DeepLinkInfo {
-  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'home' | 'wydarzenia' | 'nekrologi' | 'external' | 'unknown';
+  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'transport' | 'home' | 'wydarzenia' | 'nekrologi' | 'external' | 'unknown';
   slug?: string;
   id?: number;
   query?: string;
@@ -64,7 +64,22 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
       }
     }
 
-    // 2. Handle Web URLs (https://kaszuby24.pl/...)
+    // 2a. Pogoda subdomain — wszystko trafia w Weather tab. Path zachowujemy
+    // żeby ekran pogody mógł później (po dodaniu logiki preselekcji) otworzyć
+    // konkretne miasto z URL np. pogoda.kaszuby24.pl/puck → city=puck.
+    if (hostname === 'pogoda.kaszuby24.pl') {
+      const path = urlObj.pathname.replace(/^\/+|\/+$/g, '');
+      return { type: 'weather', path };
+    }
+
+    // 2b. Rozklady subdomain — wszystko trafia w Transport tab. Path
+    // zachowujemy do późniejszej preselekcji linii/trasy.
+    if (hostname === 'rozklady.kaszuby24.pl') {
+      const path = urlObj.pathname.replace(/^\/+|\/+$/g, '');
+      return { type: 'transport', path };
+    }
+
+    // 3. Handle Web URLs (https://kaszuby24.pl/...)
     if (hostname === 'kaszuby24.pl' || hostname === 'www.kaszuby24.pl') {
       const pathname = urlObj.pathname;
       const path = pathname.replace(/^\/+|\/+$/g, '');
@@ -257,8 +272,24 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
         break;
 
       case 'weather':
-        console.log('Navigating to weather');
-        router.push('/(tabs)/weather');
+        console.log('Navigating to weather', linkInfo.path ? `(path=${linkInfo.path})` : '');
+        // Pass path as ?city= when present so weather screen can preselect.
+        // Screen ignores unknown params, so it's a safe no-op until weather.tsx
+        // wires up `useLocalSearchParams<{ city?: string }>()` handler.
+        if (linkInfo.path) {
+          router.push(`/(tabs)/weather?city=${encodeURIComponent(linkInfo.path)}`);
+        } else {
+          router.push('/(tabs)/weather');
+        }
+        break;
+
+      case 'transport':
+        console.log('Navigating to transport', linkInfo.path ? `(path=${linkInfo.path})` : '');
+        if (linkInfo.path) {
+          router.push(`/(tabs)/transport_v2?route=${encodeURIComponent(linkInfo.path)}`);
+        } else {
+          router.push('/(tabs)/transport_v2');
+        }
         break;
 
       case 'home':
@@ -303,12 +334,19 @@ export const handleDeepLink = async (url: string) => {
 };
 
 /**
- * Test if a URL is a valid kaszuby24.pl deep link
+ * Test if a URL is a valid kaszuby24 ecosystem deep link
+ * (main domain + pogoda/rozklady subdomains)
  */
 export const isKaszuby24Link = (url: string): boolean => {
   try {
     const urlObj = new URL(url);
-    return urlObj.hostname === 'kaszuby24.pl' || urlObj.hostname === 'www.kaszuby24.pl';
+    const h = urlObj.hostname;
+    return (
+      h === 'kaszuby24.pl' ||
+      h === 'www.kaszuby24.pl' ||
+      h === 'pogoda.kaszuby24.pl' ||
+      h === 'rozklady.kaszuby24.pl'
+    );
   } catch {
     return false;
   }

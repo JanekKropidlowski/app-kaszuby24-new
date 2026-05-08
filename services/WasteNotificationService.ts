@@ -1,7 +1,12 @@
 import * as Notifications from 'expo-notifications';
+import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WasteScheduleData } from './WasteScheduleService';
 import { Platform } from 'react-native';
+
+export type TestNotificationResult =
+    | { ok: true }
+    | { ok: false; reason: 'permission-denied' | 'schedule-error'; error?: string };
 
 const NOTIFICATION_SETTINGS_KEY = '@kaszuby24_waste_notif_settings';
 
@@ -24,12 +29,42 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 export const EXCLUDED_TYPES_DEFAULT = ['Choinki'];
 
 export const WasteNotificationService = {
+    async ensureAndroidChannel() {
+        if (Platform.OS !== 'android') return;
+        try {
+            await Notifications.setNotificationChannelAsync('default', {
+                name: 'Kaszuby24 Notifications',
+                importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 250, 250, 250],
+                lightColor: '#FF231F7C',
+                sound: 'default',
+                enableVibrate: true,
+                enableLights: true,
+            });
+        } catch (e) {
+            console.log('[WasteNotif] Android channel setup error (non-fatal):', e);
+        }
+    },
+
     async requestPermissions() {
+        // Android 13+ explicitly requires POST_NOTIFICATIONS at runtime; iOS
+        // always asks. Older Android — the existing-status read returns
+        // 'granted' for free.
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
         if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
+            const { status } = await Notifications.requestPermissionsAsync({
+                ios: {
+                    allowAlert: true,
+                    allowBadge: false,
+                    allowSound: true,
+                },
+            });
             finalStatus = status;
+        }
+        // Make sure the channel exists before scheduling on Android.
+        if (finalStatus === 'granted') {
+            await this.ensureAndroidChannel();
         }
         return finalStatus === 'granted';
     },
@@ -107,8 +142,10 @@ export const WasteNotificationService = {
                     sound: true,
                 },
                 trigger: {
+                    type: SchedulableTriggerInputTypes.DATE,
                     date: triggerDate,
-                } as any, // Cast to any to avoid strict type checks if versions mismatch, though { date: Date } is standard
+                    channelId: 'default',
+                },
             });
 
             scheduledCount++;
@@ -118,11 +155,11 @@ export const WasteNotificationService = {
         return scheduledCount;
     },
 
-    async sendTestNotification() {
+    async sendTestNotification(): Promise<TestNotificationResult> {
         const hasPermission = await this.requestPermissions();
         if (!hasPermission) {
-            console.log('No notification permission');
-            return false;
+            console.log('[WasteNotif] No notification permission');
+            return { ok: false, reason: 'permission-denied' };
         }
 
         try {
@@ -134,13 +171,16 @@ export const WasteNotificationService = {
                     sound: true,
                 },
                 trigger: {
+                    type: SchedulableTriggerInputTypes.TIME_INTERVAL,
                     seconds: 2,
+                    repeats: false,
+                    channelId: 'default',
                 },
             });
-            return true;
-        } catch (error) {
+            return { ok: true };
+        } catch (error: any) {
             console.error('[WasteNotificationService] Error scheduling test notification:', error);
-            return false;
+            return { ok: false, reason: 'schedule-error', error: error?.message || String(error) };
         }
     }
 };

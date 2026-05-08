@@ -52,6 +52,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Importy komponentów i serwisów
 import { OptimizedLightbox } from '@/components/OptimizedLightbox';
 import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
+import { analyticsService } from '@/services/analyticsService';
 import { Article, MediaItem } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
@@ -68,6 +69,8 @@ import EmptyState from '@/components/EmptyState';
 import { AdBanner } from '@/components/AdBanner'; // Import AdBanner
 import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
 import { WebView } from 'react-native-webview';
+import ArticlePollWidget from '@/components/ArticlePollWidget';
+import ArticleFbComments from '@/components/ArticleFbComments';
 import { AudioPlayerBar } from '@/components/AudioPlayerBar';
 import { ReadingProgressBar } from '@/components/ReadingProgressBar';
 import * as Speech from 'expo-speech';
@@ -389,6 +392,17 @@ export default function ArticleScreen() {
 
         setArticle(articleData);
         setIsSaved(isArticleSaved(articleId));
+
+        // GA4: track article view (page_view + article_view).
+        // page_location matches web URL (https://kaszuby24.pl/<slug>) — dashboard
+        // pageviews map sums web + mobile per slug. article_view event ma bogatsze
+        // params (id/category) do mobile-specific funnels.
+        analyticsService.logArticleView(
+          articleData.id,
+          cleanTitle(articleData.title?.rendered || ''),
+          articleData.slug || '',
+          articleData.categories?.[0],
+        );
         // Clean content
         const cleaned = cleanHtml(articleData.content.rendered || '', !!theme.isDarkMode || !!isDarkMode);
         setCleanedContentHtml(cleaned);
@@ -1224,6 +1238,14 @@ export default function ArticleScreen() {
               />
             </TouchableOpacity>
           </View>
+
+          {/* Ankieta i komentarze FB */}
+          {article && (
+            <>
+              <ArticlePollWidget postId={article.id} />
+              <ArticleFbComments postId={article.id} />
+            </>
+          )}
 
           {/* Sprawdź również - Sekcja z powiązanymi artykułami - Ulepszona */}
           {relatedArticles.length > 0 && (

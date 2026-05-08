@@ -1006,9 +1006,14 @@ export const OTPService = {
             else if (searchStr.includes('ztm') || searchStr.includes('ztm gdansk') || searchStr.includes('ztm gdańsk') || searchStr.includes('zarząd transportu miejskiego') || searchStr.includes('zarzad transportu')) brand = 'ZTM';
             else if (searchStr.includes('regiojet')) brand = 'RegioJet';
             else if (searchStr.includes('intercity') || searchStr.includes('pkp ic') || searchStr.includes(':ic') || agencyId.toLowerCase().endsWith(':ic')) brand = 'IC';
-            else if (searchStr.includes('leo express') || searchStr.includes('arriva') || searchStr.includes('koleje') || searchStr.includes('lka') || searchStr.includes('km ') || searchStr.includes('kw ') || searchStr.includes('ks ')) brand = 'PKP';
+            // PKS check MUSI być przed "ks " — bo "pks gdynia" zawiera "ks " co
+            // wcześniej powodowało że PKS był błędnie oznaczany jako PKP. Plus
+            // PKP check przed regional rail bo "PKP Szybka Kolej…" już złapane przez SKM linia 1002.
             else if (searchStr.includes('pks')) brand = 'PKS';
             else if (searchStr.includes('pkp')) brand = 'PKP';
+            // Pozostałe regional carriers — używamy word-boundary regex zamiast
+            // includes(' XX ') które łapało "PKS"/"MZK"/"ZKM" jako false-positive.
+            else if (searchStr.includes('leo express') || searchStr.includes('arriva') || searchStr.includes('koleje') || /\b(lka|km|kw|ks)\b/.test(searchStr)) brand = 'PKP';
 
             // OTP 2.x startTime/endTime are objects { scheduledTime }
             const startTimeValue = leg.startTime?.scheduledTime || leg.startTime;

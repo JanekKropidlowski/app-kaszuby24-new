@@ -10,17 +10,19 @@ export function getAgencyIcon(agency: string | undefined): string {
     
     const agencyLower = agency.toLowerCase();
     
-    // Train/rail agencies
-    if (agencyLower.includes('skm')) return 'train'; // SKM - Fast Urban Railway
-    if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return 'train'; // POLREGIO
-    if (agencyLower.includes('intercity') || agencyLower.includes('pkp ic') || agencyLower.includes('regiojet') || agencyLower.includes('leo express') || agencyLower.includes('arriva') || agencyLower.includes('koleje')) return 'train'; // IC/RegioJet i inne
-    if (agencyLower.includes('pkp') || agencyLower.includes('rail')) return 'train';
-
-    // Bus agencies
+    // Bus agencies - CHECK FIRST and carefully
     if (agencyLower.includes('pks') || agencyLower.includes('pksgdynia')) return 'bus'; // PKS Gdynia
     if (agencyLower.includes('mzk') || agencyLower.includes('wejherowo')) return 'bus'; // MZK Wejherowo
     if (agencyLower.includes('zkm')) return 'bus'; // ZKM Gdynia
     if (agencyLower.includes('ztm') || agencyLower.includes('zarząd transportu miejskiego') || agencyLower.includes('zarzad transportu')) return 'tram'; // ZTM Gdańsk (tramwaje)
+
+    // Train/rail agencies - ONLY IF NOT PKS
+    if (agencyLower.includes('skm')) return 'train'; // SKM - Fast Urban Railway
+    if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return 'train'; // POLREGIO
+    if (agencyLower.includes('intercity') || agencyLower.includes('pkp ic') || agencyLower.includes('regiojet') || agencyLower.includes('leo express') || agencyLower.includes('arriva') || agencyLower.includes('koleje')) return 'train'; // IC/RegioJet i inne
+    
+    // Check for PKP but ensure it is NOT PKS (regex word boundary or explicit check)
+    if (agencyLower === 'pkp' || (agencyLower.includes('pkp') && !agencyLower.includes('pks')) || agencyLower.includes('rail')) return 'train';
     
     // Default
     return 'bus-outline';
@@ -34,14 +36,15 @@ export function getAgencyColor(agency: string | undefined): string {
     
     const agencyLower = agency.toLowerCase();
     
-    if (agencyLower.includes('skm')) return 'FFB300'; // Yellow/Gold
-    if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return '1A6ADD'; // Blue
     if (agencyLower.includes('pks') || agencyLower.includes('pksgdynia')) return '388E3C'; // Green
     if (agencyLower.includes('mzk') || agencyLower.includes('wejherowo')) return '1A237E'; // Dark Blue MZK Wejherowo
     if (agencyLower.includes('zkm')) return 'E53935'; // Red ZKM Gdynia
     if (agencyLower.includes('ztm') || agencyLower.includes('zarząd transportu miejskiego') || agencyLower.includes('zarzad transportu')) return 'F57C00'; // Orange ZTM Gdańsk
+    
+    if (agencyLower.includes('skm')) return 'FFB300'; // Yellow/Gold
+    if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return '1A6ADD'; // Blue
     if (agencyLower.includes('intercity') || agencyLower.includes('pkp ic') || agencyLower.includes('regiojet') || agencyLower.includes('leo express') || agencyLower.includes('arriva') || agencyLower.includes('koleje')) return '1A237E'; // Dark Blue pociągi
-    if (agencyLower.includes('pkp')) return '37474F'; // Dark Gray PKP
+    if (agencyLower === 'pkp' || (agencyLower.includes('pkp') && !agencyLower.includes('pks'))) return '37474F'; // Dark Gray PKP (but not PKS)
     
     return '718096'; // Default gray
 }
@@ -54,12 +57,13 @@ export function getAgencyDisplayName(agency: string | undefined): string {
     
     const agencyLower = agency.toLowerCase();
     
-    if (agencyLower.includes('skm')) return 'SKM';
-    if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return 'POLREGIO';
     if (agencyLower.includes('pks') || agencyLower.includes('pksgdynia')) return 'PKS Gdynia';
     if (agencyLower.includes('mzk') || agencyLower.includes('wejherowo')) return 'MZK Wejherowo';
     if (agencyLower.includes('zkm')) return 'ZKM Gdynia';
     if (agencyLower.includes('ztm') || agencyLower.includes('zarząd transportu miejskiego') || agencyLower.includes('zarzad transportu')) return 'ZTM Gdańsk';
+
+    if (agencyLower.includes('skm')) return 'SKM';
+    if (agencyLower.includes('polregio') || agencyLower.includes('regio')) return 'POLREGIO';
     if (agencyLower.includes('regiojet')) return 'RegioJet';
     if (agencyLower.includes('intercity') || agencyLower.includes('pkp ic')) return 'PKP IC';
     if (agencyLower.includes('leo express')) return 'Leo Express';
@@ -71,7 +75,7 @@ export function getAgencyDisplayName(agency: string | undefined): string {
     if (agencyLower.includes('koleje śląskie') || agencyLower.includes('slaskie')) return 'Koleje Śląskie';
     if (agencyLower.includes('łódzka kolej') || agencyLower.includes('lodzka kolej')) return 'ŁKA';
     if (agencyLower.includes('koleje')) return 'Koleje regionalne';
-    if (agencyLower.includes('pkp')) return 'PKP';
+    if (agencyLower === 'pkp' || (agencyLower.includes('pkp') && !agencyLower.includes('pks'))) return 'PKP';
     
     return agency;
 }

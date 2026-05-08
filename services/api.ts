@@ -1147,6 +1147,30 @@ export const fetchNekrologi = async (
   });
 };
 
+// Search nekrologi by free-text query against title + city.
+// Uses /wp/v2/nekrolog?search= (server-side filter on title.ilike + city.ilike).
+export const searchNekrologi = async (
+  query: string,
+  page = 1,
+  perPage = 10
+): Promise<{ nekrologi: Nekrolog[], totalPages: number }> => {
+  const trimmed = query.trim();
+  if (!trimmed) return { nekrologi: [], totalPages: 0 };
+  return deduplicateRequest(`search_nekrolog_${trimmed}_${page}_${perPage}`, async () => {
+    try {
+      const url = `${API_BASE_URL}/nekrolog?search=${encodeURIComponent(trimmed)}&page=${page}&per_page=${perPage}&_=${Date.now()}`;
+      const response = await fetchWithTimeout(url);
+      if (!response.ok) return { nekrologi: [], totalPages: 0 };
+      const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1', 10);
+      const data = await response.json();
+      if (!Array.isArray(data)) return { nekrologi: [], totalPages: 0 };
+      return { nekrologi: data, totalPages };
+    } catch {
+      return { nekrologi: [], totalPages: 0 };
+    }
+  });
+};
+
 // Function to fetch single nekrolog by ID
 export const fetchNekrologById = async (id: number): Promise<Nekrolog> => {
   const requestKey = `nekrolog_${id}`;
