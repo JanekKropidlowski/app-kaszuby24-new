@@ -610,10 +610,21 @@ export default function TransportSearchScreen() {
     const renderJourney = ({ item }: { item: RouteOption }) => {
         const isExpanded = expandedJourneyId === item.id;
 
-        // Calculate time until departure
-        const diffMs = item.startTimeTimestamp ? item.startTimeTimestamp - Date.now() : 0;
-        const totalMinutesUntil = Math.max(0, Math.round(diffMs / 60000));
+        // Czas odjazdu pojazdu (pierwsza noga RIDE), nie czas wyjścia z domu
+        const firstRideLeg = item.legs.find(l => l.mode !== 'WALK');
+        const transitTime = firstRideLeg?.startTime || item.startTime;
+
+        // Countdown do odjazdu pojazdu
+        const [th, tm] = transitTime.split(':').map(Number);
+        const transitDep = new Date();
+        transitDep.setHours(th, tm, 0, 0);
+        if (transitDep.getTime() < Date.now() - 60000) transitDep.setDate(transitDep.getDate() + 1);
+        const totalMinutesUntil = Math.max(0, Math.round((transitDep.getTime() - Date.now()) / 60000));
         const showCountdown = totalMinutesUntil > 0 && totalMinutesUntil <= 60;
+
+        // Czas spaceru do przystanku (jeśli jest)
+        const walkLeg = item.legs[0]?.mode === 'WALK' ? item.legs[0] : null;
+        const walkMin = walkLeg ? Math.round(walkLeg.duration || 0) : 0;
 
         return (
             <TouchableOpacity
@@ -625,20 +636,21 @@ export default function TransportSearchScreen() {
                     {/* LEFT COLUMN: Time / Label */}
                     <View style={{ minWidth: 90, justifyContent: 'center' }}>
                         <Text style={{ fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#718096', marginBottom: -2 }}>
-                            {showCountdown ? 'Odjazd za:' : 'Odjazd o:'}
+                            Odjazd o:
+                        </Text>
+                        <Text style={{ fontSize: tfs(32), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: '#1A202C', lineHeight: 42, marginTop: 4 }}>
+                            {transitTime}
                         </Text>
                         {showCountdown ? (
-                            <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 4 }}>
-                                <Text style={{ fontSize: tfs(42), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: '#1A202C', lineHeight: 50, includeFontPadding: false }}>
-                                    {totalMinutesUntil}
-                                </Text>
-                                <Text style={{ fontSize: tfs(18), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#4A5568', marginLeft: 6, marginBottom: 4 }}>min</Text>
-                            </View>
-                        ) : (
-                            <Text style={{ fontSize: tfs(32), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: '#1A202C', lineHeight: 42, marginTop: 4 }}>
-                                {item.startTime}
+                            <Text style={{ fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#718096', marginTop: 1 }}>
+                                za {totalMinutesUntil} min
                             </Text>
-                        )}
+                        ) : null}
+                        {walkMin > 0 ? (
+                            <Text style={{ fontSize: tfs(11), color: '#9CA3AF', marginTop: 1 }}>
+                                🚶 {walkMin} min do przystanku
+                            </Text>
+                        ) : null}
                     </View>
 
                     {/* RIGHT COLUMN: Badges, Timeline */}
