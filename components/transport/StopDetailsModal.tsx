@@ -354,8 +354,8 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                                 </View>
                                             </View>
                                             <View style={styles.timeContainer}>
-                                                {relTime ? <Text style={[styles.relTime, { color: theme.colors.text }]}>{relTime}</Text> : null}
-                                                <Text style={[styles.absTime, { color: relTime ? theme.colors.textSecondary : theme.colors.text, fontSize: relTime ? 12 : 16, fontWeight: relTime ? '400' : '700' }]}>{item.time}</Text>
+                                                <Text style={[styles.relTime, { color: theme.colors.text }]}>{item.time}</Text>
+                                                {relTime ? <Text style={[styles.absTime, { color: theme.colors.textSecondary }]}>{relTime}</Text> : null}
                                             </View>
                                         </View>
                                     </React.Fragment>
