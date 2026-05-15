@@ -225,9 +225,51 @@ export default function WasteScheduleScreen() {
                         }
                     }
                 }
+                setLoading(false);
+                return;
             }
         }
+
+        // No saved selection — silently try GPS auto-detect (only if permission already granted,
+        // so we don't prompt on first open).
         setLoading(false);
+        tryAutoLocateCity(availableCities);
+    };
+
+    // Silent GPS city detection on startup — no permission prompt, just uses existing grant.
+    const tryAutoLocateCity = async (availableCities: City[]) => {
+        try {
+            const { status } = await Location.getForegroundPermissionsAsync();
+            if (status !== 'granted') return;
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const rev = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+            if (!rev?.length) return;
+            const matched = matchCityFromGeocode(rev[0], availableCities);
+            if (matched) handleCitySelect(matched);
+        } catch (_) {
+            // Silent fail — user can still pick manually
+        }
+    };
+
+    // Finds the best city from our list given a geocoded address result.
+    // Checks city field first, then subregion (catches "Gmina Puck" etc.).
+    const matchCityFromGeocode = (r: Location.LocationGeocodedAddress, cityList: City[]): City | null => {
+        const norm = (s?: string | null) => normalizeWasteSearch(s || '');
+        const gCity = norm(r.city);
+        const gSub = norm(r.subregion);
+        const gDistrict = norm(r.district);
+
+        // Priority: exact city > subregion includes city name > city name includes gCity
+        return cityList.find(c => {
+            const cn = norm(c.name);
+            if (!cn) return false;
+            if (cn === gCity) return true;
+            if (gSub && (gSub === cn || gSub.replace('gmina ', '').replace('miasto ', '') === cn)) return true;
+            if (gSub && gSub.includes(cn) && cn.length > 3) return true;
+            if (gDistrict && gDistrict === cn) return true;
+            if (gCity && cn.startsWith(gCity) && gCity.length > 3) return true;
+            return false;
+        }) ?? null;
     };
 
     const fetchNewsArticles = async (city: City) => {
@@ -388,7 +430,6 @@ export default function WasteScheduleScreen() {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
                 Alert.alert('Brak uprawnień', 'Musisz zezwolić na dostęp do lokalizacji, aby użyć tej funkcji.');
-                setLocationLoading(false);
                 return;
             }
 
@@ -396,30 +437,53 @@ export default function WasteScheduleScreen() {
             const { latitude, longitude } = location.coords;
             const address = await Location.reverseGeocodeAsync({ latitude, longitude });
 
-            if (address && address.length > 0) {
-                const city = address[0].city;
-                const street = address[0].street;
+            if (!address?.length) {
+                Alert.alert('Błąd', 'Nie udało się ustalić adresu z GPS.');
+                return;
+            }
 
-                if (step === 'city') {
-                    const matchedCity = cities.find(c => c.name.toLowerCase() === city?.toLowerCase());
-                    if (matchedCity) {
-                        handleCitySelect(matchedCity);
-                    } else {
-                        Alert.alert('Niestety', `Twoje miasto (${city}) nie jest jeszcze obsługiwane.`);
-                    }
-                } else if (step === 'street') {
-                    if (street) {
-                        // Fuzzy search for street
-                        const matchedStreet = allStreets.find(s =>
-                            s.street.toLowerCase().includes(street.toLowerCase()) ||
-                            street.toLowerCase().includes(s.street.toLowerCase())
+            const r = address[0];
+
+            if (step === 'city') {
+                const matched = matchCityFromGeocode(r, cities);
+                if (matched) {
+                    handleCitySelect(matched);
+                } else {
+                    Alert.alert('Niestety', `Twoja lokalizacja (${r.city || r.subregion || '?'}) nie jest jeszcze obsługiwana.`);
+                }
+            } else if (step === 'street') {
+                if (cityMode === 'villages') {
+                    // Gmina Puck: village name comes in district/name/street — search allVillages
+                    const hint = r.district || r.name || r.street || '';
+                    if (hint) {
+                        const q = normalizeWasteSearch(hint);
+                        const match = allVillages.find(v =>
+                            normalizeWasteSearch(v.village).includes(q) ||
+                            q.includes(normalizeWasteSearch(v.village))
                         );
-
+                        if (match) {
+                            handleStreetSelect(match.village, match.regionId);
+                        } else {
+                            setSearchQuery(hint);
+                            Alert.alert('Informacja', `Wykryto miejscowość: ${hint}. Wybierz z listy poniżej.`);
+                        }
+                    } else {
+                        Alert.alert('Błąd', 'Nie udało się wykryć nazwy miejscowości.');
+                    }
+                } else {
+                    // Streets mode (Reda, Puck, fallback)
+                    const street = r.street;
+                    if (street) {
+                        const sourceList = cityMode === 'reda' ? redaStreets : allStreets;
+                        const matchedStreet = sourceList.find(s =>
+                            normalizeWasteSearch(s.street).includes(normalizeWasteSearch(street)) ||
+                            normalizeWasteSearch(street).includes(normalizeWasteSearch(s.street))
+                        );
                         if (matchedStreet) {
                             handleStreetSelect(matchedStreet.street, matchedStreet.regionId);
                         } else {
                             setSearchQuery(street);
-                            Alert.alert('Informacja', `Wykryto ulicę: ${street}, ale nie znaleziono jej dokładnego odpowiednika w bazie. Sprawdź wyniki wyszukiwania.`);
+                            Alert.alert('Informacja', `Wykryto ulicę: ${street}. Wybierz z listy poniżej.`);
                         }
                     } else {
                         Alert.alert('Błąd', 'Nie udało się wykryć nazwy ulicy.');

@@ -209,4 +209,10 @@ export interface Event {
       taxonomy: string;
     }>>;
   };
+  // LZS Pomorski integration — gdy event jest mirrorem z lzs-pomorski.pl, te
+  // pola dyktują render (zielony badge + LZS logo) i routing (open external).
+  // Patrz: services/lzsEvents.ts. Brak wartości = standardowy event kaszuby24.
+  source?: 'kaszuby' | 'lzs';
+  externalUrl?: string;
+  organizator?: string;
 }

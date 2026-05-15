@@ -1,38 +1,31 @@
-import { Link, Stack } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect } from "react";
+import { View } from "react-native";
+import { router, usePathname, useGlobalSearchParams } from "expo-router";
+import { handleDeepLinkWithValidation } from "@/utils/linkHandler";
 
+// Expo-router renders this for any URL that doesn't match a file route.
+// Universal Links land here for paths like /wydarzenia or /jakis-slug-artykulu
+// because we don't have file routes for every WP slug. Instead of showing
+// a "not found" screen, reconstruct the original kaszuby24.pl URL and let
+// linkHandler resolve it (slug→id fetch + router.replace to /article/[id]).
 export default function NotFoundScreen() {
-  return (
-    <>
-      <Stack.Screen options={{ title: "Oops!" }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn't exist.</Text>
+  const pathname = usePathname();
+  const params = useGlobalSearchParams();
 
-        <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
-        </Link>
-      </View>
-    </>
-  );
+  useEffect(() => {
+    const search = new URLSearchParams(
+      Object.entries(params).reduce<Record<string, string>>((acc, [k, v]) => {
+        if (typeof v === "string") acc[k] = v;
+        else if (Array.isArray(v) && typeof v[0] === "string") acc[k] = v[0];
+        return acc;
+      }, {})
+    ).toString();
+    const url = `https://kaszuby24.pl${pathname}${search ? "?" + search : ""}`;
+
+    handleDeepLinkWithValidation(url, true).catch(() => {
+      router.replace("/(tabs)");
+    });
+  }, [pathname]);
+
+  return <View style={{ flex: 1, backgroundColor: "#ffffff" }} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-  linkText: {
-    fontSize: 14,
-    color: "#2e78b7",
-  },
-});

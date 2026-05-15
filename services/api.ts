@@ -1190,12 +1190,17 @@ export const fetchNekrologById = async (id: number): Promise<Nekrolog> => {
           setTimeout(async () => {
             try {
               const timestamp = new Date().getTime();
-              const url = `${API_BASE_URL}/nekrolog/${id}?_=${timestamp}`;
+              // Panel WP-compat layer (panel.kaszuby24.pl) only implements collection
+              // routes for CPTs (`/nekrolog`, `/kalendarz`) — no `/nekrolog/:id`. The
+              // path `${BASE}/nekrolog/${id}` falls through to the SPA HTML fallback
+              // and breaks JSON.parse. Use `?include=` to fetch a single CPT post.
+              const url = `${API_BASE_URL}/nekrolog?include=${id}&_=${timestamp}`;
 
               const response = await fetchWithTimeout(url);
               if (response.ok) {
-                const nekrolog = await response.json();
-                await cacheDataWithSWR(cacheKey, nekrolog);
+                const arr = await response.json();
+                const nekrolog = Array.isArray(arr) ? arr[0] : arr;
+                if (nekrolog) await cacheDataWithSWR(cacheKey, nekrolog);
               }
             } catch (error) {
               console.warn(`Background revalidation failed for nekrolog ${id}:`, error);
@@ -1208,7 +1213,7 @@ export const fetchNekrologById = async (id: number): Promise<Nekrolog> => {
 
       // No cache, fetch fresh data
       const timestamp = new Date().getTime();
-      const url = `${API_BASE_URL}/nekrolog/${id}?_=${timestamp}`;
+      const url = `${API_BASE_URL}/nekrolog?include=${id}&_=${timestamp}`;
 
       const response = await fetchWithTimeout(url);
 
@@ -1225,7 +1230,12 @@ export const fetchNekrologById = async (id: number): Promise<Nekrolog> => {
         }
       }
 
-      const nekrolog = await response.json();
+      const arr = await response.json();
+      const nekrolog = Array.isArray(arr) ? arr[0] : arr;
+
+      if (!nekrolog) {
+        throw new Error('Nekrolog nie został znaleziony.');
+      }
 
       // Cache the fresh data
       await cacheDataWithSWR(cacheKey, nekrolog);

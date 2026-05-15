@@ -32,7 +32,7 @@ const NEKROLOG_TAGS_STYLES = {
   p: { marginBottom: 8 },
 };
 
-import { fetchNekrologById } from '@/services/api';
+import { fetchNekrologById, fetchNekrologBySlug } from '@/services/api';
 import { analyticsService } from '@/services/analyticsService';
 import { Nekrolog } from '@/types/article';
 import LoadingIndicator from '@/components/LoadingIndicator';
@@ -63,14 +63,11 @@ export default function NekrologDetailScreen() {
   // Load nekrolog data
   useEffect(() => {
     const loadNekrologData = async () => {
-      if (!id || Array.isArray(id)) {
-        setError('Nieprawidłowy identyfikator nekrologu');
-        setLoading(false);
-        return;
-      }
+      // Hydration guard — see article/[id].tsx for context
+      if (id === undefined) return;
 
-      const nekrologId = parseInt(id, 10);
-      if (isNaN(nekrologId)) {
+      const idStr = Array.isArray(id) ? id[0] : (id as string | undefined);
+      if (!idStr) {
         setError('Nieprawidłowy identyfikator nekrologu');
         setLoading(false);
         return;
@@ -79,7 +76,19 @@ export default function NekrologDetailScreen() {
       try {
         setLoading(true);
         setError(null);
-        
+
+        // Accept both numeric ID and slug (deeplinks like /nekrolog/jan-kowalski)
+        const nekrologId = /^\d+$/.test(idStr) ? parseInt(idStr, 10) : await (async () => {
+          const n = await fetchNekrologBySlug(idStr);
+          return n?.id ?? NaN;
+        })();
+
+        if (!nekrologId || isNaN(nekrologId)) {
+          setError('Nie znaleziono nekrologu');
+          setLoading(false);
+          return;
+        }
+
         const nekrologData = await fetchNekrologById(nekrologId);
         
         if (isMounted.current) {

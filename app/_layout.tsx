@@ -67,6 +67,13 @@ import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { useRouter } from 'expo-router';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { handleDeepLinkWithValidation } from '@/utils/linkHandler';
+import SupportModal from '@/components/SupportModal';
+import SupportPromptModal from '@/components/SupportPromptModal';
+
+// Callable from any screen — avoids prop-drilling or a second Zustand store
+// for a single boolean. Article screen calls this after tracking the read.
+let _showSupportPrompt: (() => void) | null = null;
+export function triggerSupportPrompt() { _showSupportPrompt?.(); }
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Updates from 'expo-updates';
 import { analyticsService } from '@/services/analyticsService';
@@ -80,6 +87,13 @@ function RootLayout() {
   const [appIsReady, setAppIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [themeReady, setThemeReady] = useState(false);
+  const [supportPromptVisible, setSupportPromptVisible] = useState(false);
+
+  // Register the global trigger as soon as this component mounts.
+  useEffect(() => {
+    _showSupportPrompt = () => setSupportPromptVisible(true);
+    return () => { _showSupportPrompt = null; };
+  }, []);
 
   // Performance monitoring
   usePerformanceMonitor('RootLayout');
@@ -214,51 +228,24 @@ function RootLayout() {
     }
   }, [appIsReady]);
 
-  // Add deep linking handler with improved error handling
+  // Deep links: cold-start URLs are handled by `app/+not-found.tsx` which
+  // resolves slug→id via linkHandler and does router.replace(), so no flash
+  // and no manual setTimeout. Here we only handle the "app already running"
+  // case where iOS/Android delivers a URL via the Linking event.
   useEffect(() => {
-    const handleDeepLink = (url: string) => {
-      // console.log('Deep link received in _layout:', url);
-
+    const subscription = Linking.addEventListener('url', (event) => {
       try {
-        // Use the enhanced link handler with validation
-        handleDeepLinkWithValidation(url);
+        handleDeepLinkWithValidation(event.url);
       } catch (error) {
         console.error('Error handling deep link in _layout:', error);
-        // Fallback to home
         router.push('/(tabs)');
       }
-    };
-
-    // Handle initial URL (when app is opened from a link)
-    const getInitialURL = async () => {
-      try {
-        const initialUrl = await Linking.getInitialURL();
-        if (initialUrl) {
-          // console.log('Initial URL:', initialUrl);
-          // Add a small delay to ensure the app is fully loaded
-          setTimeout(() => {
-            handleDeepLink(initialUrl);
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Error getting initial URL:', error);
-      }
-    };
-
-    // Handle URL changes (when app is already running)
-    const subscription = Linking.addEventListener('url', (event) => {
-      handleDeepLink(event.url);
     });
-
-    // Get initial URL when app starts, but only after app is ready
-    if (appIsReady) {
-      getInitialURL();
-    }
 
     return () => {
       subscription?.remove();
     };
-  }, [appIsReady, router]);
+  }, [router]);
 
   // Early return if theme is not ready
   if (!theme || !theme.colors || !themeReady) {
@@ -357,9 +344,25 @@ function RootLayout() {
                 gestureEnabled: true,
               }}
             />
+            <Stack.Screen
+              name="lzs/[slug]"
+              options={{
+                animationTypeForReplace: 'push',
+                headerShown: false,
+                presentation: 'card',
+                gestureEnabled: true,
+              }}
+            />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             <Stack.Screen name="+not-found" />
           </Stack>
+          {/* Globalna nakładka wsparcia (fundacja). Trzymamy ją na poziomie roota
+              żeby otwarcie z dowolnego ekranu nie wymagało ponownego renderu drzewa. */}
+          <SupportModal />
+          <SupportPromptModal
+            visible={supportPromptVisible}
+            onClose={() => setSupportPromptVisible(false)}
+          />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.kaszuby24",
-      "buildNumber": "13",
+      "buildNumber": "17",
       "associatedDomains": [
         "applinks:kaszuby24.pl",
         "applinks:www.kaszuby24.pl",
@@ -41,7 +41,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.kaszuby24",
-      "versionCode": 45,
+      "versionCode": 49,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyB-G2GxsRyJ3sxeHOy0JdffImZTaEPqRJo"

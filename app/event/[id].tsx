@@ -39,11 +39,17 @@ export default function EventDetailScreen() {
     const loadEvent = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${BASE_URL}/${id}?_embed`);
+        // Panel WP-compat doesn't implement /kalendarz/:id — use ?include= instead.
+        // See api.ts:fetchNekrologById for the same workaround.
+        const response = await fetch(`${BASE_URL}?include=${id}&_embed`);
         if (!response.ok) {
           throw new Error('Nie udało się załadować wydarzenia');
         }
-        const data = await response.json();
+        const arr = await response.json();
+        const data = Array.isArray(arr) ? arr[0] : arr;
+        if (!data) {
+          throw new Error('Nie udało się załadować wydarzenia');
+        }
         setEvent(data);
         
         // Load related events after main event is loaded

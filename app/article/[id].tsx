@@ -51,8 +51,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Importy komponentów i serwisów
 import { OptimizedLightbox } from '@/components/OptimizedLightbox';
-import { fetchArticleById, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
+import { fetchArticleById, fetchArticleBySlug, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
 import { analyticsService } from '@/services/analyticsService';
+import { EngagementService } from '@/services/EngagementService';
+import { triggerSupportPrompt } from '@/app/_layout';
 import { Article, MediaItem } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
@@ -61,6 +63,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import CoffeeSupportCard from '@/components/CoffeeSupportCard';
 import { shareArticle } from '@/utils/share';
 import { useTTSStore } from '@/store/ttsStore';
+import { useSupportStore } from '@/store/supportStore';
 import { formatDateTime } from '@/utils/dateFormatter';
 import { cleanHtml, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlParser';
 import SkeletonLoader from '@/components/SkeletonLoader';
@@ -242,19 +245,43 @@ export default function ArticleScreen() {
   const handleReadAloud = useCallback(() => {
     console.log('[TTS] handleReadAloud called');
 
-    if (!article || !cleanedContentHtml) {
-      console.log('[TTS] Missing article or content');
+    if (!article) {
       Alert.alert('Błąd', 'Brak treści do odczytania');
       return;
     }
 
     // Debounce - prevent multiple rapid clicks
     if (tts.status === 'loading' || tts.status === 'playing') {
-      console.log('[TTS] TTS already active, ignoring click');
       return;
     }
 
-    // Clean HTML properly for TTS
+    // Prefer the prerecorded ElevenLabs lektor file if the editor uploaded one
+    // (article.meta["plik-dzwiekowy"]). Falls back to native TTS on missing file
+    // OR audio load failure (handled inside ttsStore.start).
+    const lektorUrl = (article.meta?.['plik-dzwiekowy'] || '').trim();
+
+    if (lektorUrl) {
+      try {
+        tts.start({
+          title: article.title.rendered,
+          chunks: [],
+          audioUrl: lektorUrl,
+          speakingRate: 1.0,
+          language: 'pl-PL',
+        });
+      } catch (error) {
+        console.error('[TTS] Error starting audio playback:', error);
+        Alert.alert('Błąd', 'Nie udało się uruchomić nagrania: ' + error);
+      }
+      return;
+    }
+
+    if (!cleanedContentHtml) {
+      Alert.alert('Błąd', 'Brak treści do odczytania');
+      return;
+    }
+
+    // Native TTS path — clean HTML and split into chunks Speech.speak can handle.
     const plainText = cleanedContentHtml
       .replace(/<script[\s\S]*?<\/script>/gi, ' ')
       .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -265,12 +292,10 @@ export default function ArticleScreen() {
       .trim();
 
     if (plainText.length < 50) {
-      console.log('[TTS] Text too short for TTS');
       Alert.alert('Błąd', 'Treść jest zbyt krótka do odczytania');
       return;
     }
 
-    // Split content into chunks (around 800 characters each)
     const chunks = plainText
       .split(/[.!?]+/)
       .filter(chunk => chunk.trim().length > 10)
@@ -289,20 +314,17 @@ export default function ArticleScreen() {
       }, [] as string[]);
 
     if (chunks.length === 0) {
-      console.log('[TTS] No valid chunks created');
       Alert.alert('Błąd', 'Nie można przetworzyć treści do odczytania');
       return;
     }
 
     try {
-      console.log('[TTS] Starting TTS...');
       tts.start({
         title: article.title.rendered,
         chunks,
         speakingRate: 1.0,
         language: 'pl-PL',
       });
-      console.log('[TTS] TTS started successfully');
     } catch (error) {
       console.error('[TTS] Error starting TTS:', error);
       Alert.alert('Błąd', 'Nie udało się uruchomić czytania: ' + error);
@@ -364,14 +386,13 @@ export default function ArticleScreen() {
   // Load article data - optimized
   useEffect(() => {
     const loadArticleData = async () => {
-      if (!id || Array.isArray(id)) {
-        setError('Nieprawidłowy identyfikator artykułu');
-        setLoading(false);
-        return;
-      }
+      // Hydration guard: useLocalSearchParams may briefly return undefined right
+      // after router.replace() during a deep-link redirect. Don't flash an error
+      // UI in that window — wait for the next render where id is populated.
+      if (id === undefined) return;
 
-      const articleId = parseInt(id, 10);
-      if (isNaN(articleId)) {
+      const idStr = Array.isArray(id) ? id[0] : id;
+      if (!idStr) {
         setError('Nieprawidłowy identyfikator artykułu');
         setLoading(false);
         return;
@@ -380,6 +401,20 @@ export default function ArticleScreen() {
       try {
         setLoading(true);
         setError(null);
+
+        // Accept both numeric IDs (deep-link router.replace from linkHandler) and
+        // slugs (e.g. push notifications that pass slug directly). Resolve slug→id
+        // here so the screen never shows "nieprawidłowy" for valid WP slugs.
+        const articleId = /^\d+$/.test(idStr) ? parseInt(idStr, 10) : await (async () => {
+          const a = await fetchArticleBySlug(idStr);
+          return a?.id ?? NaN;
+        })();
+
+        if (!articleId || isNaN(articleId)) {
+          setError('Nie znaleziono artykułu');
+          setLoading(false);
+          return;
+        }
 
         // Load article data first
         const articleData = await fetchArticleById(articleId);
@@ -403,6 +438,11 @@ export default function ArticleScreen() {
           articleData.slug || '',
           articleData.categories?.[0],
         );
+
+        // Engagement tracking — show support prompt every 5 articles.
+        EngagementService.trackArticleRead().then((shouldPrompt) => {
+          if (shouldPrompt) triggerSupportPrompt();
+        });
         // Clean content
         const cleaned = cleanHtml(articleData.content.rendered || '', !!theme.isDarkMode || !!isDarkMode);
         setCleanedContentHtml(cleaned);
@@ -419,7 +459,7 @@ export default function ArticleScreen() {
             id: 0,
             source_url: articleData.featured_media_url,
             media_details: { width: 800, height: 600 },
-            caption: { rendered: articleData.meta?.foto ? `fot. ${articleData.meta.foto}` : '' },
+            caption: { rendered: articleData.meta?.foto ? `fot. ${articleData.meta.foto.replace(/^fot\.\s*/i, '')}` : '' },
             alt_text: '',
           };
         }
@@ -1062,7 +1102,7 @@ export default function ArticleScreen() {
             {article?.meta?.foto && (
               <View style={styles.photoCreditOverlay}>
                 <Text style={styles.photoCreditText}>
-                  fot. {article.meta.foto}
+                  fot. {article.meta.foto.replace(/^fot\.\s*/i, '')}
                 </Text>
               </View>
             )}
@@ -1138,7 +1178,7 @@ export default function ArticleScreen() {
               <View style={styles.sourceContainer}>
                 {article?.meta?.foto && (
                   <Text style={[styles.sourceText, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }]}>
-                    fot. {article.meta.foto}
+                    fot. {article.meta.foto.replace(/^fot\.\s*/i, '')}
                   </Text>
                 )}
                 {(article?.meta?.zrudlo || article?.meta?.zrodlo) && (
@@ -1219,11 +1259,11 @@ export default function ArticleScreen() {
           {/* Baner wsparcia – pełna grafika klikalna */}
           <View style={styles.supportHeroImageWrapper}>
             <TouchableOpacity
-              onPress={() => Linking.openURL('https://buycoffee.to/kaszuby24')}
+              onPress={() => useSupportStore.getState().show()}
               activeOpacity={0.9}
               accessible={true}
-              accessibilityRole="link"
-              accessibilityLabel="Przejdź do strony wsparcia"
+              accessibilityRole="button"
+              accessibilityLabel="Otwórz formularz wsparcia Fundacji Twoje Wspomnienia"
             >
               <ExpoImage
                 source={{ uri: 'https://kaszuby24.pl/wp-content/uploads/2025/08/Bez-nazwy-1-03-scaled.png' }}

@@ -59,6 +59,7 @@ import { formatDateTime, formatDate, formatTime, safeDateParse, safeFormatDate, 
 import * as Haptics from 'expo-haptics';
 import calendarService from '@/services/calendarService';
 import { Event } from '@/types/article';
+import { fetchLzsEvents } from '@/services/lzsEvents';
 
 // EventCategory type definition
 interface EventCategory {
@@ -807,10 +808,30 @@ export default function EventCalendarScreen() {
       const total = data?.total_pages || parseInt(res.headers.get('X-WP-TotalPages') || '1', 10);
       setTotalPages(total);
 
+      // LZS Pomorski integration — feed dociągamy TYLKO na pierwszej stronie
+      // (nie ma paginacji LZS od strony klienta). Web na /wydarzenia robi to
+      // samo: getLzsEvents + landingToCard + sort. Filtr miasta/obiektu nie
+      // ma odpowiednika w LZS, więc ukrywamy LZS gdy te są aktywne.
+      let lzs: any[] = [];
+      if (pageNum === 1 && !cityFilter && !objectFilter) {
+        try {
+          lzs = await fetchLzsEvents(60);
+        } catch (lzsErr) {
+          console.warn('LZS feed unavailable:', lzsErr);
+        }
+      }
+
+      // Posortuj po dacie rosnąco — LZS i kaszuby24 razem.
+      const merged = [...lzs, ...filteredData].sort((a, b) => {
+        const ta = new Date(a.date || 0).getTime();
+        const tb = new Date(b.date || 0).getTime();
+        return ta - tb;
+      });
+
       if (append) {
         setEvents(prev => [...prev, ...filteredData]);
       } else {
-        setEvents(filteredData);
+        setEvents(merged);
       }
     } catch (e) {
       console.error('❌ Error fetching events:', e);
@@ -1166,6 +1187,12 @@ export default function EventCalendarScreen() {
   }, [calendarEventsData, events]);
 
   const handleEventPress = (event: Event) => {
+    // LZS: dedykowany natywny detail w `app/lzs/[slug].tsx`. event.slug ma
+    // prefix `lzs-...`, detail strippuje go i fetchuje po surowym slugu.
+    if (event.source === 'lzs' && event.slug) {
+      router.push(`/lzs/${event.slug.replace(/^lzs-/, '')}` as never);
+      return;
+    }
     router.push(`/event/${event.id}`);
   };
 

@@ -13,7 +13,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useThemeStore } from '@/store/themeStore';
-import { ArrowLeft, Phone, Mail, Clock, Wrench, BarChart2, Coffee } from 'lucide-react-native';
+import { useSupportStore } from '@/store/supportStore';
+import { ArrowLeft, Phone, Mail, Clock, Wrench, BarChart2 } from 'lucide-react-native';
 import GlobalTabBar from '@/components/GlobalTabBar';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -145,46 +146,39 @@ export default function ContactScreen() {
                     </Text>
                 </View>
 
-                {/* 3. Wesprzyj – dark granat gradient */}
+                {/* Wesprzyj — design 1:1 z Next.js CoffeeCTA (kawa.png + navy gradient + żółta pigułka).
+                    Wszystkie 3 przyciski kwot otwierają natywny SupportModal. */}
                 <View style={{ borderRadius: 20, overflow: 'hidden', marginBottom: 28 }}>
                     <LinearGradient
-                        colors={['#0f2027', '#203a43', '#2c5364']}
+                        colors={['#1a2f6e', '#0f1f4a']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.supportGradient}
                     >
-                        <Text style={styles.supportTitle}>WESPRZYJ NASZE DZIAŁANIA</Text>
+                        <Image
+                            source={{ uri: 'https://kaszuby24.pl/_next/image/?url=%2Fkawa.png&w=256&q=75' }}
+                            style={styles.supportLogo}
+                            resizeMode="contain"
+                            accessibilityLabel="Kawa redakcji"
+                        />
+                        <Text style={styles.supportTitle}>Wesprzyj nasze działania</Text>
                         <Text style={styles.supportSubtitle}>
-                            Postaw nam wirtualną kawę i pomóż nam dalej tworzyć portal oraz wspierać inicjatywy NGO w regionie.
+                            Postaw nam kawę i pomóż rozwijać lokalne media oraz inicjatywy NGO w regionie.
                         </Text>
 
                         <View style={styles.coffeeRow}>
-                            <TouchableOpacity
-                                style={styles.coffeeBtn}
-                                onPress={() => openLink('https://buycoffee.to/kaszuby24?coffeeSize=small')}
-                            >
-                                <Coffee size={28} color="rgba(255,255,255,0.7)" strokeWidth={1.5} />
-                                <Text style={styles.coffeeLabel}>5 zł</Text>
-                                <Text style={styles.coffeeSub}>Mała</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.coffeeBtn, styles.coffeeBtnFeatured]}
-                                onPress={() => openLink('https://buycoffee.to/kaszuby24?coffeeSize=medium')}
-                            >
-                                <Coffee size={36} color="#FFFFFF" strokeWidth={2} />
-                                <Text style={styles.coffeeLabel}>10 zł</Text>
-                                <Text style={styles.coffeeSub}>Średnia</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.coffeeBtn}
-                                onPress={() => openLink('https://buycoffee.to/kaszuby24?coffeeSize=large')}
-                            >
-                                <Coffee size={28} color="rgba(255,255,255,0.7)" strokeWidth={1.5} />
-                                <Text style={styles.coffeeLabel}>20 zł</Text>
-                                <Text style={styles.coffeeSub}>Duża</Text>
-                            </TouchableOpacity>
+                            {[20, 50, 100].map((amount) => (
+                                <TouchableOpacity
+                                    key={amount}
+                                    style={styles.coffeeBtn}
+                                    onPress={() => useSupportStore.getState().show()}
+                                    activeOpacity={0.85}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Wesprzyj kwotą ${amount} złotych`}
+                                >
+                                    <Text style={styles.coffeeLabel}>{amount} zł</Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     </LinearGradient>
                 </View>
@@ -309,32 +303,40 @@ const styles = StyleSheet.create({
         lineHeight: 23,
         textAlign: 'center',
     },
-    /* Support section */
+    /* Support section — wzór z Next.js CoffeeCTA, ale z większym oddechem.
+       Bez żółtych obramowań pigułek — delikatny biały półprzezroczysty border
+       jak na webie (border-white/30) + transparent fill. */
     supportGradient: {
-        padding: 24,
+        paddingHorizontal: 24,
+        paddingTop: 36,
+        paddingBottom: 32,
         alignItems: 'center',
         borderRadius: 20,
     },
+    supportLogo: {
+        width: 140,
+        height: 140,
+        marginBottom: 16,
+    },
     supportTitle: {
-        fontSize: 13,
-        letterSpacing: 1.5,
+        fontSize: 20,
         fontFamily: 'Poppins_Bold',
-        color: 'rgba(255,255,255,0.55)',
+        color: '#FFFFFF',
+        textAlign: 'center',
         marginBottom: 10,
-        textTransform: 'uppercase',
+        lineHeight: 26,
     },
     supportSubtitle: {
         fontSize: 14,
-        fontFamily: 'Poppins_Medium',
-        color: 'rgba(255,255,255,0.85)',
+        fontFamily: 'Poppins_Regular',
+        color: 'rgba(255,255,255,0.65)',
         textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 24,
+        lineHeight: 21,
+        marginBottom: 28,
+        paddingHorizontal: 4,
     },
     coffeeRow: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'flex-end',
         gap: 10,
         width: '100%',
     },
@@ -342,28 +344,17 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 16,
+        minHeight: 52,
+        paddingVertical: 14,
         borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.07)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    coffeeBtnFeatured: {
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderWidth: 2,
         borderColor: 'rgba(255,255,255,0.3)',
-        paddingVertical: 20,
+        backgroundColor: 'transparent',
     },
     coffeeLabel: {
-        fontSize: 16,
+        fontSize: 15,
         fontFamily: 'Poppins_Bold',
         color: '#FFFFFF',
-        marginTop: 8,
-    },
-    coffeeSub: {
-        fontSize: 11,
-        fontFamily: 'Poppins_Regular',
-        color: 'rgba(255,255,255,0.5)',
-        marginTop: 2,
     },
     /* Footer */
     footer: {

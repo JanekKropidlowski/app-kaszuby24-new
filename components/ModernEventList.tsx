@@ -24,6 +24,10 @@ import * as he from 'he';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+// LZS Pomorski branding — ten sam zielony i logotyp co web (EventLandingCard:24).
+const LZS_GREEN = '#1e9346';
+const LZS_LOGO = 'https://lzs-pomorski.pl/wp-content/uploads/2025/03/Logo_LZS_RGB.png';
+
 
 
 interface ModernEventListProps {
@@ -81,14 +85,19 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
     const isToday = eventDate ? new Date().toDateString() === eventDate.toDateString() : false;
     const isTomorrow = eventDate ? new Date(Date.now() + 24 * 60 * 60 * 1000).toDateString() === eventDate.toDateString() : false;
     
-    const hasImage = event._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+    const hasImage =
+      event._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
+      (event as any).image ||
+      (event as any).featured_media_url;
+
+    const isLzs = event.source === 'lzs';
 
     return (
       <TouchableOpacity
         style={[
           styles.eventItem,
           { backgroundColor: theme.colors.card },
-          { marginTop: index === 0 ? 0 : 8 } // Zmniejszony margines
+          { marginTop: index === 0 ? 0 : 8 }, // Zmniejszony margines
         ]}
         onPress={() => onEventPress(event)}
         activeOpacity={0.9}
@@ -101,8 +110,18 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
               style={styles.eventImage}
             />
           ) : (
-            <View style={[styles.noImageContainer, { backgroundColor: theme.colors.primary }]}>
+            <View
+              style={[
+                styles.noImageContainer,
+                { backgroundColor: isLzs ? LZS_GREEN : theme.colors.primary },
+              ]}
+            >
               <Calendar size={20} color="#fff" />
+            </View>
+          )}
+          {isLzs && (
+            <View style={styles.lzsLogoBubble}>
+              <Image source={{ uri: LZS_LOGO }} style={styles.lzsLogoImg} />
             </View>
           )}
         </View>
@@ -113,7 +132,11 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
             <Text style={[styles.eventTitle, { color: theme.colors.text }]} numberOfLines={2}>
               {cleanArticleTitle(eventTitle)}
             </Text>
-            {(isToday || isTomorrow) && (
+            {isLzs ? (
+              <View style={[styles.dateBadge, { backgroundColor: LZS_GREEN }]}>
+                <Text style={[styles.dateBadgeText, { color: '#fff' }]}>LZS</Text>
+              </View>
+            ) : (isToday || isTomorrow) && (
               <View style={[
                 styles.dateBadge,
                 { backgroundColor: isToday ? '#FF6B6B' : '#4ECDC4' }
@@ -277,6 +300,7 @@ const styles = StyleSheet.create({
     borderRadius: Platform.OS === 'android' ? 14 : 12, // Większy radius na Androidzie jak w ArticleCard
     overflow: 'hidden',
     marginRight: Platform.OS === 'android' ? 18 : 16, // Większy margines na Androidzie jak w ArticleCard
+    position: 'relative',
   },
   eventImage: {
     width: '100%',
@@ -287,6 +311,23 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  lzsLogoBubble: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
+  },
+  lzsLogoImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
   contentContainer: {
     flex: 1, // Dodany flex: 1

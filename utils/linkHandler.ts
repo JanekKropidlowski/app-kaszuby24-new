@@ -168,168 +168,145 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
 };
 
 /**
- * Handle navigation based on deep link information
+ * Handle navigation based on deep link information.
+ *
+ * `replace=true` — used when called from cold-start / +not-found redirect, so
+ * the back button doesn't lead back to the placeholder route. `replace=false`
+ * is the right choice when the app is already running and the user clicks an
+ * external link — they expect a back stack.
  */
-export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo) => {
+export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace = false) => {
+  const go = (href: string) => (replace ? router.replace(href as never) : router.push(href as never));
   try {
     switch (linkInfo.type) {
       case 'article':
         if (linkInfo.id) {
-          // Bezpośredni link po ID (np. /?p=123)
-          router.push(`/article/${linkInfo.id}`);
+          go(`/article/${linkInfo.id}`);
         } else if (linkInfo.slug) {
           try {
             const article = await fetchArticleBySlug(linkInfo.slug);
             if (article?.id) {
-              router.push(`/article/${article.id}`);
+              go(`/article/${article.id}`);
             } else {
-              router.push('/(tabs)');
+              go('/(tabs)');
             }
           } catch (e) {
-            router.push('/(tabs)');
+            go('/(tabs)');
           }
         } else {
-          router.push('/(tabs)');
+          go('/(tabs)');
         }
         break;
 
       case 'event':
         if (linkInfo.id) {
-          console.log('Navigating to event with ID:', linkInfo.id);
-          router.push(`/event/${linkInfo.id}`);
+          go(`/event/${linkInfo.id}`);
         } else if (linkInfo.slug) {
-          console.log('Navigating to event with slug:', linkInfo.slug);
-          // Fetch event by slug, then navigate by ID
           try {
             const event = await fetchEventBySlug(linkInfo.slug);
             if (event?.id) {
-              router.push(`/event/${event.id}`);
+              go(`/event/${event.id}`);
             } else {
-              console.warn('Event not found for slug, navigating to events tab');
-              router.push('/(tabs)/kalendarz');
+              go('/(tabs)/kalendarz');
             }
           } catch (e) {
-            console.warn('Failed to fetch event by slug, navigating to events tab', e);
-            router.push('/(tabs)/kalendarz');
+            go('/(tabs)/kalendarz');
           }
         } else {
-          console.log('No event ID or slug provided, navigating to events');
-          router.push('/(tabs)/kalendarz');
+          go('/(tabs)/kalendarz');
         }
         break;
 
       case 'nekrolog':
         if (linkInfo.slug) {
-          console.log('Navigating to nekrolog with slug:', linkInfo.slug);
-          // Fetch nekrolog by slug, then navigate by ID
           try {
             const nekrolog = await fetchNekrologBySlug(linkInfo.slug);
             if (nekrolog?.id) {
-              router.push(`/nekrolog/${nekrolog.id}`);
+              go(`/nekrolog/${nekrolog.id}`);
             } else {
-              console.warn('Nekrolog not found for slug, navigating to home');
-              router.push('/(tabs)');
+              go('/(tabs)');
             }
           } catch (e) {
-            console.warn('Failed to fetch nekrolog by slug, navigating to home', e);
-            router.push('/(tabs)');
+            go('/(tabs)');
           }
         } else {
-          console.log('No nekrolog slug provided, navigating to home');
-          router.push('/(tabs)');
+          go('/(tabs)');
         }
         break;
 
       case 'wydarzenia':
-        console.log('Navigating to wydarzenia tab');
-        router.push('/(tabs)/kalendarz');
+        go('/(tabs)/kalendarz');
         break;
 
       case 'nekrologi':
-        console.log('Navigating to nekrologi section (home tab)');
-        router.push('/(tabs)');
+        go('/(tabs)');
         break;
 
       case 'category':
         if (linkInfo.slug) {
-          console.log('Navigating to category:', linkInfo.slug);
-          // Navigate to search with category filter
-          router.push(`/(tabs)/search?category=${linkInfo.slug}`);
+          go(`/(tabs)/search?category=${linkInfo.slug}`);
         } else {
-          console.log('No category slug provided, navigating to home');
-          router.push('/(tabs)');
+          go('/(tabs)');
         }
         break;
 
       case 'search':
         if (linkInfo.query) {
-          console.log('Navigating to search with query:', linkInfo.query);
-          router.push(`/(tabs)/search?q=${encodeURIComponent(linkInfo.query)}`);
+          go(`/(tabs)/search?q=${encodeURIComponent(linkInfo.query)}`);
         } else {
-          console.log('No search query provided, navigating to search');
-          router.push('/(tabs)/search');
+          go('/(tabs)/search');
         }
         break;
 
       case 'weather':
-        console.log('Navigating to weather', linkInfo.path ? `(path=${linkInfo.path})` : '');
-        // Pass path as ?city= when present so weather screen can preselect.
-        // Screen ignores unknown params, so it's a safe no-op until weather.tsx
-        // wires up `useLocalSearchParams<{ city?: string }>()` handler.
         if (linkInfo.path) {
-          router.push(`/(tabs)/weather?city=${encodeURIComponent(linkInfo.path)}`);
+          go(`/(tabs)/weather?city=${encodeURIComponent(linkInfo.path)}`);
         } else {
-          router.push('/(tabs)/weather');
+          go('/(tabs)/weather');
         }
         break;
 
       case 'transport':
-        console.log('Navigating to transport', linkInfo.path ? `(path=${linkInfo.path})` : '');
         if (linkInfo.path) {
-          router.push(`/(tabs)/transport_v2?route=${encodeURIComponent(linkInfo.path)}`);
+          go(`/(tabs)/transport_v2?route=${encodeURIComponent(linkInfo.path)}`);
         } else {
-          router.push('/(tabs)/transport_v2');
+          go('/(tabs)/transport_v2');
         }
         break;
 
       case 'home':
-        console.log('Navigating to home');
-        router.push('/(tabs)');
+        go('/(tabs)');
         break;
 
       case 'external':
         if (linkInfo.url) {
-          console.log('Opening external link in browser:', linkInfo.url);
           WebBrowser.openBrowserAsync(linkInfo.url);
+          // Make sure we don't leave the user stranded on +not-found.
+          if (replace) router.replace('/(tabs)');
         }
         break;
 
       default:
-        console.log('Unknown link type, navigating to home');
-        router.push('/(tabs)');
+        go('/(tabs)');
         break;
     }
   } catch (error) {
     console.error('Error during deep link navigation:', error);
-    // Fallback to home
-    router.push('/(tabs)');
+    go('/(tabs)');
   }
 };
 
 /**
  * Main deep link handler function with error handling
  */
-export const handleDeepLink = async (url: string) => {
-  console.log('Deep link received:', url);
-
+export const handleDeepLink = async (url: string, replace = false) => {
   try {
     const linkInfo = parseDeepLink(url);
-    console.log('Parsed link info:', linkInfo);
-    await handleDeepLinkNavigation(linkInfo);
+    await handleDeepLinkNavigation(linkInfo, replace);
   } catch (error) {
     console.error('Error handling deep link:', error);
-    // Fallback to home
-    router.push('/(tabs)');
+    if (replace) router.replace('/(tabs)');
+    else router.push('/(tabs)');
   }
 };
 
@@ -386,18 +363,15 @@ export const isValidSlug = (slug: string): boolean => {
 /**
  * Handle deep link with validation and fallback
  */
-export const handleDeepLinkWithValidation = async (url: string) => {
-  console.log('Handling deep link with validation:', url);
-
+export const handleDeepLinkWithValidation = async (url: string, replace = false) => {
   const linkInfo = parseDeepLink(url);
 
-  // Validate the link info
   if (linkInfo.type === 'article' && linkInfo.slug && !isValidSlug(linkInfo.slug)) {
     console.warn('Invalid slug format:', linkInfo.slug);
-    // Fallback to home
-    router.push('/(tabs)');
+    if (replace) router.replace('/(tabs)');
+    else router.push('/(tabs)');
     return;
   }
 
-  await handleDeepLinkNavigation(linkInfo);
+  await handleDeepLinkNavigation(linkInfo, replace);
 };

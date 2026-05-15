@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Coffee, Heart, Star } from 'lucide-react-native';
 import { useThemeStore } from '@/store/themeStore';
+import { useSupportStore } from '@/store/supportStore';
 
 const { width } = Dimensions.get('window');
 
@@ -13,8 +14,9 @@ export default function CoffeeSupportCard({ onPress }: CoffeeSupportCardProps) {
   const { theme } = useThemeStore();
 
   const handleCoffeeSupport = () => {
-    // Otwórz link do buycoffee.to
-    Linking.openURL('https://buycoffee.to/kaszuby24');
+    // Otwórz natywny modal z formularzem fundacji (WebView in-app, bez
+    // wyrzucania użytkownika do przeglądarki).
+    useSupportStore.getState().show();
   };
 
   return (
