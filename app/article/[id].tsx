@@ -15,6 +15,7 @@ import {
   Clipboard,
   StyleSheet,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFonts } from 'expo-font';
@@ -160,6 +161,7 @@ export default function ArticleScreen() {
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isLightboxVisible, setIsLightboxVisible] = useState(false);
   const [isLightboxReady, setIsLightboxReady] = useState(false);
+  const [contentLightboxUri, setContentLightboxUri] = useState<string | null>(null);
 
   // Tooltip state dla ikony "czytaj na głos"
   const [showTtsTooltip, setShowTtsTooltip] = useState(true); // Pokazuje się od razu
@@ -195,7 +197,29 @@ export default function ArticleScreen() {
         </View>
       );
     },
-  }), []);
+    img: ({ tnode }: { tnode: any }) => {
+      const src = tnode.attributes?.src || '';
+      if (!src) return null;
+      const sw = Dimensions.get('window').width - 32;
+      const attrW = parseInt(tnode.attributes?.width || '0');
+      const attrH = parseInt(tnode.attributes?.height || '0');
+      const ratio = attrW && attrH ? attrH / attrW : 0.6;
+      const displayH = Math.round(sw * ratio);
+      return (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => setContentLightboxUri(src)}
+          style={{ marginVertical: 6 }}
+        >
+          <RNImage
+            source={{ uri: src }}
+            style={{ width: sw, height: displayH, borderRadius: 8 }}
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
+      );
+    },
+  }), [setContentLightboxUri]);
   const htmlRenderersProps = useMemo(() => ({
     a: {
       onPress: (_event: any, href: string) => {
@@ -1383,6 +1407,30 @@ export default function ArticleScreen() {
           onDownload={downloadImage}
         />
       )}
+
+      {/* Lightbox dla zdjęć w treści artykułu */}
+      <Modal
+        visible={!!contentLightboxUri}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setContentLightboxUri(null)}
+        statusBarTranslucent
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.93)', justifyContent: 'center', alignItems: 'center' }}
+          activeOpacity={1}
+          onPress={() => setContentLightboxUri(null)}
+        >
+          {contentLightboxUri && (
+            <RNImage
+              source={{ uri: contentLightboxUri }}
+              style={{ width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.75 }}
+              resizeMode="contain"
+            />
+          )}
+          <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginTop: 14 }}>Dotknij, aby zamknąć</Text>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
