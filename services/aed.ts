@@ -41,7 +41,7 @@ const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
 // Kanoniczne źródło AED — ten sam kuratorowany zestaw co strona kaszuby24.pl/aed.
 // Dzięki temu apka i web pokazują identyczne dane. Overpass (poniżej) zostaje
 // tylko jako historyczny helper; główny przepływ idzie przez ten endpoint.
-const KASZUBY24_AED_URL = 'https://kaszuby24.pl/api/aed';
+const KASZUBY24_AED_URL = 'https://kaszuby24.pl/api/aed/';
 
 /** Kształt punktu zwracanego przez kaszuby24.pl/api/aed (web używa `lng`, `indoor:boolean`). */
 interface CuratedAed {
