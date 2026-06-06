@@ -20,6 +20,25 @@ const PKS_CARRIER_ID = '1847'; // PKS Gdynia
 const CACHE_PREFIX = 'pks_scraper_';
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
+function isSqliteFull(e: unknown): boolean {
+  const msg = (e as any)?.message || '';
+  const code = (e as any)?.code;
+  return code === 13 || /SQLITE_FULL|database or disk is full/i.test(msg);
+}
+
+async function safeSetCache(key: string, value: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, value);
+  } catch (e) {
+    if (isSqliteFull(e)) {
+      const keys = await AsyncStorage.getAllKeys();
+      const pksKeys = keys.filter(k => k.startsWith(CACHE_PREFIX));
+      if (pksKeys.length > 0) await AsyncStorage.multiRemove(pksKeys);
+      try { await AsyncStorage.setItem(key, value); } catch { /* non-critical */ }
+    }
+  }
+}
+
 /**
  * PKS Scraper Service
  * Scrapes schedule data from PKS Gdynia website and e-podroznik.pl
@@ -46,7 +65,7 @@ export class PKSScraperService {
             const routes = await this.scrapeRoutesFromWebsite();
 
             // Cache the results
-            await AsyncStorage.setItem(cacheKey, JSON.stringify({
+            await safeSetCache(cacheKey, JSON.stringify({
                 data: routes,
                 timestamp: Date.now()
             }));
@@ -184,7 +203,7 @@ export class PKSScraperService {
             const departures = this.parseTimetableFromHTML(response.data);
 
             // Cache the results
-            await AsyncStorage.setItem(cacheKey, JSON.stringify({
+            await safeSetCache(cacheKey, JSON.stringify({
                 data: departures,
                 timestamp: Date.now()
             }));
@@ -238,7 +257,7 @@ export class PKSScraperService {
             const stops = await this.loadPKSStopsData();
 
             // Cache the results
-            await AsyncStorage.setItem(cacheKey, JSON.stringify({
+            await safeSetCache(cacheKey, JSON.stringify({
                 data: stops,
                 timestamp: Date.now()
             }));

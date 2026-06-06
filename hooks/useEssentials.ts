@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { SorService, SorHospital } from '@/services/sor';
-import { AedService, AEDPoint } from '@/services/aed';
+import { AedService, AEDPoint, mapCuratedAed, fetchAedFromKaszuby24 } from '@/services/aed';
 import { HospitalService, GeneralHospital } from '@/services/hospitals';
 import { PharmacyService, PharmacyPoint } from '@/services/pharmacy';
 import pharmacyData from '@/services/cachedPharmacies.json';
@@ -103,32 +103,10 @@ export const useEssentials = () => {
             const mergedPharmacies = mergePharmacies(offlinePharmacies, manualPharmacies);
             setPharmacies(mergedPharmacies);
 
-            // AEDs
-            const aedList: AEDPoint[] = (aedData as any[]).map(a => {
-                const tags = a.tags || {};
-                return {
-                    id: a.id.toString(),
-                    lat: a.lat,
-                    lon: a.lon,
-                    location: tags['defibrillator:location:pl'] || tags['defibrillator:location'] || tags['description:pl'] || tags['description'] || 'Punkt AED',
-                    access: tags['access'],
-                    operator: tags['operator:pl'] || tags['operator'],
-                    phone: tags['contact:phone'] || tags['phone'] || tags['phone:mobile'],
-                    opening_hours: tags['opening_hours'],
-                    indoor: tags['indoor'],
-                    description: tags['description:pl'] || tags['description'],
-                    'defibrillator:location': tags['defibrillator:location'],
-                    'defibrillator:location:pl': tags['defibrillator:location:pl'],
-                    'defibrillator:brand': tags['brand'] || tags['defibrillator:brand'],
-                    model: tags['model'],
-                    level: tags['level'],
-                    floor: tags['floor'],
-                    room: tags['room'],
-                    note: tags['note:pl'] || tags['note'],
-                    email: tags['contact:email'] || tags['email'],
-                    website: tags['contact:website'] || tags['website'],
-                };
-            });
+            // AED — kanoniczny, kuratorowany zestaw (ten sam co kaszuby24.pl/aed).
+            // Bundel `cachedAED.json` jest kopią web-owego aed-pomorskie.json, więc
+            // offline pokazujemy dokładnie to samo. Mapujemy jednym mapperem.
+            const aedList: AEDPoint[] = (aedData as any[]).map(mapCuratedAed);
             setAedPoints(aedList);
 
             // Update all caches in background
@@ -145,6 +123,18 @@ export const useEssentials = () => {
             console.warn("Init data error:", e);
         } finally {
             setLoading(false);
+        }
+
+        // Po starcie (bundel już pokazany) odśwież AED na żywo z kaszuby24.pl/api/aed,
+        // żeby apka miała 1:1 to samo co web. Błąd/offline = zostaje bundel.
+        try {
+            const freshAed = await fetchAedFromKaszuby24();
+            if (freshAed && freshAed.length > 0) {
+                setAedPoints(freshAed);
+                AsyncStorage.setItem(CACHE_KEYS.AED, JSON.stringify(freshAed));
+            }
+        } catch (e) {
+            console.warn("AED live refresh failed:", e);
         }
     };
 

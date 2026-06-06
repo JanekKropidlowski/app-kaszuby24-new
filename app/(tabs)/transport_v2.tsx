@@ -181,7 +181,18 @@ export default function TransportSearchScreen() {
             // Clean up large temporary objects
             data = null;
             rawFeatures = [];
-            AsyncStorage.setItem('k24_stops_cache', JSON.stringify(normalizedStops));
+            AsyncStorage.setItem('k24_stops_cache', JSON.stringify(normalizedStops)).catch(async (e) => {
+                const msg = (e as any)?.message || '';
+                const code = (e as any)?.code;
+                if (code === 13 || /SQLITE_FULL|database or disk is full/i.test(msg)) {
+                    const allKeys = await AsyncStorage.getAllKeys();
+                    const cacheKeys = allKeys.filter(k =>
+                        k.startsWith('transport_tile_') || k.startsWith('pks_scraper_')
+                    );
+                    if (cacheKeys.length > 0) await AsyncStorage.multiRemove(cacheKeys);
+                    AsyncStorage.setItem('k24_stops_cache', JSON.stringify(normalizedStops)).catch(() => {});
+                }
+            });
         } catch (e) {
             setIsInitLoading(false);
         }

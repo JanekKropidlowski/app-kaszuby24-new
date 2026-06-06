@@ -8,6 +8,12 @@ interface CachedData<T> {
   timestamp: number;
 }
 
+function isSqliteFull(e: unknown): boolean {
+  const msg = (e as any)?.message || '';
+  const code = (e as any)?.code;
+  return code === 13 || /SQLITE_FULL|database or disk is full/i.test(msg);
+}
+
 export class TileCache {
   /**
    * Get cached data for a tile key
@@ -36,18 +42,41 @@ export class TileCache {
    * Set cached data for a tile key
    */
   async set<T>(key: string, data: T): Promise<void> {
+    const cacheData: CachedData<T> = { data, timestamp: Date.now() };
+    const value = JSON.stringify(cacheData);
     try {
-      const cacheData: CachedData<T> = {
-        data,
-        timestamp: Date.now()
-      };
-      
-      await AsyncStorage.setItem(
-        CACHE_PREFIX + key,
-        JSON.stringify(cacheData)
-      );
+      await AsyncStorage.setItem(CACHE_PREFIX + key, value);
     } catch (e) {
-      console.warn('Tile cache write failed:', e);
+      if (isSqliteFull(e)) {
+        await this.evictExpired();
+        try {
+          await AsyncStorage.setItem(CACHE_PREFIX + key, value);
+        } catch {
+          // non-critical cache; silently ignore
+        }
+      } else {
+        console.warn('Tile cache write failed:', e);
+      }
+    }
+  }
+
+  private async evictExpired(): Promise<void> {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const tileKeys = keys.filter(k => k.startsWith(CACHE_PREFIX));
+      const expired: string[] = [];
+      for (const k of tileKeys) {
+        const v = await AsyncStorage.getItem(k);
+        if (!v) { expired.push(k); continue; }
+        try {
+          const p: CachedData<unknown> = JSON.parse(v);
+          if (Date.now() - p.timestamp > CACHE_TTL) expired.push(k);
+        } catch { expired.push(k); }
+      }
+      const toRemove = expired.length > 0 ? expired : tileKeys;
+      if (toRemove.length > 0) await AsyncStorage.multiRemove(toRemove);
+    } catch (e) {
+      console.warn('Tile cache eviction failed:', e);
     }
   }
   

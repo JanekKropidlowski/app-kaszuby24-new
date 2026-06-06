@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SorMap } from '@/components/essentials/SorMap';
-import { useEssentials } from '@/hooks/useEssentials';
+import { useEssentials, FilterType } from '@/hooks/useEssentials';
 import GlobalTabBar from '@/components/GlobalTabBar';
+
+const VALID_FILTERS: FilterType[] = ['ALL', 'SOR', 'AED', 'HOSPITAL', 'PHARMACY', 'MEDICAL', 'MEVO'];
 
 export default function EssentialsScreen() {
     const {
@@ -18,6 +21,16 @@ export default function EssentialsScreen() {
         loading,
         areEssentialsLoading
     } = useEssentials();
+
+    // Preselekcja zakładki z deeplinka: /essentials?filter=AED|SOR|... (np. z kaszuby24.pl/aed)
+    const { filter } = useLocalSearchParams<{ filter?: string }>();
+    React.useEffect(() => {
+        const f = (filter || '').toUpperCase() as FilterType;
+        if (filter && VALID_FILTERS.includes(f)) {
+            setActiveFilter(f);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filter]);
 
     if (loading) {
         return (

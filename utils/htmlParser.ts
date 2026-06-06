@@ -387,13 +387,55 @@ export const cleanHtml = (html: string, isDarkMode: boolean = false): string => 
   return cleanedHtml;
 };
 
-// Process gallery IDs to ensure they are strings
+// Process gallery IDs to ensure they are strings (numeric WP media IDs only)
 export const processGalleryIds = (galeria: string[] | undefined): string[] => {
   if (!galeria || !Array.isArray(galeria)) {
     return [];
   }
-  
+
   return galeria
     .map(id => String(id).trim())
     .filter(id => id && id !== '0' && !isNaN(Number(id)));
+};
+
+const SUPABASE_STORAGE_BASE = 'https://panel.kaszuby24.pl/storage/v1/object/public/media/';
+
+// Parse galeria field — 3 formats:
+//   1. numeric WP media IDs → returned as string IDs for fetchMediaByIds
+//   2. JSON string "[123,456]" → same
+//   3. Supabase Storage paths "articles/x.webp" → returned as direct URLs
+export const parseGaleriaField = (
+  galeria: string[] | string | undefined
+): { ids: string[]; urls: string[] } => {
+  const ids: string[] = [];
+  const urls: string[] = [];
+
+  if (!galeria) return { ids, urls };
+
+  let entries: string[] = [];
+  if (Array.isArray(galeria)) {
+    entries = galeria.map(s => String(s).trim()).filter(Boolean);
+  } else if (typeof galeria === 'string') {
+    const trimmed = galeria.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) entries = parsed.map(s => String(s).trim()).filter(Boolean);
+      } catch { /* invalid JSON */ }
+    } else {
+      entries = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+
+  for (const entry of entries) {
+    if (!entry || entry === '0') continue;
+    if (!isNaN(Number(entry))) {
+      ids.push(entry);
+    } else {
+      // Supabase Storage path — build direct URL
+      urls.push(`${SUPABASE_STORAGE_BASE}${entry}`);
+    }
+  }
+
+  return { ids, urls };
 };

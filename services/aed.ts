@@ -38,6 +38,60 @@ export interface AEDPoint {
 const CACHE: Record<string, { data: AEDPoint[], timestamp: number }> = {};
 const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
 
+// Kanoniczne źródło AED — ten sam kuratorowany zestaw co strona kaszuby24.pl/aed.
+// Dzięki temu apka i web pokazują identyczne dane. Overpass (poniżej) zostaje
+// tylko jako historyczny helper; główny przepływ idzie przez ten endpoint.
+const KASZUBY24_AED_URL = 'https://kaszuby24.pl/api/aed';
+
+/** Kształt punktu zwracanego przez kaszuby24.pl/api/aed (web używa `lng`, `indoor:boolean`). */
+interface CuratedAed {
+    id: string;
+    lat: number;
+    lng: number;
+    location?: string;
+    operator?: string;
+    access?: string;
+    indoor?: boolean;
+    phone?: string;
+    opening_hours?: string;
+}
+
+/**
+ * Normalizuje kuratorowany kształt (web) do AEDPoint używanego w apce (lng→lon,
+ * indoor:boolean→string). Używane zarówno dla danych z sieci jak i dla
+ * bundlowanego fallbacku offline — jedno mapowanie = pełna spójność.
+ */
+export const mapCuratedAed = (raw: CuratedAed): AEDPoint => ({
+    id: String(raw.id),
+    lat: raw.lat,
+    lon: raw.lng,
+    location: raw.location || 'Punkt AED',
+    operator: raw.operator || undefined,
+    access: raw.access || undefined,
+    phone: raw.phone || undefined,
+    opening_hours: raw.opening_hours || undefined,
+    indoor: raw.indoor === true ? 'yes' : raw.indoor === false ? 'no' : undefined,
+});
+
+/**
+ * Pobiera kanoniczną listę AED z kaszuby24.pl/api/aed.
+ * Zwraca null przy błędzie/offline — wtedy caller użyje bundlowanego fallbacku.
+ */
+export const fetchAedFromKaszuby24 = async (): Promise<AEDPoint[] | null> => {
+    try {
+        const res = await axios.get(KASZUBY24_AED_URL, {
+            headers: { Accept: 'application/json' },
+            timeout: 12000,
+        });
+        const points: CuratedAed[] = res.data?.points;
+        if (!Array.isArray(points) || points.length === 0) return null;
+        return points.map(mapCuratedAed);
+    } catch (e) {
+        console.warn('AED fetch z kaszuby24.pl nieudany (fallback do bundla):', e);
+        return null;
+    }
+};
+
 export const AedService = {
     // Fetches AED points around a specific coordinate to stay lightweight
     fetchNearbyAed: async (lat: number, lon: number, radiusMeters: number = 10000): Promise<AEDPoint[]> => {

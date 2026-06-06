@@ -28,6 +28,19 @@ class NotificationService {
   private responseListener: any = null;
   private dailyWeatherNotificationId: string | null = null;
 
+  // Retries navigation until Expo Router's root navigator is mounted.
+  // Needed when a notification opens the app cold — the response listener fires
+  // before the Root Layout renders, so router.push() throws assertIsReady.
+  private navigateSafely(route: string, attempt = 0): void {
+    try {
+      router.push(route as any);
+    } catch (e) {
+      if (attempt < 15) {
+        setTimeout(() => this.navigateSafely(route, attempt + 1), 100);
+      }
+    }
+  }
+
   async setupNotificationHandlers() {
     if (this.isInitialized || this.initializationFailed) return;
 
@@ -193,47 +206,38 @@ class NotificationService {
       // Handle navigation based on notification data with improved routing
       if (data?.route && typeof data.route === 'string') {
         console.log('Navigate to route:', data.route);
-        router.push(data.route);
+        this.navigateSafely(data.route);
       } else if (data?.type === 'event' || data?.type === 'event_reminder' || data?.type === 'weekend_events') {
         console.log('Navigate to events tab for event notification');
-        // For events, navigate to the calendar tab where events are displayed
-        router.push('/(tabs)/kalendarz');
+        this.navigateSafely('/(tabs)/kalendarz');
       } else if (data?.type === 'nekrolog') {
         console.log('Navigate to home tab for nekrolog notification');
-        // For nekrologi, we could navigate to a specific section or just home
-        // Since nekrologi are usually displayed on the main tab, we go there
-        router.push('/(tabs)');
+        this.navigateSafely('/(tabs)');
       } else if (data?.type === 'daily_weather' || data?.type === 'weather_warning' || data?.type === 'air_quality') {
         console.log('Navigate to weather tab for weather notification');
-        // For weather notifications, navigate to the weather tab
-        router.push('/(tabs)/weather');
+        this.navigateSafely('/(tabs)/weather');
       } else if (data?.articleId) {
         console.log('Navigate to article:', data.articleId);
-        // For articles, navigate to the article detail page
-        router.push(`/article/${data.articleId}`);
+        this.navigateSafely(`/article/${data.articleId}`);
       } else if (data?.slug) {
         console.log('Navigate to article by slug:', data.slug);
-        // For articles by slug, navigate to the article detail page
-        router.push(`/article/${data.slug}`);
+        this.navigateSafely(`/article/${data.slug}`);
       } else if (data?.url) {
         console.log('Navigate to URL:', data.url);
-        // Handle external URL or deep link
         this.handleNotificationUrl(data.url as string);
       } else {
         console.log('No navigation data, going to home');
-        // Default to home tab if no specific navigation data
-        router.push('/(tabs)');
+        this.navigateSafely('/(tabs)');
       }
-      
+
       // Handle action button responses
       if (response.actionIdentifier) {
         this.handleNotificationAction(response.actionIdentifier, data);
       }
-      
+
     } catch (error) {
       console.warn('Error handling notification response:', error);
-      // Fallback to home tab
-      router.push('/(tabs)');
+      this.navigateSafely('/(tabs)');
     }
   };
 
@@ -254,8 +258,7 @@ class NotificationService {
       }
     } catch (error) {
       console.warn('Error handling notification URL:', error);
-      // Fallback to home tab
-      router.push('/(tabs)');
+      this.navigateSafely('/(tabs)');
     }
   };
   
@@ -713,38 +716,30 @@ class NotificationService {
       switch (actionId) {
         case 'read_article':
           if (data.articleId) {
-            // Track action
             if (data.notification_id) {
               this.trackNotificationAnalytics(data.notification_id as string, 'action_read', data.articleId as string);
             }
-            // Navigate to article detail page
-            router.push(`/article/${data.articleId}`);
+            this.navigateSafely(`/article/${data.articleId}`);
           }
           break;
-          
+
         case 'save_article':
           if (data.articleId) {
-            // Track action
             if (data.notification_id) {
               this.trackNotificationAnalytics(data.notification_id as string, 'action_save', data.articleId as string);
             }
-            // Save article logic - you can implement this
             console.log('Save article:', data.articleId);
-            // Optionally navigate to saved articles tab
-            // router.push('/(tabs)/saved');
           }
           break;
-          
+
         default:
           console.log('Unknown notification action:', actionId);
-          // Fallback to home tab for unknown actions
-          router.push('/(tabs)');
+          this.navigateSafely('/(tabs)');
           break;
       }
     } catch (error) {
       console.warn('Error handling notification action:', error);
-      // Fallback to home tab for action errors
-      router.push('/(tabs)');
+      this.navigateSafely('/(tabs)');
     }
   }
 

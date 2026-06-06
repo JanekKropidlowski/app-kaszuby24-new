@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image as RNImage,
   FlatList,
   Dimensions,
   StatusBar,
@@ -66,7 +65,7 @@ import { shareArticle } from '@/utils/share';
 import { useTTSStore } from '@/store/ttsStore';
 import { useSupportStore } from '@/store/supportStore';
 import { formatDateTime } from '@/utils/dateFormatter';
-import { cleanHtml, processGalleryIds, extractYouTubeUrl } from '@/utils/htmlParser';
+import { cleanHtml, processGalleryIds, parseGaleriaField, extractYouTubeUrl } from '@/utils/htmlParser';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
@@ -211,10 +210,12 @@ export default function ArticleScreen() {
           onPress={() => setContentLightboxUri(src)}
           style={{ marginVertical: 6 }}
         >
-          <RNImage
+          <ExpoImage
             source={{ uri: src }}
             style={{ width: sw, height: displayH, borderRadius: 8 }}
-            resizeMode="cover"
+            contentFit="cover"
+            allowDownscaling={true}
+            cachePolicy="memory-disk"
           />
         </TouchableOpacity>
       );
@@ -474,7 +475,8 @@ export default function ArticleScreen() {
         // NIE resetuj selectedImageIndex tutaj - pozwól na płynne przejścia
 
         // Load gallery images in background (non-blocking)
-        const galleryIds = articleData.meta?.galeria ? processGalleryIds(articleData.meta.galeria) : [];
+        // galeria field ma 3 formaty: numeric WP IDs, JSON string "[123]", lub Supabase Storage paths "articles/x.webp"
+        const { ids: galleryIds, urls: storageUrls } = parseGaleriaField(articleData.meta?.galeria);
 
         // Featured image as MediaItem - zawsze dodaj zdjęcie główne
         let featuredMedia: MediaItem | null = null;
@@ -488,64 +490,50 @@ export default function ArticleScreen() {
           };
         }
 
+        // Supabase Storage paths → bezpośrednie MediaItem bez fetchowania WP API
+        const storageMediaItems: MediaItem[] = storageUrls.map((url, i) => ({
+          id: -(i + 2),
+          source_url: url,
+          alt_text: '',
+          media_details: { width: 1200, height: 800 },
+        }));
+
+        const buildAllImages = (galleryData: MediaItem[]) => {
+          const uniqueGallery = galleryData.filter((img, index, self) =>
+            index === self.findIndex(t => t.source_url === img.source_url)
+          );
+          if (!featuredMedia) return uniqueGallery;
+          const isInGallery = uniqueGallery.some(img => img.source_url === featuredMedia!.source_url);
+          return isInGallery ? uniqueGallery : [{ ...featuredMedia, id: -1 }, ...uniqueGallery];
+        };
+
         if (galleryIds.length > 0) {
           setGalleryLoading(true);
           fetchMediaByIds(galleryIds)
             .then(galleryData => {
-              // Usuń duplikaty z galleryData na podstawie source_url
-              const uniqueGalleryData = galleryData.filter((img, index, self) =>
-                index === self.findIndex(t => t.source_url === img.source_url)
-              );
-
-              setGalleryImages(uniqueGalleryData);
-
-              // Combine featured + gallery
-              let allImgs: MediaItem[] = [];
-              if (featuredMedia) {
-                // Sprawdź czy featuredMedia ma unikalne ID
-                const featuredWithUniqueId = {
-                  ...featuredMedia,
-                  id: featuredMedia.id || -1 // Użyj -1 jeśli brak ID
-                };
-
-                // Sprawdź czy featuredMedia jest już w galerii
-                const isInGallery = uniqueGalleryData.some(img => img.source_url === featuredMedia.source_url);
-
-                if (isInGallery) {
-                  // Jeśli featuredMedia jest w galerii, użyj tylko galerii
-                  allImgs = uniqueGalleryData;
-                } else {
-                  // Jeśli featuredMedia nie jest w galerii, dodaj na początku
-                  allImgs = [featuredWithUniqueId, ...uniqueGalleryData];
-                }
-              } else {
-                allImgs = uniqueGalleryData;
-              }
-
-              console.log('[LIGHTBOX DEBUG] Setting allImages with length:', allImgs.length);
-              setAllImages(allImgs);
+              const allGallery = [...galleryData, ...storageMediaItems];
+              setGalleryImages(allGallery);
+              setAllImages(buildAllImages(allGallery));
               setGalleryLoading(false);
             })
             .catch(err => {
               console.warn('Failed to load gallery images:', err);
               setGalleryLoading(false);
-              // Jeśli nie ma galerii, dodaj tylko zdjęcie główne
-              if (featuredMedia) {
-                const featuredWithUniqueId = {
-                  ...featuredMedia,
-                  id: featuredMedia.id || -1 // Użyj -1 jeśli brak ID
-                };
-                setAllImages([featuredWithUniqueId]);
+              if (storageMediaItems.length > 0) {
+                setGalleryImages(storageMediaItems);
+                setAllImages(buildAllImages(storageMediaItems));
+              } else if (featuredMedia) {
+                setAllImages([{ ...featuredMedia, id: -1 }]);
               }
             });
+        } else if (storageMediaItems.length > 0) {
+          // Tylko Supabase Storage paths — nie trzeba fetchować WP API
+          setGalleryImages(storageMediaItems);
+          setAllImages(buildAllImages(storageMediaItems));
         } else {
-          // Jeśli nie ma galerii, dodaj tylko zdjęcie główne
+          // Brak galerii — tylko zdjęcie główne
           if (featuredMedia) {
-            const featuredWithUniqueId = {
-              ...featuredMedia,
-              id: featuredMedia.id || -1 // Użyj -1 jeśli brak ID
-            };
-            setAllImages([featuredWithUniqueId]);
+            setAllImages([{ ...featuredMedia, id: -1 }]);
           }
         }
 
@@ -1112,10 +1100,12 @@ export default function ArticleScreen() {
             accessibilityLabel="Zdjęcie główne artykułu"
             accessibilityHint="Kliknij aby powiększyć zdjęcie"
           >
-            <RNImage
+            <ExpoImage
               source={{ uri: String(article.featured_media_url || article.featured_media) }}
               style={styles.featuredImage}
-              resizeMode="cover"
+              contentFit="cover"
+              allowDownscaling={true}
+              cachePolicy="memory-disk"
             />
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.7)']}
@@ -1422,10 +1412,12 @@ export default function ArticleScreen() {
           onPress={() => setContentLightboxUri(null)}
         >
           {contentLightboxUri && (
-            <RNImage
+            <ExpoImage
               source={{ uri: contentLightboxUri }}
               style={{ width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.75 }}
-              resizeMode="contain"
+              contentFit="contain"
+              allowDownscaling={true}
+              cachePolicy="memory"
             />
           )}
           <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginTop: 14 }}>Dotknij, aby zamknąć</Text>

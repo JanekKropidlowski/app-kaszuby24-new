@@ -16,6 +16,7 @@ import { Article } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
 import { formatDateTime } from '@/utils/dateFormatter';
 import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
+import { optimizeImageUrl } from '@/utils/imageOptimizer';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -46,7 +47,7 @@ const getArticleRegion = (article: Article) => {
 };
 
 const getViewCount = (article: Article) => {
-  const views = parseInt(article.meta?.views || '0') * 10;
+  const views = parseInt(article.meta?.views || '0') * 5;
   return views > 1000 ? `${(views / 1000).toFixed(1)}k` : views.toString();
 };
 
@@ -98,13 +99,14 @@ export const FeaturedCarousel: React.FC<FeaturedCarouselProps> = ({
         <View style={styles.imageContainer}>
           {item.featured_media_url ? (
             <Image
-              source={{ uri: item.featured_media_url }}
+              source={{ uri: optimizeImageUrl(item.featured_media_url, Math.round(screenWidth), 80) }}
               style={styles.image}
               contentFit="cover"
               transition={300}
               placeholder="L6PZfSi_.AyE_3t7t7R**0o#DgR4"
               cachePolicy="memory-disk"
               priority="high"
+              allowDownscaling={true}
             />
           ) : (
             <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.subtle }]} />

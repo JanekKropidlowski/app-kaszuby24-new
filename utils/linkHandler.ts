@@ -1,14 +1,16 @@
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { fetchArticleBySlug, fetchEventBySlug, fetchNekrologBySlug } from '@/services/api';
+import { useSupportStore } from '@/store/supportStore';
 
 export interface DeepLinkInfo {
-  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'transport' | 'home' | 'wydarzenia' | 'nekrologi' | 'external' | 'unknown';
+  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'transport' | 'home' | 'wydarzenia' | 'nekrologi' | 'support' | 'essentials' | 'external' | 'unknown';
   slug?: string;
   id?: number;
   query?: string;
   path?: string;
   url?: string;
+  filter?: 'AED' | 'SOR' | 'PHARMACY' | 'HOSPITAL' | 'MEDICAL';
 }
 
 /**
@@ -57,6 +59,17 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
 
       if (hostSegment === 'weather') return { type: 'weather' };
       if (hostSegment === 'home') return { type: 'home' };
+      if (hostSegment === 'wesprzyj') return { type: 'support' };
+
+      // Niezbędnik / Pomoc — mapa AED/SOR/szpitale/apteki
+      if (hostSegment === 'aed') return { type: 'essentials', filter: 'AED' };
+      if (hostSegment === 'sor' || hostSegment === 'kolejka-sor') return { type: 'essentials', filter: 'SOR' };
+      if (hostSegment === 'apteki' || hostSegment === 'apteka') return { type: 'essentials', filter: 'PHARMACY' };
+      if (hostSegment === 'essentials' || hostSegment === 'niezbednik' || hostSegment === 'pomoc') {
+        const f = (urlObj.searchParams.get('filter') || '').toUpperCase();
+        const filter = (['AED', 'SOR', 'PHARMACY', 'HOSPITAL', 'MEDICAL'] as const).find(x => x === f);
+        return { type: 'essentials', filter };
+      }
 
       // Fallback for custom scheme if host isn't recognized but segments exist
       if (pathSegments.length > 0) {
@@ -107,6 +120,7 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
       }
 
       // Main pages
+      if (pathSegments[0] === 'wesprzyj') return { type: 'support' };
       if (pathSegments[0] === 'wydarzenia') return { type: 'wydarzenia' };
       if (pathSegments[0] === 'nekrologi' || pathSegments[0] === 'nekrologi-2') return { type: 'nekrologi' };
 
@@ -142,6 +156,16 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
       // Weather: /weather
       if (pathSegments[0] === 'weather') return { type: 'weather', path: 'weather' };
 
+      // Niezbędnik / Pomoc — mapa AED, kolejki SOR, apteki, szpitale
+      if (pathSegments[0] === 'aed') return { type: 'essentials', filter: 'AED' };
+      if (pathSegments[0] === 'kolejka-sor' || pathSegments[0] === 'sor') return { type: 'essentials', filter: 'SOR' };
+      if (pathSegments[0] === 'apteki' || pathSegments[0] === 'apteka') return { type: 'essentials', filter: 'PHARMACY' };
+      if (pathSegments[0] === 'essentials' || pathSegments[0] === 'niezbednik' || pathSegments[0] === 'pomoc') {
+        const f = (urlObj.searchParams.get('filter') || '').toUpperCase();
+        const filter = (['AED', 'SOR', 'PHARMACY', 'HOSPITAL', 'MEDICAL'] as const).find(x => x === f);
+        return { type: 'essentials', filter };
+      }
+
       // Strony które mają być otwierane w przeglądarce
       const externalPaths = ['kontakt', 'o-nas', 'reklama', 'polityka-prywatnosci', 'regulamin', 'reklama-w-serwisie', 'mediakit', 'o-portalu'];
       if (externalPaths.includes(pathSegments[0].toLowerCase())) {
@@ -149,7 +173,7 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
       }
 
       // Artykuł po slugu: /nazwa-artykulu (domyślny przypadek)
-      const reservedRoots = ['event', 'category', 'kategoria', 'search', 'szukaj', 'weather', 'kalendarz', 'nekrolog', 'wydarzenia', 'nekrologi', 'nekrologi-2'];
+      const reservedRoots = ['event', 'category', 'kategoria', 'search', 'szukaj', 'weather', 'kalendarz', 'nekrolog', 'wydarzenia', 'nekrologi', 'nekrologi-2', 'wesprzyj', 'aed', 'sor', 'kolejka-sor', 'apteki', 'apteka', 'essentials', 'niezbednik', 'pomoc'];
       if (pathSegments.length === 1 && !reservedRoots.includes(pathSegments[0])) {
         return { type: 'article', slug: pathSegments[0] };
       }
@@ -276,6 +300,16 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace =
 
       case 'home':
         go('/(tabs)');
+        break;
+
+      case 'support':
+        go('/(tabs)');
+        useSupportStore.getState().show();
+        break;
+
+      case 'essentials':
+        // Ekran "Pomoc"/Niezbędnik z mapą; filter preselekcjonuje zakładkę (AED/SOR/...)
+        go(linkInfo.filter ? `/essentials?filter=${linkInfo.filter}` : '/essentials');
         break;
 
       case 'external':

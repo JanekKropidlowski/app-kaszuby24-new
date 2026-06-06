@@ -38,6 +38,7 @@ import Constants from 'expo-constants';
 import { useThemeStore } from '@/store/themeStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useAdminStore } from '@/store/adminStore';
 import { notificationService } from '@/services/notificationService';
 import { WasteNotificationService } from '@/services/WasteNotificationService';
 import SwipeableModal from '@/components/SwipeableModal';
@@ -74,6 +75,9 @@ export default function SettingsScreen() {
     const [showWeatherSection, setShowWeatherSection] = useState(false);
     const [showWasteDetails, setShowWasteDetails] = useState(false);
     const [otaUpdateId, setOtaUpdateId] = useState<string | null>(null);
+    const [versionTapCount, setVersionTapCount] = useState(0);
+    const versionTapTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isAdminAuthenticated = useAdminStore((s) => s.isAuthenticated());
     // Waste specific state
     const [wasteDisplayCity, setWasteDisplayCity] = useState('');
     const [wasteDisplayStreet, setWasteDisplayStreet] = useState('');
@@ -634,9 +638,24 @@ export default function SettingsScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    <Text style={[styles.versionText, { color: theme.colors.textSecondary }]}>
-                        Wersja {VERSION}
-                    </Text>
+                    <TouchableOpacity
+                        onPress={() => {
+                            const next = versionTapCount + 1;
+                            setVersionTapCount(next);
+                            if (versionTapTimer.current) clearTimeout(versionTapTimer.current);
+                            if (next >= 5) {
+                                setVersionTapCount(0);
+                                router.push('/admin');
+                            } else {
+                                versionTapTimer.current = setTimeout(() => setVersionTapCount(0), 2000);
+                            }
+                        }}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.versionText, { color: theme.colors.textSecondary }]}>
+                            Wersja {VERSION}{isAdminAuthenticated ? ' ⚙' : ''}
+                        </Text>
+                    </TouchableOpacity>
                     {otaUpdateId && otaUpdateId !== 'Dostępna' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981', marginRight: 6 }} />
