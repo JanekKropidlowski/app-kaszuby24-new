@@ -138,6 +138,65 @@
         }
       ],
       "expo-calendar",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Pogoda",
+              "label": "Kaszuby24 — Pogoda",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Artykuly",
+              "label": "Kaszuby24 — Najnowsze artykuły",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "widgetFeatures": "reconfigurable",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Powietrze",
+              "label": "Kaszuby24 — Jakość powietrza",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 1,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Odpady",
+              "label": "Kaszuby24 — Wywóz odpadów",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Wydarzenia",
+              "label": "Kaszuby24 — Najbliższe wydarzenia",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "widgetFeatures": "reconfigurable",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
       "./plugins/withAndroidFix",
       [
         "expo-build-properties",
