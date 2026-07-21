@@ -1,6 +1,6 @@
 {
   "name": "expo-app",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "1.0.0",
   "scripts": {
     "start": "bunx rork start -p 216rz2npnx21mhbj1ijek --tunnel",
@@ -15,6 +15,7 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@expo/vector-icons": "^15.0.3",
     "@mapbox/polyline": "^1.2.1",
     "@microsoft/react-native-clarity": "^4.6.2",
@@ -60,6 +61,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-android-widget": "^0.21.0",
     "react-native-calendars": "^1.1313.0",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gesture-handler": "~2.28.0",

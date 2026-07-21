@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, Linking, Text as RNText, TextInput as RNTextInput } from 'react-native';
+import { Platform, Linking, AppState, Text as RNText, TextInput as RNTextInput } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import * as Clarity from '@microsoft/react-native-clarity';
 import Constants from 'expo-constants';
@@ -67,6 +67,7 @@ import { MemoryOptimizer } from '@/utils/memoryOptimizer';
 import { useRouter } from 'expo-router';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { handleDeepLinkWithValidation } from '@/utils/linkHandler';
+import { syncWidget } from '@/lib/widget-sync';
 import SupportModal from '@/components/SupportModal';
 import SupportPromptModal from '@/components/SupportPromptModal';
 
@@ -93,6 +94,15 @@ function RootLayout() {
   useEffect(() => {
     _showSupportPrompt = () => setSupportPromptVisible(true);
     return () => { _showSupportPrompt = null; };
+  }, []);
+
+  // Odświeżanie danych widgetów: przy starcie + po powrocie na pierwszy plan (best-effort).
+  useEffect(() => {
+    syncWidget();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncWidget();
+    });
+    return () => sub.remove();
   }, []);
 
   // Performance monitoring
