@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.0.46",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaszuby24",
@@ -15,7 +15,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.kaszuby24",
-      "buildNumber": "17",
+      "buildNumber": "18",
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.app.kaszuby24"]
+      },
       "associatedDomains": [
         "applinks:kaszuby24.pl",
         "applinks:www.kaszuby24.pl",
@@ -41,7 +44,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.kaszuby24",
-      "versionCode": 49,
+      "versionCode": 50,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyB-G2GxsRyJ3sxeHOy0JdffImZTaEPqRJo"
@@ -118,8 +121,9 @@
       "gaApiSecret": "1ALeOXiRTweFoXTtO0JA3A",
       "sentryDsn": "https://15b760709d0686c67f386a303ccc7c54@o4511064310480896.ingest.de.sentry.io/4511064518819920"
     },
-    "runtimeVersion": "1.0.45",
+    "runtimeVersion": "1.1.0",
     "plugins": [
+      "@bacons/apple-targets",
       "@sentry/react-native/expo",
       [
         "expo-notifications",

@@ -4,7 +4,7 @@ import { fetchArticleBySlug, fetchEventBySlug, fetchNekrologBySlug } from '@/ser
 import { useSupportStore } from '@/store/supportStore';
 
 export interface DeepLinkInfo {
-  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'transport' | 'home' | 'wydarzenia' | 'nekrologi' | 'support' | 'essentials' | 'external' | 'unknown';
+  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'airquality' | 'waste' | 'transport' | 'home' | 'wydarzenia' | 'nekrologi' | 'support' | 'essentials' | 'external' | 'unknown';
   slug?: string;
   id?: number;
   query?: string;
@@ -58,6 +58,8 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
       }
 
       if (hostSegment === 'weather') return { type: 'weather' };
+      if (hostSegment === 'airquality' || hostSegment === 'powietrze') return { type: 'airquality' };
+      if (hostSegment === 'waste' || hostSegment === 'odpady') return { type: 'waste' };
       if (hostSegment === 'home') return { type: 'home' };
       if (hostSegment === 'wesprzyj') return { type: 'support' };
 
@@ -288,6 +290,14 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace =
         } else {
           go('/(tabs)/weather');
         }
+        break;
+
+      case 'airquality':
+        go('/(tabs)/airquality');
+        break;
+
+      case 'waste':
+        go('/waste');
         break;
 
       case 'transport':
