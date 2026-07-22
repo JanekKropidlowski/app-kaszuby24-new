@@ -122,7 +122,7 @@ ios/DerivedData/
 # POLREGIO shapes data (large)
 POLREGIO SHAPES/
 POLREGIO-SHAPES/
-constants/PolregioShapesData.json
+# constants/PolregioShapesData.json — importowany przez components/transport/RouteMapView.tsx, MUSI być w repo (build EAS)
 
 # misc files
 dist-check/
@@ -130,7 +130,7 @@ docker-compose*.yml
 src/
 docs/
 pks-rozklad-2025.pdf
-pks_stops_data.json
+# pks_stops_data.json — importowany przez services/pksScraperService.ts, MUSI być w repo (build EAS)
 waste_data_reda.json
 skm_test_output.txt
 class-cache.php
