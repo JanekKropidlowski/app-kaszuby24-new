@@ -113,12 +113,41 @@ private func cleanTitle(_ raw: String) -> String {
 struct BrandHeader: View {
   var label: String
   var body: some View {
-    HStack {
-      Text("Kaszuby24").font(poppins("SemiBold", 10)).opacity(0.75)
+    HStack(spacing: 5) {
+      if let logo = UIImage(named: "logo-mark-white") {
+        Image(uiImage: logo)
+          .resizable()
+          .scaledToFit()
+          .frame(width: 34, height: 34)
+      }
+      Text("Kaszuby24").font(poppins("SemiBold", 10)).opacity(0.9)
       Spacer()
       Text(label).font(poppins("Medium", 10)).opacity(0.7).lineLimit(1)
     }
     .foregroundColor(FG)
+  }
+}
+
+// Podpis źródła danych (pogoda/powietrze — dane zewnętrzne Open-Meteo).
+struct SourceCaption: View {
+  var text: String
+  var body: some View {
+    Text(text).font(poppins("Medium", 9)).foregroundColor(FG).opacity(0.55)
+  }
+}
+
+// Pusty stan: ikona + komunikat, wyśrodkowane w dostępnej przestrzeni (zamiast tekstu przyklejonego do góry).
+struct EmptyState: View {
+  var systemImage: String
+  var text: String
+  var body: some View {
+    VStack(spacing: 6) {
+      Spacer(minLength: 0)
+      Image(systemName: systemImage).font(.system(size: 22)).foregroundColor(FG.opacity(0.8))
+      Text(text).font(poppins("SemiBold", 13)).foregroundColor(FG).multilineTextAlignment(.center).lineLimit(2)
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
 
@@ -174,11 +203,12 @@ struct PogodaEntryView: View {
             if let hi = w.hi, let lo = w.lo {
               Text("↑\(Int(hi))°  ↓\(Int(lo))°").font(poppins("SemiBold", 12)).foregroundColor(ACCENT)
             }
+            SourceCaption(text: "Źródło: Open-Meteo")
           } else {
-            Text("Otwórz apkę").font(poppins("SemiBold", 14)).foregroundColor(FG)
+            EmptyState(systemImage: "location.slash", text: "Otwórz apkę, by zobaczyć pogodę")
           }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       }
       .widgetURL(URL(string: "kaszuby24://weather"))
     }
@@ -223,11 +253,12 @@ struct AirEntryView: View {
               Text(cat).font(poppins("Bold", 18)).foregroundColor(FG).lineLimit(1)
             }
             Text("Jakość powietrza").font(poppins("Medium", 11)).foregroundColor(FG).opacity(0.75)
+            SourceCaption(text: "Źródło: Open-Meteo")
           } else {
-            Text("Otwórz apkę").font(poppins("SemiBold", 14)).foregroundColor(FG)
+            EmptyState(systemImage: "aqi.medium", text: "Otwórz apkę, by sprawdzić powietrze")
           }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       }
       .widgetURL(URL(string: "kaszuby24://airquality"))
     }
@@ -267,10 +298,10 @@ struct WasteEntryView: View {
             Text("Potem \(dayMonth(items[1].date)) · \(items[1].fraction)").font(poppins("Medium", 11)).foregroundColor(FG).opacity(0.75).lineLimit(1)
           }
         } else {
-          Text("Ustaw adres w apce").font(poppins("SemiBold", 14)).foregroundColor(FG).lineLimit(2)
+          EmptyState(systemImage: "mappin.slash", text: "Ustaw adres w apce")
         }
       }
-      .frame(maxWidth: .infinity, alignment: .topLeading)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
     .widgetURL(URL(string: "kaszuby24://waste"))
   }
@@ -303,7 +334,7 @@ struct EventsEntryView: View {
       VStack(alignment: .leading, spacing: 8) {
         BrandHeader(label: "Wydarzenia")
         if rows.isEmpty {
-          Spacer(); Text("Brak wydarzeń").font(poppins("SemiBold", 14)).foregroundColor(FG); Spacer()
+          EmptyState(systemImage: "calendar", text: "Brak wydarzeń")
         } else {
           ForEach(Array(rows.enumerated()), id: \.offset) { _, e in
             HStack(alignment: .top, spacing: 10) {
@@ -419,7 +450,7 @@ struct ArtykulyEntryView: View {
       VStack(alignment: .leading, spacing: 8) {
         BrandHeader(label: entry.label)
         if rows.isEmpty {
-          Spacer(); Text("Brak artykułów").font(poppins("SemiBold", 14)).foregroundColor(FG); Spacer()
+          EmptyState(systemImage: "newspaper", text: "Brak artykułów")
         } else {
           ForEach(Array(rows.enumerated()), id: \.offset) { _, p in
             Link(destination: URL(string: "kaszuby24://article/\(p.slug)")!) {
@@ -457,56 +488,6 @@ struct ArtykulyWidget: Widget {
   }
 }
 
-// Fallback iOS 16: artykuły z seedu (bez konfiguracji).
-struct ArtykulyStaticEntry: TimelineEntry { let date: Date; let posts: [WPost] }
-struct ArtykulyStaticProvider: TimelineProvider {
-  func placeholder(in c: Context) -> ArtykulyStaticEntry { ArtykulyStaticEntry(date: Date(), posts: []) }
-  func getSnapshot(in c: Context, completion: @escaping (ArtykulyStaticEntry) -> Void) { completion(ArtykulyStaticEntry(date: Date(), posts: loadJSON(K_POSTS, [WPost].self) ?? [])) }
-  func getTimeline(in c: Context, completion: @escaping (Timeline<ArtykulyStaticEntry>) -> Void) {
-    let next = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date().addingTimeInterval(1800)
-    completion(Timeline(entries: [ArtykulyStaticEntry(date: Date(), posts: loadJSON(K_POSTS, [WPost].self) ?? [])], policy: .after(next)))
-  }
-}
-struct ArtykulyStaticEntryView: View {
-  var entry: ArtykulyStaticEntry
-  @Environment(\.widgetFamily) var family
-  var body: some View {
-    let rows = Array(entry.posts.prefix(family == .systemLarge ? 4 : 2))
-    BrandBackground(family: family) {
-      VStack(alignment: .leading, spacing: 8) {
-        BrandHeader(label: "Najnowsze")
-        if rows.isEmpty { Spacer(); Text("Brak artykułów").font(poppins("SemiBold", 14)).foregroundColor(FG); Spacer() }
-        else {
-          ForEach(Array(rows.enumerated()), id: \.offset) { _, p in
-            HStack(alignment: .top, spacing: 8) {
-              if let img = p.imageUrl, let u = URL(string: img) {
-                AsyncImage(url: u) { phase in if let image = phase.image { image.resizable().aspectRatio(contentMode: .fill) } else { Color.white.opacity(0.15) } }
-                  .frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 8))
-              }
-              VStack(alignment: .leading, spacing: 2) {
-                Text(p.title).font(poppins("SemiBold", 13)).foregroundColor(FG).lineLimit(2)
-                Text(timeAgo(p.date)).font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.7).lineLimit(1)
-              }
-              Spacer()
-            }
-          }
-          Spacer(minLength: 0)
-        }
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-    .widgetURL(URL(string: "kaszuby24://home"))
-  }
-}
-struct ArtykulyStaticWidget: Widget {
-  var body: some WidgetConfiguration {
-    StaticConfiguration(kind: "ArtykulyStatic", provider: ArtykulyStaticProvider()) { ArtykulyStaticEntryView(entry: $0) }
-      .configurationDisplayName("Najnowsze artykuły")
-      .description("Najnowsze artykuły z Kaszuby24.")
-      .supportedFamilies([.systemMedium, .systemLarge])
-  }
-}
-
 // MARK: - Bundle (WSZYSTKIE widgety wypisane ręcznie — plugin nie auto-rejestruje)
 @main
 struct Kaszuby24Widgets: WidgetBundle {
@@ -517,8 +498,6 @@ struct Kaszuby24Widgets: WidgetBundle {
     WydarzeniaWidget()
     if #available(iOS 17.0, *) {
       ArtykulyWidget()
-    } else {
-      ArtykulyStaticWidget()
     }
   }
 }

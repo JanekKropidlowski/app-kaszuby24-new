@@ -18,6 +18,7 @@ private func loadDicts() -> DictsPayload? {
 }
 
 // MARK: - Powiat (region)
+@available(iOS 17.0, *)
 struct RegionEntity: AppEntity {
   let id: Int
   let name: String
@@ -27,6 +28,7 @@ struct RegionEntity: AppEntity {
   static var defaultQuery = RegionQuery()
 }
 
+@available(iOS 17.0, *)
 struct RegionQuery: EntityQuery {
   func suggestedEntities() async throws -> [RegionEntity] {
     (loadDicts()?.regions ?? []).map { RegionEntity(id: $0.id, name: $0.name) }
@@ -37,6 +39,7 @@ struct RegionQuery: EntityQuery {
 }
 
 // MARK: - Dział (kategoria)
+@available(iOS 17.0, *)
 struct CategoryEntity: AppEntity {
   let id: Int
   let name: String
@@ -46,6 +49,7 @@ struct CategoryEntity: AppEntity {
   static var defaultQuery = CategoryQuery()
 }
 
+@available(iOS 17.0, *)
 struct CategoryQuery: EntityQuery {
   func suggestedEntities() async throws -> [CategoryEntity] {
     (loadDicts()?.dzialy ?? []).map { CategoryEntity(id: $0.id, name: $0.name) }
@@ -56,6 +60,7 @@ struct CategoryQuery: EntityQuery {
 }
 
 // MARK: - Konfiguracja widgetu artykułów (arkusz Edit)
+@available(iOS 17.0, *)
 struct ArtykulyIntent: WidgetConfigurationIntent {
   static var title: LocalizedStringResource = "Artykuły"
   static var description = IntentDescription("Wybierz powiat i dział wyświetlanych artykułów.")
@@ -65,4 +70,8 @@ struct ArtykulyIntent: WidgetConfigurationIntent {
 
   @Parameter(title: "Dział")
   var dzial: CategoryEntity?
+
+  func perform() async throws -> some IntentResult {
+    return .result()
+  }
 }

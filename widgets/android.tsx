@@ -116,8 +116,30 @@ function WidgetCard({ uri, bg = BRAND, children }: { uri: string; bg?: string; c
 function BrandHeader({ label }: { label: string }) {
   return (
     <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: 'match_parent' }}>
-      <TextWidget text="Kaszuby24" style={{ fontSize: 10, fontWeight: 'bold', color: withAlpha(FG, 0.75) }} />
+      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <ImageWidget
+          image={require('../assets/images/widget-logo-mark.png')}
+          imageWidth={14}
+          imageHeight={14}
+          style={{ marginRight: 5 }}
+        />
+        <TextWidget text="Kaszuby24" style={{ fontSize: 10, fontWeight: 'bold', color: withAlpha(FG, 0.9) }} />
+      </FlexWidget>
       <TextWidget text={label} style={{ fontSize: 10, color: withAlpha(FG, 0.7) }} maxLines={1} truncate="END" />
+    </FlexWidget>
+  );
+}
+
+function SourceCaption({ text }: { text: string }) {
+  return <TextWidget text={text} style={{ fontSize: 9, color: withAlpha(FG, 0.55), marginTop: 6 }} />;
+}
+
+// Pusty stan: emoji + komunikat, wyśrodkowane w dostępnej przestrzeni (zamiast tekstu przyklejonego do góry).
+function EmptyBody({ icon, text }: { icon: string; text: string }) {
+  return (
+    <FlexWidget style={{ flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 'match_parent' }}>
+      <TextWidget text={icon} style={{ fontSize: 26, marginBottom: 6 }} />
+      <TextWidget text={text} style={{ fontSize: 14, fontWeight: 'bold', color: FG, textAlign: 'center' }} maxLines={2} />
     </FlexWidget>
   );
 }
@@ -128,7 +150,7 @@ function WeatherWidget({ w, wide }: { w: WidgetWeather | null; wide: boolean }) 
     return (
       <WidgetCard uri="kaszuby24://weather">
         <BrandHeader label="Pogoda" />
-        <TextWidget text="Otwórz apkę" style={{ fontSize: 14, fontWeight: 'bold', color: FG, marginTop: 10 }} />
+        <EmptyBody icon="📍" text="Otwórz apkę, by zobaczyć pogodę" />
       </WidgetCard>
     );
   }
@@ -143,6 +165,7 @@ function WeatherWidget({ w, wide }: { w: WidgetWeather | null; wide: boolean }) 
       {w.hi != null && w.lo != null ? (
         <TextWidget text={`↑${w.hi}°  ↓${w.lo}°`} style={{ fontSize: 12, fontWeight: 'bold', color: ACCENT, marginTop: 4 }} />
       ) : null}
+      <SourceCaption text="Źródło: Open-Meteo" />
     </WidgetCard>
   );
 }
@@ -153,7 +176,7 @@ function AirWidget({ a }: { a: WidgetAir | null }) {
     return (
       <WidgetCard uri="kaszuby24://airquality">
         <BrandHeader label="Powietrze" />
-        <TextWidget text="Otwórz apkę" style={{ fontSize: 14, fontWeight: 'bold', color: FG, marginTop: 10 }} />
+        <EmptyBody icon="🌬️" text="Otwórz apkę, by sprawdzić powietrze" />
       </WidgetCard>
     );
   }
@@ -165,6 +188,7 @@ function AirWidget({ a }: { a: WidgetAir | null }) {
         <TextWidget text={a.category ?? ''} style={{ fontSize: 18, fontWeight: 'bold', color: FG }} maxLines={1} truncate="END" />
       </FlexWidget>
       <TextWidget text="Jakość powietrza" style={{ fontSize: 11, color: withAlpha(FG, 0.75), marginTop: 4 }} />
+      <SourceCaption text="Źródło: Open-Meteo" />
     </WidgetCard>
   );
 }
@@ -175,7 +199,7 @@ function WasteWidget({ waste }: { waste: WidgetWaste | null }) {
     return (
       <WidgetCard uri="kaszuby24://waste">
         <BrandHeader label="Odpady" />
-        <TextWidget text="Ustaw adres w apce" style={{ fontSize: 14, fontWeight: 'bold', color: FG, marginTop: 10 }} maxLines={2} />
+        <EmptyBody icon="🗑️" text="Ustaw adres w apce" />
       </WidgetCard>
     );
   }
@@ -197,7 +221,7 @@ function WasteWidget({ waste }: { waste: WidgetWaste | null }) {
           ) : null}
         </FlexWidget>
       ) : (
-        <TextWidget text="Brak nadchodzących wywozów" style={{ fontSize: 14, fontWeight: 'bold', color: FG, marginTop: 8 }} maxLines={2} />
+        <EmptyBody icon="🗑️" text="Brak nadchodzących wywozów" />
       )}
     </WidgetCard>
   );
@@ -210,7 +234,7 @@ function ArticlesWidget({ posts, count }: { posts: WidgetPost[]; count: number }
     <WidgetCard uri="kaszuby24://home">
       <BrandHeader label="Najnowsze" />
       {items.length === 0 ? (
-        <TextWidget text="Brak artykułów" style={{ fontSize: 14, fontWeight: 'bold', color: FG, marginTop: 10 }} />
+        <EmptyBody icon="📰" text="Brak artykułów" />
       ) : (
         <FlexWidget style={{ flexDirection: 'column', width: 'match_parent', marginTop: 8 }}>
           {items.map((p, i) => (
@@ -247,7 +271,7 @@ function EventsWidget({ events, count }: { events: WidgetEvent[]; count: number 
     <WidgetCard uri="kaszuby24://home">
       <BrandHeader label="Wydarzenia" />
       {items.length === 0 ? (
-        <TextWidget text="Brak wydarzeń" style={{ fontSize: 14, fontWeight: 'bold', color: FG, marginTop: 10 }} />
+        <EmptyBody icon="📅" text="Brak wydarzeń" />
       ) : (
         <FlexWidget style={{ flexDirection: 'column', width: 'match_parent', marginTop: 8 }}>
           {items.map((e, i) => (

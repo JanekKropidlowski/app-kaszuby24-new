@@ -3,7 +3,7 @@
 // oraz z WIDGET_APP_GROUP w lib/widget-shared.ts.
 module.exports = {
   type: "widget",
-  name: "Kaszuby24",
+  name: "Kaszuby24Widget",
   deploymentTarget: "16.1",
   entitlements: {
     "com.apple.security.application-groups": ["group.app.kaszuby24"],

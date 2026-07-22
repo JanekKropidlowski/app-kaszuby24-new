@@ -4,7 +4,7 @@
 import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { weatherService } from '@/services/weatherService';
+import { fetchForecast } from '@/services/weatherService';
 import { wasteScheduleService } from '@/services/WasteScheduleService';
 import { fetchCategories } from '@/services/api';
 import {
@@ -12,12 +12,10 @@ import {
   WK,
   REGION_CATEGORIES,
   EXCLUDED_CATEGORY_IDS,
-  type WidgetWeather,
-  type WidgetAir,
   type WidgetWaste,
   type WidgetDicts,
 } from './widget-shared';
-import { normalizeWeather, aqiToStatus, fetchArticlesForWidget, fetchEventsForWidget } from './widget-data';
+import { normalizeOpenMeteo, fetchAirForWidget, fetchArticlesForWidget, fetchEventsForWidget } from './widget-data';
 
 // Fallback: centrum powiatu puckiego, gdy brak znanej lokalizacji.
 const DEFAULT_COORDS = { lat: 54.7206, lon: 18.4103 };
@@ -36,26 +34,12 @@ async function resolveCoords(): Promise<{ lat: number; lon: number }> {
   return DEFAULT_COORDS;
 }
 
-async function buildWeather(lat: number, lon: number, updatedAt: string): Promise<WidgetWeather | null> {
+async function resolveCity(lat: number, lon: number): Promise<string> {
   try {
-    const [cur, forecast] = await Promise.all([
-      weatherService.getCurrentWeather(lat, lon),
-      weatherService.getForecast(lat, lon).catch(() => null),
-    ]);
-    return normalizeWeather(cur, forecast, updatedAt);
+    const r = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+    return r?.[0]?.city || r?.[0]?.subregion || r?.[0]?.region || '';
   } catch {
-    return null;
-  }
-}
-
-async function buildAir(lat: number, lon: number, city: string, updatedAt: string): Promise<WidgetAir | null> {
-  try {
-    const data: any = await weatherService.getAirQuality(lat, lon);
-    const aqi: number | null = data?.list?.[0]?.main?.aqi ?? null;
-    const s = aqiToStatus(aqi);
-    return { index: s.index, category: s.category, color: s.color, city, updatedAt };
-  } catch {
-    return null;
+    return '';
   }
 }
 
@@ -117,14 +101,16 @@ export async function syncWidget(): Promise<void> {
     try {
       const updatedAt = new Date().toISOString();
       const { lat, lon } = await resolveCoords();
-      const [weather, waste, dicts, posts, events] = await Promise.all([
-        buildWeather(lat, lon, updatedAt),
+      const city = await resolveCity(lat, lon);
+      const [fc, waste, dicts, posts, events] = await Promise.all([
+        fetchForecast({ latitude: lat, longitude: lon }).catch(() => null),
         buildWaste(updatedAt),
         buildDicts(),
         fetchArticlesForWidget({ regionId: null, dzialId: null, sort: 'date' }).catch(() => []),
         fetchEventsForWidget(null).catch(() => []),
       ]);
-      const air = await buildAir(lat, lon, weather?.city ?? '', updatedAt);
+      const weather = normalizeOpenMeteo(fc, city, updatedAt);
+      const air = await fetchAirForWidget(lat, lon, city, updatedAt);
 
       await Promise.all([
         writeKey(WK.weather, weather),
