@@ -105,6 +105,10 @@
         "com.google.android.c2dm.permission.RECEIVE",
         "MODIFY_AUDIO_SETTINGS"
       ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO"
+      ],
       "userInterfaceStyle": "automatic"
     },
     "updates": {

@@ -791,8 +791,8 @@ export default function ArticleScreen() {
     try {
       const imageUrl = allImages[selectedImageIndex].source_url;
 
-      // Sprawdź uprawnienia do zapisu
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      // Sprawdź uprawnienia do zapisu (tylko zapis — bez READ_MEDIA, polityka Google Play)
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Błąd', 'Brak uprawnień do zapisu zdjęć');
         return;
@@ -810,7 +810,8 @@ export default function ArticleScreen() {
       if (downloadResult.status === 200) {
         // Zapisz do galerii
         const asset = await MediaLibrary.createAssetAsync(fileUri);
-        await MediaLibrary.createAlbumAsync('Kaszuby24', asset, false);
+        // Album best-effort — zdjęcie i tak jest już w galerii; brak READ_MEDIA nie blokuje zapisu
+        try { await MediaLibrary.createAlbumAsync('Kaszuby24', asset, false); } catch {}
 
         Alert.alert('Sukces!', 'Zdjęcie zostało pobrane do galerii');
 
