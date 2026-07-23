@@ -102,24 +102,30 @@ export async function syncWidget(): Promise<void> {
       const updatedAt = new Date().toISOString();
       const { lat, lon } = await resolveCoords();
       const city = await resolveCity(lat, lon);
+      // Każde źródło niezależnie odporne na błąd — awaria jednego (np. padnięty
+      // backend) NIE może wyzerować wszystkich widżetów (pogoda i tak ma fallback).
       const [fc, waste, dicts, posts, events] = await Promise.all([
         fetchForecast({ latitude: lat, longitude: lon }).catch(() => null),
-        buildWaste(updatedAt),
-        buildDicts(),
+        buildWaste(updatedAt).catch((): WidgetWaste => ({ empty: true, reason: 'no-address', updatedAt })),
+        buildDicts().catch(() => null),
         fetchArticlesForWidget({ regionId: null, dzialId: null, sort: 'date' }).catch(() => []),
         fetchEventsForWidget(null).catch(() => []),
       ]);
       const weather = normalizeOpenMeteo(fc, city, updatedAt);
-      const air = await fetchAirForWidget(lat, lon, city, updatedAt);
+      const air = await fetchAirForWidget(lat, lon, city, updatedAt).catch(() => null);
 
-      await Promise.all([
-        writeKey(WK.weather, weather),
-        writeKey(WK.air, air),
-        writeKey(WK.waste, waste),
-        writeKey(WK.dicts, dicts),
-        writeKey(WK.posts, posts),
-        writeKey(WK.events, events),
-      ]);
+      // Zapis każdego klucza niezależnie — jeden błędny zapis nie blokuje reszty.
+      const entries: [string, unknown][] = [
+        [WK.weather, weather],
+        [WK.air, air],
+        [WK.waste, waste],
+        [WK.dicts, dicts],
+        [WK.posts, posts],
+        [WK.events, events],
+      ];
+      for (const [k, v] of entries) {
+        try { await writeKey(k, v); } catch { /* pojedynczy klucz best-effort */ }
+      }
 
       if (Platform.OS === 'ios') {
         try {

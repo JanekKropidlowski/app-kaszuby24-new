@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaszuby24",
@@ -125,7 +125,7 @@
       "gaApiSecret": "1ALeOXiRTweFoXTtO0JA3A",
       "sentryDsn": "https://15b760709d0686c67f386a303ccc7c54@o4511064310480896.ingest.de.sentry.io/4511064518819920"
     },
-    "runtimeVersion": "1.1.0",
+    "runtimeVersion": "1.1.1",
     "plugins": [
       "@bacons/apple-targets",
       "@sentry/react-native/expo",

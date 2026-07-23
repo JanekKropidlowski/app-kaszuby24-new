@@ -1,6 +1,7 @@
 import WidgetKit
 import SwiftUI
 import AppIntents
+import UIKit
 
 // MARK: - Konfiguracja współdzielona (musi zgadzać się z lib/widget-shared.ts)
 private let APP_GROUP = "group.app.kaszuby24"
@@ -19,7 +20,12 @@ struct WWeather: Decodable { let tempC: Double; let icon: String; let desc: Stri
 struct WAir: Decodable { let index: Int?; let category: String?; let color: String; let city: String }
 struct WWasteItem: Decodable { let date: String; let fraction: String }
 struct WWaste: Decodable { let empty: Bool; let gmina: String?; let next: [WWasteItem]?; let reason: String? }
-struct WPost: Decodable { let id: Int; let slug: String; let title: String; let imageUrl: String?; let category: String?; let date: String }
+struct WPost: Decodable {
+  let id: Int; let slug: String; let title: String; let imageUrl: String?; let category: String?; let date: String
+  // Pobierane w providerze (WidgetKit nie renderuje AsyncImage) — poza JSON.
+  var imageData: Data? = nil
+  enum CodingKeys: String, CodingKey { case id, slug, title, imageUrl, category, date }
+}
 struct WEvent: Decodable { let id: Int; let slug: String; let title: String; let startsAt: String; let location: String? }
 
 // MARK: - Odczyt z App Group
@@ -386,8 +392,45 @@ struct ArtykulyProvider: AppIntentTimelineProvider {
   private func entry(for cfg: ArtykulyIntent) async -> ArtykulyEntry {
     let label = cfg.dzial?.name ?? cfg.region?.name ?? "Najnowsze"
     let fetched = await NewsFetcher.fetch(regionId: cfg.region?.id, dzialId: cfg.dzial?.id)
-    let posts = fetched.isEmpty ? (loadJSON(K_POSTS, [WPost].self) ?? []) : fetched
+    let base = fetched.isEmpty ? (loadJSON(K_POSTS, [WPost].self) ?? []) : fetched
+    // WidgetKit nie renderuje AsyncImage — pobieramy miniatury tu i wstrzykujemy jako Data.
+    let posts = await withThumbnails(base, limit: 4)
     return ArtykulyEntry(date: Date(), posts: posts, label: label)
+  }
+}
+
+// Prefetch miniatur artykułów dla widżetu (WidgetKit wymaga gotowych danych obrazka).
+private func withThumbnails(_ posts: [WPost], limit: Int) async -> [WPost] {
+  var out: [WPost] = []
+  for (i, p) in posts.enumerated() {
+    if i < limit, let data = await loadThumbnail(p.imageUrl) {
+      out.append(WPost(id: p.id, slug: p.slug, title: p.title, imageUrl: p.imageUrl, category: p.category, date: p.date, imageData: data))
+    } else {
+      out.append(p)
+    }
+  }
+  return out
+}
+
+private func loadThumbnail(_ urlStr: String?) async -> Data? {
+  guard let s = urlStr, let u = URL(string: s) else { return nil }
+  do {
+    var req = URLRequest(url: u)
+    req.timeoutInterval = 10
+    req.cachePolicy = .reloadIgnoringLocalCacheData
+    let (data, resp) = try await URLSession.shared.data(for: req)
+    guard let http = resp as? HTTPURLResponse, 200..<300 ~= http.statusCode,
+          let img = UIImage(data: data) else { return nil }
+    // Downscale — widżety mają twardy limit pamięci (~30 MB); wyświetlamy 46x46.
+    let maxDim: CGFloat = 140
+    let scale = min(maxDim / max(img.size.width, 1), maxDim / max(img.size.height, 1), 1)
+    let newSize = CGSize(width: img.size.width * scale, height: img.size.height * scale)
+    let rendered = UIGraphicsImageRenderer(size: newSize).image { _ in
+      img.draw(in: CGRect(origin: .zero, size: newSize))
+    }
+    return rendered.jpegData(compressionQuality: 0.8)
+  } catch {
+    return nil
   }
 }
 
@@ -455,12 +498,12 @@ struct ArtykulyEntryView: View {
           ForEach(Array(rows.enumerated()), id: \.offset) { _, p in
             Link(destination: URL(string: "kaszuby24://article/\(p.slug)")!) {
               HStack(alignment: .top, spacing: 8) {
-                if let img = p.imageUrl, let u = URL(string: img) {
-                  AsyncImage(url: u) { phase in
-                    if let image = phase.image { image.resizable().aspectRatio(contentMode: .fill) }
-                    else { Color.white.opacity(0.15) }
-                  }
-                  .frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 8))
+                if let d = p.imageData, let ui = UIImage(data: d) {
+                  Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
+                    .frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 8))
+                } else if p.imageUrl != nil {
+                  Color.white.opacity(0.15)
+                    .frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                   Text(p.title).font(poppins("SemiBold", 13)).foregroundColor(FG).lineLimit(2)
