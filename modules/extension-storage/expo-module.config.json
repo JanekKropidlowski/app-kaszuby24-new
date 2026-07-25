@@ -1,0 +1,6 @@
+{
+  "platforms": ["apple"],
+  "apple": {
+    "modules": ["K24ExtensionStorageModule"]
+  }
+}
