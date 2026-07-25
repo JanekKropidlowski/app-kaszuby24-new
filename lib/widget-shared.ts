@@ -15,6 +15,8 @@ export const WK = {
 /** Config Android per-widget (iOS trzyma config w AppIntent). */
 export const androidCfgKey = (widgetId: number): string => `kaszuby24.widget.cfg.${widgetId}`;
 
+export type WidgetHour = { h: string; t: number; icon: string };
+
 export type WidgetWeather = {
   tempC: number;
   icon: string; // kod OWM np. "04d"
@@ -22,6 +24,10 @@ export type WidgetWeather = {
   city: string;
   hi: number | null;
   lo: number | null;
+  /** Temperatura odczuwalna (apparent_temperature) dla bieżącej godziny. */
+  feels: number | null;
+  /** Pasek prognozy co 3h (do 6 punktów) — widget medium. */
+  hours: WidgetHour[];
   updatedAt: string;
 };
 

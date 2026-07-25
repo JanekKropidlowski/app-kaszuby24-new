@@ -898,7 +898,7 @@ export const fetchForecast = async (
     
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
         `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,uv_index_max,sunrise,sunset,windspeed_10m_max` +
-        `&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,winddirection_10m,relativehumidity_2m,pressure_msl,visibility,uv_index,dew_point_2m,cloudcover,wind_gusts_10m` +
+        `&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weathercode,windspeed_10m,winddirection_10m,relativehumidity_2m,pressure_msl,visibility,uv_index,dew_point_2m,cloudcover,wind_gusts_10m` +
         `&current_weather=true&timezone=Europe%2FWarsaw`;
     
     const cacheKey = `forecast_${latitude}_${longitude}`;

@@ -16,7 +16,8 @@ private let ACCENT = Color(hexString: "#FECC00", fallback: .yellow)
 private let FG = Color.white
 
 // MARK: - Modele (podzbiór payloadów z lib/widget-sync)
-struct WWeather: Decodable { let tempC: Double; let icon: String; let desc: String; let city: String; let hi: Double?; let lo: Double? }
+struct WHour: Decodable { let h: String; let t: Double; let icon: String }
+struct WWeather: Decodable { let tempC: Double; let icon: String; let desc: String; let city: String; let hi: Double?; let lo: Double?; let feels: Double?; let hours: [WHour]? }
 struct WAir: Decodable { let index: Int?; let category: String?; let color: String; let city: String }
 struct WWasteItem: Decodable { let date: String; let fraction: String }
 struct WWaste: Decodable { let empty: Bool; let gmina: String?; let next: [WWasteItem]?; let reason: String? }
@@ -198,18 +199,65 @@ struct PogodaEntryView: View {
       }
     default:
       BrandBackground(family: family) {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: family == .systemSmall ? 2 : 5) {
           BrandHeader(label: w?.city ?? "Pogoda")
           if let w = w {
-            HStack(spacing: 8) {
-              Image(systemName: owmSymbol(w.icon)).font(.system(size: family == .systemSmall ? 30 : 34)).foregroundColor(FG)
-              Text("\(Int(w.tempC))°").font(poppins("Bold", family == .systemSmall ? 34 : 40)).foregroundColor(FG)
+            if family == .systemSmall {
+              // MAŁY: duża temperatura + kolorowa ikona, opis, odczuwalna
+              Spacer(minLength: 0)
+              HStack(alignment: .center, spacing: 8) {
+                Text("\(Int(w.tempC))°").font(poppins("Bold", 36)).foregroundColor(FG)
+                Image(systemName: owmSymbol(w.icon))
+                  .font(.system(size: 30))
+                  .symbolRenderingMode(.multicolor)
+              }
+              Text(w.desc).font(poppins("Medium", 11)).foregroundColor(FG).opacity(0.85).lineLimit(1)
+              if let feels = w.feels {
+                Text("odczuwalna \(Int(feels))°").font(poppins("SemiBold", 10)).foregroundColor(ACCENT).lineLimit(1)
+              } else if let hi = w.hi, let lo = w.lo {
+                Text("↑\(Int(hi))°  ↓\(Int(lo))°").font(poppins("SemiBold", 10)).foregroundColor(ACCENT)
+              }
+            } else {
+              // ŚREDNI: temperatura + opis po lewej, hi/lo/odczuwalna po prawej,
+              // pod spodem pasek prognozy co 3h z kolorowymi ikonami (à la Yandex)
+              HStack(alignment: .center, spacing: 10) {
+                Image(systemName: owmSymbol(w.icon))
+                  .font(.system(size: 32))
+                  .symbolRenderingMode(.multicolor)
+                Text("\(Int(w.tempC))°").font(poppins("Bold", 34)).foregroundColor(FG)
+                VStack(alignment: .leading, spacing: 1) {
+                  Text(w.desc).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(1)
+                  HStack(spacing: 6) {
+                    if let hi = w.hi, let lo = w.lo {
+                      Text("↑\(Int(hi))° ↓\(Int(lo))°").font(poppins("SemiBold", 11)).foregroundColor(ACCENT)
+                    }
+                    if let feels = w.feels {
+                      Text("odcz. \(Int(feels))°").font(poppins("Medium", 11)).foregroundColor(FG).opacity(0.7)
+                    }
+                  }
+                }
+                Spacer(minLength: 0)
+              }
+              if let hours = w.hours, hours.count > 1 {
+                let strip = Array(hours.prefix(6))
+                HStack(alignment: .center, spacing: 0) {
+                  ForEach(strip.indices, id: \.self) { i in
+                    VStack(spacing: 2) {
+                      Text("\(Int(strip[i].t))°").font(poppins("SemiBold", 11)).foregroundColor(FG)
+                      Image(systemName: owmSymbol(strip[i].icon))
+                        .font(.system(size: 13))
+                        .symbolRenderingMode(.multicolor)
+                        .frame(height: 16)
+                      Text(strip[i].h).font(poppins("Medium", 8)).foregroundColor(FG).opacity(0.55)
+                    }
+                    .frame(maxWidth: .infinity)
+                  }
+                }
+                .padding(.top, 2)
+              } else {
+                SourceCaption(text: "Źródło: Open-Meteo")
+              }
             }
-            Text(w.desc).font(poppins("Medium", 12)).foregroundColor(FG).opacity(0.85).lineLimit(1)
-            if let hi = w.hi, let lo = w.lo {
-              Text("↑\(Int(hi))°  ↓\(Int(lo))°").font(poppins("SemiBold", 12)).foregroundColor(ACCENT)
-            }
-            SourceCaption(text: "Źródło: Open-Meteo")
           } else {
             EmptyState(systemImage: "location.slash", text: "Otwórz apkę, by zobaczyć pogodę")
           }
@@ -289,19 +337,118 @@ struct WasteProvider: TimelineProvider {
     completion(Timeline(entries: [WasteEntry(date: Date(), waste: loadJSON(K_WASTE, WWaste.self))], policy: .after(next)))
   }
 }
+// Frakcja → kolor + symbol (standardowe kolory segregacji w PL).
+private func fractionStyle(_ name: String) -> (color: Color, symbol: String) {
+  let n = name.lowercased()
+  if n.contains("bio") { return (Color(hexString: "#7CB342", fallback: .green), "leaf.fill") }
+  if n.contains("papier") { return (Color(hexString: "#42A5F5", fallback: .blue), "newspaper.fill") }
+  if n.contains("szk") { return (Color(hexString: "#26A69A", fallback: .green), "takeoutbag.and.cup.and.straw.fill") }
+  if n.contains("plastik") || n.contains("tworzywa") || n.contains("metal") {
+    return (Color(hexString: "#FECC00", fallback: .yellow), "arrow.3.trianglepath")
+  }
+  if n.contains("gabaryt") || n.contains("wielko") { return (Color(hexString: "#AB47BC", fallback: .purple), "sofa.fill") }
+  if n.contains("popi") { return (Color(hexString: "#8D6E63", fallback: .brown), "flame.fill") }
+  return (Color(hexString: "#90A4AE", fallback: .gray), "trash.fill") // zmieszane / inne
+}
+
+/** "dziś" / "jutro" / "za N dni" względem Europe/Warsaw. */
+private func inDays(_ s: String) -> String {
+  guard let d = parseISO(s) else { return "" }
+  var cal = Calendar(identifier: .gregorian)
+  cal.timeZone = TimeZone(identifier: "Europe/Warsaw") ?? .current
+  let days = cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: cal.startOfDay(for: d)).day ?? 0
+  if days <= 0 { return "dziś" }
+  if days == 1 { return "jutro" }
+  return "za \(days) dni"
+}
+
+/** Skrót dnia tygodnia po polsku, np. "pon". */
+private func weekdayShort(_ s: String) -> String {
+  guard let d = parseISO(s) else { return "" }
+  let f = DateFormatter(); f.locale = Locale(identifier: "pl_PL"); f.timeZone = TimeZone(identifier: "Europe/Warsaw"); f.dateFormat = "EE"
+  return f.string(from: d).replacingOccurrences(of: ".", with: "")
+}
+
+/** Plakietka frakcji: kolorowy kwadracik z symbolem. */
+private struct FractionBadge: View {
+  var fraction: String
+  var size: CGFloat
+  var body: some View {
+    let st = fractionStyle(fraction)
+    Image(systemName: st.symbol)
+      .font(.system(size: size * 0.5, weight: .semibold))
+      .foregroundColor(.white)
+      .frame(width: size, height: size)
+      .background(RoundedRectangle(cornerRadius: size * 0.28).fill(st.color))
+  }
+}
+
+/** Wiersz "kolejnego" wywozu: kropka frakcji + data + nazwa. */
+private struct UpcomingRow: View {
+  var item: WWasteItem
+  var body: some View {
+    HStack(spacing: 6) {
+      Circle().fill(fractionStyle(item.fraction).color).frame(width: 7, height: 7)
+      Text("\(weekdayShort(item.date)) \(dayMonth(item.date))")
+        .font(poppins("SemiBold", 11)).foregroundColor(FG).opacity(0.95)
+      Text(item.fraction)
+        .font(poppins("Medium", 11)).foregroundColor(FG).opacity(0.7).lineLimit(1)
+      Spacer(minLength: 0)
+    }
+  }
+}
+
 struct WasteEntryView: View {
   var entry: WasteEntry
   @Environment(\.widgetFamily) var family
   var body: some View {
     let waste = entry.waste
     BrandBackground(family: family) {
-      VStack(alignment: .leading, spacing: 4) {
+      VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 6) {
         BrandHeader(label: (waste != nil && !waste!.empty) ? (waste!.gmina ?? "Odpady") : "Odpady")
         if let waste = waste, !waste.empty, let items = waste.next, let first = items.first {
-          Text(dayMonth(first.date)).font(poppins("Bold", 22)).foregroundColor(ACCENT)
-          Text(first.fraction).font(poppins("SemiBold", 13)).foregroundColor(FG).lineLimit(2)
-          if family != .systemSmall, items.count > 1 {
-            Text("Potem \(dayMonth(items[1].date)) · \(items[1].fraction)").font(poppins("Medium", 11)).foregroundColor(FG).opacity(0.75).lineLimit(1)
+          if family == .systemSmall {
+            // MAŁY: najbliższy wywóz — plakietka + data + frakcja + "za X dni"
+            Spacer(minLength: 0)
+            HStack(spacing: 8) {
+              FractionBadge(fraction: first.fraction, size: 30)
+              VStack(alignment: .leading, spacing: 0) {
+                Text(dayMonth(first.date)).font(poppins("Bold", 19)).foregroundColor(ACCENT)
+                Text(first.fraction).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(1)
+              }
+            }
+            Text(inDays(first.date))
+              .font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.6)
+          } else {
+            // ŚREDNI: hero najbliższego po lewej, lista kolejnych po prawej
+            HStack(alignment: .top, spacing: 12) {
+              VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
+                  FractionBadge(fraction: first.fraction, size: 34)
+                  VStack(alignment: .leading, spacing: 0) {
+                    Text("\(weekdayShort(first.date)), \(dayMonth(first.date))")
+                      .font(poppins("Bold", 20)).foregroundColor(ACCENT).lineLimit(1)
+                    Text(first.fraction).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(1)
+                  }
+                }
+                Text(inDays(first.date))
+                  .font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.6)
+              }
+              .frame(maxWidth: .infinity, alignment: .leading)
+
+              if items.count > 1 {
+                let rest = Array(items.dropFirst().prefix(3))
+                VStack(alignment: .leading, spacing: 5) {
+                  Text("KOLEJNE")
+                    .font(poppins("SemiBold", 8)).foregroundColor(FG).opacity(0.5).kerning(1)
+                  ForEach(rest.indices, id: \.self) { i in
+                    UpcomingRow(item: rest[i])
+                  }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+              }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
           }
         } else {
           EmptyState(systemImage: "mappin.slash", text: "Ustaw adres w apce")

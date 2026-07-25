@@ -147,7 +147,7 @@ export const wasteScheduleService = {
             // Wrap single region in WasteScheduleData shape
             const d = r.data;
             return {
-                city: d.city_slug || '',
+                city: d.city_name || d.city_slug || '',
                 regions: [{ id: d.id, name: d.name, streets: d.streets || [], schedule: d.schedule || [] }],
             };
         } catch (e: any) {

@@ -140,6 +140,30 @@ function wmoToDesc(code: number): string {
 export function normalizeOpenMeteo(data: any, city: string, updatedAt: string): WidgetWeather | null {
   const cw = data?.current_weather;
   if (!cw || typeof cw.temperature !== 'number') return null;
+
+  // Pasek godzinowy (styl à la Yandex): od bieżącej godziny co 3h, max 6 punktów.
+  const hours: WidgetWeather['hours'] = [];
+  let feels: number | null = null;
+  const ht: string[] = data?.hourly?.time ?? [];
+  const temps: number[] = data?.hourly?.temperature_2m ?? [];
+  const codes: number[] = data?.hourly?.weathercode ?? [];
+  const apparent: number[] = data?.hourly?.apparent_temperature ?? [];
+  if (ht.length && cw.time) {
+    // Open-Meteo zwraca czasy lokalne (timezone w URL); znajdź pierwszą godzinę >= teraz
+    let start = ht.findIndex((t) => t >= String(cw.time).slice(0, 13) + ':00');
+    if (start < 0) start = 0;
+    if (typeof apparent[start] === 'number') feels = Math.round(apparent[start]);
+    for (let i = start, n = 0; i < ht.length && n < 6; i += 3, n++) {
+      if (typeof temps[i] !== 'number') break;
+      const hour = Number(ht[i].slice(11, 13));
+      hours.push({
+        h: `${hour}:00`,
+        t: Math.round(temps[i]),
+        icon: wmoToIcon(codes[i] ?? 3, hour >= 6 && hour < 21),
+      });
+    }
+  }
+
   return {
     tempC: Math.round(cw.temperature),
     icon: wmoToIcon(cw.weathercode ?? 3, cw.is_day === 1),
@@ -147,6 +171,8 @@ export function normalizeOpenMeteo(data: any, city: string, updatedAt: string): 
     city,
     hi: data?.daily?.temperature_2m_max?.[0] != null ? Math.round(data.daily.temperature_2m_max[0]) : null,
     lo: data?.daily?.temperature_2m_min?.[0] != null ? Math.round(data.daily.temperature_2m_min[0]) : null,
+    feels,
+    hours,
     updatedAt,
   };
 }
