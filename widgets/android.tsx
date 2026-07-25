@@ -57,6 +57,56 @@ function timeAgo(iso: string): string {
   return `${Math.round(h / 24)} dni temu`;
 }
 /** Kod ikony OpenWeatherMap → emoji (Android nie ma SF Symbols). */
+function weekdayShort(iso: string): string {
+  const d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso);
+  return d.toLocaleDateString('pl-PL', { weekday: 'short', timeZone: 'Europe/Warsaw' }).replace('.', '');
+}
+
+function dayNumber(iso: string): string {
+  const d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso);
+  return String(d.getDate());
+}
+
+/** "Dziś"/"Jutro"/"Za N dni" (<7 dni), dalej data dd.MM — jak w widgecie iOS. */
+function heroWhen(iso: string): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const d0 = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso);
+  const day = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate());
+  const days = Math.round((day.getTime() - today.getTime()) / 86400000);
+  if (days >= 7) return hhmmddmm(iso);
+  if (days <= 0) return 'Dziś';
+  if (days === 1) return 'Jutro';
+  return `Za ${days} dni`;
+}
+
+/** Podpis "pon, 27.07". */
+function captionDate(iso: string): string {
+  return `${weekdayShort(iso)}, ${hhmmddmm(iso)}`;
+}
+
+/** Frakcja odpadów → kolor + emoji (parytet z iOS fractionStyle). */
+function fractionStyle(name: string): { color: `#${string}`; emoji: string } {
+  const n = name.toLowerCase();
+  if (n.includes('bio')) return { color: '#7CB342', emoji: '🍃' };
+  if (n.includes('papier')) return { color: '#42A5F5', emoji: '📰' };
+  if (n.includes('szk')) return { color: '#26A69A', emoji: '🫙' };
+  if (n.includes('plastik') || n.includes('tworzywa') || n.includes('metal')) return { color: '#FECC00', emoji: '♻️' };
+  if (n.includes('gabaryt') || n.includes('wielko')) return { color: '#AB47BC', emoji: '🛋️' };
+  if (n.includes('popi')) return { color: '#8D6E63', emoji: '🔥' };
+  return { color: '#90A4AE', emoji: '🗑️' };
+}
+
+/** Ludzka podpowiedź do kategorii jakości powietrza (parytet z iOS airTip). */
+function airTip(cat: string): string {
+  const c = cat.toLowerCase();
+  if (c.includes('bardzo dobra') || c === 'dobra') return 'idealnie na spacer i rower';
+  if (c.includes('umiark')) return 'OK na krótką aktywność';
+  if (c.includes('bardzo z')) return 'lepiej zostać w domu';
+  if (c.startsWith('z')) return 'ogranicz wysiłek na zewnątrz';
+  return 'sprawdź szczegóły w aplikacji';
+}
+
 function owmEmoji(code: string): string {
   const c = (code || '').slice(0, 2);
   const night = (code || '').endsWith('n');
@@ -162,16 +212,33 @@ function WeatherWidget({ w, wide }: { w: WidgetWeather | null; wide: boolean }) 
         <TextWidget text={`${w.tempC}°`} style={{ fontSize: wide ? 40 : 34, fontWeight: 'bold', color: FG }} />
       </FlexWidget>
       <TextWidget text={w.desc} style={{ fontSize: 12, color: withAlpha(FG, 0.85), marginTop: 2 }} maxLines={1} truncate="END" />
-      {w.hi != null && w.lo != null ? (
-        <TextWidget text={`↑${w.hi}°  ↓${w.lo}°`} style={{ fontSize: 12, fontWeight: 'bold', color: ACCENT, marginTop: 4 }} />
-      ) : null}
-      <SourceCaption text="Źródło: Open-Meteo" />
+      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+        {w.hi != null && w.lo != null ? (
+          <TextWidget text={`↑${w.hi}° ↓${w.lo}°`} style={{ fontSize: 11, fontWeight: 'bold', color: ACCENT, marginRight: 6 }} />
+        ) : null}
+        {w.feels != null ? (
+          <TextWidget text={`odcz. ${w.feels}°`} style={{ fontSize: 11, color: withAlpha(FG, 0.7) }} />
+        ) : null}
+      </FlexWidget>
+      {wide && w.hours && w.hours.length > 1 ? (
+        <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', marginTop: 8 }}>
+          {w.hours.slice(0, 6).map((h, i) => (
+            <FlexWidget key={`${h.h}-${i}`} style={{ flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+              <TextWidget text={`${h.t}°`} style={{ fontSize: 11, fontWeight: 'bold', color: FG }} />
+              <TextWidget text={owmEmoji(h.icon)} style={{ fontSize: 12, marginTop: 1 }} />
+              <TextWidget text={h.h} style={{ fontSize: 8, color: withAlpha(FG, 0.55), marginTop: 1 }} />
+            </FlexWidget>
+          ))}
+        </FlexWidget>
+      ) : (
+        <SourceCaption text="Źródło: Open-Meteo" />
+      )}
     </WidgetCard>
   );
 }
 
 // ---- widget: Jakość powietrza ----
-function AirWidget({ a }: { a: WidgetAir | null }) {
+function AirWidget({ a, wide }: { a: WidgetAir | null; wide?: boolean }) {
   if (!a || a.index == null) {
     return (
       <WidgetCard uri="kaszuby24://airquality">
@@ -180,21 +247,47 @@ function AirWidget({ a }: { a: WidgetAir | null }) {
       </WidgetCard>
     );
   }
+  const cat = a.category ?? '';
+  const idx = Math.min(a.index, 100);
+  const SCALE: `#${string}`[] = ['#10B981', '#84CC16', '#F59E0B', '#EF4444', '#7C3AED'];
   return (
     <WidgetCard uri="kaszuby24://airquality">
       <BrandHeader label={a.city || 'Powietrze'} />
-      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-        <FlexWidget style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: a.color, marginRight: 8 }} />
-        <TextWidget text={a.category ?? ''} style={{ fontSize: 18, fontWeight: 'bold', color: FG }} maxLines={1} truncate="END" />
+      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+        <TextWidget text={String(a.index)} style={{ fontSize: 30, fontWeight: 'bold', color: FG, marginRight: 10 }} />
+        <FlexWidget style={{ flexDirection: 'column' }}>
+          <FlexWidget style={{ borderRadius: 99, backgroundColor: a.color, paddingLeft: 10, paddingRight: 10, paddingTop: 2, paddingBottom: 2 }}>
+            <TextWidget text={cat} style={{ fontSize: 11, fontWeight: 'bold', color: '#13306B' }} maxLines={1} />
+          </FlexWidget>
+          <TextWidget text={airTip(cat)} style={{ fontSize: 10, color: withAlpha(FG, 0.65), marginTop: 3 }} maxLines={1} truncate="END" />
+        </FlexWidget>
       </FlexWidget>
-      <TextWidget text="Jakość powietrza" style={{ fontSize: 11, color: withAlpha(FG, 0.75), marginTop: 4 }} />
-      <SourceCaption text="Źródło: Open-Meteo" />
+      {wide ? (
+        <FlexWidget style={{ flexDirection: 'column', width: 'match_parent', marginTop: 10 }}>
+          <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', height: 12, alignItems: 'center' }}>
+            {SCALE.map((c, i) => (
+              <FlexWidget key={c} style={{ flex: 1, height: 8, backgroundColor: c, borderRadius: i === 0 || i === SCALE.length - 1 ? 4 : 0, marginRight: i < SCALE.length - 1 ? 1 : 0 }} />
+            ))}
+          </FlexWidget>
+          <FlexWidget style={{ flexDirection: 'row', width: 'match_parent' }}>
+            {idx > 2 ? <FlexWidget style={{ flex: idx }} /> : null}
+            <TextWidget text="▲" style={{ fontSize: 9, color: FG }} />
+            <FlexWidget style={{ flex: Math.max(1, 100 - idx) }} />
+          </FlexWidget>
+          <FlexWidget style={{ flexDirection: 'row', justifyContent: 'space-between', width: 'match_parent' }}>
+            <TextWidget text="0 dobra" style={{ fontSize: 8, color: withAlpha(FG, 0.55) }} />
+            <TextWidget text="100+ bardzo zła" style={{ fontSize: 8, color: withAlpha(FG, 0.55) }} />
+          </FlexWidget>
+        </FlexWidget>
+      ) : (
+        <SourceCaption text="Źródło: Open-Meteo" />
+      )}
     </WidgetCard>
   );
 }
 
 // ---- widget: Wywóz odpadów ----
-function WasteWidget({ waste }: { waste: WidgetWaste | null }) {
+function WasteWidget({ waste, wide }: { waste: WidgetWaste | null; wide?: boolean }) {
   if (!waste || waste.empty) {
     return (
       <WidgetCard uri="kaszuby24://waste">
@@ -204,25 +297,48 @@ function WasteWidget({ waste }: { waste: WidgetWaste | null }) {
     );
   }
   const first = waste.next[0];
+  if (!first) {
+    return (
+      <WidgetCard uri="kaszuby24://waste">
+        <BrandHeader label={waste.gmina} />
+        <EmptyBody icon="🗑️" text="Brak nadchodzących wywozów" />
+      </WidgetCard>
+    );
+  }
+  const st = fractionStyle(first.fraction);
+  const rest = waste.next.slice(1, wide ? 4 : 2);
   return (
     <WidgetCard uri="kaszuby24://waste">
       <BrandHeader label={waste.gmina} />
-      {first ? (
-        <FlexWidget style={{ flexDirection: 'column', marginTop: 8 }}>
-          <TextWidget text={hhmmddmm(first.date)} style={{ fontSize: 22, fontWeight: 'bold', color: ACCENT }} />
-          <TextWidget text={first.fraction} style={{ fontSize: 13, fontWeight: 'bold', color: FG, marginTop: 2 }} maxLines={2} truncate="END" />
-          {waste.next[1] ? (
-            <TextWidget
-              text={`Potem ${hhmmddmm(waste.next[1].date)} · ${waste.next[1].fraction}`}
-              style={{ fontSize: 11, color: withAlpha(FG, 0.75), marginTop: 4 }}
-              maxLines={1}
-              truncate="END"
-            />
-          ) : null}
+      <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', marginTop: 8 }}>
+        <FlexWidget style={{ flexDirection: 'column', flex: 1 }}>
+          <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <FlexWidget style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: st.color, alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+              <TextWidget text={st.emoji} style={{ fontSize: 15 }} />
+            </FlexWidget>
+            <FlexWidget style={{ flexDirection: 'column' }}>
+              <TextWidget text={heroWhen(first.date)} style={{ fontSize: 19, fontWeight: 'bold', color: ACCENT }} maxLines={1} />
+              <TextWidget text={first.fraction} style={{ fontSize: 12, fontWeight: 'bold', color: FG }} maxLines={1} truncate="END" />
+            </FlexWidget>
+          </FlexWidget>
+          <TextWidget text={captionDate(first.date)} style={{ fontSize: 10, color: withAlpha(FG, 0.6), marginTop: 4 }} maxLines={1} />
         </FlexWidget>
-      ) : (
-        <EmptyBody icon="🗑️" text="Brak nadchodzących wywozów" />
-      )}
+        {wide && rest.length > 0 ? (
+          <FlexWidget style={{ flexDirection: 'column', flex: 1, marginLeft: 10 }}>
+            <TextWidget text="KOLEJNE" style={{ fontSize: 8, fontWeight: 'bold', color: withAlpha(FG, 0.5), letterSpacing: 1, marginBottom: 3 }} />
+            {rest.map((it, i) => (
+              <FlexWidget key={`${it.date}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', marginTop: i > 0 ? 4 : 0 }}>
+                <FlexWidget style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: fractionStyle(it.fraction).color, marginRight: 6 }} />
+                <TextWidget text={weekdayShort(it.date)} style={{ fontSize: 11, fontWeight: 'bold', color: withAlpha(FG, 0.95), width: 30 }} maxLines={1} />
+                <TextWidget text={it.fraction} style={{ fontSize: 11, color: withAlpha(FG, 0.7) }} maxLines={1} truncate="END" />
+              </FlexWidget>
+            ))}
+          </FlexWidget>
+        ) : null}
+      </FlexWidget>
+      {!wide && rest[0] ? (
+        <TextWidget text={`Potem: ${weekdayShort(rest[0].date)} · ${rest[0].fraction}`} style={{ fontSize: 10, color: withAlpha(FG, 0.6), marginTop: 4 }} maxLines={1} truncate="END" />
+      ) : null}
     </WidgetCard>
   );
 }
@@ -269,7 +385,7 @@ function EventsWidget({ events, count }: { events: WidgetEvent[]; count: number 
   const items = events.slice(0, count);
   return (
     <WidgetCard uri="kaszuby24://home">
-      <BrandHeader label="Wydarzenia" />
+      <BrandHeader label="Najbliższe w okolicy" />
       {items.length === 0 ? (
         <EmptyBody icon="📅" text="Brak wydarzeń" />
       ) : (
@@ -281,7 +397,10 @@ function EventsWidget({ events, count }: { events: WidgetEvent[]; count: number 
               clickActionData={{ uri: `kaszuby24://event/${e.slug}` }}
               style={{ flexDirection: 'row', alignItems: 'flex-start', width: 'match_parent', marginBottom: i < items.length - 1 ? 8 : 0 }}
             >
-              <TextWidget text={hhmmddmm(e.startsAt)} style={{ fontSize: 13, fontWeight: 'bold', color: ACCENT, width: 48 }} />
+              <FlexWidget style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: '#FFFFFF', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+                <TextWidget text={weekdayShort(e.startsAt).toUpperCase()} style={{ fontSize: 7, fontWeight: 'bold', color: '#D6452D' }} />
+                <TextWidget text={dayNumber(e.startsAt)} style={{ fontSize: 14, fontWeight: 'bold', color: '#13306B' }} />
+              </FlexWidget>
               <FlexWidget style={{ flexDirection: 'column', flex: 1 }}>
                 <TextWidget text={e.title} style={{ fontSize: 13, fontWeight: 'bold', color: FG }} maxLines={2} truncate="END" />
                 {e.location ? (
@@ -303,9 +422,9 @@ export function renderByName(name: string, store: Store, widthDp?: number, heigh
   const listCount = (heightDp ?? 0) >= 240 ? 4 : 2;
   switch (name) {
     case 'Powietrze':
-      return <AirWidget a={store.air} />;
+      return <AirWidget a={store.air} wide={wide} />;
     case 'Odpady':
-      return <WasteWidget waste={store.waste} />;
+      return <WasteWidget waste={store.waste} wide={wide} />;
     case 'Artykuly':
       return <ArticlesWidget posts={store.posts} count={listCount} />;
     case 'Wydarzenia':
