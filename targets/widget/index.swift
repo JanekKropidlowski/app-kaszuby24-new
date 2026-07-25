@@ -779,7 +779,6 @@ enum NewsFetcher {
   }
 }
 
-@available(iOS 17.0, *)
 /** Żółta plakietka działu. */
 private struct CategoryChip: View {
   var text: String
@@ -792,6 +791,7 @@ private struct CategoryChip: View {
   }
 }
 
+@available(iOS 17.0, *)
 struct ArtykulyEntryView: View {
   var entry: ArtykulyEntry
   @Environment(\.widgetFamily) var family
