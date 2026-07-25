@@ -301,13 +301,60 @@ struct AirEntryView: View {
       BrandBackground(family: family) {
         VStack(alignment: .leading, spacing: 4) {
           BrandHeader(label: a?.city ?? "Powietrze")
-          if let a = a, let cat = a.category {
-            HStack(spacing: 8) {
-              Circle().fill(Color(hexString: a.color, fallback: .gray)).frame(width: 12, height: 12)
-              Text(cat).font(poppins("Bold", 18)).foregroundColor(FG).lineLimit(1)
+          if let a = a, let cat = a.category, let idx = a.index {
+            let col = Color(hexString: a.color, fallback: .gray)
+            if family == .systemSmall {
+              // MAŁY: półkolisty zegar AQI + kategoria + podpowiedź
+              Spacer(minLength: 0)
+              HStack {
+                Spacer(minLength: 0)
+                ZStack {
+                  Circle().trim(from: 0.5, to: 1).stroke(FG.opacity(0.15), style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                  Circle().trim(from: 0.5, to: 0.5 + min(Double(idx), 100) / 200).stroke(col, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                  Text("\(idx)").font(poppins("Bold", 24)).foregroundColor(FG).offset(y: -6)
+                }
+                .frame(width: 84, height: 84).frame(height: 48, alignment: .top).clipped()
+                Spacer(minLength: 0)
+              }
+              HStack {
+                Spacer(minLength: 0)
+                Text(cat).font(poppins("SemiBold", 10)).foregroundColor(BRAND.darker())
+                  .padding(.horizontal, 10).padding(.vertical, 2)
+                  .background(Capsule().fill(col))
+                Spacer(minLength: 0)
+              }
+              Text(airTip(cat)).font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.6)
+                .frame(maxWidth: .infinity, alignment: .center).lineLimit(1)
+            } else {
+              // ŚREDNI: duża liczba + kategoria + skala z markerem
+              HStack(alignment: .center, spacing: 12) {
+                Text("\(idx)").font(poppins("Bold", 34)).foregroundColor(FG)
+                VStack(alignment: .leading, spacing: 3) {
+                  Text(cat).font(poppins("SemiBold", 11)).foregroundColor(BRAND.darker())
+                    .padding(.horizontal, 10).padding(.vertical, 2)
+                    .background(Capsule().fill(col))
+                  Text("jakość powietrza · \(airTip(cat))").font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.65).lineLimit(1)
+                }
+                Spacer(minLength: 0)
+              }
+              Spacer(minLength: 0)
+              GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                  Capsule()
+                    .fill(LinearGradient(colors: [Color(hexString: "#10B981", fallback: .green), Color(hexString: "#84CC16", fallback: .green), Color(hexString: "#F59E0B", fallback: .orange), Color(hexString: "#EF4444", fallback: .red), Color(hexString: "#7C3AED", fallback: .purple)], startPoint: .leading, endPoint: .trailing))
+                    .frame(height: 8)
+                  Circle().fill(FG).overlay(Circle().stroke(BRAND.darker(), lineWidth: 3))
+                    .frame(width: 14, height: 14)
+                    .offset(x: max(0, min(Double(idx), 100) / 100 * (geo.size.width - 14)))
+                }
+              }
+              .frame(height: 14)
+              HStack {
+                Text("0 dobra").font(poppins("Medium", 8)).foregroundColor(FG).opacity(0.55)
+                Spacer()
+                Text("100+ bardzo zła").font(poppins("Medium", 8)).foregroundColor(FG).opacity(0.55)
+              }
             }
-            Text("Jakość powietrza").font(poppins("Medium", 11)).foregroundColor(FG).opacity(0.75)
-            SourceCaption(text: "Źródło: Open-Meteo")
           } else {
             EmptyState(systemImage: "aqi.medium", text: "Otwórz apkę, by sprawdzić powietrze")
           }
@@ -318,12 +365,22 @@ struct AirEntryView: View {
     }
   }
 }
+
+/** Ludzka podpowiedź do kategorii jakości powietrza. */
+private func airTip(_ cat: String) -> String {
+  let c = cat.lowercased()
+  if c.contains("bardzo dobra") || c == "dobra" { return "idealnie na spacer i rower" }
+  if c.contains("umiark") { return "OK na krótką aktywność" }
+  if c.contains("bardzo z") { return "lepiej zostać w domu" }
+  if c.contains("z") { return "ogranicz wysiłek na zewnątrz" }
+  return "sprawdź szczegóły w aplikacji"
+}
 struct PowietrzeWidget: Widget {
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: "Powietrze", provider: AirProvider()) { AirEntryView(entry: $0) }
       .configurationDisplayName("Jakość powietrza")
       .description("Indeks jakości powietrza w Twojej okolicy.")
-      .supportedFamilies([.systemSmall, .accessoryCircular, .accessoryInline])
+      .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryInline])
   }
 }
 
@@ -360,6 +417,17 @@ private func inDays(_ s: String) -> String {
   if days <= 0 { return "dziś" }
   if days == 1 { return "jutro" }
   return "za \(days) dni"
+}
+
+/** Główny napis terminu: do 7 dni relatywnie ("Dziś"/"Jutro"/"Za 2 dni"), dalej data. */
+private func heroWhen(_ s: String) -> String {
+  guard let d = parseISO(s) else { return dayMonth(s) }
+  var cal = Calendar(identifier: .gregorian)
+  cal.timeZone = TimeZone(identifier: "Europe/Warsaw") ?? .current
+  let days = cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: cal.startOfDay(for: d)).day ?? 0
+  if days >= 7 { return dayMonth(s) }
+  let rel = inDays(s)
+  return rel.prefix(1).uppercased() + rel.dropFirst()
 }
 
 /** Pełna nazwa dnia tygodnia po polsku, np. "Poniedziałek". */
@@ -422,13 +490,13 @@ struct WasteEntryView: View {
             HStack(spacing: 8) {
               FractionBadge(fraction: first.fraction, size: 30)
               VStack(alignment: .leading, spacing: 0) {
-                Text(weekdayShort(first.date).capitalized)
-                  .font(poppins("Bold", 20)).foregroundColor(ACCENT)
-                  .lineLimit(1)
+                Text(heroWhen(first.date))
+                  .font(poppins("Bold", 19)).foregroundColor(ACCENT)
+                  .lineLimit(1).minimumScaleFactor(0.8)
                 Text(first.fraction).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(1)
               }
             }
-            Text(inDays(first.date))
+            Text("\(weekdayShort(first.date)), \(dayMonth(first.date))")
               .font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.6)
           } else {
             // ŚREDNI: hero najbliższego po lewej, lista kolejnych po prawej
@@ -437,13 +505,13 @@ struct WasteEntryView: View {
                 HStack(spacing: 8) {
                   FractionBadge(fraction: first.fraction, size: 34)
                   VStack(alignment: .leading, spacing: 0) {
-                    Text(weekdayShort(first.date).capitalized)
+                    Text(heroWhen(first.date))
                       .font(poppins("Bold", 20)).foregroundColor(ACCENT)
-                      .lineLimit(1)
+                      .lineLimit(1).minimumScaleFactor(0.8)
                     Text(first.fraction).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(1)
                   }
                 }
-                Text(inDays(first.date))
+                Text("\(weekdayShort(first.date)), \(dayMonth(first.date))")
                   .font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.6)
               }
               .frame(maxWidth: .infinity, alignment: .leading)
@@ -490,25 +558,94 @@ struct EventsProvider: TimelineProvider {
     completion(Timeline(entries: [EventsEntry(date: Date(), events: loadJSON(K_EVENTS, [WEvent].self) ?? [])], policy: .after(next)))
   }
 }
+/** Biały kafelek kalendarza: skrót dnia + numer. */
+private struct CalendarTile: View {
+  var date: String
+  var size: CGFloat = 40
+  var body: some View {
+    VStack(spacing: 0) {
+      Text(weekdayShort(date).uppercased())
+        .font(poppins("Bold", size * 0.2)).foregroundColor(Color(hexString: "#D6452D", fallback: .red))
+      Text(dayNumber(date))
+        .font(poppins("Bold", size * 0.45)).foregroundColor(BRAND.darker())
+    }
+    .frame(width: size, height: size)
+    .background(RoundedRectangle(cornerRadius: size * 0.25).fill(FG))
+  }
+}
+
+private func dayNumber(_ s: String) -> String {
+  guard let d = parseISO(s) else { return "" }
+  let f = DateFormatter(); f.locale = Locale(identifier: "pl_PL"); f.timeZone = TimeZone(identifier: "Europe/Warsaw"); f.dateFormat = "d"
+  return f.string(from: d)
+}
+
+private func eventHour(_ s: String) -> String? {
+  guard let d = parseISO(s) else { return nil }
+  let f = DateFormatter(); f.locale = Locale(identifier: "pl_PL"); f.timeZone = TimeZone(identifier: "Europe/Warsaw"); f.dateFormat = "HH:mm"
+  let out = f.string(from: d)
+  return out == "00:00" ? nil : out
+}
+
 struct EventsEntryView: View {
   var entry: EventsEntry
   @Environment(\.widgetFamily) var family
   var body: some View {
-    let rows = Array(entry.events.prefix(family == .systemLarge ? 5 : 3))
     BrandBackground(family: family) {
-      VStack(alignment: .leading, spacing: 8) {
-        BrandHeader(label: "Wydarzenia")
-        if rows.isEmpty {
+      VStack(alignment: .leading, spacing: family == .systemLarge ? 8 : 6) {
+        BrandHeader(label: family == .systemLarge ? "Wydarzenia w okolicy" : "Najbliższe w okolicy")
+        if entry.events.isEmpty {
           EmptyState(systemImage: "calendar", text: "Brak wydarzeń")
-        } else {
-          ForEach(Array(rows.enumerated()), id: \.offset) { _, e in
-            HStack(alignment: .top, spacing: 10) {
-              Text(dayMonth(e.startsAt)).font(poppins("Bold", 14)).foregroundColor(ACCENT).frame(width: 44, alignment: .leading)
-              VStack(alignment: .leading, spacing: 1) {
-                Text(e.title).font(poppins("SemiBold", 13)).foregroundColor(FG).lineLimit(2)
-                if let loc = e.location { Text(loc).font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.7).lineLimit(1) }
+        } else if family == .systemSmall {
+          // MAŁY: kafelek kalendarza + tytuł najbliższego wydarzenia
+          let first = entry.events[0]
+          Spacer(minLength: 0)
+          HStack(alignment: .center, spacing: 8) {
+            CalendarTile(date: first.startsAt, size: 38)
+            Text(cleanTitle(first.title)).font(poppins("SemiBold", 11)).foregroundColor(FG).lineLimit(3)
+          }
+          Text([weekdayFull(first.startsAt).lowercased(), first.location].compactMap { $0 }.joined(separator: " · "))
+            .font(poppins("Medium", 9)).foregroundColor(FG).opacity(0.6).lineLimit(1)
+        } else if family == .systemMedium {
+          // ŚREDNI: hero najbliższego + KOLEJNE po prawej
+          let first = entry.events[0]
+          let rest = Array(entry.events.dropFirst().prefix(2))
+          HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .center, spacing: 8) {
+              CalendarTile(date: first.startsAt, size: 40)
+              VStack(alignment: .leading, spacing: 2) {
+                Text(cleanTitle(first.title)).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(2)
+                Text([eventHour(first.startsAt), first.location].compactMap { $0 }.joined(separator: " · "))
+                  .font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.6).lineLimit(1)
               }
-              Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if !rest.isEmpty {
+              VStack(alignment: .leading, spacing: 6) {
+                Text("KOLEJNE").font(poppins("SemiBold", 8)).foregroundColor(FG).opacity(0.5).kerning(1)
+                ForEach(rest.indices, id: \.self) { i in
+                  HStack(spacing: 6) {
+                    CalendarTile(date: rest[i].startsAt, size: 24)
+                    Text(cleanTitle(rest[i].title)).font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.9).lineLimit(2)
+                  }
+                }
+              }
+              .frame(maxWidth: .infinity, alignment: .leading)
+            }
+          }
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        } else {
+          // DUŻY: lista z kafelkami kalendarza
+          let rows = Array(entry.events.prefix(5))
+          ForEach(rows.indices, id: \.self) { i in
+            HStack(alignment: .center, spacing: 10) {
+              CalendarTile(date: rows[i].startsAt, size: 34)
+              VStack(alignment: .leading, spacing: 1) {
+                Text(cleanTitle(rows[i].title)).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(2)
+                Text([eventHour(rows[i].startsAt), rows[i].location].compactMap { $0 }.joined(separator: " · "))
+                  .font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.6).lineLimit(1)
+              }
+              Spacer(minLength: 0)
             }
           }
           Spacer(minLength: 0)
@@ -524,7 +661,7 @@ struct WydarzeniaWidget: Widget {
     StaticConfiguration(kind: "Wydarzenia", provider: EventsProvider()) { EventsEntryView(entry: $0) }
       .configurationDisplayName("Najbliższe wydarzenia")
       .description("Nadchodzące wydarzenia w regionie.")
-      .supportedFamilies([.systemMedium, .systemLarge])
+      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
   }
 }
 
@@ -643,39 +780,126 @@ enum NewsFetcher {
 }
 
 @available(iOS 17.0, *)
+/** Żółta plakietka działu. */
+private struct CategoryChip: View {
+  var text: String
+  var body: some View {
+    Text(text.uppercased())
+      .font(poppins("Bold", 8)).kerning(0.5)
+      .foregroundColor(BRAND.darker())
+      .padding(.horizontal, 8).padding(.vertical, 2)
+      .background(Capsule().fill(ACCENT))
+  }
+}
+
 struct ArtykulyEntryView: View {
   var entry: ArtykulyEntry
   @Environment(\.widgetFamily) var family
   var body: some View {
-    let rows = Array(entry.posts.prefix(family == .systemLarge ? 4 : 2))
-    BrandBackground(family: family) {
-      VStack(alignment: .leading, spacing: 8) {
-        BrandHeader(label: entry.label)
-        if rows.isEmpty {
-          EmptyState(systemImage: "newspaper", text: "Brak artykułów")
-        } else {
-          ForEach(Array(rows.enumerated()), id: \.offset) { _, p in
-            Link(destination: URL(string: "kaszuby24://article/\(p.slug)")!) {
-              HStack(alignment: .top, spacing: 8) {
-                if let d = p.imageData, let ui = UIImage(data: d) {
+    if family == .systemSmall, let first = entry.posts.first, let d = first.imageData, let ui = UIImage(data: d) {
+      // MAŁY: zdjęcie artykułu na całym tle + gradient + plakietka + tytuł
+      photoCard(first, ui)
+    } else if family == .systemMedium, let first = entry.posts.first {
+      BrandBackground(family: family) {
+        VStack(alignment: .leading, spacing: 6) {
+          BrandHeader(label: entry.label)
+          let rest = Array(entry.posts.dropFirst().prefix(2))
+          HStack(alignment: .top, spacing: 10) {
+            Link(destination: URL(string: "kaszuby24://article/\(first.slug)")!) {
+              HStack(alignment: .top, spacing: 10) {
+                if let d = first.imageData, let ui = UIImage(data: d) {
                   Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
-                    .frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 8))
-                } else if p.imageUrl != nil {
-                  Color.white.opacity(0.15)
-                    .frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(width: 82, height: 82).clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                  Text(p.title).font(poppins("SemiBold", 13)).foregroundColor(FG).lineLimit(2)
-                  Text(timeAgo(p.date)).font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.7).lineLimit(1)
+                VStack(alignment: .leading, spacing: 3) {
+                  if let cat = first.category { CategoryChip(text: cat) }
+                  Text(cleanTitle(first.title)).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(3)
+                  Spacer(minLength: 0)
+                  Text(timeAgo(first.date)).font(poppins("Medium", 9)).foregroundColor(FG).opacity(0.6)
                 }
-                Spacer()
               }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if !rest.isEmpty {
+              VStack(alignment: .leading, spacing: 7) {
+                ForEach(rest.indices, id: \.self) { i in
+                  Link(destination: URL(string: "kaszuby24://article/\(rest[i].slug)")!) {
+                    Text(cleanTitle(rest[i].title))
+                      .font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.92).lineLimit(3)
+                      .frame(maxWidth: .infinity, alignment: .leading)
+                  }
+                }
+              }
+              .padding(.leading, 10)
+              .overlay(Rectangle().fill(FG.opacity(0.15)).frame(width: 1), alignment: .leading)
+            }
           }
-          Spacer(minLength: 0)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    } else {
+      // DUŻY (i fallbacki bez zdjęcia): lista jak dotąd
+      let rows = Array(entry.posts.prefix(family == .systemLarge ? 4 : 2))
+      BrandBackground(family: family) {
+        VStack(alignment: .leading, spacing: 8) {
+          BrandHeader(label: entry.label)
+          if rows.isEmpty {
+            EmptyState(systemImage: "newspaper", text: "Brak artykułów")
+          } else {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, p in
+              Link(destination: URL(string: "kaszuby24://article/\(p.slug)")!) {
+                HStack(alignment: .top, spacing: 8) {
+                  if let d = p.imageData, let ui = UIImage(data: d) {
+                    Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
+                      .frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 8))
+                  } else if p.imageUrl != nil {
+                    Color.white.opacity(0.15)
+                      .frame(width: 46, height: 46).clipShape(RoundedRectangle(cornerRadius: 8))
+                  }
+                  VStack(alignment: .leading, spacing: 2) {
+                    Text(cleanTitle(p.title)).font(poppins("SemiBold", 13)).foregroundColor(FG).lineLimit(2)
+                    Text(timeAgo(p.date)).font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.7).lineLimit(1)
+                  }
+                  Spacer()
+                }
+              }
+            }
+            Spacer(minLength: 0)
+          }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      }
+    }
+  }
+
+  /** Mały widget: zdjęcie pod całością (iOS17 containerBackground / iOS16 background). */
+  @ViewBuilder
+  private func photoCard(_ post: WPost, _ ui: UIImage) -> some View {
+    let overlay = LinearGradient(
+      colors: [Color.black.opacity(0.15), Color(hexString: "#0A142D", fallback: .black).opacity(0.92)],
+      startPoint: .top, endPoint: .bottom
+    )
+    let content = VStack(alignment: .leading, spacing: 0) {
+      BrandHeader(label: "")
+      Spacer(minLength: 0)
+      if let cat = post.category { CategoryChip(text: cat) }
+      Text(cleanTitle(post.title))
+        .font(poppins("SemiBold", 11.5)).foregroundColor(FG).lineLimit(3)
+        .padding(.top, 4)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+    if #available(iOS 17.0, *) {
+      content.padding(12).containerBackground(for: .widget) {
+        ZStack { Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill); overlay }
+      }
+      .widgetURL(URL(string: "kaszuby24://article/\(post.slug)"))
+    } else {
+      content.padding(12)
+        .background(ZStack { Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill); overlay })
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .widgetURL(URL(string: "kaszuby24://article/\(post.slug)"))
     }
   }
 }
@@ -686,7 +910,7 @@ struct ArtykulyWidget: Widget {
     AppIntentConfiguration(kind: "Artykuly", intent: ArtykulyIntent.self, provider: ArtykulyProvider()) { ArtykulyEntryView(entry: $0) }
       .configurationDisplayName("Najnowsze artykuły")
       .description("Artykuły z wybranego powiatu i działu. Przytrzymaj, aby wybrać.")
-      .supportedFamilies([.systemMedium, .systemLarge])
+      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
   }
 }
 
