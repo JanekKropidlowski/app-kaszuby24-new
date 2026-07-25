@@ -119,17 +119,25 @@ private func cleanTitle(_ raw: String) -> String {
 // MARK: - Nagłówek marki
 struct BrandHeader: View {
   var label: String
+  @Environment(\.widgetFamily) private var family
   var body: some View {
-    HStack(spacing: 5) {
+    // W małym widgecie (ok. 127pt szerokości treści) logo 34 + teksty ZAWIJAŁY
+    // "Kaszuby24" i ucinały etykietę — kompaktowa wersja bez zawijania.
+    let small = family == .systemSmall
+    HStack(spacing: 4) {
       if let logo = UIImage(named: "logo-mark-white") {
         Image(uiImage: logo)
           .resizable()
           .scaledToFit()
-          .frame(width: 34, height: 34)
+          .frame(width: small ? 20 : 34, height: small ? 20 : 34)
       }
-      Text("Kaszuby24").font(poppins("SemiBold", 10)).opacity(0.9)
-      Spacer()
-      Text(label).font(poppins("Medium", 10)).opacity(0.7).lineLimit(1)
+      Text("Kaszuby24")
+        .font(poppins("SemiBold", small ? 9 : 10)).opacity(0.9)
+        .lineLimit(1).fixedSize()
+      Spacer(minLength: 4)
+      Text(label)
+        .font(poppins("Medium", small ? 9 : 10)).opacity(0.7)
+        .lineLimit(1).minimumScaleFactor(0.75)
     }
     .foregroundColor(FG)
   }
@@ -309,11 +317,11 @@ struct AirEntryView: View {
               HStack {
                 Spacer(minLength: 0)
                 ZStack {
-                  Circle().trim(from: 0.5, to: 1).stroke(FG.opacity(0.15), style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                  Circle().trim(from: 0.5, to: 0.5 + min(Double(idx), 100) / 200).stroke(col, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                  Text("\(idx)").font(poppins("Bold", 24)).foregroundColor(FG).offset(y: -6)
+                  Circle().trim(from: 0.5, to: 1).stroke(FG.opacity(0.15), style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                  Circle().trim(from: 0.5, to: 0.5 + min(Double(idx), 100) / 200).stroke(col, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                  Text("\(idx)").font(poppins("Bold", 22)).foregroundColor(FG).offset(y: -4)
                 }
-                .frame(width: 84, height: 84).frame(height: 48, alignment: .top).clipped()
+                .frame(width: 74, height: 74).frame(height: 42, alignment: .top).clipped()
                 Spacer(minLength: 0)
               }
               HStack {
@@ -324,7 +332,8 @@ struct AirEntryView: View {
                 Spacer(minLength: 0)
               }
               Text(airTip(cat)).font(poppins("Medium", 10)).foregroundColor(FG).opacity(0.6)
-                .frame(maxWidth: .infinity, alignment: .center).lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .lineLimit(1).minimumScaleFactor(0.7)
             } else {
               // ŚREDNI: duża liczba + kategoria + skala z markerem
               HStack(alignment: .center, spacing: 12) {
