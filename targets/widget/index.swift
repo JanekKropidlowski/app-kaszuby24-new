@@ -362,6 +362,14 @@ private func inDays(_ s: String) -> String {
   return "za \(days) dni"
 }
 
+/** Pełna nazwa dnia tygodnia po polsku, np. "Poniedziałek". */
+private func weekdayFull(_ s: String) -> String {
+  guard let d = parseISO(s) else { return "" }
+  let f = DateFormatter(); f.locale = Locale(identifier: "pl_PL"); f.timeZone = TimeZone(identifier: "Europe/Warsaw"); f.dateFormat = "EEEE"
+  let name = f.string(from: d)
+  return name.prefix(1).uppercased() + name.dropFirst()
+}
+
 /** Skrót dnia tygodnia po polsku, np. "pon". */
 private func weekdayShort(_ s: String) -> String {
   guard let d = parseISO(s) else { return "" }
@@ -389,8 +397,9 @@ private struct UpcomingRow: View {
   var body: some View {
     HStack(spacing: 6) {
       Circle().fill(fractionStyle(item.fraction).color).frame(width: 7, height: 7)
-      Text("\(weekdayShort(item.date)) \(dayMonth(item.date))")
+      Text(weekdayShort(item.date))
         .font(poppins("SemiBold", 11)).foregroundColor(FG).opacity(0.95)
+        .frame(width: 30, alignment: .leading)
       Text(item.fraction)
         .font(poppins("Medium", 11)).foregroundColor(FG).opacity(0.7).lineLimit(1)
       Spacer(minLength: 0)
@@ -413,7 +422,9 @@ struct WasteEntryView: View {
             HStack(spacing: 8) {
               FractionBadge(fraction: first.fraction, size: 30)
               VStack(alignment: .leading, spacing: 0) {
-                Text(dayMonth(first.date)).font(poppins("Bold", 19)).foregroundColor(ACCENT)
+                Text(weekdayShort(first.date).capitalized)
+                  .font(poppins("Bold", 20)).foregroundColor(ACCENT)
+                  .lineLimit(1)
                 Text(first.fraction).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(1)
               }
             }
@@ -426,8 +437,9 @@ struct WasteEntryView: View {
                 HStack(spacing: 8) {
                   FractionBadge(fraction: first.fraction, size: 34)
                   VStack(alignment: .leading, spacing: 0) {
-                    Text("\(weekdayShort(first.date)), \(dayMonth(first.date))")
-                      .font(poppins("Bold", 20)).foregroundColor(ACCENT).lineLimit(1)
+                    Text(weekdayShort(first.date).capitalized)
+                      .font(poppins("Bold", 20)).foregroundColor(ACCENT)
+                      .lineLimit(1)
                     Text(first.fraction).font(poppins("SemiBold", 12)).foregroundColor(FG).lineLimit(1)
                   }
                 }
