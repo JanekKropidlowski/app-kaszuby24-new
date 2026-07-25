@@ -23,6 +23,13 @@ prepare_react_native_project!
 target 'Kaszuby24' do
   use_expo_modules!
 
+  # ExtensionStorage (zapis danych widgetów do App Group) — JAWNIE, bo
+  # autolinking na EAS go pomijał (binarka 1.1.1 ze sklepu nie zawiera modułu
+  # → expo.modules.ExtensionStorage undefined → ciche no-op stuby → wszystkie
+  # widgety wiecznie puste "Ustaw adres", 2026-07-25). Lokalne pod install
+  # go dodawał, stąd "u mnie działa" w devie.
+  pod 'ExtensionStorage', :path => '../node_modules/@bacons/apple-targets/ios'
+
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
   else

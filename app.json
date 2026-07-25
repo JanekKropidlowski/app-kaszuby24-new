@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaszuby24",
     "slug": "kaszuby24",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaszuby24",
@@ -17,7 +17,9 @@
       "bundleIdentifier": "app.kaszuby24",
       "buildNumber": "18",
       "entitlements": {
-        "com.apple.security.application-groups": ["group.app.kaszuby24"]
+        "com.apple.security.application-groups": [
+          "group.app.kaszuby24"
+        ]
       },
       "associatedDomains": [
         "applinks:kaszuby24.pl",
