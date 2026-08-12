@@ -20,6 +20,14 @@ class AnalyticsService {
   private isEnabled = true;
   private clientId: string | null = null;
   private userProperties: { [key: string]: any } = {};
+  /**
+   * GA4 liczy użytkowników i sesje TYLKO gdy zdarzenie z Measurement Protocol
+   * ma `session_id` oraz `engagement_time_msec`. Bez nich zdarzenia dochodzą
+   * (odsłony były widoczne), ale raport pokazywał 0 użytkowników i 0 sesji —
+   * czyli aplikacji w praktyce nie dało się zmierzyć.
+   */
+  private sessionId: string | null = null;
+  private lastEventAt = 0;
   private measurementId: string | null = null;
   private apiSecret: string | null = null;
 
@@ -66,6 +74,22 @@ class AnalyticsService {
     }
   }
 
+  /** Nowa sesja po 30 minutach bezczynności — tak samo jak liczy je GA4. */
+  private static readonly SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
+  private sessionParams(): { session_id: string; engagement_time_msec: number } {
+    const now = Date.now();
+    const elapsed = this.lastEventAt ? now - this.lastEventAt : 0;
+    if (!this.sessionId || elapsed > AnalyticsService.SESSION_TIMEOUT_MS) {
+      this.sessionId = String(now);
+    }
+    this.lastEventAt = now;
+    // Czas zaangażowania: odstęp od poprzedniego zdarzenia, przycięty do
+    // rozsądnego maksimum, żeby przerwa w tle nie zawyżała statystyk.
+    const engagement = this.sessionId === String(now) ? 1 : Math.min(elapsed, 60_000);
+    return { session_id: this.sessionId, engagement_time_msec: Math.max(engagement, 1) };
+  }
+
   private async sendToMeasurementProtocol(eventName: string, params: { [k: string]: any } = {}) {
     if (!this.measurementId || !this.apiSecret || !this.clientId) return;
 
@@ -75,7 +99,10 @@ class AnalyticsService {
       events: [
         {
           name: eventName,
-          params: params,
+          params: {
+            ...params,
+            ...this.sessionParams(),
+          },
         },
       ],
     };

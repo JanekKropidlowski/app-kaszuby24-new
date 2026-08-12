@@ -4,7 +4,7 @@ import { fetchArticleBySlug, fetchEventBySlug, fetchNekrologBySlug } from '@/ser
 import { useSupportStore } from '@/store/supportStore';
 
 export interface DeepLinkInfo {
-  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'airquality' | 'waste' | 'transport' | 'home' | 'wydarzenia' | 'nekrologi' | 'support' | 'essentials' | 'external' | 'unknown';
+  type: 'article' | 'event' | 'nekrolog' | 'category' | 'search' | 'weather' | 'airquality' | 'waste' | 'transport' | 'home' | 'wydarzenia' | 'nekrologi' | 'support' | 'essentials' | 'saved' | 'external' | 'unknown';
   slug?: string;
   id?: number;
   query?: string;
@@ -128,12 +128,17 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
 
       // Nekrolog by slug: /nekrolog/nazwa-nekrologu
       if (pathSegments[0] === 'nekrolog' && pathSegments[1]) {
-        return { type: 'nekrolog', slug: pathSegments[1] };
+        return { type: 'nekrolog', slug: pathSegments[1], url };
       }
 
       // Event by slug: /kalendarz/nazwa-wydarzenia
       if (pathSegments[0] === 'kalendarz' && pathSegments[1]) {
-        return { type: 'event', slug: pathSegments[1] };
+        return { type: 'event', slug: pathSegments[1], url };
+      }
+
+      // Event by slug (portal Next.js): /wydarzenie/nazwa-wydarzenia
+      if (pathSegments[0] === 'wydarzenie' && pathSegments[1]) {
+        return { type: 'event', slug: pathSegments[1], url };
       }
 
       // Event by ID: /event/123
@@ -158,6 +163,15 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
       // Weather: /weather
       if (pathSegments[0] === 'weather') return { type: 'weather', path: 'weather' };
 
+      // Odpady: /odpady lub /odpady/[miasto](/region/[id]) — ekran harmonogramu wywozu
+      if (pathSegments[0] === 'odpady') return { type: 'waste' };
+
+      // Lista wszystkich wiadomości — w apce to feed na ekranie głównym
+      if (pathSegments[0] === 'wiadomosci') return { type: 'home' };
+
+      // Zapisane artykuły — apka ma własny tab "Zapisane"
+      if (pathSegments[0] === 'zapisane') return { type: 'saved' };
+
       // Niezbędnik / Pomoc — mapa AED, kolejki SOR, apteki, szpitale
       if (pathSegments[0] === 'aed') return { type: 'essentials', filter: 'AED' };
       if (pathSegments[0] === 'kolejka-sor' || pathSegments[0] === 'sor') return { type: 'essentials', filter: 'SOR' };
@@ -168,21 +182,32 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
         return { type: 'essentials', filter };
       }
 
-      // Strony które mają być otwierane w przeglądarce
-      const externalPaths = ['kontakt', 'o-nas', 'reklama', 'polityka-prywatnosci', 'regulamin', 'reklama-w-serwisie', 'mediakit', 'o-portalu'];
+      // Strony które mają być otwierane w przeglądarce (brak odpowiednika w apce).
+      // 'rozklady'/'ogloszenia' + gołe ścieżki transportowe: osobne aplikacje webowe
+      // w podkatalogach kaszuby24.pl (rozkłady :3015 od 2026-07-24, ogłoszenia :3101).
+      // Bez nich np. /rozklady/przystanek/swarzewo wpadało w gałąź "ostatni segment =
+      // slug artykułu", lookup nie znajdował artykułu i user lądował w apce zamiast
+      // na rozkładzie. AASA wyklucza te ścieżki z universal links, ale Android
+      // (intent-filter pathPrefix "/") i starsze, zcache'owane AASA nadal je łapią.
+      const externalPaths = [
+        'kontakt', 'o-nas', 'reklama', 'polityka-prywatnosci', 'regulamin', 'reklama-w-serwisie', 'mediakit', 'o-portalu',
+        'organizacja', 'organizacje', 'atrakcje', 'trasy-rowerowe', 'galeria', 'kamery', 'tag', 'autor',
+        'szybkie', 'zglos-temat', 'dla-instytucji', 'patronat-medialny', 'deklaracja-dostepnosci', 'aplikacja',
+        'rozklady', 'ogloszenia', 'przystanek', 'przystanki', 'linia', 'linie', 'przewoznicy', 'trasa', 'miasto',
+      ];
       if (externalPaths.includes(pathSegments[0].toLowerCase())) {
         return { type: 'external', url };
       }
 
       // Artykuł po slugu: /nazwa-artykulu (domyślny przypadek)
-      const reservedRoots = ['event', 'category', 'kategoria', 'search', 'szukaj', 'weather', 'kalendarz', 'nekrolog', 'wydarzenia', 'nekrologi', 'nekrologi-2', 'wesprzyj', 'aed', 'sor', 'kolejka-sor', 'apteki', 'apteka', 'essentials', 'niezbednik', 'pomoc'];
+      const reservedRoots = ['event', 'category', 'kategoria', 'search', 'szukaj', 'weather', 'kalendarz', 'nekrolog', 'wydarzenia', 'wydarzenie', 'nekrologi', 'nekrologi-2', 'wesprzyj', 'aed', 'sor', 'kolejka-sor', 'apteki', 'apteka', 'essentials', 'niezbednik', 'pomoc', 'odpady', 'wiadomosci', 'zapisane'];
       if (pathSegments.length === 1 && !reservedRoots.includes(pathSegments[0])) {
-        return { type: 'article', slug: pathSegments[0] };
+        return { type: 'article', slug: pathSegments[0], url };
       }
 
       // Głębsze ścieżki — ostatni segment jako slug artykułu
       if (pathSegments.length > 1) {
-        return { type: 'article', slug: pathSegments[pathSegments.length - 1] };
+        return { type: 'article', slug: pathSegments[pathSegments.length - 1], url };
       }
     }
 
@@ -203,6 +228,16 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
  */
 export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace = false) => {
   const go = (href: string) => (replace ? router.replace(href as never) : router.push(href as never));
+  // Gdy nie umiemy dopasować treści w apce, a znamy oryginalny URL — otwórz
+  // stronę www w przeglądarce zamiast wyrzucać użytkownika na ekran główny.
+  const fallbackToWeb = (home: string) => {
+    if (linkInfo.url) {
+      WebBrowser.openBrowserAsync(linkInfo.url);
+      if (replace) router.replace(home as never);
+    } else {
+      go(home);
+    }
+  };
   try {
     switch (linkInfo.type) {
       case 'article':
@@ -214,10 +249,10 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace =
             if (article?.id) {
               go(`/article/${article.id}`);
             } else {
-              go('/(tabs)');
+              fallbackToWeb('/(tabs)');
             }
           } catch (e) {
-            go('/(tabs)');
+            fallbackToWeb('/(tabs)');
           }
         } else {
           go('/(tabs)');
@@ -228,6 +263,14 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace =
         if (linkInfo.id) {
           go(`/event/${linkInfo.id}`);
         } else if (linkInfo.slug) {
+          // Wydarzenia LZS (slug `lzs-...`) nie istnieją w API kalendarza na
+          // panelu — pochodzą z feedu lzs-pomorski.pl i mają dedykowany
+          // natywny ekran. Lookup po slugu zawsze kończył się fiaskiem i user
+          // lądował w przeglądarce (dla wygasłych wydarzeń — na stronie 404).
+          if (linkInfo.slug.startsWith('lzs-')) {
+            go(`/lzs/${linkInfo.slug.replace(/^lzs-/, '')}`);
+            break;
+          }
           try {
             const event = await fetchEventBySlug(linkInfo.slug);
             if (event?.id) {
@@ -235,8 +278,17 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace =
             } else {
               go('/(tabs)/kalendarz');
             }
-          } catch (e) {
-            go('/(tabs)/kalendarz');
+          } catch (e: any) {
+            // Wydarzenie usunięte/wygasłe: www pokaże dokładnie ten sam 404,
+            // więc nie ma sensu wysyłać tam usera — pokaż kalendarz wydarzeń.
+            // Do przeglądarki tylko przy błędach sieci/serwera, gdy strona
+            // może mimo wszystko działać.
+            const notFound = typeof e?.message === 'string' && e.message.includes('nie zostało znalezione');
+            if (notFound) {
+              go('/(tabs)/kalendarz');
+            } else {
+              fallbackToWeb('/(tabs)/kalendarz');
+            }
           }
         } else {
           go('/(tabs)/kalendarz');
@@ -250,10 +302,10 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace =
             if (nekrolog?.id) {
               go(`/nekrolog/${nekrolog.id}`);
             } else {
-              go('/(tabs)');
+              fallbackToWeb('/(tabs)');
             }
           } catch (e) {
-            go('/(tabs)');
+            fallbackToWeb('/(tabs)');
           }
         } else {
           go('/(tabs)');
@@ -320,6 +372,10 @@ export const handleDeepLinkNavigation = async (linkInfo: DeepLinkInfo, replace =
       case 'essentials':
         // Ekran "Pomoc"/Niezbędnik z mapą; filter preselekcjonuje zakładkę (AED/SOR/...)
         go(linkInfo.filter ? `/essentials?filter=${linkInfo.filter}` : '/essentials');
+        break;
+
+      case 'saved':
+        go('/(tabs)/saved');
         break;
 
       case 'external':
