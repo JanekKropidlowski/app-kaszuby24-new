@@ -37,20 +37,35 @@ class AnalyticsService {
    */
   async initialize() {
     try {
+      const manifest = (Constants as any).expoConfig || (Constants as any).manifest || {};
+      const appVersion = String(manifest.version || 'unknown');
+
       if (nativeAvailable && analytics) {
         await analytics().setAnalyticsCollectionEnabled(true);
-        await analytics().setUserProperty('platform', Platform.OS);
-        await analytics().setUserProperty('app_version', '1.0.40');
+        await analytics().setUserProperty('app_platform', Platform.OS);
+        await analytics().setUserProperty('app_version', appVersion);
         console.log('[Analytics] Native Firebase Analytics initialized');
       } else {
         // Setup Measurement Protocol fallback (for Expo Go / web)
-        const manifest = (Constants as any).expoConfig || (Constants as any).manifest || {};
         const extra = manifest.extra || {};
         this.measurementId = extra.gaMeasurementId || null;
         this.apiSecret = extra.gaApiSecret || null;
         this.clientId = await this.getOrCreateClientId();
+        // Strumień GA4 dla apki jest typu WEB i karmimy go Measurement
+        // Protocolem, więc GA4 wpisuje wszystkim platform=web,
+        // deviceCategory=desktop, system=(not set) — apka wtapia się w
+        // desktop i nie da się jej odsiać w raportach. Te trzy właściwości
+        // użytkownika są jedynym sposobem na segmentację bez przechodzenia
+        // na strumienie aplikacyjne (Firebase = nowy build, nie OTA).
+        // Wcześniej ustawiał je tylko martwy branch Firebase powyżej, więc
+        // do GA4 nigdy nie docierały, a app_version było zaszyte na 1.0.40.
+        this.userProperties['app_platform'] = Platform.OS;
+        this.userProperties['app_version'] = appVersion;
+        this.userProperties['app_os_version'] = String(Platform.Version ?? 'unknown');
         console.log('[Analytics] Measurement Protocol fallback initialized', {
           measurementId: this.measurementId ? 'present' : 'missing',
+          app_platform: Platform.OS,
+          app_version: appVersion,
         });
       }
     } catch (error) {
