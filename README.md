@@ -1,4 +1,39 @@
-# Kaszuby24 App - Enhanced Weather Features
+# Kaszuby24 — aplikacja mobilna
+
+Oficjalna aplikacja portalu **kaszuby24.pl** na iOS i Androida: wiadomości z regionu,
+pogoda, rozkłady jazdy, wydarzenia, nekrologi i harmonogram odpadów.
+
+| | |
+|---|---|
+| **Stack** | Expo SDK 54, React Native 0.81, React 19, expo-router 6 |
+| **Wersja** | 1.1.2 (`app.json`) |
+| **Identyfikator** | `app.kaszuby24` (iOS i Android) |
+| **Dane** | panel `panel.kaszuby24.pl` (emuluje WP REST) → Supabase |
+| **Powiadomienia** | expo-notifications |
+
+Katalog `app/` to trasy expo-router (`article`, `event`, `essentials`, `admin`, `contact`).
+
+## Uruchomienie
+
+```bash
+npm install
+npx expo start
+```
+
+## Publikacja
+
+```bash
+eas build --platform ios     # albo android
+eas submit --platform ios | tail    # GOTCHA: bez |tail submit potrafi zawiesic terminal
+eas update --branch production      # OTA, uruchamiac Z KATALOGU apps/mobile
+```
+
+Mapa całego ekosystemu (5 aplikacji): [`kaszuby24-nextjs/docs/EKOSYSTEM.md`](https://github.com/JanekKropidlowski/kaszuby24-www/blob/main/docs/EKOSYSTEM.md).
+
+---
+
+<details>
+<summary>Historia zmian UX/UI (2024) — dawna treść README</summary>
 
 ## 🎨 Nowe Ulepszenia UX/UI (2024)
 
@@ -335,3 +370,6 @@
 ---
 
 **Kaszuby24 App** - Nowoczesna aplikacja pogodowa z zaawansowanymi funkcjami i pięknym designem! 🌤️📱
+
+
+</details>
