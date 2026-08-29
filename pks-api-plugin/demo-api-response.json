@@ -1,0 +1,177 @@
+{
+  "demo": "PRZYKŁADOWE ODPOWIEDZI API PKS GDYNIA - TYLKO STRUKTURALNE DANE JSON",
+  "info": "To nie są PDF-y! To prawdziwe dane JSON które możesz przetwarzać w aplikacji",
+
+  "routes_endpoint": {
+    "url": "GET /wp-json/pks-api/v1/routes",
+    "description": "Zwraca listę wszystkich 91 tras PKS Gdynia",
+    "response": [
+      {
+        "id": "1",
+        "line": "1",
+        "route": "Linia Po Pucku",
+        "from": "Gdynia",
+        "to": "Puck",
+        "url": "https://pksgdynia.pl/rozklad_jazdy/1/",
+        "source": "pks-website"
+      },
+      {
+        "id": "11",
+        "line": "11",
+        "route": "Linia Komunikacji Miejskiej we Władysławowie",
+        "from": "Władysławowo",
+        "to": "Władysławowo",
+        "url": "https://pksgdynia.pl/rozklad_jazdy/11/",
+        "source": "pks-website"
+      },
+      {
+        "id": "150",
+        "line": "150",
+        "route": "Gdynia - Sopot - Gdańsk",
+        "from": "Gdynia",
+        "to": "Gdańsk",
+        "url": "https://pksgdynia.pl/rozklad_jazdy/150/",
+        "source": "pks-website"
+      }
+    ]
+  },
+
+  "stops_endpoint": {
+    "url": "GET /wp-json/pks-api/v1/stops?search=Gdynia",
+    "description": "Zwraca przystanki z nazwami i współrzędnymi GPS",
+    "response": [
+      {
+        "id": "pks_1",
+        "name": "Gdynia Dworzec Główny PKS",
+        "agency": "pks_gdynia",
+        "type": "bus_stop",
+        "lat": 54.5189,
+        "lon": 18.5305,
+        "region": "pomorskie"
+      },
+      {
+        "id": "pks_25",
+        "name": "Gdynia",
+        "agency": "pks_gdynia",
+        "type": "bus_stop",
+        "lat": 54.5189,
+        "lon": 18.5305,
+        "region": "pomorskie"
+      },
+      {
+        "id": "pks_4",
+        "name": "Gdynia Chylonia",
+        "agency": "pks_gdynia",
+        "type": "bus_stop",
+        "lat": 54.5069,
+        "lon": 18.5147,
+        "region": "pomorskie"
+      }
+    ]
+  },
+
+  "schedule_endpoint": {
+    "url": "GET /wp-json/pks-api/v1/schedule/150",
+    "description": "Zwraca informacje o rozkładzie + link do PDF",
+    "response": {
+      "route": "Gdynia - Sopot - Gdańsk",
+      "pdf_url": "https://pksgdynia.pl/wp-content/uploads/2025/08/PKSW-Schemat-glowny-2025.pdf",
+      "last_updated": "2025-08-27",
+      "valid": true
+    }
+  },
+
+  "status_endpoint": {
+    "url": "GET /wp-json/pks-api/v1/status",
+    "description": "Informacje o API i statystyki",
+    "response": {
+      "status": "ok",
+      "version": "1.0.0",
+      "provider": "PKS Gdynia",
+      "routes_count": 91,
+      "stops_count": 102,
+      "last_update": "2026-01-01 20:00:00",
+      "cache_status": "valid",
+      "description": "API tylko dla PKS Gdynia - rozkłady jazdy i przystanki"
+    }
+  },
+
+  "jak_uzyc_w_aplikacji": {
+    "react_native": {
+      "pobierz_trasy": `
+const routes = await fetch('https://twoja-domena.pl/wp-json/pks-api/v1/routes')
+  .then(r => r.json());
+
+// Result: Array of route objects with line numbers, names, URLs
+`,
+
+      "pobierz_przystanki": `
+const stops = await fetch('https://twoja-domena.pl/wp-json/pks-api/v1/stops?search=Gdynia')
+  .then(r => r.json());
+
+// Result: Array of stops with GPS coordinates (lat, lon)
+`,
+
+      "otworz_rozklad": `
+const schedule = await fetch('https://twoja-domena.pl/wp-json/pks-api/v1/schedule/150')
+  .then(r => r.json());
+
+// Result: Object with PDF URL - otwórz w przeglądarce lub viewer
+Linking.openURL(schedule.pdf_url);
+`
+    },
+
+    "javascript": {
+      "wszystkie_trasy": `
+// Pobierz wszystkie 91 tras
+fetch('/wp-json/pks-api/v1/routes')
+  .then(response => response.json())
+  .then(routes => {
+    console.log('Tras PKS:', routes.length);
+    routes.forEach(route => {
+      console.log(route.line + ': ' + route.route);
+    });
+  });
+`,
+
+      "najblizsze_przystanki": `
+// Znajdź najbliższe przystanki używając GPS
+navigator.geolocation.getCurrentPosition(position => {
+  const { latitude, longitude } = position.coords;
+
+  fetch('/wp-json/pks-api/v1/stops')
+    .then(response => response.json())
+    .then(stops => {
+      const sortedStops = stops
+        .map(stop => ({
+          ...stop,
+          distance: calculateDistance(latitude, longitude, stop.lat, stop.lon)
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 5);
+
+      console.log('Najbliższe przystanki PKS:', sortedStops);
+    });
+});
+`
+    }
+  },
+
+  "co_to_nie_jest": [
+    "❌ Nie są to PDF-y do bezpośredniego wyświetlenia",
+    "❌ Nie jest to surowy HTML ze strony PKS",
+    "❌ Nie ma tu integracji z innymi przewoźnikami (tylko PKS Gdynia)"
+  ],
+
+  "co_to_jest": [
+    "✅ Strukturalne dane JSON gotowe do przetworzenia",
+    "✅ Współrzędne GPS dla map i nawigacji",
+    "✅ Metadane tras z numerami linii i opisami",
+    "✅ Linki do PDF-ów rozkładów (na żądanie)",
+    "✅ Tylko PKS Gdynia - czyste, skoncentrowane API"
+  ]
+}
+
+
+
+

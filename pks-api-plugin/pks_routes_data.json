@@ -1,0 +1,193 @@
+{
+  "source": "PKS Gdynia - Rzeczywiste trasy autobusowe",
+  "timestamp": "2026-01-01T22:00:00.000Z",
+  "version": "1.0.0",
+  "description": "Lista rzeczywistych tras PKS Gdynia z rozkładami jazdy",
+  "count": 15,
+  "routes": [
+    {
+      "id": "1",
+      "line": "1",
+      "route": "Linia Po Pucku",
+      "from": "Gdynia",
+      "to": "Puck",
+      "description": "Gdynia - Puck przez Rewę, Mechelinki",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/linia-po-pucku/",
+      "source": "pks-website",
+      "frequency": "co 2 godziny",
+      "duration": "45 min"
+    },
+    {
+      "id": "11",
+      "line": "11",
+      "route": "Linia Komunikacji Miejskiej we Władysławowie",
+      "from": "Władysławowo",
+      "to": "Władysławowo",
+      "description": "Komunikacja miejska w Władysławowie",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/linia-komunikacji-miejskiej-we-wladyslawowie/",
+      "source": "pks-website",
+      "frequency": "co 30 minut",
+      "duration": "lokalne"
+    },
+    {
+      "id": "12",
+      "line": "12",
+      "route": "Linia Komunikacji Miejskiej we Władysławowie",
+      "from": "Władysławowo",
+      "to": "Władysławowo",
+      "description": "Dodatkowa linia miejska Władysławowo",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/linia-komunikacji-miejskiej-we-wladyslawowie-2/",
+      "source": "pks-website",
+      "frequency": "co 1 godzinę",
+      "duration": "lokalne"
+    },
+    {
+      "id": "150",
+      "line": "150",
+      "route": "Gdynia - Sopot - Gdańsk",
+      "from": "Gdynia",
+      "to": "Gdańsk",
+      "description": "Międzymiejska przez Sopot",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/gdynia-sopot-gdansk/",
+      "source": "pks-website",
+      "frequency": "co 30 minut",
+      "duration": "1h 15min"
+    },
+    {
+      "id": "200",
+      "line": "200",
+      "route": "Gdynia - Kartuzy - Kościerzyna",
+      "from": "Gdynia",
+      "to": "Kościerzyna",
+      "description": "Przez Kartuzy do Kościerzyny",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/gdynia-kartuzy-koscierzyna/",
+      "source": "pks-website",
+      "frequency": "co 1 godzinę",
+      "duration": "2h 30min"
+    },
+    {
+      "id": "650",
+      "line": "650",
+      "route": "Gdynia - Żukowo - Kartuzy",
+      "from": "Gdynia",
+      "to": "Kartuzy",
+      "description": "Przez Żukowo do Kartuz",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/gdynia-zukowo-kartuzy/",
+      "source": "pks-website",
+      "frequency": "co 2 godziny",
+      "duration": "1h 45min"
+    },
+    {
+      "id": "700",
+      "line": "700",
+      "route": "Gdynia - Lębork - Słupsk",
+      "from": "Gdynia",
+      "to": "Słupsk",
+      "description": "Długodystansowa przez Lębork",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/gdynia-lebork-slupsk/",
+      "source": "pks-website",
+      "frequency": "co 3 godziny",
+      "duration": "3h 30min"
+    },
+    {
+      "id": "800",
+      "line": "800",
+      "route": "Gdynia - Władysławowo - Hel",
+      "from": "Gdynia",
+      "to": "Hel",
+      "description": "Nadmorska do Helu",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/gdynia-wladyslawowo-hel/",
+      "source": "pks-website",
+      "frequency": "co 1 godzinę",
+      "duration": "2h 15min"
+    },
+    {
+      "id": "900",
+      "line": "900",
+      "route": "Gdynia - Puck - Władysławowo",
+      "from": "Gdynia",
+      "to": "Władysławowo",
+      "description": "Nadbrzeżna przez Puck",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/gdynia-puck-wladyslawowo/",
+      "source": "pks-website",
+      "frequency": "co 45 minut",
+      "duration": "1h 30min"
+    },
+    {
+      "id": "1000",
+      "line": "1000",
+      "route": "Gdynia - Rumia - Reda",
+      "from": "Gdynia",
+      "to": "Reda",
+      "description": "Lokalna przez Rumię",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/gdynia-rumia-reda/",
+      "source": "pks-website",
+      "frequency": "co 30 minut",
+      "duration": "45 min"
+    },
+    {
+      "id": "1100",
+      "line": "1100",
+      "route": "Wejherowo - Kartuzy - Gdańsk",
+      "from": "Wejherowo",
+      "to": "Gdańsk",
+      "description": "Połączenie Wejherowo - Gdańsk",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/wejherowo-kartuzy-gdansk/",
+      "source": "pks-website",
+      "frequency": "co 2 godziny",
+      "duration": "2h 45min"
+    },
+    {
+      "id": "1200",
+      "line": "1200",
+      "route": "Lębork - Łeba - Władysławowo",
+      "from": "Lębork",
+      "to": "Władysławowo",
+      "description": "Nadbrzeżna północna",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/lebork-leba-wladyslawowo/",
+      "source": "pks-website",
+      "frequency": "co 3 godziny",
+      "duration": "2h 30min"
+    },
+    {
+      "id": "1300",
+      "line": "1300",
+      "route": "Kartuzy - Żukowo - Gdynia",
+      "from": "Kartuzy",
+      "to": "Gdynia",
+      "description": "Powrót z Kartuz",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/kartuzy-zukowo-gdynia/",
+      "source": "pks-website",
+      "frequency": "co 1 godzinę",
+      "duration": "1h 30min"
+    },
+    {
+      "id": "1400",
+      "line": "1400",
+      "route": "Hel - Władysławowo - Puck",
+      "from": "Hel",
+      "to": "Puck",
+      "description": "Nadbrzeżna powrotna",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/hel-wladyslawowo-puck/",
+      "source": "pks-website",
+      "frequency": "co 1 godzinę",
+      "duration": "2h 00min"
+    },
+    {
+      "id": "1500",
+      "line": "1500",
+      "route": "Słupsk - Lębork - Gdynia",
+      "from": "Słupsk",
+      "to": "Gdynia",
+      "description": "Międzymiejska ze Słupska",
+      "url": "https://pksgdynia.pl/rozklad-jazdy/slupsk-lebork-gdynia/",
+      "source": "pks-website",
+      "frequency": "co 2 godziny",
+      "duration": "3h 15min"
+    }
+  ]
+}
+
+
+
+

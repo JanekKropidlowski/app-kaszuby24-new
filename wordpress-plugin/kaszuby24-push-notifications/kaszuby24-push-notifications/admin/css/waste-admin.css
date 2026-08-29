@@ -1,0 +1,125 @@
+/* Waste Schedule Admin Styles */
+.waste-schedule-admin {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.waste-admin-header {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.waste-panel {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.2s ease;
+}
+
+.waste-panel:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.button .dashicons {
+    margin-top: 4px;
+}
+
+.schedule-regions {
+    margin-top: 10px;
+}
+
+.region-section {
+    margin-bottom: 30px;
+}
+
+.region-section h3 {
+    background: #f0f0f1;
+    padding: 10px 15px;
+    margin: 0 0 15px 0;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.date-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.date-entry:hover {
+    background: #eeeff0;
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+}
+
+.date-info {
+    flex: 1;
+}
+
+.date-actions {
+    flex-shrink: 0;
+}
+
+.edit-date-btn {
+    white-space: nowrap;
+}
+
+.waste-type-badge {
+    transition: all 0.2s ease;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.waste-type-badge:hover {
+    transform: scale(1.02);
+}
+
+.delete-type-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 4px;
+    margin-left: 4px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    line-height: 1;
+}
+
+.delete-type-btn:hover {
+    opacity: 1;
+}
+
+.waste-type-badge.manual .delete-type-btn {
+    color: #fff;
+}
+
+.delete-btn {
+    transition: all 0.2s ease;
+    margin-left: 8px;
+}
+
+.delete-btn:hover {
+    transform: scale(1.05);
+}
+
+.notice {
+    padding: 12px;
+    margin-top: 15px;
+    border-left: 4px solid;
+    border-radius: 4px;
+}
+
+.spinner {
+    float: none;
+    margin: 0 auto;
+}
+
+/* Modal-like effect for edit button */
+.edit-date-btn:hover {
+    background-color: #0071a1;
+    border-color: #0071a1;
+    color: #fff;
+}

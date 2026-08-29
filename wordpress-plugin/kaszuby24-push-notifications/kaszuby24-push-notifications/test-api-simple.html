@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Kaszuby24 Events</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; margin: 5px; }
+        .test-button:hover { background: #005a87; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; white-space: pre-wrap; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .loading { background: #fff3e0; color: #ef6c00; }
+        input[type="text"] { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; width: 200px; }
+        label { display: inline-block; width: 120px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test API Kaszuby24 Events</h1>
+    
+    <div class="test-section">
+        <h3>🔧 Konfiguracja</h3>
+        <label>URL WordPress:</label>
+        <input type="text" id="baseUrl" value="https://twoja-domena.pl" placeholder="https://twoja-domena.pl">
+        <br>
+        <button class="test-button" onclick="testConnection()">Test połączenia</button>
+        <div id="connectionResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Stan bazy danych</h3>
+        <button class="test-button" onclick="testDatabaseStatus()">Sprawdź stan bazy</button>
+        <div id="databaseResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test zapytań</h3>
+        <button class="test-button" onclick="testQuery()">Test zapytania</button>
+        <div id="queryResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📅 Aktywne kategorie</h3>
+        <button class="test-button" onclick="testActiveCategories()">Pobierz aktywne kategorie</button>
+        <div id="categoriesResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🏢 Aktywne obiekty</h3>
+        <button class="test-button" onclick="testActiveObjects()">Pobierz aktywne obiekty</button>
+        <div id="objectsResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🎯 Aktywne filtry (NOWY)</h3>
+        <button class="test-button" onclick="testActiveFilters()">Pobierz aktywne filtry</button>
+        <div id="filtersResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📝 Wydarzenia</h3>
+        <button class="test-button" onclick="testEvents()">Pobierz wydarzenia</button>
+        <div id="eventsResult" class="result"></div>
+    </div>
+
+    <script>
+        function getBaseUrl() {
+            return document.getElementById('baseUrl').value.replace(/\/$/, '');
+        }
+
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = content;
+            element.className = `result ${type}`;
+        }
+
+        function showLoading(elementId) {
+            showResult(elementId, '⏳ Ładowanie...', 'loading');
+        }
+
+        async function testEndpoint(endpoint, elementId, description) {
+            try {
+                showLoading(elementId);
+                const url = `${getBaseUrl()}/wp-json/kaszuby24/v1${endpoint}`;
+                console.log(`Testing: ${url}`);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(elementId, `✅ ${description}\n\nURL: ${url}\nStatus: ${response.status}\n\nOdpowiedź:\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult(elementId, `❌ ${description}\n\nURL: ${url}\nStatus: ${response.status}\n\nBłąd:\n${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult(elementId, `❌ ${description}\n\nBłąd: ${error.message}`, 'error');
+            }
+        }
+
+        function testConnection() {
+            testEndpoint('/test', 'connectionResult', 'Test połączenia z API');
+        }
+
+        function testDatabaseStatus() {
+            testEndpoint('/debug/database-status', 'databaseResult', 'Stan bazy danych');
+        }
+
+        function testQuery() {
+            testEndpoint('/debug/test-query?post_type=kalendarz', 'queryResult', 'Test zapytania');
+        }
+
+        function testActiveCategories() {
+            testEndpoint('/events/categories/active', 'categoriesResult', 'Aktywne kategorie');
+        }
+
+        function testActiveObjects() {
+            testEndpoint('/events/objects/active', 'objectsResult', 'Aktywne obiekty');
+        }
+
+        function testActiveFilters() {
+            testEndpoint('/events/filters/active', 'filtersResult', 'Aktywne filtry');
+        }
+
+        function testEvents() {
+            testEndpoint('/events', 'eventsResult', 'Wydarzenia');
+        }
+
+        // Auto-test po załadowaniu strony
+        window.addEventListener('load', function() {
+            // Sprawdź czy jesteśmy na stronie WordPress
+            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                const currentUrl = window.location.origin;
+                document.getElementById('baseUrl').value = currentUrl;
+                console.log('Auto-detected WordPress URL:', currentUrl);
+            }
+        });
+    </script>
+</body>
+</html>

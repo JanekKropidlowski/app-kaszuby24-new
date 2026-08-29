@@ -1,0 +1,480 @@
+import React, { memo, useCallback, useRef, useMemo } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { Bookmark, Clock, Image as ImageIcon, Play } from 'lucide-react-native';
+import { Article } from '@/types/article';
+import { getRelativeTime } from '@/utils/dateFormatter';
+import { useArticlesStore } from '@/store/articlesStore';
+import { useThemeStore } from '@/store/themeStore';
+import { isSponsoredContent } from '@/utils/contentFilter';
+import { getProgressiveImageProps } from '@/utils/imageOptimizer';
+import { Vibration } from 'react-native';
+import { cleanArticleTitle } from '@/utils/htmlEntityCleaner';
+
+interface ArticleCardProps {
+  article: Article;
+
+  
+  compact?: boolean;
+  onPress?: () => void;
+}
+
+const ArticleCard: React.FC<ArticleCardProps> = memo(({ 
+  article, 
+  compact = false, 
+  onPress 
+}) => {
+  const router = useRouter();
+  const { isArticleSaved, saveArticle, removeArticle } = useArticlesStore();
+  const { theme } = useThemeStore();
+  
+  const isSaved = isArticleSaved(article.id);
+  const isSponsored = isSponsoredContent(article);
+  
+  if (isSponsored) {
+    return null;
+  }
+  
+  const lastTapTime = useRef(0);
+  const isPressingRef = useRef(false);
+  
+  const handlePressIn = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      import('@/services/api').then(({ prefetchArticleById }) => {
+        prefetchArticleById(article.id).catch(() => {
+          // Silent fail for prefetch
+        });
+      });
+    }
+  }, [article.id]);
+  
+  const handlePress = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapTime.current < 500 || isPressingRef.current) {
+      return;
+    }
+    
+    isPressingRef.current = true;
+    lastTapTime.current = now;
+    
+    if (onPress) {
+      onPress();
+    } else {
+      router.push(`/article/${article.id}`);
+    }
+    
+    setTimeout(() => {
+      isPressingRef.current = false;
+    }, 300);
+  }, [onPress, router, article.id]);
+  
+  const toggleSave = useCallback((e: any) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (isSponsored) {
+      return;
+    }
+    
+    if (isSaved) {
+      removeArticle(article.id);
+    } else {
+      saveArticle(article);
+    }
+  }, [isSponsored, isSaved, removeArticle, saveArticle, article]);
+
+  const cleanExcerpt = article.excerpt.rendered
+    .replace(/<\/?[^>]+(>|$)/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#8230;/g, '...');
+  
+  let categoryName = "";
+  if (article._embedded && article._embedded["wp:term"]) {
+    const categories = article._embedded["wp:term"][0];
+    if (categories && categories.length > 0) {
+      categoryName = categories[0].name;
+    }
+  }
+  
+  // Sprawdzanie czy artykuł ma galerię lub wideo
+  const hasGallery = useMemo(() => {
+    return (
+      (article.meta?.galeria && article.meta.galeria.length > 0) ||
+      article.meta?.["czy-slider-galeria"] === "1" ||
+      article.meta?.["czy-fotogaleria"] === "1"
+    );
+  }, [article.meta]);
+  
+  const hasVideo = useMemo(() => {
+    return article.meta?.youtube && article.meta.youtube.trim() !== "";
+  }, [article.meta]);
+  
+  // Usuwam stary komponent MediaIcons - ikonki są teraz na zdjęciu
+  
+  const renderImage = useMemo(() => {
+    if (article.featured_media_url) {
+      const imageProps = getProgressiveImageProps(
+        article.featured_media_url, 
+        compact ? 'thumbnail' : 'list'
+      );
+      
+      return (
+        <View style={compact ? styles.compactImageContainer : styles.imageContainer}>
+          <Image
+            source={imageProps.source}
+            placeholder={imageProps.placeholder}
+            style={compact ? styles.compactImage : styles.image}
+            contentFit={imageProps.contentFit}
+            priority={imageProps.priority}
+            cachePolicy={imageProps.cachePolicy as "memory-disk" | "memory"}
+            transition={imageProps.transition}
+            allowDownscaling={imageProps.allowDownscaling}
+            recyclingKey={imageProps.recyclingKey}
+          />
+          
+          {/* Ikonki galerii i wideo na zdjęciu */}
+          {(hasGallery || hasVideo) && (
+            <View style={styles.mediaIconsOverlay}>
+              {hasGallery && (
+                <View style={[styles.mediaIconOverlay, { backgroundColor: 'rgba(34, 73, 150, 0.8)' }]}>
+                  <ImageIcon size={12} color="#FFFFFF" />
+                </View>
+              )}
+              {hasVideo && (
+                <View style={[styles.mediaIconOverlay, { backgroundColor: 'rgba(255, 0, 0, 0.8)' }]}>
+                  <Play size={12} color="#FFFFFF" />
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      );
+    } else {
+      return (
+        <View 
+          style={[
+            compact ? styles.compactImagePlaceholder : styles.imagePlaceholder, 
+            { backgroundColor: theme.colors.subtle }
+          ]} 
+        />
+      );
+    }
+  }, [article.featured_media_url, compact, theme.colors.subtle, hasGallery, hasVideo]);
+  
+  if (compact) {
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.compactContainer,
+          { 
+            borderBottomColor: theme.colors.border,
+          }
+        ]} 
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        activeOpacity={0.7}
+        disabled={false}
+      >
+        {renderImage}
+        
+        <View style={styles.compactContent}>
+          <Text style={[
+            styles.compactTitle, 
+            { 
+              color: theme.colors.text, 
+              fontFamily: theme.fontFamily.medium
+            }
+          ]} numberOfLines={2}>
+            {cleanArticleTitle(article.title?.rendered || 'Brak tytułu')}
+          </Text>
+          
+          <View style={styles.compactFooter}>
+            <View style={styles.compactTimeContainer}>
+              <Clock size={12} color={theme.colors.textSecondary} />
+              <Text style={[
+                styles.compactDate, 
+                { 
+                  color: theme.colors.textSecondary, 
+                  fontFamily: theme.fontFamily.regular
+                }
+              ]}>
+                {getRelativeTime(article.date)}
+              </Text>
+            </View>
+            
+            {categoryName && (
+              <View style={[styles.compactCategory, { backgroundColor: theme.colors.subtle }]}>
+                <Text style={[
+                  styles.compactCategoryText, 
+                  { 
+                    color: theme.colors.textSecondary,
+                    fontFamily: theme.fontFamily.medium
+                  }
+                ]}>
+                  {categoryName}
+                </Text>
+              </View>
+            )}
+          </View>
+          
+          {/* Ikonki są teraz na zdjęciu */}
+        </View>
+      </TouchableOpacity>
+    );
+  }
+  
+  return (
+    <TouchableOpacity 
+      style={[
+        styles.container,
+        { 
+          borderBottomColor: theme.colors.border,
+        }
+      ]} 
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      activeOpacity={0.7}
+      disabled={false}
+    >
+      {renderImage}
+      
+      <View style={styles.textContent}>
+        {categoryName && (
+          <View style={[styles.categoryBadge, { backgroundColor: theme.colors.primary + '15' }]}>
+            <Text style={[
+              styles.categoryText, 
+              { 
+                color: theme.colors.primary,
+                fontFamily: theme.fontFamily.semibold
+              }
+            ]}>
+              {categoryName}
+            </Text>
+          </View>
+        )}
+        
+        <Text style={[
+          styles.title, 
+          { 
+            color: theme.colors.text, 
+            fontFamily: theme.fontFamily.medium
+          }
+        ]} numberOfLines={2}>
+          {cleanArticleTitle(article.title?.rendered || 'Brak tytułu')}
+        </Text>
+        
+        <View style={styles.footer}>
+          <View style={styles.timeContainer}>
+            <Clock size={14} color={theme.colors.textSecondary} />
+            <Text style={[
+              styles.date, 
+              { 
+                color: theme.colors.textSecondary, 
+                fontFamily: theme.fontFamily.regular
+              }
+            ]}>
+              {getRelativeTime(article.date)}
+            </Text>
+          </View>
+          
+          {!isSponsored && (
+            <TouchableOpacity 
+              onPress={toggleSave} 
+              style={[
+                styles.bookmarkButton,
+                isSaved && { backgroundColor: theme.colors.primary + '20' }
+              ]}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+              activeOpacity={0.7}
+            >
+              <Bookmark 
+                size={16} 
+                color={isSaved ? theme.colors.primary : theme.colors.textSecondary} 
+                fill={isSaved ? theme.colors.primary : 'transparent'} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        {/* Usuwam stare ikonki - teraz są na zdjęciu */}
+      </View>
+    </TouchableOpacity>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.article.id === nextProps.article.id &&
+    prevProps.compact === nextProps.compact &&
+    prevProps.article.title.rendered === nextProps.article.title.rendered &&
+    prevProps.article.featured_media_url === nextProps.article.featured_media_url &&
+    prevProps.article.date === nextProps.article.date &&
+    prevProps.article.modified === nextProps.article.modified
+  );
+});
+
+ArticleCard.displayName = 'ArticleCard';
+
+const { width } = Dimensions.get('window');
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    paddingVertical: Platform.OS === 'android' ? 20 : 16, // Increased padding on Android
+    paddingHorizontal: Platform.OS === 'android' ? 24 : 20, // Increased padding on Android
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  image: {
+    width: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+  },
+  imagePlaceholder: {
+    width: Platform.OS === 'android' ? 88 : 80, // Larger placeholder on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger placeholder on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+  },
+  textContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  categoryBadge: {
+    paddingHorizontal: Platform.OS === 'android' ? 10 : 8, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 6 : 4, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    alignSelf: 'flex-start',
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
+  },
+  categoryText: {
+    fontSize: Platform.OS === 'android' ? 11 : 10, // Larger font on Android
+    fontWeight: '600',
+    letterSpacing: Platform.OS === 'android' ? 0.4 : 0.3, // Better letter spacing on Android
+  },
+  title: {
+    fontSize: Platform.OS === 'android' ? 16 : 16,
+    fontWeight: '600',
+    lineHeight: Platform.OS === 'android' ? 22 : 22,
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
+    letterSpacing: Platform.OS === 'android' ? -0.05 : -0.2, // Better letter spacing on Android
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  date: {
+    fontSize: Platform.OS === 'android' ? 14 : 12, // Increased from 13 to 14 on Android
+    marginLeft: Platform.OS === 'android' ? 8 : 6, // More spacing on Android
+    opacity: 0.7,
+    fontWeight: '500',
+  },
+  bookmarkButton: {
+    padding: Platform.OS === 'android' ? 10 : 8, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    minHeight: Platform.OS === 'android' ? 44 : 40, // Minimum touch target on Android
+    minWidth: Platform.OS === 'android' ? 44 : 40, // Minimum touch target on Android
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  // Compact styles - improved
+  compactContainer: {
+    flexDirection: 'row',
+    borderRadius: Platform.OS === 'android' ? 18 : 16, // Larger radius on Android
+    marginBottom: Platform.OS === 'android' ? 14 : 12, // More spacing on Android
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    paddingVertical: Platform.OS === 'android' ? 14 : 12, // More padding on Android
+    paddingHorizontal: Platform.OS === 'android' ? 24 : 20, // More padding on Android
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.04)',
+  },
+  compactImage: {
+    width: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+  },
+  compactImagePlaceholder: {
+    width: Platform.OS === 'android' ? 88 : 80, // Larger placeholder on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger placeholder on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+  },
+  compactContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  compactTitle: {
+    fontSize: Platform.OS === 'android' ? 15 : 15,
+    fontWeight: '600',
+    marginBottom: Platform.OS === 'android' ? 10 : 8, // More spacing on Android
+    lineHeight: Platform.OS === 'android' ? 20 : 20,
+    letterSpacing: Platform.OS === 'android' ? -0.05 : -0.2, // Better letter spacing on Android
+  },
+  compactFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Platform.OS === 'android' ? 6 : 4, // More spacing on Android
+  },
+  compactTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactDate: {
+    fontSize: Platform.OS === 'android' ? 13 : 11, // Increased from 12 to 13 on Android
+    marginLeft: Platform.OS === 'android' ? 8 : 6, // More spacing on Android
+    opacity: 0.7,
+    fontWeight: '500',
+  },
+  compactCategory: {
+    paddingHorizontal: Platform.OS === 'android' ? 12 : 10, // More padding on Android
+    paddingVertical: Platform.OS === 'android' ? 8 : 6, // More padding on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+  },
+  compactCategoryText: {
+    fontSize: Platform.OS === 'android' ? 11 : 10, // Larger font on Android
+    fontWeight: '600',
+    letterSpacing: Platform.OS === 'android' ? 0.4 : 0.3, // Better letter spacing on Android
+  },
+  // Usuwam stare style - ikonki są teraz na zdjęciu z nowymi stylami
+  imageContainer: {
+    position: 'relative',
+    width: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+  },
+  compactImageContainer: {
+    position: 'relative',
+    width: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    height: Platform.OS === 'android' ? 88 : 80, // Larger image on Android
+    borderRadius: Platform.OS === 'android' ? 14 : 12, // Larger radius on Android
+    marginRight: Platform.OS === 'android' ? 18 : 16, // More spacing on Android
+  },
+  mediaIconsOverlay: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  mediaIconOverlay: {
+    padding: Platform.OS === 'android' ? 6 : 5, // Mniejszy padding na Androidzie
+    borderRadius: Platform.OS === 'android' ? 12 : 10, // Mniejszy radius na Androidzie
+  },
+});
+
+// Add default export for backward compatibility
+export { ArticleCard };
+export default ArticleCard;

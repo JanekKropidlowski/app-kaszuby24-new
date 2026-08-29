@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Obrazków - Kaszuby24</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .event { border: 1px solid #ccc; margin: 10px 0; padding: 15px; }
+        .event img { max-width: 200px; max-height: 150px; margin: 10px 0; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; font-family: monospace; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test API Obrazków - Kaszuby24</h1>
+    
+    <div>
+        <button onclick="testEventsAPI()">Testuj API Wydarzeń</button>
+        <button onclick="testSingleEvent()">Testuj Pojedyncze Wydarzenie</button>
+        <button onclick="clearResults()">Wyczyść Wyniki</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        const BASE_URL = 'https://kaszuby24.pl/wp-json/kaszuby24/v1';
+        
+        async function testEventsAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h2>🔍 Testowanie API Wydarzeń...</h2>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/events/mobile?per_page=5`);
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    resultsDiv.innerHTML = `
+                        <h2>✅ API Wydarzeń Działa</h2>
+                        <p>Liczba wydarzeń: <strong>${data.length}</strong></p>
+                        <div class="debug">
+                            <strong>Odpowiedź API:</strong><br>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    // Wyświetl każde wydarzenie
+                    data.forEach((event, index) => {
+                        const eventDiv = document.createElement('div');
+                        eventDiv.className = 'event';
+                        
+                        const hasImage = event._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+                        const imageUrl = hasImage ? event._embedded['wp:featuredmedia'][0].source_url : null;
+                        
+                        eventDiv.innerHTML = `
+                            <h3>Wydarzenie ${index + 1}: ${event.title?.rendered || 'Brak tytułu'}</h3>
+                            <p><strong>ID:</strong> ${event.id}</p>
+                            <p><strong>Data:</strong> ${event.date || 'Brak daty'}</p>
+                            <p><strong>Ma obrazek:</strong> <span class="${hasImage ? 'success' : 'error'}">${hasImage ? 'TAK' : 'NIE'}</span></p>
+                            ${imageUrl ? `<img src="${imageUrl}" alt="Obrazek wydarzenia" onerror="this.style.display='none'">` : ''}
+                            <div class="debug">
+                                <strong>_embedded:</strong><br>
+                                <pre>${JSON.stringify(event._embedded, null, 2)}</pre>
+                            </div>
+                        `;
+                        
+                        resultsDiv.appendChild(eventDiv);
+                    });
+                } else {
+                    resultsDiv.innerHTML = `
+                        <h2>❌ Błąd API</h2>
+                        <p>Odpowiedź nie jest tablicą</p>
+                        <div class="debug">
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h2>❌ Błąd Połączenia</h2>
+                    <p class="error">${error.message}</p>
+                `;
+            }
+        }
+        
+        async function testSingleEvent() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h2>🔍 Testowanie Pojedynczego Wydarzenia...</h2>';
+            
+            try {
+                // Pobierz pierwsze wydarzenie
+                const response = await fetch(`${BASE_URL}/events/mobile?per_page=1`);
+                const data = await response.json();
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    const event = data[0];
+                    const eventId = event.id;
+                    
+                    // Pobierz szczegóły wydarzenia
+                    const detailResponse = await fetch(`${BASE_URL}/events/${eventId}`);
+                    const detailData = await detailResponse.json();
+                    
+                    const hasImage = detailData._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+                    const imageUrl = hasImage ? detailData._embedded['wp:featuredmedia'][0].source_url : null;
+                    
+                    resultsDiv.innerHTML = `
+                        <h2>✅ Szczegóły Wydarzenia ID: ${eventId}</h2>
+                        <div class="event">
+                            <h3>${detailData.title?.rendered || 'Brak tytułu'}</h3>
+                            <p><strong>Data:</strong> ${detailData.date || 'Brak daty'}</p>
+                            <p><strong>Ma obrazek:</strong> <span class="${hasImage ? 'success' : 'error'}">${hasImage ? 'TAK' : 'NIE'}</span></p>
+                            ${imageUrl ? `<img src="${imageUrl}" alt="Obrazek wydarzenia" onerror="this.style.display='none'">` : ''}
+                            <div class="debug">
+                                <strong>Pełne dane:</strong><br>
+                                <pre>${JSON.stringify(detailData, null, 2)}</pre>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = '<h2>❌ Brak wydarzeń do testowania</h2>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h2>❌ Błąd Połączenia</h2>
+                    <p class="error">${error.message}</p>
+                `;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,692 @@
+<?php
+if (!defined('ABSPATH'))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+});    },        fontWeight: 'bold',        fontSize: 14,        color: '#FFFFFF',    lineNumberText: {    },        elevation: 5,        shadowRadius: 3.84,        shadowOpacity: 0.25,        shadowOffset: { width: 0, height: 2 },        shadowColor: '#000',        gap: 4,        alignItems: 'center',        flexDirection: 'row',        borderRadius: 12,        paddingVertical: 6,        paddingHorizontal: 12,        right: 10,        top: 10,        position: 'absolute',    lineNumberBadge: {    },        borderRadius: 5,        height: 10,        width: 10,    dotMarker: {    },        elevation: 5,        shadowRadius: 3.84,        shadowOpacity: 0.25,        shadowOffset: { width: 0, height: 2 },        shadowColor: '#000',        alignItems: 'center',        justifyContent: 'center',        borderRadius: 14,        height: 28,        width: 28,    markerContainer: {    },        marginTop: 20,        textAlign: 'center',        color: '#6B7280',        fontSize: 14,    errorText: {    },        color: '#374151',        fontSize: 12,    loadingText: {    },        shadowRadius: 3.84,        shadowOpacity: 0.25,        shadowOffset: { width: 0, height: 2 },        shadowColor: '#000',        elevation: 3,        zIndex: 1000,        gap: 8,        alignItems: 'center',        flexDirection: 'row',        borderRadius: 8,        padding: 10,        backgroundColor: 'rgba(255, 255, 255, 0.9)',        left: 10,        top: 10,        position: 'absolute',    loadingOverlay: {    },        ...StyleSheet.absoluteFillObject,    map: {    },        position: 'relative',        height: '100%',        width: '100%',    container: {const styles = StyleSheet.create({};    );        </View>            )}                </View>                    <Text style={styles.lineNumberText}>{lineNumber}</Text>                    <MaterialCommunityIcons name="train" size={16} color="#FFFFFF" />                <View style={[styles.lineNumberBadge, { backgroundColor: color }]}>            {lineNumber && (            </MapView>                })}                    );                        </Marker>                            </View>                                )}                                    <View style={[styles.dotMarker, { backgroundColor: color }]} />                                ) : (                                    <MaterialCommunityIcons name="circle" size={10} color="#FFFFFF" />                                ) : isSelected ? (                                    <MaterialCommunityIcons name="flag-checkered" size={14} color="#FFFFFF" />                                ) : isLast ? (                                    <MaterialCommunityIcons name="train" size={14} color="#FFFFFF" />                                {isFirst ? (                            ]}>                                }                                    transform: [{ scale: isSelected ? 1.3 : 1 }]                                    borderWidth: isSelected ? 3 : 2,                                    borderColor: color,                                    backgroundColor: (isFirst || isSelected) ? color : (isLast ? '#EF4444' : '#FFFFFF'),                                {                                 styles.markerContainer,                            <View style={[                        >                            zIndex={isSelected ? 10 : 2}                            onPress={() => onMarkerPress?.(stop.stop_id)}                            anchor={{ x: 0.5, y: 0.5 }}                            }}                                longitude: stop.stop_lon,                                latitude: stop.stop_lat,                            coordinate={{                            key={stop.stop_id}                        <Marker                    return (                                        const isLast = index === stops.length - 1;                    const isFirst = index === 0;                    const isSelected = selectedStopId === stop.stop_id;                {stops.map((stop, index) => {                {/* Station markers */}                )}                    />                        zIndex={1}                        lineJoin="round"                        lineCap="round"                        strokeWidth={6}                        strokeColor={color}                        coordinates={trackCoordinates}                    <Polyline                {trackCoordinates.length > 0 && (                {/* Railway track line from shapes.txt */}            >                toolbarEnabled={false}                showsCompass={false}                showsMyLocationButton={false}                showsUserLocation={false}                }}                    longitudeDelta: 0.05,                    latitudeDelta: 0.05,                    longitude: stops[0].stop_lon,                    latitude: stops[0].stop_lat,                initialRegion={{                style={styles.map}                provider={PROVIDER_DEFAULT}                ref={mapRef}            <MapView            )}                </View>                    <Text style={styles.loadingText}>Ładowanie trasy...</Text>                    <ActivityIndicator size="small" color={color} />                <View style={styles.loadingOverlay}>            {isLoading && (        <View style={styles.container}>    return (    }        );            </View>                <Text style={styles.errorText}>Brak danych o przystankach</Text>            <View style={styles.container}>        return (    if (stops.length === 0) {    }, [stops.length]);        }            }, 300);                );                    }                        animated: true,                        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },                    {                    })),                        longitude: stop.stop_lon,                        latitude: stop.stop_lat,                    stops.map(stop => ({                mapRef.current?.fitToCoordinates(            setTimeout(() => {        if (mapRef.current && stops.length > 0) {    useEffect(() => {    // Fit map to show all stops on mount    }, [selectedStopId]);        }            }                }, 500);                    longitudeDelta: 0.01,                    latitudeDelta: 0.01,                    longitude: selectedStop.stop_lon,                    latitude: selectedStop.stop_lat,                mapRef.current.animateToRegion({                !isNaN(selectedStop.stop_lon)) {                !isNaN(selectedStop.stop_lat) &&                 selectedStop.stop_lon &&                selectedStop.stop_lat &&             if (selectedStop &&             const selectedStop = stops.find(s => s.stop_id === selectedStopId);        if (selectedStopId && mapRef.current && stops.length > 0) {    useEffect(() => {    // Zoom to selected stop    }));        longitude: point.lon        latitude: point.lat,    const trackCoordinates = shape.map(point => ({    // Convert shape points to map coordinates    const mapRef = useRef<MapView>(null);    const [isLoading, setIsLoading] = useState(false);}) => {    selectedStopId    onMarkerPress,     lineNumber,     color,     shape,    stops, export const TrainRouteMap: React.FC<TrainRouteMapProps> = ({  */ * Used for SKM and other rail services that provide shape data * Component displaying train route on a map using real railway tracks from GTFS shapes.txt/**}    selectedStopId?: string | null;    onMarkerPress?: (stopId: string) => void;    lineNumber?: string;    color: string;    shape: ShapePoint[];  // Railway tracks from GTFS shapes.txt    stops: Stop[];interface TrainRouteMapProps {}    sequence: number;    lon: number;    lat: number;interface ShapePoint {}    platform?: string;    stop_lon: number;    stop_lat: number;    stop_name: string;    stop_id: string;interface Stop {import { MaterialCommunityIcons } from '@expo/vector-icons';import MapView, { Polyline, Marker, PROVIDER_DEFAULT } from 'react-native-maps';    exit;
+
+class Kaszuby24_PolRegio_Handler
+{
+    private $cache_dir;
+    // URL PolRegio GTFS
+    private $gtfs_url = 'https://mkuran.pl/gtfs/polregio.zip';
+
+    // Filtrowanie Pomorskie (szeroki bbox)
+    // Lat: 53.4 - 55.0 (południe Kaszub do Bałtyku)
+    // Lon: 16.0 - 20.0 (zachód do wschodu woj.)
+    private $bbox = array(
+        'min_lat' => 53.4,
+        'max_lat' => 55.0,
+        'min_lon' => 16.0,
+        'max_lon' => 20.0
+    );
+
+    private $stops_memory = [];
+    public $last_error = null;
+
+    private $gtfs_manager;
+
+    public function __construct($cache_dir, $gtfs_manager = null)
+    {
+        $this->cache_dir = $cache_dir;
+        $this->gtfs_manager = $gtfs_manager;
+        $this->ensure_structure();
+    }
+
+    private function ensure_structure()
+    {
+        $dirs = [
+            $this->cache_dir . '/polregio',
+            $this->cache_dir . '/polregio/unzipped'
+        ];
+        foreach ($dirs as $dir) {
+            if (!file_exists($dir))
+                wp_mkdir_p($dir);
+        }
+    }
+
+    public function sync()
+    {
+        $zip_file = $this->cache_dir . '/polregio/gtfs.zip';
+        $unzip_dir = $this->cache_dir . '/polregio/unzipped';
+
+        // 1. Download RAW zip
+        error_log('PolRegio Sync: Starting download from ' . $this->gtfs_url);
+        
+        $tmp_zip = wp_tempnam($this->gtfs_url);
+        $response = wp_remote_get($this->gtfs_url, array('timeout' => 600));
+
+        if (is_wp_error($response)) {
+            $this->last_error = 'WP_Error during download: ' . $response->get_error_message();
+            error_log('PolRegio Sync Error: ' . $this->last_error);
+            return false;
+        }
+
+        file_put_contents($tmp_zip, wp_remote_retrieve_body($response));
+
+        // 2. Ingest via Manager
+        if ($this->gtfs_manager) {
+            $ingest = $this->gtfs_manager->ingest_feed('polregio', $tmp_zip, $this->gtfs_url);
+            if (!$ingest['success']) {
+                error_log("PolRegio Ingestion Failed: " . $ingest['error']);
+                return false;
+            }
+            $zip_to_process = $ingest['path'];
+        } else {
+            $zip_to_process = $tmp_zip;
+        }
+
+        // 3. Unzip for Legacy Processing
+        if (!file_exists($unzip_dir)) wp_mkdir_p($unzip_dir);
+
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        $unzip_status = unzip_file($zip_to_process, $unzip_dir);
+        
+        if ($zip_to_process === $tmp_zip) @unlink($tmp_zip);
+
+        if (is_wp_error($unzip_status)) {
+             $this->last_error = 'Unzip failed: ' . $unzip_status->get_error_message();
+             return false;
+        }
+
+        // 3. Przetwarzanie i Filtrowanie
+        return $this->process_data($unzip_dir);
+    }
+
+    private function process_data($dir)
+    {
+        // A. Stops (Filtrowanie Przestrzenne)
+        $valid_stop_ids = [];
+        $stops_data = [];
+
+        // $engine = new Kaszuby24_GTFS_Engine();
+        foreach (Kaszuby24_GTFS_Engine::stream_csv("$dir/stops.txt") as $s) {
+            $lat = floatval($s['stop_lat']);
+            $lon = floatval($s['stop_lon']);
+
+            // Sprawdź czy w bbox
+            if (
+                $lat >= $this->bbox['min_lat'] && $lat <= $this->bbox['max_lat'] &&
+                $lon >= $this->bbox['min_lon'] && $lon <= $this->bbox['max_lon']
+            ) {
+
+                $valid_stop_ids[$s['stop_id']] = true;
+
+                $stops_data[] = array(
+                    'id' => $s['stop_id'],
+                    'uid' => 'polregio:' . $s['stop_id'],
+                    'name' => $s['stop_name'],
+                    'lat' => $lat,
+                    'lon' => $lon,
+                    'is_station' => true,
+                    'agency' => 'polregio',
+                    'platform' => isset($s['platform_code']) ? $s['platform_code'] : ''
+                );
+            }
+        }
+
+        // Zapisz stops.json
+        file_put_contents($this->cache_dir . '/polregio_stops.json', json_encode($stops_data));
+        $this->stops_memory = $valid_stop_ids;
+
+        // B. Stop Times (Filtrowanie po stop_id)
+        // To jest zazwyczaj największy plik, czytamy go strumieniowo jeśli silnik pozwala, 
+        // ale class-gtfs-engine czyta całość. Dla PolRegio (cała PL) to może być problematyczne pamięciowo.
+        // Spróbujmy ręcznie przez fopen dla wydajności.
+
+        $valid_trip_ids = [];
+        if (($handle = fopen("$dir/stop_times.txt", "r")) !== FALSE) {
+            $headers = fgetcsv($handle);
+            $idx_trip = array_search('trip_id', $headers);
+            $idx_stop = array_search('stop_id', $headers);
+            $idx_arr = array_search('arrival_time', $headers);
+            $idx_dep = array_search('departure_time', $headers);
+
+            $temp_stop_times = []; // trip_id => [ {arr, dep, stop_id} ]
+
+            while (($data = fgetcsv($handle)) !== FALSE) {
+                $sid = $data[$idx_stop];
+                // Jeśli przystanek jest w naszych "valid", bierzemy ten rekord
+                // ALE musimy uważać: chcemy tylko *kursy* które przechodzą przez Pomorskie.
+                if (isset($valid_stop_ids[$sid])) {
+                    $tid = $data[$idx_trip];
+                    $valid_trip_ids[$tid] = true;
+                }
+            }
+            // Drugi przelot - zbieramy tylko te tripy, które są valid
+            rewind($handle);
+            fgetcsv($handle); // skip header
+
+            // To może być za ciężkie na PHP. 
+            // Uproszczenie:
+            // Tworzymy strukturę timetable tylko dla naszych stacji.
+            // Ignorujemy resztę trasy pociągu poza województwem (dla celów wyświetlania tablicy na stacji jest to OK).
+            // Pociąg jadący z Krakowa do Gdyni będzie widoczny w Gdyni.
+        }
+        fclose($handle);
+
+        // C. Filter Trips
+        // Potrzebujemy mapowania trip_id -> route_id/service_id
+        $trips_map = []; // trip_id => {headsign, service_id, route_id}
+
+        foreach (Kaszuby24_GTFS_Engine::stream_csv("$dir/trips.txt") as $t) {
+            if (isset($valid_trip_ids[$t['trip_id']])) {
+                $trips_map[$t['trip_id']] = array(
+                    'headsign' => isset($t['trip_headsign']) ? $t['trip_headsign'] : '',
+                    'service_id' => $t['service_id'],
+                    'route_id' => $t['route_id']
+                );
+            }
+        }
+
+        // D. Routes
+        $routes_map = []; // route_id => short_name
+        foreach (Kaszuby24_GTFS_Engine::stream_csv("$dir/routes.txt") as $r) {
+            $routes_map[$r['route_id']] = $r['route_short_name'];
+        }
+
+        // E. Budowanie Timetable (JSON struktura zoptymalizowana pod stop_id)
+        // Struktura: { stop_id: [ {time, line, dest, service_id} ] }
+
+        // Musimy zrobić to mądrze pamięciowo. 
+        // Otwieramy stop_times jeszcze raz.
+        $timetable = [];
+
+        if (($handle = fopen("$dir/stop_times.txt", "r")) !== FALSE) {
+            $headers = fgetcsv($handle);
+            $idx_trip = array_search('trip_id', $headers);
+            $idx_stop = array_search('stop_id', $headers);
+            $idx_dep = array_search('departure_time', $headers);
+
+            while (($data = fgetcsv($handle)) !== FALSE) {
+                $sid = $data[$idx_stop];
+                $tid = $data[$idx_trip];
+
+                if (isset($valid_stop_ids[$sid]) && isset($trips_map[$tid])) {
+                    $time = substr($data[$idx_dep], 0, 5); // HH:MM
+                    $trip_info = $trips_map[$tid];
+
+                    if (!isset($timetable[$sid]))
+                        $timetable[$sid] = [];
+
+                    $timetable[$sid][] = array(
+                        't' => $time,
+                        'l' => isset($routes_map[$trip_info['route_id']]) ? $routes_map[$trip_info['route_id']] : 'REG',
+                        'd' => $trip_info['headsign'],
+                        's' => $trip_info['service_id'],
+                        'trip_id' => $tid
+                    );
+                }
+            }
+            fclose($handle);
+        }
+
+        // Sortowanie
+        foreach ($timetable as &$deps) {
+            usort($deps, function ($a, $b) {
+                return strcmp($a['t'], $b['t']);
+            });
+        }
+
+        file_put_contents($this->cache_dir . '/polregio_timetable.json', json_encode($timetable));
+
+        // F. Calendars (Cache Service IDs)
+        // Potrzebne do wyznaczania czy kurs jedzie dziś
+        $services = [];
+
+        // calendar.txt
+        if (file_exists("$dir/calendar.txt")) {
+            foreach (Kaszuby24_GTFS_Engine::stream_csv("$dir/calendar.txt") as $c) {
+                // key: service_id, val: {mon:1, tue:1 ... start, end}
+                $services[$c['service_id']] = $c;
+            }
+        }
+
+        // calendar_dates.txt (wyjątki)
+        if (file_exists("$dir/calendar_dates.txt")) {
+            foreach (Kaszuby24_GTFS_Engine::stream_csv("$dir/calendar_dates.txt") as $cd) {
+                $sid = $cd['service_id'];
+                if (!isset($services[$sid]['dates']))
+                    $services[$sid]['dates'] = [];
+                // exception_type: 1=added, 2=removed
+                $services[$sid]['dates'][$cd['date']] = $cd['exception_type'];
+            }
+        }
+
+        file_put_contents($this->cache_dir . '/polregio_services.json', json_encode($services));
+
+        return true;
+    }
+
+    public function get_timetable($stop_id, $day = 'today')
+    {
+        $file = $this->cache_dir . '/polregio_timetable.json';
+        if (!file_exists($file))
+            return new WP_REST_Response(array(), 200);
+
+        $all_timetables = json_decode(file_get_contents($file), true);
+
+        // PolRegio ID często nie mają prefixu w pliku, ale w systemie dodajemy prefix "polregio:"
+        // Usuń prefix "polregio:" jeśli przyszedł w request
+        $raw_id = str_replace('polregio:', '', $stop_id);
+
+        if (!isset($all_timetables[$raw_id]))
+            return new WP_REST_Response(array(), 200);
+
+        $departures = $all_timetables[$raw_id];
+
+        // Filter by Date
+        $services_file = $this->cache_dir . '/polregio_services.json';
+        $services_data = file_exists($services_file) ? json_decode(file_get_contents($services_file), true) : [];
+
+        // Determine Date
+        $check_date = ($day === 'tomorrow') ? date('Ymd', strtotime('+1 day')) : date('Ymd');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) {
+            $check_date = str_replace('-', '', $day);
+        }
+
+        // Day of week mapping - GTFS uses full day names
+        $dow_map = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        $dow = $dow_map[date('w', strtotime($check_date))];
+
+        $filtered = [];
+        foreach ($departures as $dep) {
+            $sid = $dep['s'];
+            if (!isset($services_data[$sid]))
+                continue; // brak danych o serwisie
+
+            $srv = $services_data[$sid];
+
+            // 1. Sprawdź zakres dat (GTFS używa start_date i end_date)
+            $start = isset($srv['start_date']) ? $srv['start_date'] : '00000000';
+            $end = isset($srv['end_date']) ? $srv['end_date'] : '99999999';
+
+            if ($check_date < $start || $check_date > $end)
+                continue;
+
+            // 2. Wyjątki (calendar_dates)
+            $exception = isset($srv['dates'][$check_date]) ? $srv['dates'][$check_date] : 0;
+            if ($exception == 2)
+                continue; // usunięty
+            if ($exception == 1) {
+                // dodany - jedzie, pomijamy sprawdzanie dnia tygodnia
+            } else {
+                // 3. Dzień tygodnia (tylko jeśli nie ma wyjątku pozytywnego)
+                // GTFS używa pełnych nazw dni: monday, tuesday, etc.
+                if (!isset($srv[$dow]) || $srv[$dow] != '1')
+                    continue;
+            }
+
+            $filtered[] = array(
+                'time' => $dep['t'],
+                'line' => $dep['l'],
+                'direction' => $dep['d'],
+                'service_id' => $sid
+            );
+        }
+
+        error_log('[POLREGIO Timetable] Stop: ' . $stop_id . ', Departures count: ' . count($filtered));
+        if (count($filtered) > 0) {
+            error_log('[POLREGIO Timetable] First departure: ' . json_encode($filtered[0]));
+        }
+
+        return new WP_REST_Response($filtered, 200);
+    }
+
+    public function get_shapes()
+    {
+        return []; // TBD: PolRegio shapes are huge, filtration is complex. Skip for v1.
+    }
+
+    /**
+     * Get stops for a specific POLREGIO route
+     * Returns stops with coordinates for OSRM routing
+     */
+    public function get_route_stops($route_name, $day = 'today', $direction = null)
+    {
+        // For now, return empty - POLREGIO uses OSRM routing like PKS
+        // Would need to parse route name from departures and match stops
+        return array(
+            'route' => $route_name,
+            'stops' => array(),
+            'message' => 'POLREGIO route stops - use trip_id endpoint'
+        );
+    }
+
+    /**
+     * Get all stops for a specific trip_id with coordinates and times
+     */
+    public function get_trip_stops($trip_id)
+    {
+        $dir = $this->cache_dir . "/polregio_gtfs/";
+        
+        if (!file_exists($dir . "stop_times.txt") || !file_exists($dir . "stops.txt") || !file_exists($dir . "trips.txt")) {
+            return array('error' => 'GTFS files not found', 'stops' => array());
+        }
+
+        // 1. Get trip info (for direction/headsign)
+        $trip_info = null;
+        foreach (Kaszuby24_GTFS_Engine::stream_csv($dir . "trips.txt") as $trip) {
+            if ($trip['trip_id'] === $trip_id) {
+                $trip_info = $trip;
+                break;
+            }
+        }
+
+        if (!$trip_info) {
+            return array('error' => 'Trip not found', 'stops' => array());
+        }
+
+        // 2. Get all stops for this trip from stop_times.txt
+        $stop_times = array();
+        foreach (Kaszuby24_GTFS_Engine::stream_csv($dir . "stop_times.txt") as $st) {
+            if ($st['trip_id'] === $trip_id) {
+                $stop_times[] = array(
+                    'stop_id' => $st['stop_id'],
+                    'arrival_time' => $st['arrival_time'],
+                    'departure_time' => $st['departure_time'],
+                    'stop_sequence' => isset($st['stop_sequence']) ? (int)$st['stop_sequence'] : 0
+                );
+            }
+        }
+
+        // Sort by sequence
+        usort($stop_times, function($a, $b) {
+            return $a['stop_sequence'] - $b['stop_sequence'];
+        });
+
+        // 3. Load stop coordinates
+        $stops_data = array();
+        foreach (Kaszuby24_GTFS_Engine::stream_csv($dir . "stops.txt") as $stop) {
+            $stops_data[$stop['stop_id']] = array(
+                'stop_name' => $stop['stop_name'],
+                'stop_lat' => (float)$stop['stop_lat'],
+                'stop_lon' => (float)$stop['stop_lon']
+            );
+        }
+
+        // 4. Build final stops array
+        $result_stops = array();
+        foreach ($stop_times as $st) {
+            $stop_id = $st['stop_id'];
+            if (isset($stops_data[$stop_id])) {
+                $result_stops[] = array(
+                    'stop_id' => $stop_id,
+                    'stop_name' => $stops_data[$stop_id]['stop_name'],
+                    'stop_lat' => $stops_data[$stop_id]['stop_lat'],
+                    'stop_lon' => $stops_data[$stop_id]['stop_lon'],
+                    'departures' => array(
+                        array(
+                            'time' => $st['departure_time'],
+                            'direction' => isset($trip_info['trip_headsign']) ? $trip_info['trip_headsign'] : '',
+                            'trip_id' => $trip_id
+                        )
+                    )
+                );
+            }
+        }
+
+        return array(
+            'stops' => $result_stops,
+            'direction' => isset($trip_info['trip_headsign']) ? $trip_info['trip_headsign'] : 'Nieznany kierunek',
+            'trip_id' => $trip_id
+        );
+    }
+            'route' => $route_name,
+            'stops' => array(),
+            'message' => 'POLREGIO uses OSRM routing - stops fetched from timetable'
+        );
+    }
+}

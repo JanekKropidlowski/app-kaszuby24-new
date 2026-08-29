@@ -1,0 +1,225 @@
+{
+  "expo": {
+    "name": "Kaszuby24",
+    "slug": "kaszuby24",
+    "version": "1.1.2",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "kaszuby24",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.kaszuby24",
+      "buildNumber": "18",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.app.kaszuby24"
+        ]
+      },
+      "associatedDomains": [
+        "applinks:kaszuby24.pl",
+        "applinks:www.kaszuby24.pl",
+        "applinks:pogoda.kaszuby24.pl",
+        "applinks:rozklady.kaszuby24.pl"
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy.",
+        "NSCalendarsUsageDescription": "Aplikacja potrzebuje dostępu do kalendarza, aby dodać wydarzenia do Twojego kalendarza.",
+        "NSPhotoLibraryUsageDescription": "Aplikacja potrzebuje dostępu do galerii, aby umożliwić wybór zdjęć.",
+        "NSCameraUsageDescription": "Aplikacja potrzebuje dostępu do kamery, aby umożliwić robienie zdjęć.",
+        "NSMicrophoneUsageDescription": "Aplikacja potrzebuje dostępu do mikrofonu dla funkcji syntezy mowy.",
+        "UIDeviceFamily": [
+          1
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "app.kaszuby24",
+      "versionCode": 50,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB-G2GxsRyJ3sxeHOy0JdffImZTaEPqRJo"
+        }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "kaszuby24.pl",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.kaszuby24.pl",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "pogoda.kaszuby24.pl",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "rozklady.kaszuby24.pl",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "kaszuby24"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "com.google.android.c2dm.permission.RECEIVE",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO"
+      ],
+      "userInterfaceStyle": "automatic"
+    },
+    "updates": {
+      "enabled": true,
+      "url": "https://u.expo.dev/4aced4e9-da53-4734-83d7-fa5fe9870884",
+      "fallbackToCacheTimeout": 10000,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4aced4e9-da53-4734-83d7-fa5fe9870884"
+      },
+      "gaMeasurementId": "G-P22DC12PTH",
+      "gaApiSecret": "1ALeOXiRTweFoXTtO0JA3A",
+      "sentryDsn": "https://15b760709d0686c67f386a303ccc7c54@o4511064310480896.ingest.de.sentry.io/4511064518819920"
+    },
+    "runtimeVersion": "1.1.2",
+    "plugins": [
+      "@bacons/apple-targets",
+      "@sentry/react-native/expo",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#ffffff",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-router",
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Aplikacja potrzebuje dostępu do lokalizacji, aby pokazać pogodę dla Twojej okolicy."
+        }
+      ],
+      "expo-calendar",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Pogoda",
+              "label": "Kaszuby24 — Pogoda",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Artykuly",
+              "label": "Kaszuby24 — Najnowsze artykuły",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "widgetFeatures": "reconfigurable",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Powietrze",
+              "label": "Kaszuby24 — Jakość powietrza",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 1,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Odpady",
+              "label": "Kaszuby24 — Wywóz odpadów",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Wydarzenia",
+              "label": "Kaszuby24 — Najbliższe wydarzenia",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "widgetFeatures": "reconfigurable",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      "./plugins/withAndroidFix",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": true,
+            "deploymentTarget": "15.1"
+          },
+          "android": {
+            "newArchEnabled": true
+          }
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,824 @@
+{
+  "source": "PKS Gdynia routes analysis",
+  "timestamp": "2026-01-01T19:55:00.000Z",
+  "count": 85,
+  "stops": [
+    {
+      "id": "pks_1",
+      "name": "Banino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.3833,
+      "lon": 18.3667
+    },
+    {
+      "id": "pks_2",
+      "name": "Bia\u0142a",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 53.0833,
+      "lon": 17.0667
+    },
+    {
+      "id": "pks_3",
+      "name": "Bia\u0142og\u00f3ra",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_4",
+      "name": "Bieszkowice",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6833,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_5",
+      "name": "Bojano",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4833,
+      "lon": 18.4167
+    },
+    {
+      "id": "pks_6",
+      "name": "Bolszewo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.1833
+    },
+    {
+      "id": "pks_7",
+      "name": "Brudzewo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8167,
+      "lon": 17.3833
+    },
+    {
+      "id": "pks_8",
+      "name": "Bychowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4833,
+      "lon": 18.3833
+    },
+    {
+      "id": "pks_9",
+      "name": "B\u0105sewice",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4833,
+      "lon": 17.8333
+    },
+    {
+      "id": "pks_10",
+      "name": "B\u0119dargowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6833,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_11",
+      "name": "B\u0142\u0105dzikowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_12",
+      "name": "Choczewo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 17.8833
+    },
+    {
+      "id": "pks_13",
+      "name": "Ch\u0142apowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8,
+      "lon": 18.3167
+    },
+    {
+      "id": "pks_14",
+      "name": "Ciekocinko",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6833,
+      "lon": 17.8667
+    },
+    {
+      "id": "pks_15",
+      "name": "Czarn\u00f3wko",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5333,
+      "lon": 17.6833
+    },
+    {
+      "id": "pks_16",
+      "name": "Cz\u0119stkowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6,
+      "lon": 17.9333
+    },
+    {
+      "id": "pks_17",
+      "name": "Darz\u0142ubie",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7833,
+      "lon": 17.3833
+    },
+    {
+      "id": "pks_18",
+      "name": "Domatowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.1167
+    },
+    {
+      "id": "pks_19",
+      "name": "Donimierz",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6167,
+      "lon": 17.8833
+    },
+    {
+      "id": "pks_20",
+      "name": "D\u0105br\u00f3wka",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 17.7667
+    },
+    {
+      "id": "pks_21",
+      "name": "D\u0119bki",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8167,
+      "lon": 18.0833
+    },
+    {
+      "id": "pks_22",
+      "name": "Garczegorze",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4833,
+      "lon": 17.8167
+    },
+    {
+      "id": "pks_23",
+      "name": "Gardkowice",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 17.9333
+    },
+    {
+      "id": "pks_24",
+      "name": "Gda\u0144sk",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.352,
+      "lon": 18.6466
+    },
+    {
+      "id": "pks_25",
+      "name": "Gdynia",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5189,
+      "lon": 18.5305
+    },
+    {
+      "id": "pks_26",
+      "name": "Gniewino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.0167
+    },
+    {
+      "id": "pks_27",
+      "name": "Gowino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 53.0333,
+      "lon": 17.0333
+    },
+    {
+      "id": "pks_28",
+      "name": "Go\u015bcicino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6167,
+      "lon": 17.0167
+    },
+    {
+      "id": "pks_29",
+      "name": "G\u00f3ra",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 18.0833
+    },
+    {
+      "id": "pks_30",
+      "name": "G\u0142odnica",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_31",
+      "name": "Hel",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6083,
+      "lon": 18.8083
+    },
+    {
+      "id": "pks_32",
+      "name": "Janowiczki",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 17.7167
+    },
+    {
+      "id": "pks_33",
+      "name": "Jastarnia",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7,
+      "lon": 18.6833
+    },
+    {
+      "id": "pks_34",
+      "name": "Jastrz\u0119bia G\u00f3ra",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8167,
+      "lon": 18.3167
+    },
+    {
+      "id": "pks_35",
+      "name": "Jele\u0144ska Huta",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6167,
+      "lon": 17.9167
+    },
+    {
+      "id": "pks_36",
+      "name": "Kamie\u0144",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6,
+      "lon": 17.9
+    },
+    {
+      "id": "pks_37",
+      "name": "Karczemki",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.2833,
+      "lon": 18.2167
+    },
+    {
+      "id": "pks_38",
+      "name": "Kartuzy",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.3333,
+      "lon": 18.2
+    },
+    {
+      "id": "pks_39",
+      "name": "Karwia",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8833,
+      "lon": 18.2167
+    },
+    {
+      "id": "pks_40",
+      "name": "Kielno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.3833,
+      "lon": 18.1167
+    },
+    {
+      "id": "pks_41",
+      "name": "Koleczkowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5,
+      "lon": 18.4833
+    },
+    {
+      "id": "pks_42",
+      "name": "Kopalino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 17.9667
+    },
+    {
+      "id": "pks_43",
+      "name": "Kostkowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6333,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_44",
+      "name": "Kowalewo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.3833,
+      "lon": 18.1333
+    },
+    {
+      "id": "pks_45",
+      "name": "Krokowa",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7833,
+      "lon": 18.1167
+    },
+    {
+      "id": "pks_46",
+      "name": "K\u0119blowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4333,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_47",
+      "name": "K\u0119trzyno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.0833,
+      "lon": 21.3833
+    },
+    {
+      "id": "pks_48",
+      "name": "K\u0142anino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_49",
+      "name": "K\u0142os\u00f3wko",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.3,
+      "lon": 18.2167
+    },
+    {
+      "id": "pks_50",
+      "name": "Laska",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 18.0833
+    },
+    {
+      "id": "pks_51",
+      "name": "Lebien",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4833,
+      "lon": 17.8333
+    },
+    {
+      "id": "pks_52",
+      "name": "Le\u015bno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4167,
+      "lon": 18.1333
+    },
+    {
+      "id": "pks_53",
+      "name": "Lewino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.75,
+      "lon": 17.8167
+    },
+    {
+      "id": "pks_54",
+      "name": "Le\u015bniewo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.1667
+    },
+    {
+      "id": "pks_55",
+      "name": "Linia",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7833,
+      "lon": 17.7833
+    },
+    {
+      "id": "pks_56",
+      "name": "Lubocino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_57",
+      "name": "Luzino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5667,
+      "lon": 17.7
+    },
+    {
+      "id": "pks_58",
+      "name": "L\u0119bork",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5333,
+      "lon": 17.75
+    },
+    {
+      "id": "pks_59",
+      "name": "Ma\u0142oszyce",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5333,
+      "lon": 17.8
+    },
+    {
+      "id": "pks_60",
+      "name": "Mechowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7833,
+      "lon": 17.3833
+    },
+    {
+      "id": "pks_61",
+      "name": "Mierzyno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7667,
+      "lon": 18.0167
+    },
+    {
+      "id": "pks_62",
+      "name": "Milwino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 17.7667
+    },
+    {
+      "id": "pks_63",
+      "name": "Nadole",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.0833
+    },
+    {
+      "id": "pks_64",
+      "name": "Niepoczolowice",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6,
+      "lon": 17.7167
+    },
+    {
+      "id": "pks_65",
+      "name": "Nowa Wie\u015b L\u0119borska",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.55,
+      "lon": 17.7167
+    },
+    {
+      "id": "pks_66",
+      "name": "Nowy Dw\u00f3r Wejherowski",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_67",
+      "name": "Opalino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.05
+    },
+    {
+      "id": "pks_68",
+      "name": "Osiek",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.1833,
+      "lon": 21.4333
+    },
+    {
+      "id": "pks_69",
+      "name": "Osieki L\u0119borskie",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6333,
+      "lon": 17.8167
+    },
+    {
+      "id": "pks_70",
+      "name": "Pog\u00f3rze",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_71",
+      "name": "Pomieczyno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_72",
+      "name": "Pot\u0119gowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7667,
+      "lon": 17.7833
+    },
+    {
+      "id": "pks_73",
+      "name": "Po\u0142czyno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7667,
+      "lon": 17.0833
+    },
+    {
+      "id": "pks_74",
+      "name": "Przetoczyno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6167,
+      "lon": 17.8667
+    },
+    {
+      "id": "pks_75",
+      "name": "Przodkowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.3833,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_76",
+      "name": "Puck",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.4
+    },
+    {
+      "id": "pks_77",
+      "name": "Reda",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6167,
+      "lon": 18.35
+    },
+    {
+      "id": "pks_78",
+      "name": "Redkowice",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 17.7
+    },
+    {
+      "id": "pks_79",
+      "name": "Robakowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 17.7833
+    },
+    {
+      "id": "pks_80",
+      "name": "Rumia",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5667,
+      "lon": 18.3833
+    },
+    {
+      "id": "pks_81",
+      "name": "Rybno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 18.0833
+    },
+    {
+      "id": "pks_82",
+      "name": "Sasino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7,
+      "lon": 17.8833
+    },
+    {
+      "id": "pks_83",
+      "name": "Sierakowice",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.35,
+      "lon": 17.8833
+    },
+    {
+      "id": "pks_84",
+      "name": "Sma\u017eyno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6167,
+      "lon": 17.8833
+    },
+    {
+      "id": "pks_85",
+      "name": "Starzyno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_86",
+      "name": "Szemud",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4833,
+      "lon": 18.2333
+    },
+    {
+      "id": "pks_87",
+      "name": "Szychowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 17.7667
+    },
+    {
+      "id": "pks_88",
+      "name": "S\u0142awutowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_89",
+      "name": "T\u0119pcz",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5667,
+      "lon": 17.7
+    },
+    {
+      "id": "pks_90",
+      "name": "Warszkowo-M\u0142yn",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.5167,
+      "lon": 18.0833
+    },
+    {
+      "id": "pks_91",
+      "name": "Warzno",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.3833,
+      "lon": 18.1333
+    },
+    {
+      "id": "pks_92",
+      "name": "Wejherowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6167,
+      "lon": 18.2333
+    },
+    {
+      "id": "pks_93",
+      "name": "Werblinia",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7667,
+      "lon": 17.0833
+    },
+    {
+      "id": "pks_94",
+      "name": "Wierzchucino",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.8167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_95",
+      "name": "W\u0142adys\u0142awowo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7833,
+      "lon": 18.4167
+    },
+    {
+      "id": "pks_96",
+      "name": "Zakrzewo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7833,
+      "lon": 17.7833
+    },
+    {
+      "id": "pks_97",
+      "name": "Zelewo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.4333,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_98",
+      "name": "\u0141eba",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7667,
+      "lon": 17.55
+    },
+    {
+      "id": "pks_99",
+      "name": "\u0141\u0119czyce",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.6,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_100",
+      "name": "\u017celazna",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 17.8833
+    },
+    {
+      "id": "pks_101",
+      "name": "\u017belistrzewo",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7167,
+      "lon": 18.2833
+    },
+    {
+      "id": "pks_102",
+      "name": "\u017darnowiec",
+      "agency": "pks_gdynia",
+      "type": "bus_stop",
+      "lat": 54.7833,
+      "lon": 18.0833
+    }
+  ]
+}
+
