@@ -192,11 +192,14 @@ export const getProgressiveImageProps = (
   };
   
   const optimizedUrl = url ? optimizeImageUrl(url, widthMap[context], qualityMap[context]) : undefined;
-  const lqipUrl = url ? generateLQIP(url) : undefined;
-  
+
+  // UWAGA: placeholder NIE moze byc URL-em obrazu. generateLQIP() dla zdjec z
+  // Supabase storage zwracalo ORYGINALNY URL, a expo-image na Androidzie dekoduje
+  // placeholder zawsze 1:1 (PlaceholderDownsampleStrategy) - pelnowymiarowe zdjecie
+  // z aparatu przekraczalo limit 100MB bitmapy i crashowalo apke (Sentry 2026-08-28).
   return {
     source: optimizedUrl ? { uri: optimizedUrl } : undefined,
-    placeholder: lqipUrl ? { uri: lqipUrl } : 'Loading...',
+    placeholder: undefined,
     priority,
     cachePolicy,
     transition: context === 'featured' ? 300 : 200,

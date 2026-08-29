@@ -127,7 +127,7 @@
       "gaApiSecret": "1ALeOXiRTweFoXTtO0JA3A",
       "sentryDsn": "https://15b760709d0686c67f386a303ccc7c54@o4511064310480896.ingest.de.sentry.io/4511064518819920"
     },
-    "runtimeVersion": "1.1.1",
+    "runtimeVersion": "1.1.2",
     "plugins": [
       "@bacons/apple-targets",
       "@sentry/react-native/expo",
