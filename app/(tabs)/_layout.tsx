@@ -418,12 +418,46 @@ export default function TabLayout() {
 
       </Tabs>
 
+      {/* Odtwarzacz audio nad tab barem — trzyma nagranie przy życiu także
+          po wyjściu z artykułu (wcześniej pasek znikał, a dźwięk grał dalej). */}
+      {tts.isVisible && (
+        <View
+          style={[styles.globalAudioBar, { bottom: getTabBarHeight() - 10, backgroundColor: theme.colors.card }]}
+          pointerEvents="box-none"
+        >
+          <AudioPlayerBar
+            isPlaying={tts.status === 'playing'}
+            isLoading={tts.status === 'loading'}
+            duration={Math.max(1, tts.totalSecEst)}
+            position={Math.min(tts.elapsedSec, tts.totalSecEst)}
+            title={tts.title}
+            label={tts.categoryLabel}
+            subtitle={tts.subtitle}
+            photoUrl={tts.photoUrl}
+            onPlayPause={() => tts.toggle()}
+            onStop={() => tts.stop()}
+          />
+        </View>
+      )}
+
       {/* Floating Logo - tymczasowo wyłączony  <FloatingLogo /> */}
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  globalAudioBar: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 8,
+    zIndex: 999,
+  },
   floatingLogoContainer: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 10 : 8, // Zmniejszony margines pod status barem

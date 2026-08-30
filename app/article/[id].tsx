@@ -73,6 +73,8 @@ import { AdBanner } from '@/components/AdBanner'; // Import AdBanner
 import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
 import { WebView } from 'react-native-webview';
 import ArticlePollWidget from '@/components/ArticlePollWidget';
+import SpeakerClipCard from '@/components/SpeakerClipCard';
+import HeroSpeakerChip from '@/components/HeroSpeakerChip';
 import ArticleFbComments from '@/components/ArticleFbComments';
 import { AudioPlayerBar } from '@/components/AudioPlayerBar';
 import { ReadingProgressBar } from '@/components/ReadingProgressBar';
@@ -266,6 +268,14 @@ export default function ArticleScreen() {
       } catch { }
     };
   }, []);
+
+  // Wypowiedzi (nagrania) dołączone do artykułu — pierwsza trafia też na
+  // plakietkę na zdjęciu głównym.
+  const audioClips = useMemo(
+    () => (article?.audio_clips || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+    [article?.audio_clips],
+  );
+  const primaryClip = audioClips[0] || null;
 
   const handleReadAloud = useCallback(() => {
     console.log('[TTS] handleReadAloud called');
@@ -1121,6 +1131,9 @@ export default function ArticleScreen() {
                 </Text>
               </View>
             )}
+
+            {/* Wypowiedź rzecznika — plakietka na zdjęciu, odtwarza w miejscu */}
+            {primaryClip && <HeroSpeakerChip clip={primaryClip} />}
           </TouchableOpacity>
 
           {/* Content container with improved curved transition */}
@@ -1269,6 +1282,26 @@ export default function ArticleScreen() {
             </View>
           )}
 
+          {/* Wypowiedzi — oryginalne nagrania dołączone do artykułu */}
+          {audioClips.length > 0 && (
+            <View style={styles.clipsSection}>
+              <View style={styles.clipsHeader}>
+                <View style={styles.clipsHeaderAccent} />
+                <Text style={[styles.clipsHeaderText, { color: theme.colors.text }]}>
+                  {audioClips.length > 1 ? 'Wypowiedzi' : 'Wypowiedź'}
+                </Text>
+              </View>
+              {audioClips.map((clip) => (
+                <SpeakerClipCard
+                  key={clip.id}
+                  clip={clip}
+                  theme={{ text: theme.colors.text, textSecondary: theme.colors.textSecondary || '#6b6b76' }}
+                  isDarkMode={isDarkMode}
+                />
+              ))}
+            </View>
+          )}
+
           {/* Mini-player usunięty z wnętrza ScrollView */}
 
           {/* Baner wsparcia – pełna grafika klikalna */}
@@ -1375,6 +1408,8 @@ export default function ArticleScreen() {
             position={Math.min(tts.elapsedSec, tts.totalSecEst)}
             title={tts.title}
             label={tts.categoryLabel}
+            subtitle={tts.subtitle}
+            photoUrl={tts.photoUrl}
             onPlayPause={() => {
               if (tts.status === 'playing') tts.pause();
               else if (tts.status === 'paused') tts.resume();
@@ -1807,6 +1842,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     paddingHorizontal: 20,
+  },
+  clipsSection: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  clipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  clipsHeaderAccent: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: '#fecc00',
+    marginRight: 10,
+  },
+  clipsHeaderText: {
+    fontFamily: 'Poppins_SemiBold',
+    fontSize: 16,
   },
   sectionTitle: {
     fontSize: 22,

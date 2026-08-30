@@ -1,3 +1,24 @@
+export interface AudioClipSpeaker {
+  id: number;
+  name: string;
+  title: string | null;
+  photo_url: string | null;
+  slug: string;
+}
+
+/** Nagranie wypowiedzi (rzecznik, świadek) dołączone do artykułu. */
+export interface AudioClip {
+  id: number;
+  speaker: AudioClipSpeaker | null;
+  speaker_name: string | null;
+  speaker_title: string | null;
+  caption: string | null;
+  audio_url: string;
+  duration_sec: number | null;
+  transcript: string | null;
+  position: number;
+}
+
 export interface Article {
   id: number;
   date: string;
@@ -19,6 +40,7 @@ export interface Article {
   };
   featured_media: number;
   featured_media_url?: string;
+  audio_clips?: AudioClip[];
   categories: number[];
   tags: number[];
   author: number;

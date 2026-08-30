@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, Platform } from 'react-native';
-import { Pause, Play, X, Volume2 } from 'lucide-react-native';
+import { Image as ExpoImage } from 'expo-image';
+import { Pause, Play, X, Volume2, Mic } from 'lucide-react-native';
 
 interface AudioPlayerBarProps {
   isPlaying: boolean;
@@ -11,6 +12,10 @@ interface AudioPlayerBarProps {
   isLoading?: boolean; // czy trwa generowanie głosu
   title?: string;
   label?: string; // np. "Czytanie"
+  /** Podpis pod tytułem — funkcja mówiącego przy wypowiedziach. */
+  subtitle?: string;
+  /** Zdjęcie mówiącego — pokazywane zamiast ikony głośnika. */
+  photoUrl?: string | null;
 }
 
 const YELLOW = '#fecc00'; // żółty Kaszub
@@ -28,7 +33,7 @@ function formatTime(sec: number) {
   return `${m}:${s}`;
 }
 
-export const AudioPlayerBar = ({ isPlaying, duration, position, onPlayPause, onStop, isLoading, title, label = 'Czytanie' }: AudioPlayerBarProps) => {
+export const AudioPlayerBar = ({ isPlaying, duration, position, onPlayPause, onStop, isLoading, title, label = 'Czytanie', subtitle, photoUrl }: AudioPlayerBarProps) => {
   // Animacja pojawiania się
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -57,14 +62,28 @@ export const AudioPlayerBar = ({ isPlaying, duration, position, onPlayPause, onS
         )}
       </TouchableOpacity>
 
+      {/* Zdjęcie mówiącego — tylko przy wypowiedziach */}
+      {photoUrl ? (
+        <ExpoImage source={{ uri: photoUrl }} style={styles.speakerAvatar} contentFit="cover" transition={150} />
+      ) : null}
+
       {/* Informacje o treści */}
       <View style={styles.contentContainer}>
         <View style={styles.titleRow}>
-          <Volume2 size={16} color={BLACK} style={styles.volumeIcon} />
+          {photoUrl ? (
+            <Mic size={14} color={BLACK} style={styles.volumeIcon} />
+          ) : (
+            <Volume2 size={16} color={BLACK} style={styles.volumeIcon} />
+          )}
           <Text style={styles.title} numberOfLines={1}>
             {title && title.length > 35 ? `${title.substring(0, 35)}...` : title || 'Czytanie artykułu'}
           </Text>
         </View>
+        {!!subtitle && (
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        )}
         
         {/* Progress bar */}
         <View style={styles.progressContainer}>
@@ -103,6 +122,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     width: '100%',
+  },
+  speakerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  subtitle: {
+    fontFamily: 'Poppins_Regular',
+    fontSize: 11,
+    color: GRAY,
+    marginTop: 1,
+    marginBottom: 2,
   },
   playButton: {
     width: 44,

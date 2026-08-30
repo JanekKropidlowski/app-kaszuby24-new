@@ -12,6 +12,12 @@ interface TTSState {
   mode: TTSMode;
   title: string;
   categoryLabel: string;
+  /** Podpis pod tytułem w pasku — np. funkcja rzecznika. */
+  subtitle: string;
+  /** Zdjęcie mówiącego (wypowiedzi) — null dla czytania artykułu. */
+  photoUrl: string | null;
+  /** Kto gra: czytanie artykułu czy konkretna wypowiedź (`clip-<id>`). */
+  sourceId: string | null;
   chunks: string[];
   currentIndex: number;
   startedAt: number | null;
@@ -28,9 +34,15 @@ interface TTSState {
     language?: string;
     /** When set, play this prerecorded ElevenLabs lektor file instead of native TTS. */
     audioUrl?: string;
+    subtitle?: string;
+    photoUrl?: string | null;
+    sourceId?: string | null;
   }) => void;
   pause: () => void;
   resume: () => void;
+  toggle: () => void;
+  /** Przewija nagranie (tylko tryb audio) do podanej sekundy. */
+  seek: (sec: number) => void;
   stop: () => void;
   tick: () => void;
   cleanup: () => Promise<void>;
@@ -61,6 +73,9 @@ export const useTTSStore = create<TTSState>((set, get) => ({
   mode: 'native',
   title: '',
   categoryLabel: 'Czytanie',
+  subtitle: '',
+  photoUrl: null,
+  sourceId: null,
   chunks: [],
   currentIndex: 0,
   startedAt: null,
@@ -69,7 +84,7 @@ export const useTTSStore = create<TTSState>((set, get) => ({
   speakingRate: 1.0,
   language: 'pl-PL',
 
-  start: async ({ title, categoryLabel = 'Czytanie', chunks, speakingRate = 0.95, language = 'pl-PL', audioUrl }) => {
+  start: async ({ title, categoryLabel = 'Czytanie', chunks, speakingRate = 0.95, language = 'pl-PL', audioUrl, subtitle = '', photoUrl = null, sourceId = null }) => {
     console.log('[TTS] Starting TTS...', audioUrl ? '(audio mode)' : '(native mode)');
 
     // Zatrzymaj poprzednie odtwarzanie i wyczyść timer
@@ -114,6 +129,9 @@ export const useTTSStore = create<TTSState>((set, get) => ({
           mode: 'audio',
           title,
           categoryLabel,
+          subtitle,
+          photoUrl,
+          sourceId,
           chunks: [],
           currentIndex: 0,
           startedAt: Date.now(),
@@ -168,6 +186,9 @@ export const useTTSStore = create<TTSState>((set, get) => ({
       status: 'loading',
       title,
       categoryLabel,
+      subtitle,
+      photoUrl,
+      sourceId,
       chunks: cleanChunks,
       currentIndex: 0,
       startedAt: Date.now(),
@@ -258,6 +279,20 @@ export const useTTSStore = create<TTSState>((set, get) => ({
     set({ status: 'playing' });
   },
 
+  toggle: () => {
+    const s = get();
+    if (s.status === 'playing') get().pause();
+    else if (s.status === 'paused') get().resume();
+  },
+
+  seek: (sec: number) => {
+    const s = get();
+    if (s.mode !== 'audio' || !audioSound) return;
+    const target = Math.max(0, Math.min(sec, s.totalSecEst || sec));
+    audioSound.setPositionAsync(Math.round(target * 1000)).catch(() => {});
+    set({ elapsedSec: Math.round(target) });
+  },
+
   stop: () => {
     console.log('[TTS] Stopping TTS');
     try { Speech.stop(); } catch {}
@@ -281,6 +316,9 @@ export const useTTSStore = create<TTSState>((set, get) => ({
       totalSecEst: 0,
       title: '',
       categoryLabel: 'Czytanie',
+      subtitle: '',
+      photoUrl: null,
+      sourceId: null,
     });
   },
 
@@ -325,6 +363,9 @@ export const useTTSStore = create<TTSState>((set, get) => ({
       totalSecEst: 0,
       title: '',
       categoryLabel: 'Czytanie',
+      subtitle: '',
+      photoUrl: null,
+      sourceId: null,
     });
   },
 }));
