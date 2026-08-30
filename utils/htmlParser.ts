@@ -104,21 +104,7 @@ export const extractYouTubeUrl = (youtubeField: string): string | null => {
 export const cleanHtml = (html: string, isDarkMode: boolean = false): string => {
   if (!html) return '';
   
-  // Debug: sprawdź oryginalny HTML
-  const originalStrongCount = (html.match(/<strong>/gi) || []).length;
-  const originalBCount = (html.match(/<b>/gi) || []).length;
-  const originalSpanBoldCount = (html.match(/<span[^>]*style[^>]*font-weight[^>]*>/gi) || []).length;
-  console.log('[HTML_PARSER_DEBUG] Original HTML - Strong tags:', originalStrongCount);
-  console.log('[HTML_PARSER_DEBUG] Original HTML - B tags:', originalBCount);
-  console.log('[HTML_PARSER_DEBUG] Original HTML - Span with font-weight:', originalSpanBoldCount);
   
-  // Debug: log a sample of the original HTML for inspection
-  if (originalSpanBoldCount > 0) {
-    const spanMatches = html.match(/<span[^>]*style[^>]*font-weight[^>]*>.*?<\/span>/gi);
-    if (spanMatches) {
-      console.log('[HTML_PARSER_DEBUG] Sample span with font-weight:', spanMatches[0]);
-    }
-  }
   
   // Decode HTML entities first
   let cleanedHtml = html
@@ -306,19 +292,7 @@ export const cleanHtml = (html: string, isDarkMode: boolean = false): string => 
   
   // Keep <em> tags as italics (do not force to <strong>) to preserve formatting
   
-  // Debug: sprawdź czy są tagi pogrubienia po konwersji
-  const strongCount = (cleanedHtml.match(/<strong>/gi) || []).length;
-  const bCount = (cleanedHtml.match(/<b>/gi) || []).length;
-  console.log('[HTML_PARSER_DEBUG] Strong tags count:', strongCount);
-  console.log('[HTML_PARSER_DEBUG] B tags count:', bCount);
   
-  // Debug: log final HTML sample if strong tags are present
-  if (strongCount > 0) {
-    const strongMatches = cleanedHtml.match(/<strong>.*?<\/strong>/gi);
-    if (strongMatches) {
-      console.log('[HTML_PARSER_DEBUG] Sample strong tag:', strongMatches[0]);
-    }
-  }
   
   // Handle any remaining spans with bold style in a single-pass robust way
   cleanedHtml = cleanedHtml.replace(
@@ -339,37 +313,6 @@ export const cleanHtml = (html: string, isDarkMode: boolean = false): string => 
   );
   
 
-  
-  // Auto-detect and make bold important information like dates, times, locations
-  // This is a fallback since WordPress doesn't seem to send bold tags
-  cleanedHtml = cleanedHtml.replace(
-    /(\d{1,2}\s+(?:stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|października|listopada|grudnia)\s+\d{4})/g,
-    '<strong>$1</strong>'
-  );
-  
-  // Make times bold (like "o godzinie 15:38")
-  cleanedHtml = cleanedHtml.replace(
-    /(o\s+godzinie\s+\d{1,2}:\d{2})/g,
-    '<strong>$1</strong>'
-  );
-  
-  // Make locations bold (like "w miejscowości", "na skrzyżowaniu")
-  cleanedHtml = cleanedHtml.replace(
-    /(w\s+miejscowości|na\s+skrzyżowaniu|w\s+okolicy)/g,
-    '<strong>$1</strong>'
-  );
-  
-  // Make service names bold (like "JRG Puck", "OSP Żarnowiec")
-  cleanedHtml = cleanedHtml.replace(
-    /(JRG\s+[A-Za-ząćęłńóśźżĄĆĘŁŃÓŚŹŻ]+|OSP\s+[A-Za-ząćęłńóśźżĄĆĘŁŃÓŚŹŻ]+)/g,
-    '<strong>$1</strong>'
-  );
-  
-  // Make numbers bold (like road numbers "nr 213")
-  cleanedHtml = cleanedHtml.replace(
-    /(nr\s+\d+)/g,
-    '<strong>$1</strong>'
-  );
   
   // If no explicit strong/b tags are present, convert markdown-style **bold** and __bold__ to <strong>
   if (!/(<strong>|<b>)/i.test(cleanedHtml)) {
@@ -439,3 +382,43 @@ export const parseGaleriaField = (
 
   return { ids, urls };
 };
+
+export interface HtmlSection {
+  id: string;
+  /** Nagłówek otwierający sekcję (null dla wstępu przed pierwszym H2). */
+  title: string | null;
+  html: string;
+}
+
+const stripTags = (html: string) =>
+  html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
+/**
+ * Dzieli treść artykułu na sekcje po nagłówkach H2 — na tym opiera się spis
+ * treści (mierzymy pozycję każdej sekcji i przewijamy do niej).
+ */
+export const splitHtmlByHeadings = (html: string): HtmlSection[] => {
+  if (!html) return [];
+  const re = /<h2\b[^>]*>([\s\S]*?)<\/h2>/gi;
+  const sections: HtmlSection[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+
+  while ((m = re.exec(html)) !== null) {
+    const before = html.slice(last, m.index);
+    if (sections.length === 0) {
+      if (before.trim()) sections.push({ id: 'intro', title: null, html: before });
+    } else {
+      sections[sections.length - 1].html += before;
+    }
+    const title = stripTags(m[1]);
+    sections.push({ id: `sec-${i++}`, title: title || null, html: m[0] });
+    last = m.index + m[0].length;
+  }
+
+  if (sections.length === 0) return [{ id: 'intro', title: null, html }];
+  if (last < html.length) sections[sections.length - 1].html += html.slice(last);
+  return sections;
+};
+

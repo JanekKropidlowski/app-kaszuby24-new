@@ -1563,3 +1563,25 @@ export const fetchNekrologBySlug = async (slug: string): Promise<Nekrolog> => {
     }
   });
 };
+
+/** Nazwy tagów po ID — artykuł zwraca same identyfikatory. */
+export const fetchTagsByIds = async (
+  ids: number[],
+): Promise<Array<{ id: number; name: string; slug: string }>> => {
+  if (!ids.length) return [];
+  const capped = ids.slice(0, 12);
+  try {
+    const url = `${API_BASE_URL}/tags?include=${capped.join(',')}&per_page=${capped.length}`;
+    const response = await fetchWithTimeout(url);
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter((t: any) => t?.id && t?.name)
+      .map((t: any) => ({ id: t.id, name: String(t.name), slug: String(t.slug || '') }));
+  } catch (error) {
+    console.warn('Failed to load tags:', error);
+    return [];
+  }
+};
+

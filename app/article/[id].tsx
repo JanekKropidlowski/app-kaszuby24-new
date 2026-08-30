@@ -51,7 +51,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Importy komponentów i serwisów
 import { OptimizedLightbox } from '@/components/OptimizedLightbox';
-import { fetchArticleById, fetchArticleBySlug, fetchMediaByIds, fetchRelatedArticles } from '@/services/api';
+import { fetchArticleById, fetchArticleBySlug, fetchMediaByIds, fetchRelatedArticles, fetchTagsByIds } from '@/services/api';
 import { analyticsService } from '@/services/analyticsService';
 import { EngagementService } from '@/services/EngagementService';
 import { triggerSupportPrompt } from '@/app/_layout';
@@ -65,7 +65,7 @@ import { shareArticle } from '@/utils/share';
 import { useTTSStore } from '@/store/ttsStore';
 import { useSupportStore } from '@/store/supportStore';
 import { formatDateTime } from '@/utils/dateFormatter';
-import { cleanHtml, processGalleryIds, parseGaleriaField, extractYouTubeUrl } from '@/utils/htmlParser';
+import { cleanHtml, processGalleryIds, parseGaleriaField, extractYouTubeUrl, splitHtmlByHeadings } from '@/utils/htmlParser';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import EmptyState from '@/components/EmptyState';
@@ -73,7 +73,15 @@ import { AdBanner } from '@/components/AdBanner'; // Import AdBanner
 import { RelatedArticlesSlider } from '@/components/RelatedArticlesSlider';
 import { WebView } from 'react-native-webview';
 import ArticlePollWidget from '@/components/ArticlePollWidget';
+import { isKaszuby24Link, handleDeepLinkWithValidation } from '@/utils/linkHandler';
 import SpeakerClipCard from '@/components/SpeakerClipCard';
+import * as WebBrowser from 'expo-web-browser';
+import ReaderToolbar from '@/components/ReaderToolbar';
+import ArticleTOC from '@/components/ArticleTOC';
+import ArticleTags, { ArticleTag } from '@/components/ArticleTags';
+import OrgPartnerBox, { ArticleOrg } from '@/components/OrgPartnerBox';
+import ArticleCustomHtml from '@/components/ArticleCustomHtml';
+import { useFontScale } from '@/store/readerStore';
 import HeroSpeakerChip from '@/components/HeroSpeakerChip';
 import ArticleFbComments from '@/components/ArticleFbComments';
 import { AudioPlayerBar } from '@/components/AudioPlayerBar';
@@ -127,11 +135,6 @@ export default function ArticleScreen() {
   const { isArticleSaved, saveArticle, removeArticle } = useArticlesStore();
   const insets = useSafeAreaInsets();
 
-  // Sprawdź audio na starcie
-  useEffect(() => {
-    console.log('[TTS] Audio module ready');
-  }, []);
-
   // Ensure Poppins is available for this screen (especially for RenderHtml)
   const [fontsLoaded] = useFonts({
     Poppins_Regular: require('../../assets/fonts/Poppins/Poppins_Regular.ttf'),
@@ -173,15 +176,43 @@ export default function ArticleScreen() {
   const [readingProgress, setReadingProgress] = useState(0);
   const [showReadingProgress, setShowReadingProgress] = useState(false);
 
+  const fontScale = useFontScale();
+  const [tags, setTags] = useState<ArticleTag[]>([]);
+  const [contentOffsetY, setContentOffsetY] = useState(0);
+  const sectionOffsets = useRef<Record<string, number>>({});
+
+  // Treść pocięta na sekcje po nagłówkach — pod spis treści i przewijanie.
+  const contentSections = useMemo(() => splitHtmlByHeadings(cleanedContentHtml), [cleanedContentHtml]);
+  const tocItems = useMemo(
+    () => contentSections.filter((sec) => !!sec.title).map((sec) => ({ id: sec.id, title: sec.title as string })),
+    [contentSections],
+  );
+
+  const scrollToSection = useCallback((id: string) => {
+    const y = sectionOffsets.current[id];
+    if (y === undefined) return;
+    scrollRef.current?.scrollTo({ y: Math.max(0, contentOffsetY + y - 70), animated: true });
+  }, [contentOffsetY]);
+
+  const articleOrg = (article as any)?._kaszuby24_org as ArticleOrg | undefined;
+  const customHtml = (article?.meta as any)?.custom_html?.trim?.() || '';
+
+  // Wypowiedzi (nagrania) dołączone do artykułu — pierwsza trafia też na
+  // plakietkę na zdjęciu głównym.
+  const audioClips = useMemo(
+    () => (article?.audio_clips || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+    [article?.audio_clips],
+  );
+  const primaryClip = audioClips[0] || null;
+
   // Memoizowane props dla RenderHtml — kluczowe dla wydajności
-  const htmlSource = useMemo(() => ({ html: cleanedContentHtml }), [cleanedContentHtml]);
   const htmlBaseStyle = useMemo(() => ({
     color: theme.colors.text,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: Math.round(15 * fontScale),
+    lineHeight: Math.round(22 * fontScale),
     textAlign: 'left' as const,
     fontFamily: 'Poppins_Regular',
-  }), [theme.colors.text]);
+  }), [theme.colors.text, fontScale]);
   const htmlTagsStyles = useMemo(() => getHtmlViewStyles(theme), [theme]);
   const htmlRenderers = useMemo(() => ({
     iframe: ({ tnode, ...props }: { tnode: any; [key: string]: any }) => {
@@ -226,7 +257,16 @@ export default function ArticleScreen() {
   const htmlRenderersProps = useMemo(() => ({
     a: {
       onPress: (_event: any, href: string) => {
-        if (href) Linking.openURL(href).catch(() => {});
+        if (!href) return;
+        // Linki do kaszuby24.pl otwieramy w aplikacji (inny artykuł, wydarzenie,
+        // rozkłady). Wcześniej każdy link wyrzucał czytelnika do przeglądarki.
+        if (isKaszuby24Link(href)) {
+          handleDeepLinkWithValidation(href).catch(() => {
+            Linking.openURL(href).catch(() => {});
+          });
+          return;
+        }
+        Linking.openURL(href).catch(() => {});
       },
     },
   }), []);
@@ -259,27 +299,19 @@ export default function ArticleScreen() {
     return () => clearTimeout(timer);
   }, [hideTooltip]);
 
-  // Cleanup TTS only on unmount (avoid stopping on every state change)
+  // Wyjście z artykułu przerywa tylko syntezator systemowy (native TTS nie ma
+  // globalnej kontrolki). Nagranie — lektor lub wypowiedź — gra dalej, bo nad
+  // tab barem czeka pasek z pauzą i zamknięciem.
   useEffect(() => {
     return () => {
       try {
-        // ensure we stop any ongoing speech when leaving the screen
-        useTTSStore.getState().stop();
+        if (useTTSStore.getState().mode === 'native') useTTSStore.getState().stop();
       } catch { }
     };
   }, []);
 
-  // Wypowiedzi (nagrania) dołączone do artykułu — pierwsza trafia też na
-  // plakietkę na zdjęciu głównym.
-  const audioClips = useMemo(
-    () => (article?.audio_clips || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
-    [article?.audio_clips],
-  );
-  const primaryClip = audioClips[0] || null;
 
   const handleReadAloud = useCallback(() => {
-    console.log('[TTS] handleReadAloud called');
-
     if (!article) {
       Alert.alert('Błąd', 'Brak treści do odczytania');
       return;
@@ -394,17 +426,6 @@ export default function ArticleScreen() {
     setSelectedImageIndex(index);
   }, []);
 
-  // Optymalizacja: nie resetuj selectedImageIndex przy ładowaniu danych
-  // DEBUG: Szczegółowe logi dla selectedImageIndex
-  useEffect(() => {
-    console.log('[LIGHTBOX DEBUG] selectedImageIndex changed to:', selectedImageIndex);
-    if (selectedImageIndex !== null) {
-      console.log('[LIGHTBOX DEBUG] Lightbox opening automatically! Stack trace:');
-      console.trace('[LIGHTBOX DEBUG] Automatic lightbox open');
-      console.log('[LIGHTBOX DEBUG] Current allImages length:', allImages.length);
-      console.log('[LIGHTBOX DEBUG] Current galleryImages length:', galleryImages.length);
-    }
-  }, [selectedImageIndex, allImages.length, galleryImages.length]);
 
 
 
@@ -553,6 +574,15 @@ export default function ArticleScreen() {
           if (ytUrl) {
             setYoutubeUrl(ytUrl);
           }
+        }
+
+        // Tagi — API zwraca same ID, nazwy dociągamy osobno (nieblokująco)
+        if (Array.isArray(articleData.tags) && articleData.tags.length > 0) {
+          fetchTagsByIds(articleData.tags)
+            .then((loaded) => setTags(loaded))
+            .catch(() => setTags([]));
+        } else {
+          setTags([]);
         }
 
         // Extract Flickr URL if available
@@ -904,6 +934,7 @@ export default function ArticleScreen() {
 
   const handleContentLayout = (event: any) => {
     setScrollContentHeight(event.nativeEvent.layout.height);
+    setContentOffsetY(event.nativeEvent.layout.y || 0);
   };
 
   // Render gallery item - zoptymalizowane z memo
@@ -916,7 +947,6 @@ export default function ArticleScreen() {
       <TouchableOpacity
         style={styles.galleryItem}
         onPress={() => {
-          console.log('[LIGHTBOX DEBUG] Gallery item clicked:', index, 'actual index:', actualIndex);
           openImageModal(actualIndex);
         }}
         activeOpacity={0.9}
@@ -1191,15 +1221,46 @@ export default function ArticleScreen() {
               <VideoPlayer url={youtubeUrl} />
             )}
 
-            <RenderHtml
-              source={htmlSource}
-              contentWidth={width - 40}
-              baseStyle={htmlBaseStyle}
-              systemFonts={HTML_SYSTEM_FONTS}
-              tagsStyles={htmlTagsStyles}
-              renderers={htmlRenderers}
-              renderersProps={htmlRenderersProps}
+            {/* Wielkość tekstu — ustawienie zapamiętywane między artykułami */}
+            <ReaderToolbar theme={theme} isDarkMode={!!isDarkMode} />
+
+            {/* Spis treści — tylko dla dłuższych materiałów (3+ sekcje) */}
+            <ArticleTOC
+              items={tocItems}
+              theme={theme}
+              isDarkMode={!!isDarkMode}
+              onSelect={scrollToSection}
             />
+
+            {contentSections.map((section) => (
+              <View
+                key={section.id}
+                onLayout={(e) => {
+                  sectionOffsets.current[section.id] = e.nativeEvent.layout.y;
+                }}
+              >
+                <RenderHtml
+                  source={{ html: section.html }}
+                  contentWidth={width - 40}
+                  baseStyle={htmlBaseStyle}
+                  systemFonts={HTML_SYSTEM_FONTS}
+                  tagsStyles={htmlTagsStyles}
+                  renderers={htmlRenderers}
+                  renderersProps={htmlRenderersProps}
+                />
+              </View>
+            ))}
+
+            {/* Osadzenia redakcyjne (mapy, formularze, widżety) */}
+            {!!customHtml && <ArticleCustomHtml html={customHtml} isDarkMode={!!isDarkMode} />}
+
+            {/* Materiał od organizacji — ta sama sygnatura co na stronie */}
+            {articleOrg?.slug && (
+              <OrgPartnerBox org={articleOrg} theme={theme} isDarkMode={!!isDarkMode} />
+            )}
+
+            {/* Tagi — wejście w temat przez wyszukiwarkę */}
+            <ArticleTags tags={tags} theme={theme} isDarkMode={!!isDarkMode} />
 
             {/* Źródło i informacje o zdjęciu - przeniesione pod treść artykułu */}
             {(article?.meta?.zrudlo || article?.meta?.zrodlo || article?.meta?.foto) && (
@@ -1274,7 +1335,7 @@ export default function ArticleScreen() {
               {!galleryLoading && flickrUrl && (
                 <TouchableOpacity
                   style={[styles.flickrButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => Linking.openURL(flickrUrl)}
+                  onPress={() => { WebBrowser.openBrowserAsync(flickrUrl).catch(() => Linking.openURL(flickrUrl)); }}
                 >
                   <Text style={[styles.flickrButtonText, { fontFamily: theme.fontFamily.medium }]}>Zobacz więcej zdjęć</Text>
                 </TouchableOpacity>
