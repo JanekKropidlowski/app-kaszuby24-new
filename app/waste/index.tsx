@@ -205,6 +205,12 @@ export default function WasteScheduleScreen() {
                             setSelectedStreet({ street: parsed.street || 'Twój adres', regionId: String(parsed.regionId) });
                             setStep('schedule');
                             fetchNewsArticles(city);
+                            // Przeplanuj przypomnienia na świeżym harmonogramie (gmina mogła
+                            // poprawić daty od ostatniego wyboru adresu).
+                            const restoredRegion = regionData.regions[0];
+                            if (restoredRegion) {
+                                WasteNotificationService.scheduleNotificationsForRegion(restoredRegion.schedule, settings).catch(() => {});
+                            }
                         } else {
                             setStep('cascade');
                         }
@@ -220,6 +226,8 @@ export default function WasteScheduleScreen() {
                             setSelectedStreet({ street: parsed.street, regionId: parsed.regionId });
                             setStep('schedule');
                             fetchNewsArticles(city);
+                            // Przeplanuj przypomnienia na świeżym harmonogramie.
+                            WasteNotificationService.scheduleNotificationsForRegion(exists.schedule, settings).catch(() => {});
                         } else {
                             setStep('street');
                         }
