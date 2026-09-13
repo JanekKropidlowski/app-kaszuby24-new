@@ -194,6 +194,11 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
         'organizacja', 'organizacje', 'atrakcje', 'trasy-rowerowe', 'galeria', 'kamery', 'tag', 'autor',
         'szybkie', 'zglos-temat', 'dla-instytucji', 'patronat-medialny', 'deklaracja-dostepnosci', 'aplikacja',
         'rozklady', 'ogloszenia', 'przystanek', 'przystanki', 'linia', 'linie', 'przewoznicy', 'trasa', 'miasto',
+        // 'pogoda' dodane 2026-09-13 razem z 'rozklady': serwis pogodowy ma isc do przegladarki,
+        // bo ma radar, ostrzezenia, temperature morza i jakosc powietrza, czego zakladka w apce nie ma.
+        // Bez tego /pogoda/trojmiasto wpadalo w galaz "ostatni segment = slug artykulu", lookup nie
+        // znajdowal artykulu "trojmiasto" i user ladowal na fallbacku zamiast na prognozie.
+        'pogoda',
       ];
       if (externalPaths.includes(pathSegments[0].toLowerCase())) {
         return { type: 'external', url };
