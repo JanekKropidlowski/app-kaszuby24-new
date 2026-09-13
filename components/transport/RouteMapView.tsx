@@ -59,9 +59,10 @@ export const RouteMapView = ({ journey, showIntermediateStops = false, onLegPres
     // 1. Decode legs with memoization
     const decodedLegs = useMemo(() => {
         return journey.legs.map(leg => {
-            const coordinates: { latitude: number; longitude: number }[] = (leg.legGeometry?.points as any)
+            const legPoints = leg.legGeometry?.points;
+            const coordinates: { latitude: number; longitude: number }[] = legPoints
                 ? decodePolyline(
-                    leg.legGeometry.points,
+                    legPoints,
                     { lat: leg.from?.lat || 0, lon: leg.from?.lon || 0 },
                     { lat: leg.to?.lat || 0, lon: leg.to?.lon || 0 }
                 )
@@ -193,7 +194,7 @@ export const RouteMapView = ({ journey, showIntermediateStops = false, onLegPres
     };
 
     // Render decorative shapes (arrows/dots) along the line to make it more "premium"
-    const renderLegShapes = (leg: RouteLeg, index: number) => {
+    const renderLegShapes = (leg: DecodedRouteLeg, index: number) => {
         const brand = (leg.brand || '').toUpperCase();
         if (brand !== 'SKM' && !brand.includes('MZK')) return null;
 

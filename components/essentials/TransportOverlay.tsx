@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { X } from 'lucide-react-native';
 import { TransportLine } from '@/services/transport';
 
+const TRAIN_OPERATORS: TransportLine['operator'][] = ['Polregio', 'PKP', 'Intercity'];
+
 interface TransportOverlayProps {
     visible: boolean;
     data: TransportLine[];
@@ -23,7 +25,7 @@ export const TransportOverlay: React.FC<TransportOverlayProps> = ({ visible, dat
             <ScrollView style={styles.transportList} nestedScrollEnabled={true}>
                 {data.map((line, i) => (
                     <View key={i} style={styles.transportItem}>
-                        <View style={[styles.lineBadge, { backgroundColor: line.type === 'train' ? '#3B82F6' : '#8B5CF6' }]}>
+                        <View style={[styles.lineBadge, { backgroundColor: TRAIN_OPERATORS.includes(line.operator) ? '#3B82F6' : '#8B5CF6' }]}>
                             <Text style={styles.lineText}>{line.line}</Text>
                         </View>
                         <View style={{ flex: 1 }}>

@@ -7,6 +7,8 @@ import { useNotificationsStore } from '@/store/notificationsStore';
 import { registerExpoPushToken } from './api';
 import { router } from 'expo-router';
 import { analyticsService } from './analyticsService';
+// Tylko typy — import jest usuwany przy transpilacji, runtime nadal uzywa warunkowego require() nizej.
+import type * as ExpoNotifications from 'expo-notifications';
 
 // Sprawdź czy działa w Expo Go (nie wspiera push notifications od SDK 53)
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -114,7 +116,7 @@ class NotificationService {
     }
   }
 
-  private handleNotificationReceived = (notification: Notifications.Notification) => {
+  private handleNotificationReceived = (notification: ExpoNotifications.Notification) => {
     try {
       console.log('Expo Push notification received in foreground:', notification);
       
@@ -165,7 +167,7 @@ class NotificationService {
     }
   };
   
-  private handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+  private handleNotificationResponse = (response: ExpoNotifications.NotificationResponse) => {
     try {
       console.log('Expo Push notification opened:', response);
 
@@ -678,7 +680,7 @@ class NotificationService {
   }
 
   // Rich notification display for Android
-  private async showRichNotification(notification: Notifications.Notification, imageUrl: string) {
+  private async showRichNotification(notification: ExpoNotifications.Notification, imageUrl: string) {
     try {
       if (Platform.OS !== 'android') return;
       
@@ -751,7 +753,7 @@ class NotificationService {
     data?: any
   ) {
     try {
-      const notificationContent: Notifications.NotificationContentInput = {
+      const notificationContent: ExpoNotifications.NotificationContentInput = {
         title,
         body,
         data: data || {},

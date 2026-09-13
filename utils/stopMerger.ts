@@ -277,6 +277,7 @@ export function mergedStopToGeoJSON(mergedStop: MergedStop): GeoJSONFeature {
             id: mergedStop.id,
             uid: mergedStop.id,
             name: mergedStop.name,
+            kind: 'station',
             lat: mergedStop.lat,
             lon: mergedStop.lon,
             agency: mergedStop.agencies[0].agency,

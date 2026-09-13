@@ -37,6 +37,7 @@ import {
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
+  type SharedValue,
   useSharedValue,
   useAnimatedStyle,
   useAnimatedScrollHandler,
@@ -147,7 +148,7 @@ const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }: {
 const AnimatedWeeklyPopularCarousel = ({ item, index, scrollX, onPress }: {
   item: Article;
   index: number;
-  scrollX: Animated.SharedValue<number>;
+  scrollX: SharedValue<number>;
   onPress: (article: Article) => void;
 }) => {
   const { theme } = useThemeStore();

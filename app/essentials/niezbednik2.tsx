@@ -10,8 +10,6 @@ export default function Niezbednik2Screen() {
     aedPoints,
     generalHospitals,
     pharmacies,
-    mevoBikes,
-    mevoStations,
     activeFilter,
     setActiveFilter,
     fetchByViewport,
@@ -34,8 +32,6 @@ export default function Niezbednik2Screen() {
         aedPoints={aedPoints}
         generalHospitals={generalHospitals}
         pharmacies={pharmacies}
-        mevoBikes={mevoBikes}
-        mevoStations={mevoStations}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
         fetchByViewport={fetchByViewport}

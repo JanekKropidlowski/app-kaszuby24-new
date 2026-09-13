@@ -10,7 +10,7 @@ import {
     ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { performAdvancedSearch, addToHistory, addToFavorites, SearchFilters } from '@/utils/searchEngine';
+import { performAdvancedSearch, addToHistory, addToFavorites, SearchFilters, TransportSearchResult } from '@/utils/searchEngine';
 import { planRoute, Journey } from '@/utils/routePlanner';
 import { GeoJSONFeature } from './types';
 
@@ -35,7 +35,7 @@ export const AdvancedTransportSearch = () => {
     // State
     const [mode, setMode] = useState<'search' | 'route'>('search');
     const [query, setQuery] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
+    const [searchResults, setSearchResults] = useState<TransportSearchResult[]>([]);
     const [loading, setLoading] = useState(false);
 
     // Route planning
@@ -67,9 +67,19 @@ export const AdvancedTransportSearch = () => {
             setLoading(true);
 
             try {
+                const searchableStops: TransportSearchResult[] = allStops.map(s => ({
+                    id: s.properties.id,
+                    name: s.properties.name,
+                    type: 'stop',
+                    lat: s.geometry.coordinates[1],
+                    lon: s.geometry.coordinates[0],
+                    agency: s.properties.agency,
+                    source: 'local'
+                }));
+
                 const generator = performAdvancedSearch(
                     query,
-                    allStops,
+                    searchableStops,
                     {
                         userLocation,
                         currentTime: new Date().toTimeString().slice(0, 5)
@@ -404,7 +414,7 @@ export const AdvancedTransportSearch = () => {
                                         <Text style={styles.connectionTime}>{conn.departure}</Text>
                                         <View style={styles.connectionLine}>
                                             <Text style={styles.connectionLineText}>
-                                                {conn.line} → {conn.dest}
+                                                {conn.line} → {conn.direction || conn.to.name}
                                             </Text>
                                         </View>
                                     </View>

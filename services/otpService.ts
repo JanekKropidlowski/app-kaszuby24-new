@@ -770,7 +770,7 @@ export const OTPService = {
                 return [];
             }
 
-            const routes = data.plan.itineraries.map((it: any, index: number) =>
+            const routes: RouteOption[] = data.plan.itineraries.map((it: any, index: number) =>
                 OTPService.mapItineraryToRouteOption(it, index)
             );
 

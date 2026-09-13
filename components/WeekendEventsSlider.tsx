@@ -170,7 +170,6 @@ const WeekendEventsSlider: React.FC<WeekendEventsSliderProps> = ({
           scrollAnimationDuration={500}
           onSnapToItem={(index) => setActiveIndex(index)}
           renderItem={renderEventCard}
-          keyExtractor={(item) => `weekend_event_${item.id}`}
           // --- Konfiguracja dla trybu "center mode" ---
           mode="parallax"
           modeConfig={{

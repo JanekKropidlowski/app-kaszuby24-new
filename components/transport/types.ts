@@ -14,6 +14,13 @@ export interface GeoJSONFeature {
         cluster?: boolean;
         point_count?: number;
         cluster_id?: number;
+        // Pola dokladane przy laczeniu przystankow kilku przewoznikow (utils/stopMerger)
+        lat?: number;
+        lon?: number;
+        agencies?: string[];
+        agencyStops?: unknown[];
+        isMerged?: boolean;
+        is_station?: boolean;
     };
 }
 

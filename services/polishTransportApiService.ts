@@ -19,6 +19,16 @@ export interface PolishTransportDeparture {
 }
 
 // Known Polish transport APIs
+interface PolishApiConfig {
+    baseUrl: string;
+    stopsEndpoint: string;
+    departuresEndpoint: string;
+    vehiclesEndpoint?: string;
+    gtfsUrl?: string;
+    stopsParams?: Record<string, string>;
+    departuresParams?: (stopId: string) => Record<string, string>;
+}
+
 const POLISH_APIS = {
     // ZTM Gdańsk (Gdańsk Transport Authority) - CONFIRMED WORKING
     ztm_gdansk: {
@@ -74,6 +84,11 @@ const POLISH_APIS = {
     }
 };
 
+type PolishApiAgency = keyof typeof POLISH_APIS;
+
+const getApiConfig = (agency: PolishApiAgency): PolishApiConfig => POLISH_APIS[agency];
+
+
 const CACHE_PREFIX = 'polish_transport_';
 const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes
 
@@ -103,7 +118,7 @@ export class PolishTransportApiService {
         }
 
         try {
-            const api = POLISH_APIS[agency];
+            const api = getApiConfig(agency);
             let params: any = {};
 
             // Handle special parameters for different APIs
@@ -157,7 +172,7 @@ export class PolishTransportApiService {
         }
 
         try {
-            const api = POLISH_APIS[agency];
+            const api = getApiConfig(agency);
             const url = `${api.baseUrl}${api.departuresEndpoint}/${stopId}`;
 
             const response = await axios.get(url, {
@@ -188,7 +203,7 @@ export class PolishTransportApiService {
      */
     static async fetchVehicles(agency: keyof typeof POLISH_APIS): Promise<any[]> {
         try {
-            const api = POLISH_APIS[agency];
+            const api = getApiConfig(agency);
             if (!api.vehiclesEndpoint) {
                 return [];
             }
@@ -299,7 +314,7 @@ export class PolishTransportApiService {
      */
     static async checkApiStatus(agency: keyof typeof POLISH_APIS): Promise<boolean> {
         try {
-            const api = POLISH_APIS[agency];
+            const api = getApiConfig(agency);
             await axios.get(`${api.baseUrl}${api.stopsEndpoint}`, {
                 timeout: 5000,
                 headers: { 'User-Agent': 'Kaszuby24-App/1.0' }
