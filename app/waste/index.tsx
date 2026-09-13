@@ -712,7 +712,7 @@ export default function WasteScheduleScreen() {
 
                 <KeyboardAvoidingView
                     style={{ flex: 1 }}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    behavior="padding"
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
                 >
                     {cityMode === 'villages' ? (

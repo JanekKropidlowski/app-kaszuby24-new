@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  TextInput, ActivityIndicator, RefreshControl, Alert, KeyboardAvoidingView, Platform,
+  TextInput, ActivityIndicator, RefreshControl, Alert, KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,7 +88,7 @@ export default function AdminPushScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: c.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: c.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>

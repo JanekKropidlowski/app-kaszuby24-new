@@ -275,7 +275,7 @@ export default function WasteCascadePicker({ citySlug, cityName, theme, onPicked
                 onRequestClose={closePicker}
                 presentationStyle="pageSheet"
             >
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.colors.background }}>
+                <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: theme.colors.background }}>
                     <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
                         <TouchableOpacity onPress={closePicker} style={{ padding: 4 }}>
                             <Text style={[FONT_SEMIBOLD, { fontSize: 16, color: theme.colors.primary }]}>Anuluj</Text>

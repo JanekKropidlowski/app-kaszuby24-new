@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Switch,
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -78,7 +78,7 @@ export default function AdminNewArticleScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: c.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: c.border }]}>

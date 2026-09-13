@@ -977,7 +977,11 @@ export default function TransportSearchScreen() {
             )}
 
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                // Android: bez jawnego behavior KeyboardAvoidingView renderuje zwykly View i nic nie kompensuje.
+                // Dzialalo to tylko dopoki okno samo sie zmniejszalo przy adjustResize. Przy edge-to-edge
+                // (wlaczone w android/gradle.properties, domyslne w SDK 54) okno juz sie nie zmniejsza,
+                // wiec klawiatura zaslaniala liste podpowiedzi przystankow.
+                behavior="padding"
                 style={styles.listContainer}
                 keyboardVerticalOffset={0}
             >
@@ -1063,7 +1067,6 @@ export default function TransportSearchScreen() {
                     <FlashList
                         data={results}
                         renderItem={renderItem}
-                        estimatedItemSize={64}
                         keyboardShouldPersistTaps="always"
                         keyboardDismissMode="none"
                         contentContainerStyle={styles.listPadding}
