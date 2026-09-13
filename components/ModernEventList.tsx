@@ -14,6 +14,7 @@ import {
   Share
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar, Clock, MapPin, Share2, Heart, Eye, TrendingUp, CalendarDays, Filter, X } from 'lucide-react-native';
 import { Event } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
@@ -62,6 +63,7 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
   hideSlider = false,
 }) => {
   const { theme } = useThemeStore();
+  const insets = useSafeAreaInsets();
 
 
 
@@ -242,7 +244,7 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
       data={events}
       keyExtractor={(item) => item.id.toString()}
       renderItem={renderEventItem}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingBottom: 100 + insets.bottom }]}
       refreshControl={
         scrollEnabled ? (
           <RefreshControl

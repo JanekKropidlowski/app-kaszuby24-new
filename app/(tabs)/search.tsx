@@ -785,7 +785,7 @@ export default function SearchScreen() {
               />
             )
           }
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 100 + insets.bottom }]}
           ListHeaderComponent={
             mixedItems.length > 0 ? (
               <View style={[styles.resultsHeader, { backgroundColor: theme.colors.subtle }]}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Text, TouchableOpacity, Animated, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Settings,
   AlertCircle,
@@ -93,6 +93,7 @@ const mockWeeklyData = Array.from({ length: 7 }, (_, i) => {
 
 
 export default function WeatherScreen() {
+  const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useThemeStore();
   const { config, setConfig, selectedStation, sectionOrder, setSectionOrder } = useWeatherConfigStore();
 
@@ -597,7 +598,7 @@ export default function WeatherScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
       >
         {/* Weather hero - główna informacja pogodowa */}
         <Animated.View

@@ -50,7 +50,7 @@ export default function MenuHubScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: Platform.OS === 'android' ? 10 : 4, paddingBottom: 100 },
+          { paddingTop: Platform.OS === 'android' ? 10 : 4, paddingBottom: 100 + insets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
       >

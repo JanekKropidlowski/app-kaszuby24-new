@@ -716,11 +716,10 @@ export default function AirQualityScreen() {
                             style={{ opacity: fadeAnim }}
                             data={displayedStations}
                             keyExtractor={(item: any) => item.id.toString()}
-                            estimatedItemSize={120}
                             refreshing={refreshing}
                             onRefresh={handleRefresh}
                             showsVerticalScrollIndicator={false}
-                            contentContainerStyle={styles.scrollContent}
+                            contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
                             ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                             renderItem={({ item, index }: { item: any; index: number }) => (
                                 <TouchableOpacity onPress={() => handleStationPress(item)} activeOpacity={0.8}>
