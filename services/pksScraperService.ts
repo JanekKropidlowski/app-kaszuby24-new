@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as he from 'he';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface PKSScheduleEntry {
@@ -13,6 +14,8 @@ export interface PKSStop {
     name: string;
     lat?: number;
     lon?: number;
+    agency?: string;
+    region?: string;
 }
 
 const PKS_BASE_URL = 'https://www.e-podroznik.pl';
@@ -126,6 +129,28 @@ export class PKSScraperService {
     }
 
     /**
+     * Scrape routes from PKS Gdynia website (primary source).
+     * Fallback na e-podroznik.pl, gdy strona zmieni uklad i parser nic nie zwroci.
+     */
+    private static async scrapeRoutesFromWebsite(): Promise<PKSScheduleEntry[]> {
+        const response = await axios.get('https://pksgdynia.pl/rozklad-jazdy/', {
+            timeout: 15000,
+            headers: {
+                'User-Agent': 'Kaszuby24-App/1.0',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
+        });
+
+        const routes = this.parseRoutesFromWebsiteHTML(response.data);
+        if (routes.length > 0) {
+            return routes;
+        }
+
+        console.warn('PKS: parser strony nie znalazl tras, probuje e-podroznik.pl');
+        return this.scrapeRoutesFromEpodroznik();
+    }
+
+    /**
      * Parse routes from PKS website HTML (fallback method)
      */
     private static parseRoutesFromWebsiteHTML(html: string): PKSScheduleEntry[] {
@@ -139,8 +164,8 @@ export class PKSScraperService {
             const [, routeId, lineNumber, routeName] = match;
 
             routes.push({
-                line: lineNumber.trim(),
-                route: routeName.trim(),
+                line: he.decode(lineNumber).trim(),
+                route: he.decode(routeName).trim(),
                 departures: [], // Will be populated when fetching timetable
                 url: `https://pksgdynia.pl/rozklad_jazdy/${routeId}/`
             });
@@ -269,23 +294,6 @@ export class PKSScraperService {
         }
     }
 
-    /**
-     * Scrape stops from PKS website
-     */
-    private static async scrapeStopsFromWebsite(): Promise<PKSStop[]> {
-        const response = await axios.get('https://pksgdynia.pl/rozklad-jazdy/', {
-            timeout: 10000,
-            headers: {
-                'User-Agent': 'Kaszuby24-App/1.0'
-            }
-        });
-
-        return this.parseStopsFromHTML(response.data);
-    }
-
-    /**
-     * Parse stops from HTML (this would need to be customized based on actual HTML structure)
-     */
     /**
      * Load PKS stops from comprehensive data file
      */
