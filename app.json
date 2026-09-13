@@ -219,7 +219,8 @@
             "newArchEnabled": true
           }
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }
