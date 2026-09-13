@@ -31,7 +31,7 @@ import Animated, {
 import { Image as ExpoImage } from 'expo-image';
 const AnimatedImage = Animated.createAnimatedComponent(ExpoImage);
 import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import RenderHtml from 'react-native-render-html';
 

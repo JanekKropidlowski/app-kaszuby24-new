@@ -14,7 +14,7 @@ import {
   SafeAreaView
 } from 'react-native';
 import { useWindowDimensions } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Share2, MapPin, Download, Heart } from 'lucide-react-native';
