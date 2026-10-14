@@ -28,8 +28,12 @@ async function getVoterId(): Promise<string> {
   try {
     let v = await AsyncStorage.getItem(VOTER_KEY);
     if (!v || v.length < 16) {
+      // Hermes nie ma globalnego `crypto` — wcześniej rzucało tu błąd i głos szedł bez identyfikatora.
+      // Do rozróżnienia głosujących wystarczy losowy ciąg.
       const buf = new Uint8Array(16);
-      crypto.getRandomValues(buf);
+      const c = (globalThis as any).crypto;
+      if (c?.getRandomValues) c.getRandomValues(buf);
+      else for (let i = 0; i < buf.length; i++) buf[i] = Math.floor(Math.random() * 256);
       v = Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
       await AsyncStorage.setItem(VOTER_KEY, v);
     }
@@ -37,6 +41,14 @@ async function getVoterId(): Promise<string> {
   } catch {
     return '';
   }
+}
+
+/** 1 głos, 2–4 / 22–24 głosy, 0 / 5–21 / 25… głosów */
+function glosy(n: number): string {
+  if (n === 1) return 'głos';
+  const d = n % 10;
+  const dd = n % 100;
+  return d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? 'głosy' : 'głosów';
 }
 
 export default function ArticlePollWidget({ postId }: { postId: number }) {
@@ -152,7 +164,7 @@ export default function ArticlePollWidget({ postId }: { postId: number }) {
             );
           })}
           <Text style={[styles.total, { color: c.textSecondary, fontFamily: theme.fontFamily.regular }]}>
-            {poll.total} {poll.total === 1 ? 'głos' : poll.total < 5 ? 'głosy' : 'głosów'}
+            {poll.total} {glosy(poll.total)}
           </Text>
         </View>
       ) : (

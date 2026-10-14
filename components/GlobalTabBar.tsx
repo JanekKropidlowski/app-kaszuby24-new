@@ -9,27 +9,21 @@ interface GlobalTabBarProps {
   activeTab?: 'search' | 'saved' | 'home' | 'kalendarz' | 'menu';
 }
 
+/**
+ * Wysokość paska zakładek — wspólna dla elementów, które muszą stać tuż nad nim
+ * (pasek postępu czytania, odtwarzacz, dolny odstęp treści artykułu).
+ */
+export const useGlobalTabBarMetrics = () => {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : Platform.OS === 'ios' ? 32 : 20;
+  const height = Platform.OS === 'ios' ? 110 : 80 + bottomPadding;
+  return { height, bottomPadding };
+};
+
 const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
   const { theme } = useThemeStore();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-
-  // Oblicz właściwy padding dla Androida z safe area
-  const getBottomPadding = () => {
-    if (Platform.OS === 'ios') {
-      return insets.bottom > 0 ? insets.bottom : 32;
-    }
-    // Android: użyj takiej samej logiki jak iOS - tylko safe area
-    return insets.bottom > 0 ? insets.bottom : 20;
-  };
-
-  const getTabBarHeight = () => {
-    if (Platform.OS === 'ios') {
-      return 110;
-    }
-    // Android: bazowa wysokość + padding (takie same jak iOS)
-    return 80 + getBottomPadding();
-  };
+  const { height: tabBarHeight, bottomPadding } = useGlobalTabBarMetrics();
 
   return (
     <View style={[
@@ -38,9 +32,9 @@ const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
         backgroundColor: theme.colors.tabBarBackground,
         borderTopColor: theme.colors.border,
         borderTopWidth: 1,
-        paddingBottom: getBottomPadding(),
+        paddingBottom: bottomPadding,
         paddingTop: Platform.OS === 'android' ? 20 : 16,
-        height: getTabBarHeight()
+        height: tabBarHeight
       }
     ]}>
       <TabBarButton

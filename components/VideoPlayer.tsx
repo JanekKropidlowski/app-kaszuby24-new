@@ -134,8 +134,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = memo(({ url, title, autoPlay = f
                 transition={200}
                 placeholder="Wideo"
                 onError={() => {
-                  // Fallback do ikony play jeśli grafika się nie załaduje
-                  console.warn('YouTube thumbnail failed to load');
+                  // maxresdefault nie istnieje dla filmów bez HD — wtedy mniejsza miniatura, która jest zawsze.
+                  if (youtubeVideoId && thumbnailUrl?.includes('maxresdefault')) {
+                    setThumbnailUrl(`https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`);
+                  } else {
+                    setThumbnailUrl(null);
+                  }
                 }}
               />
             ) : (

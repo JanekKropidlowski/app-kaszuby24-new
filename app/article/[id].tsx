@@ -48,17 +48,18 @@ import {
   Volume2,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Importy komponentów i serwisów
 import { OptimizedLightbox } from '@/components/OptimizedLightbox';
-import { fetchArticleById, fetchArticleBySlug, fetchMediaByIds, fetchRelatedArticles, fetchTagsByIds } from '@/services/api';
+import { fetchArticleById, fetchArticleBySlug, fetchCategories, fetchMediaByIds, fetchRelatedArticles, fetchTagsByIds } from '@/services/api';
 import { analyticsService } from '@/services/analyticsService';
 import { EngagementService } from '@/services/EngagementService';
 import { triggerSupportPrompt } from '@/app/_layout';
 import { Article, MediaItem } from '@/types/article';
 import { useThemeStore } from '@/store/themeStore';
 import { useArticlesStore } from '@/store/articlesStore';
-import GlobalTabBar from '@/components/GlobalTabBar';
+import GlobalTabBar, { useGlobalTabBarMetrics } from '@/components/GlobalTabBar';
 import VideoPlayer from '@/components/VideoPlayer';
 import CoffeeSupportCard from '@/components/CoffeeSupportCard';
 import { shareArticle } from '@/utils/share';
@@ -124,6 +125,29 @@ const getTitleFontSize = (title: string) => {
   return 22;  // Minimalny rozmiar
 };
 
+// Nazwy kategorii do czasu, aż dojdzie lista z API (albo gdy nie ma sieci).
+const FALLBACK_CATEGORY_NAMES: Record<number, string> = {
+  17: 'Bezpieczeństwo', 11: 'Biznes', 24: 'Sport', 22: 'Religia', 2246: 'Zdrowie', 49: 'Nauka', 16: 'Kultura',
+};
+const fallbackCategoryName = (id?: number) => (id && FALLBACK_CATEGORY_NAMES[id]) || 'Aktualności';
+// Lista kategorii pobierana raz na uruchomienie aplikacji, nie przy każdym artykule.
+let categoryNamesCache: Promise<Map<number, string>> | null = null;
+const getCategoryNames = () => {
+  if (!categoryNamesCache) {
+    categoryNamesCache = fetchCategories()
+      .then((list) => new Map(list.map((c) => [c.id, cleanTitle(c.name)] as [number, string])))
+      .catch((err) => {
+        categoryNamesCache = null; // następny artykuł spróbuje jeszcze raz
+        throw err;
+      });
+  }
+  return categoryNamesCache;
+};
+
+// Dymek „Lepiej posłuchaj!” przy głośniku — tylko przy pierwszych artykułach, potem już nie męczy.
+const TTS_TOOLTIP_KEY = 'article-tts-tooltip-shown';
+const TTS_TOOLTIP_MAX_SHOWS = 3;
+
 // 1) mała pomoc do wykrycia "pogrubienia" na spanach
 const isBoldStyle = (style?: string) =>
   !!style && /font-weight\s*:\s*(bold|6\d\d|7\d\d|8\d\d|9\d\d)/i.test(style);
@@ -146,6 +170,7 @@ export default function ArticleScreen() {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [related, setRelated] = useState<Article[]>([]);
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
@@ -168,16 +193,17 @@ export default function ArticleScreen() {
   const [contentLightboxUri, setContentLightboxUri] = useState<string | null>(null);
 
   // Tooltip state dla ikony "czytaj na głos"
-  const [showTtsTooltip, setShowTtsTooltip] = useState(true); // Pokazuje się od razu
-  const tooltipOpacity = useSharedValue(1); // Zaczyna widoczny
-  const tooltipScale = useSharedValue(1); // Zaczyna w pełnym rozmiarze
+  const [showTtsTooltip, setShowTtsTooltip] = useState(false);
+  const tooltipOpacity = useSharedValue(1);
+  const tooltipScale = useSharedValue(1);
 
-  // Stan dla paska postępu czytania
-  const [readingProgress, setReadingProgress] = useState(0);
-  const [showReadingProgress, setShowReadingProgress] = useState(false);
+  // Postęp czytania 0–100 jako shared value: przewijanie nie przerysowuje całego artykułu klatka po klatce.
+  const readingProgress = useSharedValue(0);
+  const { height: tabBarHeight } = useGlobalTabBarMetrics();
 
   const fontScale = useFontScale();
   const [tags, setTags] = useState<ArticleTag[]>([]);
+  const [categoryName, setCategoryName] = useState('');
   const [contentOffsetY, setContentOffsetY] = useState(0);
   const sectionOffsets = useRef<Record<string, number>>({});
 
@@ -208,23 +234,29 @@ export default function ArticleScreen() {
   // Memoizowane props dla RenderHtml — kluczowe dla wydajności
   const htmlBaseStyle = useMemo(() => ({
     color: theme.colors.text,
-    fontSize: Math.round(15 * fontScale),
-    lineHeight: Math.round(22 * fontScale),
+    fontSize: Math.round(16 * fontScale),
+    lineHeight: Math.round(25 * fontScale),
     textAlign: 'left' as const,
     fontFamily: 'Poppins_Regular',
   }), [theme.colors.text, fontScale]);
-  const htmlTagsStyles = useMemo(() => getHtmlViewStyles(theme), [theme]);
+  const htmlTagsStyles = useMemo(() => getHtmlViewStyles(theme, fontScale), [theme, fontScale]);
   const htmlRenderers = useMemo(() => ({
-    iframe: ({ tnode, ...props }: { tnode: any; [key: string]: any }) => {
-      const { src } = tnode.attributes;
+    iframe: ({ tnode }: { tnode: any }) => {
+      const rawSrc: string = tnode.attributes?.src || '';
+      if (!rawSrc) return null;
+      const src = rawSrc.startsWith('//') ? `https:${rawSrc}` : rawSrc;
+      const frameW = parseInt(tnode.attributes?.width || '0', 10);
+      const frameH = parseInt(tnode.attributes?.height || '0', 10);
+      const ratio = frameW > 0 && frameH > 0 ? frameH / frameW : 9 / 16;
+      const frameHeight = Math.round(Math.min((width - 40) * ratio, height * 0.7));
       return (
         <View style={styles.iframeContainer}>
           <WebView
             source={{ uri: src }}
-            style={{ width: '100%', height: 200, borderRadius: 8 }}
+            style={{ width: '100%', height: frameHeight, borderRadius: 8 }}
             allowsFullscreenVideo={true}
-            mediaPlaybackRequiresUserAction={false}
-            {...props}
+            allowsInlineMediaPlayback={true}
+            mediaPlaybackRequiresUserAction={true}
           />
         </View>
       );
@@ -232,7 +264,7 @@ export default function ArticleScreen() {
     img: ({ tnode }: { tnode: any }) => {
       const src = tnode.attributes?.src || '';
       if (!src) return null;
-      const sw = Dimensions.get('window').width - 32;
+      const sw = Dimensions.get('window').width - 40; // = contentWidth treści (karta ma po 20 px z boków)
       const attrW = parseInt(tnode.attributes?.width || '0');
       const attrH = parseInt(tnode.attributes?.height || '0');
       const ratio = attrW && attrH ? attrH / attrW : 0.6;
@@ -290,13 +322,23 @@ export default function ArticleScreen() {
     setTimeout(() => setShowTtsTooltip(false), 200);
   }, [tooltipOpacity, tooltipScale]);
 
-  // Ukryj tooltip po 5 sekundach od wejścia do artykułu
+  // Dymek tylko przy pierwszych artykułach (licznik w pamięci telefonu), znika po 5 s.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      hideTooltip();
-    }, 5000);
-
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    AsyncStorage.getItem(TTS_TOOLTIP_KEY)
+      .then((raw) => {
+        const shown = parseInt(raw || '0', 10) || 0;
+        if (cancelled || shown >= TTS_TOOLTIP_MAX_SHOWS) return;
+        AsyncStorage.setItem(TTS_TOOLTIP_KEY, String(shown + 1)).catch(() => {});
+        setShowTtsTooltip(true);
+        timer = setTimeout(hideTooltip, 5000);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [hideTooltip]);
 
   // Wyjście z artykułu przerywa tylko syntezator systemowy (native TTS nie ma
@@ -316,6 +358,8 @@ export default function ArticleScreen() {
       Alert.alert('Błąd', 'Brak treści do odczytania');
       return;
     }
+
+    if (showTtsTooltip) hideTooltip();
 
     // Debounce - prevent multiple rapid clicks
     if (tts.status === 'loading' || tts.status === 'playing') {
@@ -396,7 +440,7 @@ export default function ArticleScreen() {
       console.error('[TTS] Error starting TTS:', error);
       Alert.alert('Błąd', 'Nie udało się uruchomić czytania: ' + error);
     }
-  }, [article, cleanedContentHtml, tts]);
+  }, [article, cleanedContentHtml, tts, showTtsTooltip, hideTooltip]);
 
   // Stabilne referencje dla lightboxa - zapobiegają przeładowaniu
   const lightboxImages = useMemo(() =>
@@ -431,11 +475,8 @@ export default function ArticleScreen() {
 
   // Płynne przejście shared values
   const screenTranslateY = useSharedValue(0);
-  const scrollOverflow = useSharedValue(0);
-  const isNavigatingHome = useSharedValue(false);
 
   // Stany dla płynnego przejścia
-  const [showHomeHint, setShowHomeHint] = useState(false);
   const [scrollContentHeight, setScrollContentHeight] = useState(0);
   const [scrollViewHeight, setScrollViewHeight] = useState(0);
 
@@ -483,6 +524,18 @@ export default function ArticleScreen() {
 
         setArticle(articleData);
         setIsSaved(isArticleSaved(articleId));
+
+        // Kategoria: od razu nazwa zastępcza, prawdziwa z listy kategorii (ta sama co na głównej, z pamięci podręcznej).
+        const firstCategory = articleData.categories?.[0];
+        setCategoryName(fallbackCategoryName(firstCategory));
+        if (firstCategory) {
+          getCategoryNames()
+            .then((names) => {
+              const name = names.get(firstCategory);
+              if (name) setCategoryName(name);
+            })
+            .catch(() => {});
+        }
 
         // GA4: track article view (page_view + article_view).
         // page_location matches web URL (https://kaszuby24.pl/<slug>) — dashboard
@@ -614,7 +667,7 @@ export default function ArticleScreen() {
     };
 
     loadArticleData();
-  }, [id, isArticleSaved]);
+  }, [id, isArticleSaved, reloadKey]);
 
   // Funkcja do określania aktywnego stanu tabów
   const getActiveTab = () => {
@@ -635,28 +688,6 @@ export default function ArticleScreen() {
     };
   });
 
-  // Animated style dla wskazówki
-  const hintAnimatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      scrollOverflow.value,
-      [0, 50],
-      [0, 1],
-      Extrapolate.CLAMP
-    );
-
-    const translateY = interpolate(
-      scrollOverflow.value,
-      [0, 100],
-      [20, 0],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      opacity,
-      transform: [{ translateY }],
-    };
-  });
-
   // Reset zoom when modal closes
   // Reset zoom when modal closes
   useEffect(() => {
@@ -674,19 +705,18 @@ export default function ArticleScreen() {
         pathname: '/(tabs)/search',
         params: {
           category: article.categories[0].toString(),
-          categoryName: article.categories[0] === 17 ? 'Bezpieczeństwo' :
-            article.categories[0] === 11 ? 'Biznes' :
-              article.categories[0] === 24 ? 'Sport' :
-                article.categories[0] === 22 ? 'Religia' :
-                  article.categories[0] === 2246 ? 'Zdrowie' :
-                    article.categories[0] === 49 ? 'Nauka' :
-                      article.categories[0] === 16 ? 'Kultura' : 'Aktualności'
+          categoryName: categoryName || fallbackCategoryName(article.categories[0]),
         }
       });
     }
   };
 
-  const handleGoBack = () => router.back();
+  // Po wejściu z powiadomienia albo linku artykuł jest pierwszym ekranem — „wstecz” nie ma dokąd wrócić,
+  // więc strzałka prowadzi wtedy na główną (wcześniej nic się nie działo).
+  const handleGoBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
   const handleShare = async () => {
     if (!article) return;
     try {
@@ -868,64 +898,12 @@ export default function ArticleScreen() {
 
 
 
-  // Auto-powrót na główną po scrollu do końca
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
-    const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
-
-    // Sprawdź czy użytkownik przewinął do końca
-    const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 10;
-
-    if (isAtBottom && !showHomeHint) {
-      setShowHomeHint(true);
-    } else if (!isAtBottom && showHomeHint) {
-      setShowHomeHint(false);
-    }
-
-    // Oblicz postęp czytania
-    const maxScroll = contentHeight - scrollViewHeight;
-    const scrollableHeight = Math.max(0, maxScroll);
-    const currentProgress = scrollableHeight > 0 ? Math.min(100, (offsetY / scrollableHeight) * 100) : 0;
-
-    setReadingProgress(currentProgress);
-
-    // Pokaż pasek postępu po przewinięciu 10% treści
-    if (currentProgress > 10 && !showReadingProgress) {
-      setShowReadingProgress(true);
-    } else if (currentProgress <= 10 && showReadingProgress) {
-      setShowReadingProgress(false);
-    }
-
-    // Oblicz overflow scroll
-    const overflow = Math.max(0, offsetY - maxScroll);
-
-    if (overflow > 0 && !isNavigatingHome.value) {
-      scrollOverflow.value = overflow;
-
-      // Mapuj overflow na translateY ekranu
-      const translateYValue = -Math.min(overflow * 0.5, height * 0.8);
-      screenTranslateY.value = translateYValue;
-
-      // Sprawdź czy osiągnięto próg nawigacji
-      if (overflow > height * 0.3) {
-        isNavigatingHome.value = true;
-        runOnJS(navigateToHome)();
-      }
-    } else if (overflow <= 0) {
-      // Resetuj animację gdy użytkownik wraca
-      screenTranslateY.value = withSpring(0);
-      scrollOverflow.value = 0;
-    }
-  };
-
-  const navigateToHome = () => {
-    // Finalna animacja wysunięcia ekranu
-    screenTranslateY.value = withTiming(-height, { duration: 300 }, () => {
-      runOnJS(() => {
-        router.replace('/');
-      })();
-    });
+    const viewportHeight = event.nativeEvent.layoutMeasurement.height;
+    const scrollable = Math.max(0, contentHeight - viewportHeight);
+    readingProgress.value = scrollable > 0 ? Math.min(100, (offsetY / scrollable) * 100) : 0;
   };
 
   const handleScrollViewLayout = (event: any) => {
@@ -939,9 +917,10 @@ export default function ArticleScreen() {
 
   // Render gallery item - zoptymalizowane z memo
   const renderGalleryItem = useCallback(({ item, index }: { item: MediaItem; index: number }) => {
-    // Użyj item.id zamiast actualIndex aby uniknąć duplikacji kluczy
-    const hasFeatured = !!article?.featured_media_url;
-    const actualIndex = (hasFeatured ? 1 : 0) + index;
+    // Pozycja w lightboxie po adresie zdjęcia — zdjęcie główne bywa też w galerii (wtedy nie ma go
+    // na początku listy) i liczenie „+1” otwierało sąsiednie zdjęcie.
+    const found = allImages.findIndex((img) => img.source_url === item.source_url);
+    const actualIndex = found >= 0 ? found : index;
 
     return (
       <TouchableOpacity
@@ -965,7 +944,7 @@ export default function ArticleScreen() {
         />
       </TouchableOpacity>
     );
-  }, [article?.featured_media_url, openImageModal]);
+  }, [allImages, openImageModal]);
 
   // Render related article item - zoptymalizowane z memo
   const renderRelatedArticle = useCallback(({ item, index }: { item: Article; index: number }) => (
@@ -994,8 +973,11 @@ export default function ArticleScreen() {
         </View>
       )}
       <View style={styles.relatedArticleContent}>
-        <Text style={[styles.relatedArticleTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}>
-          {truncateRelatedTitle(item.title.rendered)}
+        <Text
+          style={[styles.relatedArticleTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.semibold }]}
+          numberOfLines={3}
+        >
+          {cleanTitle(item.title.rendered)}
         </Text>
         <View style={styles.relatedArticleMeta}>
           <Text style={[styles.relatedArticleDate, { color: theme.colors.textSecondary, fontFamily: theme.fontFamily.medium }]}>
@@ -1025,10 +1007,21 @@ export default function ArticleScreen() {
   }
   if (error || !article) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: theme.colors.error, fontSize: 18, fontFamily: 'Poppins_Regular' }}>{error || 'Nie znaleziono artykułu'}</Text>
-        <TouchableOpacity onPress={handleGoBack} style={styles.headerButton}>
-          <ArrowLeft size={24} color={theme.colors.text} />
+      <View style={[styles.container, styles.errorScreen, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.errorText, { color: theme.colors.text }]}>{error || 'Nie znaleziono artykułu'}</Text>
+        <Text style={[styles.errorHint, { color: theme.colors.textSecondary }]}>
+          Sprawdź połączenie z internetem i spróbuj jeszcze raz.
+        </Text>
+        <TouchableOpacity
+          onPress={() => setReloadKey((k) => k + 1)}
+          style={[styles.errorButton, { backgroundColor: theme.colors.primary }]}
+          accessibilityRole="button"
+        >
+          <Text style={styles.errorButtonText}>Spróbuj ponownie</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleGoBack} style={styles.errorBack} accessibilityRole="button">
+          <ArrowLeft size={18} color={theme.colors.textSecondary} />
+          <Text style={[styles.errorBackText, { color: theme.colors.textSecondary }]}>Wróć</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1112,7 +1105,10 @@ export default function ArticleScreen() {
 
         {/* Tooltip dla ikony "czytaj na głos" */}
         {showTtsTooltip && (
-          <Animated.View style={[styles.ttsTooltip, tooltipAnimatedStyle]}>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.ttsTooltip, { top: insets.top + (Platform.OS === 'ios' ? 84 : 70) }, tooltipAnimatedStyle]}
+          >
             <Text style={styles.ttsTooltipText}>Po co czytać? Lepiej posłuchaj!</Text>
             {/* Ogonek dymka */}
             <View style={styles.tooltipArrow} />
@@ -1135,15 +1131,19 @@ export default function ArticleScreen() {
           {/* Featured image with gradient overlay */}
           <TouchableOpacity
             style={styles.imageContainer}
-            onPress={() => openImageModal(0)}
+            onPress={() => {
+              // Zdjęcie główne może stać w środku galerii — otwórz lightbox właśnie na nim.
+              const i = allImages.findIndex((img) => img.source_url === article.featured_media_url);
+              openImageModal(i >= 0 ? i : 0);
+            }}
             activeOpacity={0.95}
             accessible={true}
             accessibilityLabel="Zdjęcie główne artykułu"
             accessibilityHint="Kliknij aby powiększyć zdjęcie"
           >
             <ExpoImage
-              source={{ uri: String(article.featured_media_url || article.featured_media) }}
-              style={styles.featuredImage}
+              source={article.featured_media_url ? { uri: article.featured_media_url } : undefined}
+              style={[styles.featuredImage, { backgroundColor: theme.colors.primary }]}
               contentFit="cover"
               allowDownscaling={true}
               cachePolicy="memory-disk"
@@ -1155,7 +1155,7 @@ export default function ArticleScreen() {
 
             {/* Photo credit overlay - nowy */}
             {article?.meta?.foto && (
-              <View style={styles.photoCreditOverlay}>
+              <View style={[styles.photoCreditOverlay, primaryClip ? { bottom: 108 } : null]}>
                 <Text style={styles.photoCreditText}>
                   fot. {article.meta.foto.replace(/^fot\.\s*/i, '')}
                 </Text>
@@ -1179,8 +1179,7 @@ export default function ArticleScreen() {
                   fontWeight: Platform.OS === 'android' ? 'normal' : '700',
                 },
               ]}
-              numberOfLines={4}
-              ellipsizeMode="tail"
+              accessibilityRole="header"
             >
               {cleanTitle(article.title.rendered)}
             </Text>
@@ -1196,15 +1195,15 @@ export default function ArticleScreen() {
 
               {/* Kategoria w jednej linii z datą */}
               {article?.categories && article.categories.length > 0 && (
-                <TouchableOpacity onPress={handleCategoryPress}>
-                  <Text style={[styles.categoryText, { color: '#FFFFFF', fontFamily: theme.fontFamily.medium }]}>
-                    {article.categories[0] === 17 ? 'Bezpieczeństwo' :
-                      article.categories[0] === 11 ? 'Biznes' :
-                        article.categories[0] === 24 ? 'Sport' :
-                          article.categories[0] === 22 ? 'Religia' :
-                            article.categories[0] === 2246 ? 'Zdrowie' :
-                              article.categories[0] === 49 ? 'Nauka' :
-                                article.categories[0] === 16 ? 'Kultura' : 'Aktualności'}
+                <TouchableOpacity
+                  onPress={handleCategoryPress}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Więcej z kategorii ${categoryName}`}
+                  style={styles.categoryTouch}
+                >
+                  <Text style={[styles.categoryText, { color: '#FFFFFF', fontFamily: theme.fontFamily.medium }]} numberOfLines={1}>
+                    {categoryName || fallbackCategoryName(article.categories[0])}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -1301,7 +1300,9 @@ export default function ArticleScreen() {
               }
             ]}>
               <Text style={[styles.galleryTitle, { color: theme.colors.text, fontFamily: theme.fontFamily.bold }]}>
-                Galeria
+                Galeria{!galleryLoading && galleryImages.length > 0 ? (
+                  <Text style={{ color: theme.colors.textSecondary, fontFamily: theme.fontFamily.regular }}>{`  (${galleryImages.length})`}</Text>
+                ) : null}
               </Text>
 
               {galleryLoading ? (
@@ -1434,31 +1435,25 @@ export default function ArticleScreen() {
           )}
 
 
-          {/* Wskazówka płynnego przejścia */}
-          <Animated.View style={[styles.homeHintContainer, hintAnimatedStyle]}>
-            <View style={[styles.homeHint, { backgroundColor: theme.colors.primary }]}>
-              <ChevronUp size={20} color="#FFFFFF" />
-              <Text style={[styles.homeHintText, { fontFamily: theme.fontFamily.regular }]}>Przewiń, by wrócić na stronę główną</Text>
-            </View>
-          </Animated.View>
-
-          {/* Dodatkowy padding na końcu dla płynnego przejścia */}
-          <View style={styles.bottomPadding} />
+          {/* Miejsce pod paskiem zakładek (i odtwarzaczem, gdy gra), żeby koniec strony dało się przewinąć nad nie */}
+          <View style={{ height: tabBarHeight + (tts.isVisible ? 96 : 32) }} />
         </ScrollView>
       </Animated.View>
 
       {/* Pasek postępu czytania - ukryty gdy player jest aktywny */}
-      {showReadingProgress && !tts.isVisible && (
+      {!tts.isVisible && (
         <ReadingProgressBar
           progress={readingProgress}
-          currentPosition={0}
-          totalHeight={0}
+          tabBarHeight={tabBarHeight}
+          backgroundColor={theme.colors.card}
         />
       )}
 
       {/* Mini-player TTS – POD TAB BAREM Z BIAŁYM TŁEM */}
       {tts.isVisible && (
         <View style={[styles.articleTtsPlayerContainer, {
+          bottom: tabBarHeight - 10, // jak na ekranach z zakładkami: tuż nad paskiem
+          backgroundColor: theme.colors.card,
           zIndex: 1,
           elevation: 1
         }]}>
@@ -1471,10 +1466,7 @@ export default function ArticleScreen() {
             label={tts.categoryLabel}
             subtitle={tts.subtitle}
             photoUrl={tts.photoUrl}
-            onPlayPause={() => {
-              if (tts.status === 'playing') tts.pause();
-              else if (tts.status === 'paused') tts.resume();
-            }}
+            onPlayPause={() => tts.toggle()}
             onStop={() => tts.stop()}
           />
         </View>
@@ -1525,12 +1517,17 @@ export default function ArticleScreen() {
 }
 // Forced Rebuild 01
 
-const getHtmlViewStyles = (theme: any) => ({
+// fontScale = ustawienie „Wielkość tekstu” — akapity, listy, nagłówki i tabele mają własne rozmiary,
+// więc skala musi wejść tutaj (sam baseStyle ich nie zmienia).
+const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
+  const fs = (n: number) => Math.round(n * fontScale);
+  const linkColor = theme.isDarkMode ? '#8DB0E8' : '#224A96';
+  return ({
   // Główny styl dla całej treści
   body: {
     fontFamily: 'Poppins_Regular' as any,
-    fontSize: 15 as any,
-    lineHeight: 22 as any,
+    fontSize: fs(16) as any,
+    lineHeight: fs(25) as any,
     color: theme.colors.text as any,
     backgroundColor: 'transparent' as any,
     textAlign: 'left' as any,
@@ -1549,33 +1546,33 @@ const getHtmlViewStyles = (theme: any) => ({
   // Paragrafy - mniejsze odstępy
   p: {
     fontFamily: 'Poppins_Regular' as any,
-    fontSize: 15 as any,
-    lineHeight: 22 as any,
+    fontSize: fs(16) as any,
+    lineHeight: fs(25) as any,
     color: theme.colors.text as any,
-    marginBottom: 8,
+    marginBottom: 12,
     marginTop: 0,
   },
   // Nagłówki - mniejsze odstępy
   h2: {
     fontFamily: 'Poppins_SemiBold' as any,
-    fontSize: 19 as any,
-    lineHeight: 26 as any,
+    fontSize: fs(19) as any,
+    lineHeight: fs(26) as any,
     marginTop: 12,
     marginBottom: 6,
     color: theme.colors.text as any,
   },
   h3: {
     fontFamily: 'Poppins_SemiBold' as any,
-    fontSize: 17 as any,
-    lineHeight: 24 as any,
+    fontSize: fs(17) as any,
+    lineHeight: fs(24) as any,
     marginTop: 10,
     marginBottom: 5,
     color: theme.colors.text as any,
   },
   h4: {
     fontFamily: 'Poppins_SemiBold' as any,
-    fontSize: 16 as any,
-    lineHeight: 22 as any,
+    fontSize: fs(16) as any,
+    lineHeight: fs(22) as any,
     marginTop: 8,
     marginBottom: 4,
     color: theme.colors.text as any,
@@ -1593,14 +1590,14 @@ const getHtmlViewStyles = (theme: any) => ({
   },
   li: {
     fontFamily: 'Poppins_Regular' as any,
-    fontSize: 15 as any,
-    lineHeight: 22 as any,
+    fontSize: fs(16) as any,
+    lineHeight: fs(25) as any,
     color: theme.colors.text as any,
     marginBottom: 4,
   },
   // Linki - kolor aplikacji
   a: {
-    color: '#224A96' as any,
+    color: linkColor as any,
     textDecorationLine: 'underline' as any,
     fontFamily: 'Poppins_Regular' as any,
   },
@@ -1615,7 +1612,7 @@ const getHtmlViewStyles = (theme: any) => ({
   },
   figcaption: {
     color: theme.colors.textSecondary as any,
-    fontSize: 11 as any, // Zmniejszone z 12 na 11
+    fontSize: fs(12) as any,
     textAlign: 'center' as any,
     marginTop: 2,
     fontFamily: 'Poppins_Regular' as any,
@@ -1624,7 +1621,7 @@ const getHtmlViewStyles = (theme: any) => ({
   blockquote: {
     marginVertical: 0,
     borderLeftWidth: 3,
-    borderLeftColor: '#224A96' as any,
+    borderLeftColor: linkColor as any,
     paddingLeft: 16,
     paddingRight: 12,
     paddingVertical: 12,
@@ -1659,7 +1656,7 @@ const getHtmlViewStyles = (theme: any) => ({
   },
   th: {
     fontFamily: 'Poppins_SemiBold' as any,
-    fontSize: 13 as any, // Zmniejszone z 14 na 13
+    fontSize: fs(13) as any, // Zmniejszone z 14 na 13
     padding: 8,
     backgroundColor: (theme.colors.card + '10') as any,
     borderBottomWidth: 1,
@@ -1668,7 +1665,7 @@ const getHtmlViewStyles = (theme: any) => ({
   },
   td: {
     fontFamily: 'Poppins_Regular' as any,
-    fontSize: 13 as any, // Zmniejszone z 14 na 13
+    fontSize: fs(13) as any, // Zmniejszone z 14 na 13
     padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border as any,
@@ -1696,7 +1693,7 @@ const getHtmlViewStyles = (theme: any) => ({
   // Code - dla kodu
   code: {
     fontFamily: 'monospace' as any,
-    fontSize: 13 as any,
+    fontSize: fs(13) as any,
     backgroundColor: (theme.colors.card + '10') as any,
     padding: 4,
     borderRadius: 4,
@@ -1704,7 +1701,7 @@ const getHtmlViewStyles = (theme: any) => ({
   // Pre - dla bloków kodu
   pre: {
     fontFamily: 'monospace' as any,
-    fontSize: 13 as any,
+    fontSize: fs(13) as any,
     backgroundColor: (theme.colors.card + '10') as any,
     padding: 12,
     borderRadius: 6,
@@ -1712,6 +1709,7 @@ const getHtmlViewStyles = (theme: any) => ({
     overflow: 'scroll' as any,
   },
 });
+};
 
 const styles = StyleSheet.create({
   rootContainer: {
@@ -1755,7 +1753,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 40,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 120, // Increased for GlobalTabBar
+    paddingBottom: 24, // miejsce na pasek zakładek daje dopiero odstęp na samym końcu strony
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.15,
@@ -2167,8 +2165,9 @@ const styles = StyleSheet.create({
   },
   relatedArticleContent: {
     flex: 1,
-    padding: 20,
-    paddingLeft: 8,
+    paddingVertical: 14,
+    paddingRight: 14,
+    paddingLeft: 4,
     justifyContent: 'space-between',
   },
   relatedArticleMeta: {
@@ -2194,6 +2193,49 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  errorScreen: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontFamily: 'Poppins_SemiBold',
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  errorHint: {
+    fontFamily: 'Poppins_Regular',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  errorButton: {
+    marginTop: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  errorButtonText: {
+    color: '#FFFFFF',
+    fontFamily: 'Poppins_SemiBold',
+    fontSize: 15,
+  },
+  errorBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    padding: 10,
+  },
+  errorBackText: {
+    fontFamily: 'Poppins_Medium',
+    fontSize: 14,
+  },
+  categoryTouch: {
+    flexShrink: 1,
+    maxWidth: '58%',
+    marginLeft: 12,
+  },
   categoryText: {
     fontSize: 12, // Mniejszy font
     fontWeight: '600',
@@ -2710,7 +2752,7 @@ const styles = StyleSheet.create({
   },
   ttsTooltip: {
     position: 'absolute',
-    top: 110, // Pozycja jeszcze niżej (było 90)
+    top: 110, // nadpisywane w miejscu użycia — liczone od safe area
     right: 80, // Przesunięte bardziej w lewo, żeby ogonek wskazywał na ikonę głośnika
     backgroundColor: '#FFFFFF',
     borderRadius: 12,

@@ -155,7 +155,7 @@ export default function ArticleFbComments({ postId }: { postId: number }) {
             <Text style={[styles.countBadge, { color: c.textSecondary }]}>  ({totalCount})</Text>
           </Text>
           <View style={[styles.fbBadge, { borderColor: c.border }]}>
-            <Text style={[styles.fbBadgeText, { color: c.textSecondary }]}>f</Text>
+            <Text style={styles.fbBadgeText}>f</Text>
           </View>
         </View>
         {fbUrl && (
@@ -205,7 +205,7 @@ export default function ArticleFbComments({ postId }: { postId: number }) {
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginBottom: 24,
     paddingTop: 20,
     borderTopWidth: 1,

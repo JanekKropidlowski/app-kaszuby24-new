@@ -1,59 +1,62 @@
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
+import Animated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
 interface ReadingProgressBarProps {
-  progress: number; // 0-100
-  currentPosition: number; // aktualna pozycja w pikselach
-  totalHeight: number; // całkowita wysokość treści
+  /** Postęp 0–100 jako shared value — przewijanie nie przerysowuje całego ekranu artykułu. */
+  progress: SharedValue<number>;
+  /** Wysokość paska zakładek; pasek postępu wystaje nad nim zawsze o tyle samo (iOS i Android). */
+  tabBarHeight: number;
+  backgroundColor: string;
 }
 
 const YELLOW = '#fecc00';
+const BAR_HEIGHT = 35;
+// Ile paska chowa się pod zaokrągloną górą paska zakładek — widoczne zostaje 15 px.
+const TUCKED = 20;
 
-export const ReadingProgressBar = ({ progress, currentPosition, totalHeight }: ReadingProgressBarProps) => {
+export const ReadingProgressBar = ({ progress, tabBarHeight, backgroundColor }: ReadingProgressBarProps) => {
+  // Pasek pojawia się po przeczytaniu 10% tekstu, jak wcześniej.
+  const containerStyle = useAnimatedStyle(() => ({ opacity: progress.value > 10 ? 1 : 0 }));
+  const fillStyle = useAnimatedStyle(() => ({ width: `${Math.min(progress.value, 100)}%` }));
+
   return (
-    <View style={styles.container}>
-      {/* Progress bar */}
-      <View style={styles.progressBarBg}>
-        <View 
-          style={[
-            styles.progressBar, 
-            { width: `${Math.min(progress, 100)}%` }
-          ]} 
-        />
-      </View>
-    </View>
+    <Animated.View
+      pointerEvents="none"
+      style={[styles.container, { bottom: tabBarHeight - TUCKED, backgroundColor }, containerStyle]}
+    >
+      <Animated.View style={styles.track}>
+        <Animated.View style={[styles.fill, fillStyle]} />
+      </Animated.View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: Platform.OS === 'android' ? 116 : 90,
     left: 0,
     right: 0,
-    backgroundColor: Platform.OS === 'android' ? 'transparent' : '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-    paddingHorizontal: 0, // Usunięty padding poziomy
-    paddingVertical: 0, // Usunięty padding pionowy - pasek wypełni całą wysokość
     zIndex: 30,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: Platform.OS === 'android' ? 20 : 3,
+    elevation: 3,
   },
-  progressBarBg: {
-    height: 35, // Jeszcze grubszy pasek (było 20)
+  track: {
+    height: BAR_HEIGHT,
     backgroundColor: 'rgba(0,0,0,0.1)',
-    borderTopLeftRadius: 8, // Zaokrąglenie od góry lewej
-    borderTopRightRadius: 8, // Zaokrąglenie od góry prawej
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     overflow: 'hidden',
   },
-  progressBar: {
-    height: 35, // Jeszcze grubszy pasek (było 20)
+  fill: {
+    height: BAR_HEIGHT,
     backgroundColor: YELLOW,
-    borderTopLeftRadius: 8, // Zaokrąglenie od góry lewej
-    borderTopRightRadius: 8, // Zaokrąglenie od góry prawej
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
   },
 });

@@ -87,7 +87,8 @@ const styles = StyleSheet.create({
   chip: {
     position: 'absolute',
     left: 16,
-    bottom: 16,
+    // Karta z treścią wjeżdża 40 px na zdjęcie — niżej plakietka chowała się pod nią do połowy.
+    bottom: 54,
     maxWidth: '82%',
     flexDirection: 'row',
     alignItems: 'center',
