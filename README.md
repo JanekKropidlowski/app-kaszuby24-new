@@ -28,6 +28,10 @@ eas submit --platform ios | tail    # GOTCHA: bez |tail submit potrafi zawiesic 
 eas update --branch production      # OTA, uruchamiac Z KATALOGU apps/mobile
 ```
 
+OTA (stan 14.10.2026): `eas update` eksportuje też web, a web się nie buduje (`react-native-image-viewing` w `app/waste`) —
+na czas publikacji dopisz w `app.json` `"platforms": ["ios", "android"]`. Publikujemy dwa razy: z `runtimeVersion` 1.1.2
+i 1.1.1 (starsza binarka w sklepach), potem przywróć `app.json`. Cofnięcie: `eas update:republish --group <poprzednia grupa>`.
+
 Mapa całego ekosystemu (5 aplikacji): [`kaszuby24-nextjs/docs/EKOSYSTEM.md`](https://github.com/JanekKropidlowski/kaszuby24-www/blob/main/docs/EKOSYSTEM.md).
 
 ---
