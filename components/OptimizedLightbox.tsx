@@ -55,6 +55,11 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0);
+  // Stan po zakończeniu gestu — kolejne rozsunięcie palców / przesunięcie zaczyna od tego miejsca,
+  // a nie od zera (wcześniej każdy pinch resetował zoom, a przybliżonego zdjęcia nie dało się przesunąć).
+  const savedScale = useSharedValue(1);
+  const savedX = useSharedValue(0);
+  const savedY = useSharedValue(0);
 
   // Refs
   const imageRefs = useRef<{ [key: number]: ExpoImage | null }>({});
@@ -104,63 +109,82 @@ export const OptimizedLightbox: React.FC<OptimizedLightboxProps> = ({
       translateX.value = withSpring(0);
       translateY.value = withSpring(0);
       scale.value = withSpring(1);
+      savedScale.value = 1;
+      savedX.value = 0;
+      savedY.value = 0;
     }
   }, [images.length, onIndexChange, preloadAdjacentImages, loadedImages]);
 
-  // Gesty - Pan
+  // Gesty - Pan: przy zoomie przesuwa zdjęcie, bez zoomu przełącza (w bok) albo zamyka (w pionie)
   const pan = Gesture.Pan()
     .onUpdate((event) => {
       'worklet';
-      if (scale.value === 1) {
+      if (scale.value > 1) {
+        translateX.value = savedX.value + event.translationX;
+        translateY.value = savedY.value + event.translationY;
+      } else {
         translateX.value = event.translationX;
         translateY.value = event.translationY;
       }
     })
     .onEnd((event) => {
       'worklet';
-      if (scale.value === 1) {
-        // Swipe do zamknięcia
-        if (Math.abs(event.translationY) > 100) {
-          runOnJS(onClose)();
-        }
-        // Swipe do zmiany zdjęcia
-        else if (Math.abs(event.translationX) > 100) {
-          if (event.translationX > 0 && currentIndex > 0) {
-            runOnJS(changeIndex)(currentIndex - 1);
-          } else if (event.translationX < 0 && currentIndex < images.length - 1) {
-            runOnJS(changeIndex)(currentIndex + 1);
-          }
-        }
-
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
+      if (scale.value > 1) {
+        savedX.value = translateX.value;
+        savedY.value = translateY.value;
+        return;
       }
+      const horizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
+      if (horizontal) {
+        // Krótki szybki ruch też przełącza (prędkość), nie tylko długie przeciągnięcie.
+        const swiped = Math.abs(event.translationX) > 80 || Math.abs(event.velocityX) > 600;
+        if (swiped && event.translationX > 0 && currentIndex > 0) {
+          runOnJS(changeIndex)(currentIndex - 1);
+        } else if (swiped && event.translationX < 0 && currentIndex < images.length - 1) {
+          runOnJS(changeIndex)(currentIndex + 1);
+        }
+      } else if (Math.abs(event.translationY) > 100 || Math.abs(event.velocityY) > 900) {
+        runOnJS(onClose)();
+      }
+      translateX.value = withSpring(0);
+      translateY.value = withSpring(0);
     });
 
-  // Gesty - Pinch
+  // Gesty - Pinch (zoom od bieżącego powiększenia, 1–4×)
   const pinch = Gesture.Pinch()
     .onUpdate((event) => {
       'worklet';
-      scale.value = Math.max(1, Math.min(event.scale, 3));
+      scale.value = Math.max(1, Math.min(savedScale.value * event.scale, 4));
     })
     .onEnd(() => {
       'worklet';
-      if (scale.value < 1) {
+      if (scale.value <= 1.02) {
         scale.value = withSpring(1);
+        savedScale.value = 1;
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+        savedX.value = 0;
+        savedY.value = 0;
+      } else {
+        savedScale.value = scale.value;
       }
     });
 
-  // Obsługa podwójnego stuknięcia do resetowania zoomu
+  // Podwójne stuknięcie: przybliż 2× albo wróć do całego zdjęcia
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
       'worklet';
       if (scale.value > 1) {
         scale.value = withSpring(1);
+        savedScale.value = 1;
         translateX.value = withSpring(0);
         translateY.value = withSpring(0);
+        savedX.value = 0;
+        savedY.value = 0;
       } else {
         scale.value = withSpring(2);
+        savedScale.value = 2;
       }
     });
 
