@@ -59,4 +59,12 @@ nie na telefonie.
 - 15.10: Paczka 1 (punkty 1–8) wdrożona w `db7c775`, OTA grupy `f6e7065e` (1.1.2) / `3dd384cb` (1.1.1).
   Nie testowane na telefonie – sprawdzić: start bez sieci, przewijanie Home, tryb ciemny po restarcie,
   Niezbędnik na Androidzie (wielkość ikon z `image=` zależy od gęstości ekranu), Wstecz w modalach.
-  Do zrobienia: Paczka 2, Paczka 3.
+- 15.10: Paczka 2 wdrożona (`5bdd726`, `aa5e07e`, `b36e9e9`, `27744cc`), OTA grupy `56452ace` (1.1.2) / `cadf8b6e` (1.1.1).
+  Zrobione: Pogoda (dane z godziny „teraz”, Wejherowo bez GPS, ekran błędu), Szukaj/Kalendarz/Odpady (błąd ≠ brak
+  wyników), Rozkład (stany błędu, cache przystanków v2 + TTL 24 h, GPS dopiero przy „Skąd”, przycisk „Odjazdy z
+  przystanku”, literówki), Home (kategorie bez pełnoekranowego szkieletu, start bez podwójnego pobierania), prośba o
+  wsparcie po wyjściu z artykułu, api.ts 12 s × 1 ponowienie. Nie testowane na telefonie.
+  Odjazdy z przystanku: dopisany tylko podpis przycisku – wyszukiwanie po wszystkich przewoźnikach naraz w
+  `TimetableModal` jeszcze NIE zrobione. KeyboardAvoidingView `behavior="padding"` na Androidzie jest celowy
+  (komentarz w kodzie, edge-to-edge) – audyt się tu mylił.
+  Do zrobienia: Paczka 3 + wyszukiwanie przystanku po wszystkich przewoźnikach.
