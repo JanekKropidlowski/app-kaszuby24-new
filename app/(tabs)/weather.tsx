@@ -45,52 +45,37 @@ import { fetchForecast, fetchAllWarnings, filterWarningsForPomeranianVoivodeship
 import { useRouter } from 'expo-router';
 import { testNetworkConnectivity } from '@/utils/androidNetworkHelper';
 
-// Simplified mock data
-const mockCurrentWeather = {
-  temperature: 18.5,
-  condition: 'Partly cloudy',
-  wmoCode: 3,
-  humidity: 65,
-  windSpeed: 12.3,
-  pressure: 1013.2,
-  feelsLike: 16.8,
-  uvIndex: 4,
-  visibility: 10.2,
-  precipitation: 0.0,
+// Stan startowy – nigdy nie pokazywany użytkownikowi (ekran czeka na prognozę z Open-Meteo,
+// a bez niej pokazuje błąd). Wcześniej tu były wymyślone liczby udające prawdziwą pogodę.
+const emptyCurrentWeather = {
+  temperature: 0,
+  condition: '',
+  wmoCode: 0,
+  humidity: 0,
+  windSpeed: 0,
+  pressure: 0,
+  feelsLike: 0,
+  uvIndex: 0,
+  visibility: 0,
+  precipitation: 0,
+  windDirection: 0,
 };
 
-const mockHourlyData = Array.from({ length: 24 }, (_, i) => {
-  const hour = new Date(Date.now() + i * 60 * 60 * 1000).getHours();
-  const baseTemp = 15;
-  const tempVariation = Math.sin((hour - 6) * Math.PI / 12) * 8;
-  const temp = baseTemp + tempVariation + (Math.random() - 0.5) * 2;
+// Bez zgody na lokalizację pokazujemy pogodę dla Wejherowa (stolica regionu), zamiast ślepego zaułka.
+const DEFAULT_COORDS = { latitude: 54.6055, longitude: 18.2355 };
+const DEFAULT_CITY = 'Wejherowo';
 
-  return {
-    time: new Date(Date.now() + i * 60 * 60 * 1000).toISOString(),
-    temperature: Math.round(temp * 10) / 10,
-    wmoCode: hour >= 6 && hour <= 18 ? (Math.random() > 0.7 ? 3 : 1) : (Math.random() > 0.8 ? 2 : 0),
-    precipitation: hour >= 14 && hour <= 18 ? Math.random() * 2.5 : Math.random() * 0.3,
-    windSpeed: 8 + Math.sin(hour * Math.PI / 12) * 4 + (Math.random() - 0.5) * 2,
-    humidity: 60 + Math.sin(hour * Math.PI / 12) * 15 + (Math.random() - 0.5) * 10,
-  };
-});
-
-const mockWeeklyData = Array.from({ length: 7 }, (_, i) => {
-  const date = new Date(Date.now() + i * 24 * 60 * 60 * 1000);
-  const dayOfWeek = date.getDay();
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-  return {
-    date: date.toISOString(),
-    wmoCode: isWeekend ? (Math.random() > 0.6 ? 3 : 1) : (Math.random() > 0.8 ? 2 : 1),
-    maxTemp: 18 + Math.sin(i * Math.PI / 7) * 8 + (Math.random() - 0.5) * 4,
-    minTemp: 8 + Math.sin(i * Math.PI / 7) * 6 + (Math.random() - 0.5) * 3,
-    precipitation: isWeekend ? Math.random() * 0.8 : Math.random() * 0.4,
-    windSpeed: 10 + Math.sin(i * Math.PI / 7) * 5 + (Math.random() - 0.5) * 3,
-  };
-});
-
-
+// Indeks godziny „teraz” w tablicach hourly (Open-Meteo zaczyna od północy, więc [0] to nie jest teraz).
+const currentHourIndex = (f: any): number => {
+  const now = f?.current_weather?.time;
+  const times = f?.hourly?.time;
+  if (!now || !Array.isArray(times)) return 0;
+  let idx = 0;
+  for (let i = 0; i < times.length; i++) {
+    if (times[i] <= now) idx = i; else break;
+  }
+  return idx;
+};
 
 export default function WeatherScreen() {
   const insets = useSafeAreaInsets();
@@ -110,11 +95,14 @@ export default function WeatherScreen() {
 
 
   // Simplified state management
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentWeather, setCurrentWeather] = useState(mockCurrentWeather);
-  const [hourlyData, setHourlyData] = useState(mockHourlyData);
-  const [weeklyData, setWeeklyData] = useState(mockWeeklyData);
+  const [currentWeather, setCurrentWeather] = useState(emptyCurrentWeather);
+  const [hourlyData, setHourlyData] = useState<any[]>([]);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [hasForecast, setHasForecast] = useState(false);
+  const [usingDefaultLocation, setUsingDefaultLocation] = useState(false);
+  const lastCoordsRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
   const [alerts, setAlerts] = useState<any[]>([]);
   const [allAlerts, setAllAlerts] = useState<any[]>([]);
@@ -156,10 +144,12 @@ export default function WeatherScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status !== 'granted') {
-        setError('Brak uprawnień do lokalizacji');
-        setLoading(false);
+        setUsingDefaultLocation(true);
+        setUserCityName(DEFAULT_CITY);
+        await fetchWeatherData(DEFAULT_COORDS as Location.LocationObjectCoords);
         return;
       }
+      setUsingDefaultLocation(false);
 
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
@@ -185,7 +175,9 @@ export default function WeatherScreen() {
 
     } catch (err) {
       console.error('Błąd pobierania lokalizacji:', err);
-      setError('Nie udało się pobrać lokalizacji');
+      setUsingDefaultLocation(true);
+      setUserCityName(DEFAULT_CITY);
+      await fetchWeatherData(DEFAULT_COORDS as Location.LocationObjectCoords);
     } finally {
       setLoading(false);
     }
@@ -194,6 +186,7 @@ export default function WeatherScreen() {
   // Enhanced weather data fetching with IMGW integration
   const fetchWeatherData = useCallback(async (coords: Location.LocationObjectCoords) => {
     try {
+      lastCoordsRef.current = { latitude: coords.latitude, longitude: coords.longitude };
       const online = await testNetworkConnectivity();
       setIsOnline(online);
       setError(null);
@@ -222,13 +215,24 @@ export default function WeatherScreen() {
         setForecastData(forecast.value);
 
         if (forecast.value.current_weather) {
+          const h = forecast.value.hourly || {};
+          const n = currentHourIndex(forecast.value);
+          const pick = (arr: any, fallback: number) => (Array.isArray(arr) && arr[n] != null ? Number(arr[n]) : fallback);
+          const cw = forecast.value.current_weather;
           setCurrentWeather(prev => ({
             ...prev,
-            temperature: forecast.value.current_weather.temperature,
-            condition: getWeatherCondition(forecast.value.current_weather.weathercode),
-            wmoCode: forecast.value.current_weather.weathercode,
-            windSpeed: forecast.value.current_weather.windspeed,
+            temperature: cw.temperature,
+            condition: getWeatherCondition(cw.weathercode),
+            wmoCode: cw.weathercode,
+            windSpeed: cw.windspeed,
+            windDirection: cw.winddirection ?? pick(h.winddirection_10m, 0),
+            feelsLike: pick(h.apparent_temperature, cw.temperature),
+            humidity: Math.round(pick(h.relativehumidity_2m, 0)),
+            pressure: Math.round(pick(h.pressure_msl, 0)),
+            visibility: Math.round(pick(h.visibility, 0) / 100) / 10, // m -> km
+            uvIndex: Math.round(pick(h.uv_index, 0) * 10) / 10,
           }));
+          setHasForecast(true);
         }
 
         if (forecast.value.hourly && Array.isArray(forecast.value.hourly.time)) {
@@ -407,7 +411,7 @@ export default function WeatherScreen() {
     } catch (err) {
       console.error('Błąd pobierania danych pogodowych:', err);
       setIsOnline(false);
-      setError('Błąd połączenia z internetem');
+      setError('Nie udało się pobrać prognozy. Sprawdź połączenie z internetem.');
     }
   }, []);
 
@@ -459,8 +463,8 @@ export default function WeatherScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    if (userLocation) {
-      await fetchWeatherData(userLocation.coords);
+    if (lastCoordsRef.current) {
+      await fetchWeatherData(lastCoordsRef.current as Location.LocationObjectCoords);
     }
     setRefreshing(false);
   };
@@ -488,8 +492,8 @@ export default function WeatherScreen() {
   const handleConfigChange = (newConfig: any) => {
     setConfig(newConfig);
     // Force refresh to apply new configuration
-    if (userLocation) {
-      fetchWeatherData(userLocation.coords);
+    if (lastCoordsRef.current) {
+      fetchWeatherData(lastCoordsRef.current as Location.LocationObjectCoords);
     }
   };
 
@@ -501,15 +505,15 @@ export default function WeatherScreen() {
     );
   }
 
-  if (error && !userLocation) {
+  if (!hasForecast) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <EmptyState
           icon={<AlertCircle size={48} color={theme.colors.error} />}
-          title="Błąd lokalizacji"
-          message={error}
+          title="Brak danych pogodowych"
+          message={error || 'Nie udało się pobrać prognozy.'}
           actionLabel="Spróbuj ponownie"
-          onAction={getCurrentLocation}
+          onAction={() => { lastCoordsRef.current ? handleRefresh() : getCurrentLocation(); }}
         />
       </SafeAreaView>
     );
@@ -604,6 +608,19 @@ export default function WeatherScreen() {
         <Animated.View
           style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
         >
+          {usingDefaultLocation && (
+            <TouchableOpacity
+              onPress={getCurrentLocation}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Włącz lokalizację"
+              style={{ paddingVertical: 10, paddingHorizontal: 4 }}
+            >
+              <Text style={{ color: theme.colors.textSecondary ?? theme.colors.text, fontSize: 13 }}>
+                Pogoda dla miejscowości {DEFAULT_CITY}. Dotknij, aby użyć swojej lokalizacji.
+              </Text>
+            </TouchableOpacity>
+          )}
           <WeatherHero
             temperature={currentWeather.temperature}
             feelsLike={currentWeather.feelsLike}
@@ -613,7 +630,7 @@ export default function WeatherScreen() {
             uvIndex={currentWeather.uvIndex}
             pressure={currentWeather.pressure}
             visibility={currentWeather.visibility}
-            windDirection={45}
+            windDirection={currentWeather.windDirection}
             onDetailsPress={() => setWeatherDetailsModalVisible(true)}
           />
 
@@ -774,7 +791,7 @@ export default function WeatherScreen() {
         presentationStyle="pageSheet"
       >
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-          {currentWeather && (
+          {hasForecast && (
             <View style={styles.weatherDetailsContainer}>
               {/* Podsumowanie */}
               <View style={[styles.weatherSummaryCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
@@ -838,28 +855,28 @@ export default function WeatherScreen() {
                     <Cloud size={18} color={theme.colors.info} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Zachmurzenie</Text>
-                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.cloudcover?.[0] ?? '—'}%</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.cloudcover?.[currentHourIndex(forecastData)] ?? '—'}%</Text>
                 </View>
                 <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                   <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.warning + '15' }]}>
                     <Droplets size={18} color={theme.colors.warning} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Szansa opadów</Text>
-                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.precipitation_probability?.[0] ?? '—'}%</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.precipitation_probability?.[currentHourIndex(forecastData)] ?? '—'}%</Text>
                 </View>
                 <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                   <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
                     <Thermometer size={18} color={theme.colors.primary} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Punkt rosy</Text>
-                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.dew_point_2m?.[0] != null ? `${Math.round(forecastData.hourly.dew_point_2m[0])}°C` : '—'}</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.dew_point_2m?.[currentHourIndex(forecastData)] != null ? `${Math.round(forecastData.hourly.dew_point_2m[currentHourIndex(forecastData)])}°C` : '—'}</Text>
                 </View>
                 <View style={[styles.tile, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
                   <View style={[styles.tileIconContainer, { backgroundColor: theme.colors.secondary + '15' }]}>
                     <Wind size={18} color={theme.colors.secondary} />
                   </View>
                   <Text style={[styles.tileLabel, { color: theme.colors.textSecondary }]}>Porywy</Text>
-                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.wind_gusts_10m?.[0] != null ? `${Math.round(forecastData.hourly.wind_gusts_10m[0])} km/h` : '—'}</Text>
+                  <Text style={[styles.tileValue, { color: theme.colors.text }]}>{forecastData?.hourly?.wind_gusts_10m?.[currentHourIndex(forecastData)] != null ? `${Math.round(forecastData.hourly.wind_gusts_10m[currentHourIndex(forecastData)])} km/h` : '—'}</Text>
                 </View>
               </View>
 
