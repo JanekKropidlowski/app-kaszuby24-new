@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteLeg } from '../../services/TransportRoutingEngine';
-
+
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 interface LegDetailProps {
     leg: RouteLeg;
     isLast: boolean;
@@ -12,6 +13,7 @@ interface LegDetailProps {
 const tfs = (size: number) => size;
 
 export const LegDetail: React.FC<LegDetailProps> = ({ leg, isLast }) => {
+    useDarkSync();
     const [showIntermediateStops, setShowIntermediateStops] = useState(false);
     const [showWalkingSteps, setShowWalkingSteps] = useState(false);
 
@@ -23,11 +25,11 @@ export const LegDetail: React.FC<LegDetailProps> = ({ leg, isLast }) => {
                     {!isLast && <View style={styles.legLine} />}
                 </View>
                 <View style={[styles.legContent, { justifyContent: 'center', paddingVertical: 8 }]}>
-                    <Text style={{ color: '#718096', fontSize: tfs(13), fontFamily: 'Poppins-Regular' }}>
+                    <Text style={{ color: cfg('#718096'), fontSize: tfs(13), fontFamily: 'Poppins-Regular' }}>
                         <Ionicons name="walk" size={14} /> Przejście {Math.round(leg.distance || 0)}m ({leg.duration} min)
                     </Text>
                     {leg.toName && (
-                        <Text style={{ color: '#A0AEC0', fontSize: tfs(12), fontFamily: 'Poppins-Regular', marginTop: 2 }}>
+                        <Text style={{ color: cfg('#A0AEC0'), fontSize: tfs(12), fontFamily: 'Poppins-Regular', marginTop: 2 }}>
                             Do: {leg.toName}
                         </Text>
                     )}
@@ -69,7 +71,7 @@ export const LegDetail: React.FC<LegDetailProps> = ({ leg, isLast }) => {
                 <Text style={styles.legStation}>{leg.fromName}</Text>
                 <View style={styles.legMeta}>
                     <Text style={styles.legTime}>{leg.startTime}</Text>
-                    <Ionicons name={getModeIcon()} size={16} color="#718096" style={{ marginLeft: 4, marginRight: 6 }} />
+                    <Ionicons name={getModeIcon()} size={16} color={cfg('#718096')} style={{ marginLeft: 4, marginRight: 6 }} />
                     <View style={[styles.legLineBadge,
                     leg.brand === 'POLREGIO' ? styles.badgePol :
                         (leg.brand === 'PKP' ? styles.badgePkp :
@@ -97,7 +99,7 @@ export const LegDetail: React.FC<LegDetailProps> = ({ leg, isLast }) => {
                             <Text style={styles.showDetailsText}>
                                 {showIntermediateStops ? 'Ukryj przystanki' : `Pokaż przystanki po drodze (${leg.intermediateStops.length})`}
                             </Text>
-                            <Ionicons name={showIntermediateStops ? 'chevron-up' : 'chevron-down'} size={14} color="#3B82F6" />
+                            <Ionicons name={showIntermediateStops ? 'chevron-up' : 'chevron-down'} size={14} color={cfg('#3B82F6')} />
                         </TouchableOpacity>
                         {showIntermediateStops && (
                             <View style={styles.stopsListContainer}>
@@ -120,52 +122,52 @@ export const LegDetail: React.FC<LegDetailProps> = ({ leg, isLast }) => {
     );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
     legDetailContainer: { flexDirection: 'row', marginBottom: 16 },
     legIndicator: { width: 20, alignItems: 'center', marginRight: 12 },
     legDot: { width: 10, height: 10, borderRadius: 5, zIndex: 2, marginTop: 5 },
-    dotSkm: { backgroundColor: '#FFB300', borderWidth: 2, borderColor: '#FFF8E1' },
-    dotPol: { backgroundColor: '#1A6ADD', borderWidth: 2, borderColor: '#E3F2FD' },
-    dotPkp: { backgroundColor: '#D32F2F', borderWidth: 2, borderColor: '#FFEBEE' },
-    dotMzk: { backgroundColor: '#1A237E', borderWidth: 2, borderColor: '#E8EAF6' },
-    dotZtm: { backgroundColor: '#D32F2F', borderWidth: 2, borderColor: '#FFEBEE' },
-    dotZkm: { backgroundColor: '#1976D2', borderWidth: 2, borderColor: '#E3F2FD' },
-    dotPks: { backgroundColor: '#388E3C', borderWidth: 2, borderColor: '#E8F5E9' },
-    dotWalk: { backgroundColor: '#718096', borderWidth: 2, borderColor: '#E2E8F0' },
-    legLine: { width: 2, flex: 1, backgroundColor: '#EDF2F7', marginVertical: -5 },
+    dotSkm: { backgroundColor: cbg('#FFB300'), borderWidth: 2, borderColor: cbd('#FFF8E1') },
+    dotPol: { backgroundColor: cbg('#1A6ADD'), borderWidth: 2, borderColor: cbd('#E3F2FD') },
+    dotPkp: { backgroundColor: cbg('#D32F2F'), borderWidth: 2, borderColor: cbd('#FFEBEE') },
+    dotMzk: { backgroundColor: cbg('#1A237E'), borderWidth: 2, borderColor: cbd('#E8EAF6') },
+    dotZtm: { backgroundColor: cbg('#D32F2F'), borderWidth: 2, borderColor: cbd('#FFEBEE') },
+    dotZkm: { backgroundColor: cbg('#1976D2'), borderWidth: 2, borderColor: cbd('#E3F2FD') },
+    dotPks: { backgroundColor: cbg('#388E3C'), borderWidth: 2, borderColor: cbd('#E8F5E9') },
+    dotWalk: { backgroundColor: cbg('#718096'), borderWidth: 2, borderColor: cbd('#E2E8F0') },
+    legLine: { width: 2, flex: 1, backgroundColor: cbg('#EDF2F7'), marginVertical: -5 },
     legContent: { flex: 1 },
     legHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-    legWalkTitle: { fontSize: tfs(14), fontFamily: 'Poppins-SemiBold', color: '#718096' },
-    legStation: { fontSize: tfs(15), fontFamily: 'Poppins-SemiBold', color: '#2D3748', marginBottom: 4 },
-    legStationEnd: { fontSize: tfs(15), fontFamily: 'Poppins-SemiBold', color: '#2D3748', marginTop: 8, marginBottom: 2 },
+    legWalkTitle: { fontSize: tfs(14), fontFamily: 'Poppins-SemiBold', color: cfg('#718096') },
+    legStation: { fontSize: tfs(15), fontFamily: 'Poppins-SemiBold', color: cfg('#2D3748'), marginBottom: 4 },
+    legStationEnd: { fontSize: tfs(15), fontFamily: 'Poppins-SemiBold', color: cfg('#2D3748'), marginTop: 8, marginBottom: 2 },
     legMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
-    legTime: { fontSize: tfs(13), fontFamily: 'Poppins-Bold', color: '#1A1A1A' },
-    legTimeMeta: { fontSize: tfs(12), fontFamily: 'Poppins-Medium', color: '#718096' },
+    legTime: { fontSize: tfs(13), fontFamily: 'Poppins-Bold', color: cfg('#1A1A1A') },
+    legTimeMeta: { fontSize: tfs(12), fontFamily: 'Poppins-Medium', color: cfg('#718096') },
     legLineBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-    legLineText: { fontSize: tfs(10), fontFamily: 'Poppins-Bold', color: '#1A1A1A' },
-    badgeSkm: { backgroundColor: '#FFD54F' },
-    badgePol: { backgroundColor: '#1A6ADD' },
-    badgePkp: { backgroundColor: '#D32F2F' },
-    badgeMzk: { backgroundColor: '#1A237E' },
-    badgeZtm: { backgroundColor: '#D32F2F' },
-    badgeZkm: { backgroundColor: '#1976D2' },
-    badgePks: { backgroundColor: '#388E3C', paddingHorizontal: 4 },
-    badgeTextPol: { color: '#FFFFFF' },
-    legDirection: { fontSize: tfs(11), fontFamily: 'Poppins-Regular', color: '#718096', flex: 1 },
+    legLineText: { fontSize: tfs(10), fontFamily: 'Poppins-Bold', color: cfg('#1A1A1A') },
+    badgeSkm: { backgroundColor: cbg('#FFD54F') },
+    badgePol: { backgroundColor: cbg('#1A6ADD') },
+    badgePkp: { backgroundColor: cbg('#D32F2F') },
+    badgeMzk: { backgroundColor: cbg('#1A237E') },
+    badgeZtm: { backgroundColor: cbg('#D32F2F') },
+    badgeZkm: { backgroundColor: cbg('#1976D2') },
+    badgePks: { backgroundColor: cbg('#388E3C'), paddingHorizontal: 4 },
+    badgeTextPol: { color: cfg('#FFFFFF') },
+    legDirection: { fontSize: tfs(11), fontFamily: 'Poppins-Regular', color: cfg('#718096'), flex: 1 },
 
-    showDetailsBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#EBF8FF', borderRadius: 8, alignSelf: 'flex-start', gap: 6 },
-    showDetailsText: { fontSize: tfs(12), fontFamily: 'Poppins-SemiBold', color: '#3B82F6' },
+    showDetailsBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: cbg('#EBF8FF'), borderRadius: 8, alignSelf: 'flex-start', gap: 6 },
+    showDetailsText: { fontSize: tfs(12), fontFamily: 'Poppins-SemiBold', color: cfg('#3B82F6') },
 
-    stepsContainer: { marginTop: 8, paddingLeft: 8, backgroundColor: '#F7FAFC', borderRadius: 8, padding: 10 },
+    stepsContainer: { marginTop: 8, paddingLeft: 8, backgroundColor: cbg('#F7FAFC'), borderRadius: 8, padding: 10 },
     stepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 },
-    stepBullet: { fontSize: tfs(14), fontFamily: 'Poppins-Bold', color: '#A0AEC0', marginRight: 8 },
-    stepText: { fontSize: tfs(12), fontFamily: 'Poppins-Regular', color: '#4A5568', flex: 1, lineHeight: 18 },
+    stepBullet: { fontSize: tfs(14), fontFamily: 'Poppins-Bold', color: cfg('#A0AEC0'), marginRight: 8 },
+    stepText: { fontSize: tfs(12), fontFamily: 'Poppins-Regular', color: cfg('#4A5568'), flex: 1, lineHeight: 18 },
 
     stopsListContainer: { marginTop: 8, paddingLeft: 4 },
     intermediateStopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 },
-    stopDotSmall: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#CBD5E0' },
-    stopName: { fontSize: tfs(12), fontFamily: 'Poppins-Medium', color: '#4A5568', flex: 1 },
-    stopTime: { fontSize: tfs(11), fontFamily: 'Poppins-Medium', color: '#A0AEC0' },
-    dotZka: { backgroundColor: '#E53E3E' },
-    badgeZka: { backgroundColor: '#E53E3E', paddingHorizontal: 8 },
-});
+    stopDotSmall: { width: 6, height: 6, borderRadius: 3, backgroundColor: cbg('#CBD5E0') },
+    stopName: { fontSize: tfs(12), fontFamily: 'Poppins-Medium', color: cfg('#4A5568'), flex: 1 },
+    stopTime: { fontSize: tfs(11), fontFamily: 'Poppins-Medium', color: cfg('#A0AEC0') },
+    dotZka: { backgroundColor: cbg('#E53E3E') },
+    badgeZka: { backgroundColor: cbg('#E53E3E'), paddingHorizontal: 8 },
+}));

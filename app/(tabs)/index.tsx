@@ -113,6 +113,8 @@ const ModernHeader = ({ weatherData, weatherLoading, onWeatherPress }: {
           style={styles.weatherIconContainer}
           onPress={onWeatherPress}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Pogoda – pokaż szczegóły"
         >
           {weatherLoading ? (
             <ActivityIndicator size="small" color={theme.colors.primary} />

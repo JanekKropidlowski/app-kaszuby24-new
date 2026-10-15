@@ -10,6 +10,7 @@ import { OTPService } from '../../services/otpService';
 
 import { getAgencyDisplayName, getAgencyColor, getAgencyIcon } from '../../utils/agencyHelpers';
 
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 // Lazy load RouteMapModal for better performance
 const RouteMapModal = React.lazy(() =>
     import('./RouteMapModal').then(module => ({ default: module.RouteMapModal }))
@@ -128,6 +129,7 @@ const getTimeRemaining = (time: string) => {
 };
 
 export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose, stops }) => {
+    useDarkSync();
     const [selectedProvider, setSelectedProvider] = useState<TimetableProvider | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedStop, setSelectedStop] = useState<TransportSearchResult | null>(null);
@@ -353,7 +355,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                 accessibilityRole="button"
                 accessibilityLabel="Szukaj przystanku we wszystkich przewoźnikach"
             >
-                <Ionicons name="search" size={20} color="#718096" style={{ marginRight: 10 }} />
+                <Ionicons name="search" size={20} color={cfg('#718096')} style={{ marginRight: 10 }} />
                 <Text style={styles.searchAllText}>Wpisz nazwę przystanku – szukam u wszystkich przewoźników</Text>
             </TouchableOpacity>
             <Text style={styles.orText}>albo wybierz przewoźnika:</Text>
@@ -415,7 +417,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
     const renderMzkLines = () => (
         <View style={{ flex: 1 }}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setSelectedProvider(null)}>
-                <Ionicons name="arrow-back" size={20} color="#4A5568" />
+                <Ionicons name="arrow-back" size={20} color={cfg('#4A5568')} />
                 <Text style={styles.backText}>Wróć do wyboru</Text>
             </TouchableOpacity>
 
@@ -425,7 +427,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                 style={styles.searchButton}
                 onPress={() => setIsMzkSearchMode(true)}
             >
-                <Ionicons name="search" size={20} color="#4A5568" />
+                <Ionicons name="search" size={20} color={cfg('#4A5568')} />
                 <Text style={styles.searchButtonText}>Szukaj przystanku...</Text>
             </TouchableOpacity>
 
@@ -445,7 +447,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                             <Text style={styles.lineNumber}>{line.number}</Text>
                         </View>
                         <Text style={styles.lineRoute} numberOfLines={1}>{line.route}</Text>
-                        <Ionicons name="chevron-forward" size={18} color="#CBD5E0" />
+                        <Ionicons name="chevron-forward" size={18} color={cfg('#CBD5E0')} />
                     </TouchableOpacity>
                 ))}
             </ScrollView>
@@ -455,7 +457,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
     const renderPksLines = () => (
         <View style={{ flex: 1 }}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setSelectedProvider(null)}>
-                <Ionicons name="arrow-back" size={20} color="#4A5568" />
+                <Ionicons name="arrow-back" size={20} color={cfg('#4A5568')} />
                 <Text style={styles.backText}>Wróć do wyboru</Text>
             </TouchableOpacity>
 
@@ -465,18 +467,18 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                 style={styles.searchButton}
                 onPress={() => setIsPksSearchMode(true)}
             >
-                <Ionicons name="search" size={20} color="#4A5568" />
+                <Ionicons name="search" size={20} color={cfg('#4A5568')} />
                 <Text style={styles.searchButtonText}>Szukaj przystanku...</Text>
             </TouchableOpacity>
 
             {pksLinesLoading ? (
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" color="#388E3C" />
+                    <ActivityIndicator size="large" color={cfg('#388E3C')} />
                     <Text style={styles.loadingText}>Pobieranie listy linii...</Text>
                 </View>
             ) : pksLines.length === 0 ? (
                 <View style={styles.centered}>
-                    <MaterialCommunityIcons name="bus-alert" size={48} color="#A0AEC0" />
+                    <MaterialCommunityIcons name="bus-alert" size={48} color={cfg('#A0AEC0')} />
                     <Text style={styles.emptyText}>Brak dostępnych linii</Text>
                 </View>
             ) : (
@@ -506,14 +508,14 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
         return (
             <View style={{ flex: 1 }}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => { setSelectedPksLine(null); setPksTimetableData(null); }}>
-                    <Ionicons name="arrow-back" size={20} color="#4A5568" />
+                    <Ionicons name="arrow-back" size={20} color={cfg('#4A5568')} />
                     <Text style={styles.backText}>Wróć do listy linii</Text>
                 </TouchableOpacity>
 
                 <View style={styles.stopHeader}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <View style={[styles.lineNumberBadge, { backgroundColor: '#388E3C', marginRight: 12 }]}>
+                            <View style={[styles.lineNumberBadge, { backgroundColor: cbg('#388E3C'), marginRight: 12 }]}>
                                 <Text style={styles.lineNumber}>{line.number}</Text>
                             </View>
                             <Text style={styles.stopName}>Linia {line.number}</Text>
@@ -524,12 +526,12 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                 onPress={() => setShowRouteMap(true)}
                                 disabled={!pksTimetableData?.stops || pksTimetableData.stops.length < 2}
                             >
-                                <Ionicons name="map" size={18} color="#388E3C" />
-                                <Text style={[styles.calendarBtnText, { color: '#388E3C', fontSize: tfs(10) }]}>Mapa</Text>
+                                <Ionicons name="map" size={18} color={cfg('#388E3C')} />
+                                <Text style={[styles.calendarBtnText, { color: cfg('#388E3C'), fontSize: tfs(10) }]}>Mapa</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.calendarBtn} onPress={() => setShowCalendar(true)}>
-                                <Ionicons name="calendar" size={18} color="#388E3C" />
-                                <Text style={[styles.calendarBtnText, { color: '#388E3C' }]}>
+                                <Ionicons name="calendar" size={18} color={cfg('#388E3C')} />
+                                <Text style={[styles.calendarBtnText, { color: cfg('#388E3C') }]}>
                                     {isToday(selectedDate) ? 'Dziś' : selectedDate.split('-').reverse().slice(0, 2).join('.')}
                                 </Text>
                             </TouchableOpacity>
@@ -583,12 +585,12 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
                 {isLoadingTimetable ? (
                     <View style={styles.centered}>
-                        <ActivityIndicator size="large" color="#388E3C" />
+                        <ActivityIndicator size="large" color={cfg('#388E3C')} />
                         <Text style={styles.loadingText}>Pobieranie rozkładu linii...</Text>
                     </View>
                 ) : timetableError ? (
                     <View style={styles.centered}>
-                        <MaterialCommunityIcons name="alert-circle-outline" size={40} color="#EF4444" />
+                        <MaterialCommunityIcons name="alert-circle-outline" size={40} color={cfg('#EF4444')} />
                         <Text style={styles.errorText}>{timetableError}</Text>
                         <TouchableOpacity style={styles.retryBtn} onPress={() => fetchPksLineTimetable(line.number, selectedDate)}>
                             <Text style={styles.retryText}>Spróbuj ponownie</Text>
@@ -596,25 +598,25 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                     </View>
                 ) : !pksTimetableData || !pksTimetableData.stops || pksTimetableData.stops.length === 0 ? (
                     <View style={styles.centered}>
-                        <MaterialCommunityIcons name="bus-clock" size={48} color="#A0AEC0" />
+                        <MaterialCommunityIcons name="bus-clock" size={48} color={cfg('#A0AEC0')} />
                         <Text style={[styles.emptyText, { marginTop: 16, fontSize: tfs(16), fontFamily: 'Poppins-Bold' }]}>Brak kursów w tym dniu</Text>
                         <Text style={[styles.emptyText, { marginTop: 8, fontSize: tfs(13), textAlign: 'center' }]}>
                             Wybrana linia nie kursuje {isToday(selectedDate) ? 'dzisiaj' : 'w wybranym dniu'}.
                         </Text>
-                        <Text style={[styles.emptyText, { marginTop: 4, fontSize: tfs(12), textAlign: 'center', color: '#718096' }]}>
+                        <Text style={[styles.emptyText, { marginTop: 4, fontSize: tfs(12), textAlign: 'center', color: cfg('#718096') }]}>
                             💡 Najbliższy kurs prawdopodobnie jutro rano
                         </Text>
 
                         <View style={{ flexDirection: 'row', marginTop: 24, gap: 10 }}>
                             <TouchableOpacity
-                                style={[styles.retryBtn, { backgroundColor: '#388E3C' }]}
+                                style={[styles.retryBtn, { backgroundColor: cbg('#388E3C') }]}
                                 onPress={() => {
                                     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
                                     setSelectedDate(tomorrow);
                                     fetchPksLineTimetable(line.number, tomorrow);
                                 }}
                             >
-                                <Text style={[styles.retryText, { color: '#FFF' }]}>Sprawdź jutro</Text>
+                                <Text style={[styles.retryText, { color: cfg('#FFF') }]}>Sprawdź jutro</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity style={styles.retryBtn} onPress={() => setShowCalendar(true)}>
@@ -651,7 +653,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                             if (!filteredStops || filteredStops.length === 0) {
                                 return (
                                     <View style={styles.centered}>
-                                        <MaterialCommunityIcons name="bus-clock" size={48} color="#A0AEC0" />
+                                        <MaterialCommunityIcons name="bus-clock" size={48} color={cfg('#A0AEC0')} />
                                         <Text style={[styles.emptyText, { marginTop: 16, fontSize: tfs(16), fontFamily: 'Poppins-Bold' }]}>Brak kursów dla wybranego kierunku</Text>
                                         <Text style={[styles.emptyText, { marginTop: 8, fontSize: tfs(13), textAlign: 'center' }]}>Nie znaleziono kursów dla tego kierunku w wybranym dniu.</Text>
                                     </View>
@@ -680,7 +682,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                                     activeOpacity={0.7}
                                                 >
                                                     <View style={styles.timelineIndicator}>
-                                                        <View style={[styles.timelineDot, { backgroundColor: '#388E3C' }]} />
+                                                        <View style={[styles.timelineDot, { backgroundColor: cbg('#388E3C') }]} />
                                                         {stopIdx < filteredStops.length - 1 && <View style={styles.timelineLine} />}
                                                     </View>
                                                     <View style={styles.timelineContent}>
@@ -688,7 +690,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                                         <Ionicons
                                                             name={isExpanded ? "chevron-up" : "chevron-down"}
                                                             size={18}
-                                                            color="#A0AEC0"
+                                                            color={cfg('#A0AEC0')}
                                                             style={{ marginLeft: 8 }}
                                                         />
                                                     </View>
@@ -700,8 +702,8 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                                             {stop.departures.map((dep: any, depIdx: number) => {
                                                                 const timeWithoutSeconds = dep.time ? dep.time.substring(0, 5) : '';
                                                                 return (
-                                                                    <View key={depIdx} style={[styles.departureTimeChip, { backgroundColor: '#E8F5E9', borderColor: '#388E3C' }]}>
-                                                                        <Text style={[styles.departureTimeText, { color: '#1B5E20' }]}>{timeWithoutSeconds}</Text>
+                                                                    <View key={depIdx} style={[styles.departureTimeChip, { backgroundColor: cbg('#E8F5E9'), borderColor: cbd('#388E3C') }]}>
+                                                                        <Text style={[styles.departureTimeText, { color: cfg('#1B5E20') }]}>{timeWithoutSeconds}</Text>
                                                                     </View>
                                                                 );
                                                             })}
@@ -796,7 +798,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                     setExpandedStops(new Set());
                     setSelectedDate(new Date().toISOString().split('T')[0]);
                 }}>
-                    <Ionicons name="arrow-back" size={20} color="#4A5568" />
+                    <Ionicons name="arrow-back" size={20} color={cfg('#4A5568')} />
                     <Text style={styles.backText}>Wróć do wyszukiwania</Text>
                 </TouchableOpacity>
 
@@ -822,10 +824,10 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                 <Ionicons
                                     name="map"
                                     size={18}
-                                    color={isSkm ? '#FFB300' : '#1A6ADD'}
+                                    color={isSkm ? cfg('#FFB300') : cfg('#1A6ADD')}
                                 />
                                 <Text style={[styles.calendarBtnText, {
-                                    color: isSkm ? '#FFB300' : '#1A6ADD',
+                                    color: isSkm ? cfg('#FFB300') : cfg('#1A6ADD'),
                                     fontSize: tfs(10)
                                 }]}>
                                     Mapa
@@ -839,10 +841,10 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                             <Ionicons
                                 name="calendar"
                                 size={24}
-                                color={isSkm ? '#FFB300' : (isPolregio ? '#1A237E' : '#2D3748')}
+                                color={isSkm ? cfg('#FFB300') : (isPolregio ? cfg('#1A237E') : cfg('#2D3748'))}
                             />
                             <Text style={[styles.calendarBtnText, {
-                                color: isSkm ? '#FFB300' : (isPolregio ? '#1A237E' : '#2D3748')
+                                color: isSkm ? cfg('#FFB300') : (isPolregio ? cfg('#1A237E') : cfg('#2D3748'))
                             }]}>
                                 {getDateLabel(selectedDate)}
                             </Text>
@@ -896,17 +898,17 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
                 {isLoadingTimetable ? (
                     <View style={styles.centered}>
-                        <ActivityIndicator size="large" color="#FFB300" />
+                        <ActivityIndicator size="large" color={cfg('#FFB300')} />
                         <Text style={styles.loadingText}>Pobieranie rozkładu...</Text>
                     </View>
                 ) : timetableError ? (
                     <View style={styles.centered}>
-                        <MaterialCommunityIcons name="alert-circle-outline" size={40} color="#EF4444" />
+                        <MaterialCommunityIcons name="alert-circle-outline" size={40} color={cfg('#EF4444')} />
                         <Text style={styles.errorText}>{timetableError}</Text>
                     </View>
                 ) : filteredData.length === 0 ? (
                     <View style={styles.centered}>
-                        <MaterialCommunityIcons name="timetable" size={40} color="#A0AEC0" />
+                        <MaterialCommunityIcons name="timetable" size={40} color={cfg('#A0AEC0')} />
                         <Text style={styles.emptyText}>Brak nadchodzących odjazdów</Text>
                     </View>
                 ) : (
@@ -942,12 +944,12 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                     }
                 }}
             >
-                <Ionicons name="arrow-back" size={20} color="#4A5568" />
+                <Ionicons name="arrow-back" size={20} color={cfg('#4A5568')} />
                 <Text style={styles.backText}>Wróć do wyboru</Text>
             </TouchableOpacity>
 
             <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#A0AEC0" style={{ marginRight: 10 }} />
+                <Ionicons name="search" size={20} color={cfg('#A0AEC0')} style={{ marginRight: 10 }} />
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Wpisz nazwę przystanku..."
@@ -958,7 +960,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                 />
                 {searchQuery.length > 0 && (
                     <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <Ionicons name="close-circle" size={18} color="#CBD5E0" />
+                        <Ionicons name="close-circle" size={18} color={cfg('#CBD5E0')} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -988,7 +990,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                 <Text style={styles.stopItemName}>{item.name}</Text>
                                 <Text style={[styles.stopItemAgency, { color: agencyColor }]}>{getAgencyDisplayName(item.agency)}</Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={18} color="#CBD5E0" />
+                            <Ionicons name="chevron-forward" size={18} color={cfg('#CBD5E0')} />
                         </TouchableOpacity>
                     );
                 }}
@@ -1092,7 +1094,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
         return (
             <View style={{ flex: 1 }}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => { setSelectedMzkLine(null); setMzkTimetableData(null); }}>
-                    <Ionicons name="arrow-back" size={20} color="#4A5568" />
+                    <Ionicons name="arrow-back" size={20} color={cfg('#4A5568')} />
                     <Text style={styles.backText}>Wróć do listy linii</Text>
                 </TouchableOpacity>
 
@@ -1110,8 +1112,8 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                 onPress={() => setShowRouteMap(true)}
                                 disabled={!mzkTimetableData?.stops || mzkTimetableData.stops.length < 2}
                             >
-                                <Ionicons name="map" size={18} color="#1A237E" />
-                                <Text style={[styles.calendarBtnText, { color: '#1A237E', fontSize: tfs(10) }]}>Mapa</Text>
+                                <Ionicons name="map" size={18} color={cfg('#1A237E')} />
+                                <Text style={[styles.calendarBtnText, { color: cfg('#1A237E'), fontSize: tfs(10) }]}>Mapa</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.calendarBtn} onPress={() => setShowCalendar(true)}>
                                 <Ionicons name="calendar" size={18} color={`#${getAgencyColor(selectedStop?.agency)}`} />
@@ -1170,12 +1172,12 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
                 {isLoadingTimetable ? (
                     <View style={styles.centered}>
-                        <ActivityIndicator size="large" color="#1A237E" />
+                        <ActivityIndicator size="large" color={cfg('#1A237E')} />
                         <Text style={styles.loadingText}>Pobieranie rozkładu linii...</Text>
                     </View>
                 ) : timetableError ? (
                     <View style={styles.centered}>
-                        <MaterialCommunityIcons name="alert-circle-outline" size={40} color="#EF4444" />
+                        <MaterialCommunityIcons name="alert-circle-outline" size={40} color={cfg('#EF4444')} />
                         <Text style={styles.errorText}>{timetableError}</Text>
                         <TouchableOpacity style={styles.retryBtn} onPress={() => fetchMzkLineTimetable(line.number, selectedDate)}>
                             <Text style={styles.retryText}>Spróbuj ponownie</Text>
@@ -1183,7 +1185,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                     </View>
                 ) : !mzkTimetableData || !mzkTimetableData.stops || mzkTimetableData.stops.length === 0 ? (
                     <View style={styles.centered}>
-                        <MaterialCommunityIcons name="bus-clock" size={48} color="#A0AEC0" />
+                        <MaterialCommunityIcons name="bus-clock" size={48} color={cfg('#A0AEC0')} />
                         <Text style={[styles.emptyText, { marginTop: 16, fontSize: tfs(16) }]}>Brak danych rozkładu</Text>
                         <Text style={[styles.emptyText, { marginTop: 8, fontSize: tfs(13), textAlign: 'center' }]}>
                             Nie znaleziono aktywnych kursów dla tej linii w wybranym dniu.
@@ -1218,7 +1220,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                             if (!filteredStops || filteredStops.length === 0) {
                                 return (
                                     <View style={styles.centered}>
-                                        <MaterialCommunityIcons name="bus-clock" size={48} color="#A0AEC0" />
+                                        <MaterialCommunityIcons name="bus-clock" size={48} color={cfg('#A0AEC0')} />
                                         <Text style={[styles.emptyText, { marginTop: 16, fontSize: tfs(16) }]}>Brak kursów dla wybranego kierunku</Text>
                                         <Text style={[styles.emptyText, { marginTop: 8, fontSize: tfs(13), textAlign: 'center' }]}>Nie znaleziono aktywnych kursów dla tego kierunku w wybranym dniu.</Text>
                                     </View>
@@ -1247,7 +1249,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                                     activeOpacity={0.7}
                                                 >
                                                     <View style={styles.timelineIndicator}>
-                                                        <View style={[styles.timelineDot, { backgroundColor: '#1A237E' }]} />
+                                                        <View style={[styles.timelineDot, { backgroundColor: cbg('#1A237E') }]} />
                                                         {stopIdx < filteredStops.length - 1 && <View style={styles.timelineLine} />}
                                                     </View>
                                                     <View style={styles.timelineContent}>
@@ -1255,7 +1257,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                                         <Ionicons
                                                             name={isExpanded ? "chevron-up" : "chevron-down"}
                                                             size={18}
-                                                            color="#A0AEC0"
+                                                            color={cfg('#A0AEC0')}
                                                             style={{ marginLeft: 8 }}
                                                         />
                                                     </View>
@@ -1267,8 +1269,8 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                                                             {stop.departures.map((dep: any, depIdx: number) => {
                                                                 const timeWithoutSeconds = dep.time ? dep.time.substring(0, 5) : '';
                                                                 return (
-                                                                    <View key={depIdx} style={[styles.departureTimeChip, { backgroundColor: '#EEF2FF', borderColor: '#1A237E' }]}>
-                                                                        <Text style={[styles.departureTimeText, { color: '#1A237E' }]}>{timeWithoutSeconds}</Text>
+                                                                    <View key={depIdx} style={[styles.departureTimeChip, { backgroundColor: cbg('#EEF2FF'), borderColor: cbd('#1A237E') }]}>
+                                                                        <Text style={[styles.departureTimeText, { color: cfg('#1A237E') }]}>{timeWithoutSeconds}</Text>
                                                                     </View>
                                                                 );
                                                             })}
@@ -1326,7 +1328,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                             {selectedStop ? 'Rozkład jazdy' : 'Rozkłady Jazdy'}
                         </Text>
                         <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-                            <Ionicons name="close" size={24} color="#718096" />
+                            <Ionicons name="close" size={24} color={cfg('#718096')} />
                         </TouchableOpacity>
                     </View>
 
@@ -1352,7 +1354,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                         <View style={styles.calendarHeader}>
                             <Text style={styles.calendarTitle}>Wybierz datę odjazdu</Text>
                             <TouchableOpacity onPress={() => setShowCalendar(false)}>
-                                <Ionicons name="close" size={28} color="#4A5568" />
+                                <Ionicons name="close" size={28} color={cfg('#4A5568')} />
                             </TouchableOpacity>
                         </View>
 
@@ -1407,7 +1409,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                             monthFormat={'MMMM yyyy'}
                             firstDay={1}
                             theme={{
-                                backgroundColor: '#FFFFFF',
+                                backgroundColor: cbg('#FFFFFF'),
                                 calendarBackground: '#FFFFFF',
                                 todayTextColor: '#FFD700',
                                 selectedDayBackgroundColor: '#1A237E',
@@ -1429,7 +1431,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
             {/* Route Map Modal for PKS - with direction support */}
             {selectedPksLine && (
-                <Suspense fallback={<ActivityIndicator size="large" color="#3B82F6" />}>
+                <Suspense fallback={<ActivityIndicator size="large" color={cfg('#3B82F6')} />}>
                     <RouteMapModal
                         visible={showRouteMap}
                         onClose={() => setShowRouteMap(false)}
@@ -1439,7 +1441,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                         directionTrips={pksTimetableData?.directionTrips || {}}
                         agency="pks"
                         lineNumber={selectedPksLine}
-                        color="#388E3C"
+                        color={cfg('#388E3C')}
                         lineName={pksLines.find(l => l.number === selectedPksLine)?.route}
                     />
                 </Suspense>
@@ -1447,7 +1449,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
             {/* Route Map Modal for MZK - with direction support */}
             {selectedMzkLine && !selectedPksLine && (
-                <Suspense fallback={<ActivityIndicator size="large" color="#3B82F6" />}>
+                <Suspense fallback={<ActivityIndicator size="large" color={cfg('#3B82F6')} />}>
                     <RouteMapModal
                         visible={showRouteMap}
                         onClose={() => setShowRouteMap(false)}
@@ -1457,7 +1459,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                         directionTrips={mzkTimetableData?.directionTrips || {}}
                         agency="mzk"
                         lineNumber={selectedMzkLine}
-                        color="#1A237E"
+                        color={cfg('#1A237E')}
                         lineName={MZK_LINES.find(l => l.number === selectedMzkLine)?.route}
                     />
                 </Suspense>
@@ -1465,7 +1467,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
             {/* SKM Route Map Modal */}
             {showSkmMap && selectedStop && trainRouteData && (
-                <Suspense fallback={<ActivityIndicator size="large" color="#3B82F6" />}>
+                <Suspense fallback={<ActivityIndicator size="large" color={cfg('#3B82F6')} />}>
                     <RouteMapModal
                         visible={showSkmMap}
                         onClose={() => {
@@ -1478,7 +1480,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                         agency={trainRouteData.agency}
                         timetableData={trainRouteData.timetableData}
                         lineNumber="SKM"
-                        color="#FFB300"
+                        color={cfg('#FFB300')}
                         lineName={trainRouteData.direction}
                     />
                 </Suspense>
@@ -1486,7 +1488,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
             {/* POLREGIO Route Map Modal - prosta linia */}
             {showPolregioMap && selectedStop && trainRouteData && (
-                <Suspense fallback={<ActivityIndicator size="large" color="#3B82F6" />}>
+                <Suspense fallback={<ActivityIndicator size="large" color={cfg('#3B82F6')} />}>
                     <RouteMapModal
                         visible={showPolregioMap}
                         onClose={() => {
@@ -1499,7 +1501,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                         agency={trainRouteData.agency}
                         timetableData={trainRouteData.timetableData}
                         lineNumber="POLREGIO"
-                        color="#1A6ADD"
+                        color={cfg('#1A6ADD')}
                         lineName={trainRouteData.direction}
                     />
                 </Suspense>
@@ -1507,7 +1509,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
             {/* Single stop map from search results */}
             {showStopMap && selectedStop && (
-                <Suspense fallback={<ActivityIndicator size="large" color="#3B82F6" />}>
+                <Suspense fallback={<ActivityIndicator size="large" color={cfg('#3B82F6')} />}>
                     <RouteMapModal
                         visible={showStopMap}
                         onClose={() => setShowStopMap(false)}
@@ -1520,7 +1522,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                         }]}
                         agency={getAgencyDisplayName(selectedStop?.agency)}
                         lineNumber={selectedStop.agency || ''}
-                        color="#4A5568"
+                        color={cfg('#4A5568')}
                     />
                 </Suspense>
             )}
@@ -1530,58 +1532,58 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
     );
 };
 
-const styles = StyleSheet.create({
-    searchAllBtn: { flexDirection: 'row', alignItems: 'center', minHeight: 52, marginHorizontal: 4, marginBottom: 10, paddingHorizontal: 16, borderRadius: 16, backgroundColor: '#F7FAFC', borderWidth: 1.5, borderColor: '#E2E8F0' },
-    searchAllText: { flex: 1, fontSize: 14, color: '#4A5568' },
-    orText: { fontSize: 13, color: '#A0AEC0', marginLeft: 6, marginBottom: 8 },
+const styles = themedStyles(() => StyleSheet.create({
+    searchAllBtn: { flexDirection: 'row', alignItems: 'center', minHeight: 52, marginHorizontal: 4, marginBottom: 10, paddingHorizontal: 16, borderRadius: 16, backgroundColor: cbg('#F7FAFC'), borderWidth: 1.5, borderColor: cbd('#E2E8F0') },
+    searchAllText: { flex: 1, fontSize: 14, color: cfg('#4A5568') },
+    orText: { fontSize: 13, color: cfg('#A0AEC0'), marginLeft: 6, marginBottom: 8 },
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     backdrop: { ...StyleSheet.absoluteFillObject },
-    content: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
-    handle: { width: 40, height: 4, backgroundColor: '#EDF2F7', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+    content: { backgroundColor: cbg('#FFF'), borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+    handle: { width: 40, height: 4, backgroundColor: cbg('#EDF2F7'), borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    title: { fontSize: tfs(20), fontFamily: 'Poppins-Bold', color: '#1A202C' },
+    title: { fontSize: tfs(20), fontFamily: 'Poppins-Bold', color: cfg('#1A202C') },
     closeBtn: { padding: 4 },
     grid: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-    card: { flex: 1, minWidth: '45%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#EDF2F7' },
+    card: { flex: 1, minWidth: '45%', backgroundColor: cbg('#FFFFFF'), borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: cbd('#EDF2F7') },
     cardAcc: { elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
     iconCircle: { minWidth: 64, height: 64, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
     providerText: { fontSize: tfs(14), fontFamily: 'Poppins-Bold' },
-    cardLabel: { fontSize: tfs(14), fontFamily: 'Poppins-SemiBold', color: '#2D3748', textAlign: 'center' },
+    cardLabel: { fontSize: tfs(14), fontFamily: 'Poppins-SemiBold', color: cfg('#2D3748'), textAlign: 'center' },
 
     // MZK Styles
     backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-    backText: { fontSize: tfs(14), fontFamily: 'Poppins-Medium', color: '#4A5568', marginLeft: 8 },
-    sectionTitle: { fontSize: tfs(16), fontFamily: 'Poppins-Bold', color: '#1A202C', marginBottom: 12 },
-    lineItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F7FAFC', paddingHorizontal: 4 },
-    lineNumberBadge: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#1A237E', alignItems: 'center', justifyContent: 'center', marginRight: 14, shadowColor: "#1A237E", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
-    lineNumber: { color: '#FFF', fontFamily: 'Poppins-Bold', fontSize: tfs(17) },
-    lineRoute: { flex: 1, fontSize: tfs(14), fontFamily: 'Poppins-Medium', color: '#2D3748', lineHeight: 20 },
+    backText: { fontSize: tfs(14), fontFamily: 'Poppins-Medium', color: cfg('#4A5568'), marginLeft: 8 },
+    sectionTitle: { fontSize: tfs(16), fontFamily: 'Poppins-Bold', color: cfg('#1A202C'), marginBottom: 12 },
+    lineItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: cbd('#F7FAFC'), paddingHorizontal: 4 },
+    lineNumberBadge: { width: 42, height: 42, borderRadius: 12, backgroundColor: cbg('#1A237E'), alignItems: 'center', justifyContent: 'center', marginRight: 14, shadowColor: "#1A237E", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+    lineNumber: { color: cfg('#FFF'), fontFamily: 'Poppins-Bold', fontSize: tfs(17) },
+    lineRoute: { flex: 1, fontSize: tfs(14), fontFamily: 'Poppins-Medium', color: cfg('#2D3748'), lineHeight: 20 },
 
     // Search Styles
-    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7FAFC', borderRadius: 12, paddingHorizontal: 12, height: 46, marginBottom: 15, borderWidth: 1, borderColor: '#EDF2F7' },
-    searchInput: { flex: 1, fontSize: tfs(15), fontFamily: 'Poppins-Medium', color: '#2D3748' },
-    stopItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F0F4F8' },
-    stopIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    stopItemName: { fontSize: tfs(15), fontFamily: 'Poppins-SemiBold', color: '#2D3748' },
+    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: cbg('#F7FAFC'), borderRadius: 12, paddingHorizontal: 12, height: 46, marginBottom: 15, borderWidth: 1, borderColor: cbd('#EDF2F7') },
+    searchInput: { flex: 1, fontSize: tfs(15), fontFamily: 'Poppins-Medium', color: cfg('#2D3748') },
+    stopItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: cbd('#F0F4F8') },
+    stopIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: cbg('#E2E8F0'), alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+    stopItemName: { fontSize: tfs(15), fontFamily: 'Poppins-SemiBold', color: cfg('#2D3748') },
     stopTextContainer: { flex: 1, marginRight: 8 },
-    stopItemAgency: { fontSize: tfs(11), fontFamily: 'Poppins-Medium', color: '#A0AEC0' },
-    noResults: { textAlign: 'center', marginTop: 20, color: '#A0AEC0', fontFamily: 'Poppins-Medium' },
+    stopItemAgency: { fontSize: tfs(11), fontFamily: 'Poppins-Medium', color: cfg('#A0AEC0') },
+    noResults: { textAlign: 'center', marginTop: 20, color: cfg('#A0AEC0'), fontFamily: 'Poppins-Medium' },
 
     searchButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F7FAFC',
+        backgroundColor: cbg('#F7FAFC'),
         padding: 12,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#EDF2F7',
+        borderColor: cbd('#EDF2F7'),
         marginBottom: 16
     },
     searchButtonText: {
         marginLeft: 8,
         fontSize: tfs(14),
         fontFamily: 'Poppins-Medium',
-        color: '#718096'
+        color: cfg('#718096')
     },
 
     // Timetable Styles
@@ -1596,22 +1598,22 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: 15
     },
-    stopName: { fontSize: tfs(22), fontFamily: 'Poppins-Bold', color: '#1A202C' },
-    stopAgency: { fontSize: tfs(13), fontFamily: 'Poppins-Medium', color: '#718096' },
+    stopName: { fontSize: tfs(22), fontFamily: 'Poppins-Bold', color: cfg('#1A202C') },
+    stopAgency: { fontSize: tfs(13), fontFamily: 'Poppins-Medium', color: cfg('#718096') },
     departureCount: {
         fontSize: tfs(12),
         fontFamily: 'Poppins-Bold',
-        color: '#10B981'
+        color: cfg('#10B981')
     },
     calendarBtn: {
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 12,
         paddingVertical: 8,
-        backgroundColor: '#F7FAFC',
+        backgroundColor: cbg('#F7FAFC'),
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: cbd('#E2E8F0'),
         minWidth: 70
     },
     calendarBtnText: {
@@ -1620,34 +1622,34 @@ const styles = StyleSheet.create({
         marginTop: 2
     },
     centered: { alignItems: 'center', justifyContent: 'center', padding: 40 },
-    loadingText: { marginTop: 10, color: '#A0AEC0' },
-    errorText: { marginTop: 10, color: '#EF4444', textAlign: 'center' },
-    emptyText: { marginTop: 10, color: '#A0AEC0' },
-    departureItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F7FAFC' },
+    loadingText: { marginTop: 10, color: cfg('#A0AEC0') },
+    errorText: { marginTop: 10, color: cfg('#EF4444'), textAlign: 'center' },
+    emptyText: { marginTop: 10, color: cfg('#A0AEC0') },
+    departureItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: cbd('#F7FAFC') },
     miniBadge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-    miniBadgeText: { fontSize: tfs(12), fontFamily: 'Poppins-Bold', color: '#2D3748' },
-    departureDirection: { fontSize: tfs(15), fontFamily: 'Poppins-Medium', color: '#2D3748' },
-    departureOperator: { fontSize: tfs(11), color: '#A0AEC0' },
-    departureTime: { fontSize: tfs(16), fontFamily: 'Poppins-SemiBold', color: '#1A202C' },
+    miniBadgeText: { fontSize: tfs(12), fontFamily: 'Poppins-Bold', color: cfg('#2D3748') },
+    departureDirection: { fontSize: tfs(15), fontFamily: 'Poppins-Medium', color: cfg('#2D3748') },
+    departureOperator: { fontSize: tfs(11), color: cfg('#A0AEC0') },
+    departureTime: { fontSize: tfs(16), fontFamily: 'Poppins-SemiBold', color: cfg('#1A202C') },
 
     // MZK Line Detail Styles
-    daySelector: { flexDirection: 'row', backgroundColor: '#F7FAFC', borderRadius: 12, padding: 4, marginBottom: 15, borderWidth: 1, borderColor: '#EDF2F7' },
+    daySelector: { flexDirection: 'row', backgroundColor: cbg('#F7FAFC'), borderRadius: 12, padding: 4, marginBottom: 15, borderWidth: 1, borderColor: cbd('#EDF2F7') },
     dayOption: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-    dayOptionActive: { backgroundColor: '#FFF', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } },
-    dayText: { fontSize: tfs(12), fontFamily: 'Poppins-Bold', color: '#718096' },
-    dayTextActive: { color: '#1A237E' },
-    retryBtn: { marginTop: 15, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#EDF2F7', borderRadius: 8 },
-    retryText: { fontSize: tfs(14), fontFamily: 'Poppins-Bold', color: '#4A5568' },
+    dayOptionActive: { backgroundColor: cbg('#FFF'), elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } },
+    dayText: { fontSize: tfs(12), fontFamily: 'Poppins-Bold', color: cfg('#718096') },
+    dayTextActive: { color: cfg('#1A237E') },
+    retryBtn: { marginTop: 15, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: cbg('#EDF2F7'), borderRadius: 8 },
+    retryText: { fontSize: tfs(14), fontFamily: 'Poppins-Bold', color: cfg('#4A5568') },
     mzkStopCard: { marginBottom: 15 },
     mzkStopHeader: { flexDirection: 'row' },
     stopIndicator: { width: 30, alignItems: 'center', marginRight: 10 },
-    stopDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#1A237E', marginTop: 4, borderWidth: 2, borderColor: '#FFF', elevation: 2 },
-    stopLine: { width: 2, flex: 1, backgroundColor: '#E2E8F0', marginVertical: 4 },
-    mzkStopName: { fontSize: tfs(16), fontFamily: 'Poppins-Bold', color: '#2D3748', marginBottom: 8 },
+    stopDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: cbg('#1A237E'), marginTop: 4, borderWidth: 2, borderColor: cbd('#FFF'), elevation: 2 },
+    stopLine: { width: 2, flex: 1, backgroundColor: cbg('#E2E8F0'), marginVertical: 4 },
+    mzkStopName: { fontSize: tfs(16), fontFamily: 'Poppins-Bold', color: cfg('#2D3748'), marginBottom: 8 },
     departuresGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    mzkDepartureTime: { backgroundColor: '#F0F4F8', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, minWidth: 50, alignItems: 'center' },
-    mzkTimeText: { fontSize: tfs(13), fontFamily: 'Poppins-Bold', color: '#1A237E' },
-    mzkHeadsignText: { fontSize: tfs(9), color: '#718096', maxWidth: 80, textAlign: 'center' },
+    mzkDepartureTime: { backgroundColor: cbg('#F0F4F8'), borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, minWidth: 50, alignItems: 'center' },
+    mzkTimeText: { fontSize: tfs(13), fontFamily: 'Poppins-Bold', color: cfg('#1A237E') },
+    mzkHeadsignText: { fontSize: tfs(9), color: cfg('#718096'), maxWidth: 80, textAlign: 'center' },
 
     // Direction Tabs
     directionTabs: {
@@ -1661,80 +1663,80 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         marginRight: 8,
         borderRadius: 20,
-        backgroundColor: '#FFF',
+        backgroundColor: cbg('#FFF'),
         borderWidth: 2,
-        borderColor: '#E2E8F0',
+        borderColor: cbd('#E2E8F0'),
         minHeight: 38,
         justifyContent: 'center',
         alignItems: 'center'
     },
     directionTabActiveSKM: {
-        backgroundColor: '#FFD700',
-        borderColor: '#FFD700'
+        backgroundColor: cbg('#FFD700'),
+        borderColor: cbd('#FFD700')
     },
     directionTabActivePOLREGIO: {
-        backgroundColor: '#1A237E',
-        borderColor: '#1A237E'
+        backgroundColor: cbg('#1A237E'),
+        borderColor: cbd('#1A237E')
     },
     directionTabActivePKS: {
-        backgroundColor: '#388E3C',
-        borderColor: '#388E3C'
+        backgroundColor: cbg('#388E3C'),
+        borderColor: cbd('#388E3C')
     },
     directionTabActiveMZK: {
-        backgroundColor: '#1A237E',
-        borderColor: '#1A237E'
+        backgroundColor: cbg('#1A237E'),
+        borderColor: cbd('#1A237E')
     },
     directionTabText: {
         fontSize: tfs(13),
         lineHeight: 16,
         fontFamily: 'Poppins-Bold',
-        color: '#000000',
+        color: cfg('#000000'),
         textAlign: 'center',
         includeFontPadding: false
     },
     directionTabTextActivePKS: {
-        color: '#FFF'
+        color: cfg('#FFF')
     },
     directionTabTextActiveSKM: {
-        color: '#000000'
+        color: cfg('#000000')
     },
     directionTabTextActive: {
-        color: '#FFFFFF'
+        color: cfg('#FFFFFF')
     },
 
     // Accordion Styles
     accordionContainer: {
         marginBottom: 12,
-        backgroundColor: '#F7FAFC',
+        backgroundColor: cbg('#F7FAFC'),
         borderRadius: 12,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#E2E8F0'
+        borderColor: cbd('#E2E8F0')
     },
     accordionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
-        backgroundColor: '#FFF'
+        backgroundColor: cbg('#FFF')
     },
     accordionTitle: {
         fontSize: tfs(15),
         fontFamily: 'Poppins-SemiBold',
-        color: '#2D3748',
+        color: cfg('#2D3748'),
         marginBottom: 2
     },
     accordionSubtitle: {
         fontSize: tfs(12),
         fontFamily: 'Poppins-Medium',
-        color: '#718096'
+        color: cfg('#718096')
     },
     accordionContent: {
         paddingHorizontal: 16,
         paddingBottom: 12,
-        backgroundColor: '#FAFBFC'
+        backgroundColor: cbg('#FAFBFC')
     },
     platformBadge: {
-        backgroundColor: '#EBF8FF',
+        backgroundColor: cbg('#EBF8FF'),
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 4,
@@ -1743,7 +1745,7 @@ const styles = StyleSheet.create({
     platformText: {
         fontSize: tfs(11),
         fontFamily: 'Poppins-SemiBold',
-        color: '#3182CE'
+        color: cfg('#3182CE')
     },
 
     // Simple Departure Item (SKM/POLREGIO)
@@ -1751,8 +1753,8 @@ const styles = StyleSheet.create({
         paddingVertical: 18,
         paddingHorizontal: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#EDF2F7',
-        backgroundColor: '#FFF'
+        borderBottomColor: cbd('#EDF2F7'),
+        backgroundColor: cbg('#FFF')
     },
     trainDepartureRow: {
         flexDirection: 'row',
@@ -1768,13 +1770,13 @@ const styles = StyleSheet.create({
     trainDirection: {
         fontSize: tfs(16),
         fontFamily: 'Poppins-SemiBold',
-        color: '#2D3748',
+        color: cfg('#2D3748'),
         flex: 1
     },
     departureTimeLarge: {
         fontSize: tfs(28),
         fontFamily: 'Poppins-Bold',
-        color: '#000000'
+        color: cfg('#000000')
     },
     platformRow: {
         marginTop: 8,
@@ -1783,12 +1785,12 @@ const styles = StyleSheet.create({
     platformLabel: {
         fontSize: tfs(12),
         fontFamily: 'Poppins-Medium',
-        color: '#718096'
+        color: cfg('#718096')
     },
     timeRemaining: {
         fontSize: tfs(12),
         fontFamily: 'Poppins-Medium',
-        color: '#10B981',
+        color: cfg('#10B981'),
         marginTop: 2
     },
 
@@ -1806,7 +1808,7 @@ const styles = StyleSheet.create({
         bottom: 0
     },
     calendarModal: {
-        backgroundColor: '#FFF',
+        backgroundColor: cbg('#FFF'),
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 24,
@@ -1827,7 +1829,7 @@ const styles = StyleSheet.create({
     calendarTitle: {
         fontSize: tfs(20),
         fontFamily: 'Poppins-Bold',
-        color: '#1A202C'
+        color: cfg('#1A202C')
     },
     quickSelectRow: {
         flexDirection: 'row',
@@ -1839,22 +1841,22 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: 12,
-        backgroundColor: '#F7FAFC',
+        backgroundColor: cbg('#F7FAFC'),
         borderWidth: 2,
-        borderColor: '#E2E8F0',
+        borderColor: cbd('#E2E8F0'),
         alignItems: 'center'
     },
     quickSelectBtnActive: {
-        backgroundColor: '#1A237E',
-        borderColor: '#1A237E'
+        backgroundColor: cbg('#1A237E'),
+        borderColor: cbd('#1A237E')
     },
     quickSelectText: {
         fontSize: tfs(15),
         fontFamily: 'Poppins-Bold',
-        color: '#4A5568'
+        color: cfg('#4A5568')
     },
     quickSelectTextActive: {
-        color: '#FFFFFF'
+        color: cfg('#FFFFFF')
     },
 
     // Next Day Button
@@ -1870,12 +1872,12 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: '#E2E8F0'
+        borderColor: cbd('#E2E8F0')
     },
     nextDayText: {
         fontSize: tfs(13),
         fontFamily: 'Poppins-Medium',
-        color: '#718096'
+        color: cfg('#718096')
     },
     // PKS Line Grid
     pksLinesGrid: {
@@ -1887,7 +1889,7 @@ const styles = StyleSheet.create({
     pksLineCard: {
         width: '23%',
         paddingVertical: 24,
-        backgroundColor: '#388E3C',
+        backgroundColor: cbg('#388E3C'),
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
@@ -1902,7 +1904,7 @@ const styles = StyleSheet.create({
     pksLineNumber: {
         fontSize: tfs(16),
         fontFamily: 'Poppins-Bold',
-        color: '#FFF',
+        color: cfg('#FFF'),
     },
     // Timeline Styles
     timelineContainer: {
@@ -1924,7 +1926,7 @@ const styles = StyleSheet.create({
         height: 14,
         borderRadius: 7,
         borderWidth: 3,
-        borderColor: '#FFF',
+        borderColor: cbd('#FFF'),
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -1938,7 +1940,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     lineBadgeText: {
-        color: '#FFFFFF',
+        color: cfg('#FFFFFF'),
         fontSize: tfs(14),
         fontFamily: 'Poppins-Bold',
         fontWeight: '700',
@@ -1946,7 +1948,7 @@ const styles = StyleSheet.create({
     timelineLine: {
         width: 3,
         flex: 1,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: cbg('#E2E8F0'),
         minHeight: 40,
         marginVertical: 4,
     },
@@ -1961,7 +1963,7 @@ const styles = StyleSheet.create({
     timelineStopName: {
         fontSize: tfs(15),
         fontFamily: 'Poppins-SemiBold',
-        color: '#2D3748',
+        color: cfg('#2D3748'),
         flex: 1,
     },
     timelineDepartures: {
@@ -1985,7 +1987,7 @@ const styles = StyleSheet.create({
     directionHeaderLabel: {
         fontSize: tfs(13),
         fontFamily: 'Poppins-Bold',
-        color: '#4A5568',
+        color: cfg('#4A5568'),
         marginHorizontal: 20,
         marginTop: 4,
         marginBottom: 8,
@@ -1993,4 +1995,4 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
         textAlign: 'center',
     },
-});
+}));

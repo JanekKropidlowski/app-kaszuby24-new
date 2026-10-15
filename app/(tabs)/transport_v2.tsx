@@ -18,10 +18,9 @@ import { JourneyDetailsModal } from '../../components/transport/JourneyDetailsMo
 import { TransportFilterModal, SearchFilters } from '../../components/transport/TransportFilterModal';
 import { TimetableModal } from '../../components/transport/TimetableModal';
 import { KeyboardAvoidingView } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useIsFocused } from '@react-navigation/native';
 import { useFavoritesStore } from '../../store/favoritesStore';
 
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 const API_STOPS = 'https://kaszuby24.pl/wp-json/kaszuby24/v2/stops?agency=all';
 // Dawniej Android dostawał tekst o 3 pt mniejszy (9–10 pt w rozkładzie) – nieczytelne.
 const tfs = (size: number) => size;
@@ -29,6 +28,7 @@ const tfs = (size: number) => size;
 type SearchFieldType = 'from' | 'to' | null;
 
 export default function TransportSearchScreen() {
+    useDarkSync();
     const [fromQuery, setFromQuery] = useState('');
     const [toQuery, setToQuery] = useState('');
     const [fromStation, setFromStation] = useState<TransportSearchResult | null>(null);
@@ -43,7 +43,6 @@ export default function TransportSearchScreen() {
     const [stopsLoadFailed, setStopsLoadFailed] = useState(false);
     const [routeStatus, setRouteStatus] = useState<'ok' | 'failed' | 'empty'>('ok');
     const locationAskedRef = useRef(false);
-    const isFocused = useIsFocused();
     const [userLocation, setUserLocation] = useState<{ lat: number, lon: number } | null>(null);
 
     const departuresService = useMemo(() => getDeparturesService(), []);
@@ -585,14 +584,14 @@ export default function TransportSearchScreen() {
             return (
                 <TouchableOpacity style={styles.resultItem} onPress={() => onItemPress(item)} activeOpacity={0.7}>
                     <View style={styles.resultLeft}>
-                        <View style={[styles.miniBadge, { backgroundColor: '#EBF4FF', width: 36, height: 36, borderRadius: 10 }]}>
-                            <Ionicons name="locate" size={20} color="#3182CE" />
+                        <View style={[styles.miniBadge, { backgroundColor: cbg('#EBF4FF'), width: 36, height: 36, borderRadius: 10 }]}>
+                            <Ionicons name="locate" size={20} color={cfg('#3182CE')} />
                         </View>
                         <View style={styles.resultTextContainer}>
-                            <Text style={[styles.itemTitle, { color: '#3182CE' }]}>Moja lokalizacja</Text>
+                            <Text style={[styles.itemTitle, { color: cfg('#3182CE') }]}>Moja lokalizacja</Text>
                             <Text style={styles.itemSubtitle}>Aktualna pozycja GPS</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={16} color="#CBD5E0" />
+                        <Ionicons name="chevron-forward" size={16} color={cfg('#CBD5E0')} />
                     </View>
                 </TouchableOpacity>
             );
@@ -617,43 +616,43 @@ export default function TransportSearchScreen() {
 
         const renderIcon = () => {
             if (isSkm) return (
-                <View style={[styles.miniBadge, { backgroundColor: '#FFD54F', width: 36, height: 36, borderRadius: 10 }]}>
-                    <MaterialCommunityIcons name="train" size={20} color="#000" />
+                <View style={[styles.miniBadge, { backgroundColor: cbg('#FFD54F'), width: 36, height: 36, borderRadius: 10 }]}>
+                    <MaterialCommunityIcons name="train" size={20} color={cfg('#000')} />
                 </View>
             );
             if (isPolregio) return (
-                <View style={[styles.miniBadge, { backgroundColor: '#1A6ADD', width: 36, height: 36, borderRadius: 10 }]}>
-                    <MaterialCommunityIcons name="train" size={20} color="#FFF" />
+                <View style={[styles.miniBadge, { backgroundColor: cbg('#1A6ADD'), width: 36, height: 36, borderRadius: 10 }]}>
+                    <MaterialCommunityIcons name="train" size={20} color={cfg('#FFF')} />
                 </View>
             );
             if (isIC || isRegioJet) return (
-                <View style={[styles.miniBadge, { backgroundColor: '#1A237E', width: 36, height: 36, borderRadius: 10 }]}>
-                    <MaterialCommunityIcons name="train-variant" size={20} color="#FFF" />
+                <View style={[styles.miniBadge, { backgroundColor: cbg('#1A237E'), width: 36, height: 36, borderRadius: 10 }]}>
+                    <MaterialCommunityIcons name="train-variant" size={20} color={cfg('#FFF')} />
                 </View>
             );
             if (isPks) return (
-                <View style={[styles.miniBadge, { backgroundColor: '#388E3C', width: 36, height: 36, borderRadius: 10 }]}>
+                <View style={[styles.miniBadge, { backgroundColor: cbg('#388E3C'), width: 36, height: 36, borderRadius: 10 }]}>
                     <MaterialCommunityIcons name="bus" size={20} color="white" />
                 </View>
             );
             if (isMzk) return (
-                <View style={[styles.miniBadge, { backgroundColor: '#1A237E', width: 36, height: 36, borderRadius: 10 }]}>
+                <View style={[styles.miniBadge, { backgroundColor: cbg('#1A237E'), width: 36, height: 36, borderRadius: 10 }]}>
                     <MaterialCommunityIcons name="bus-clock" size={20} color="white" />
                 </View>
             );
             if (isZkm) return (
-                <View style={[styles.miniBadge, { backgroundColor: '#E53935', width: 36, height: 36, borderRadius: 10 }]}>
+                <View style={[styles.miniBadge, { backgroundColor: cbg('#E53935'), width: 36, height: 36, borderRadius: 10 }]}>
                     <MaterialCommunityIcons name="bus" size={20} color="white" />
                 </View>
             );
             if (isZtm) return (
-                <View style={[styles.miniBadge, { backgroundColor: '#F57C00', width: 36, height: 36, borderRadius: 10 }]}>
+                <View style={[styles.miniBadge, { backgroundColor: cbg('#F57C00'), width: 36, height: 36, borderRadius: 10 }]}>
                     <MaterialCommunityIcons name="tram" size={20} color="white" />
                 </View>
             );
             return (
                 <View style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
-                    <MaterialCommunityIcons name={isHistory ? 'history' : 'train-variant'} size={24} color="#718096" />
+                    <MaterialCommunityIcons name={isHistory ? 'history' : 'train-variant'} size={24} color={cfg('#718096')} />
                 </View>
             );
         };
@@ -703,19 +702,19 @@ export default function TransportSearchScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     {/* LEFT COLUMN: Time / Label */}
                     <View style={{ minWidth: 90, justifyContent: 'center' }}>
-                        <Text style={{ fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#718096', marginBottom: -2 }}>
+                        <Text style={{ fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#718096'), marginBottom: -2 }}>
                             Odjazd o:
                         </Text>
-                        <Text style={{ fontSize: tfs(32), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: '#1A202C', lineHeight: 42, marginTop: 4 }}>
+                        <Text style={{ fontSize: tfs(32), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: cfg('#1A202C'), lineHeight: 42, marginTop: 4 }}>
                             {transitTime}
                         </Text>
                         {showCountdown ? (
-                            <Text style={{ fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#718096', marginTop: 1 }}>
+                            <Text style={{ fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#718096'), marginTop: 1 }}>
                                 za {totalMinutesUntil} min
                             </Text>
                         ) : null}
                         {walkMin > 0 ? (
-                            <Text style={{ fontSize: tfs(11), color: '#9CA3AF', marginTop: 1 }}>
+                            <Text style={{ fontSize: tfs(11), color: cfg('#9CA3AF'), marginTop: 1 }}>
                                 🚶 {walkMin} min do przystanku
                             </Text>
                         ) : null}
@@ -737,28 +736,28 @@ export default function TransportSearchScreen() {
 
                                     if (leg.brand === 'SKM') {
                                         text = 'SKM'; // Just show SKM for logos, or line if needed. User liked "SKM".
-                                        style = { backgroundColor: '#FFD700', color: '#1A1A1A' }; // Yellow/Gold background for SKM
+                                        style = { backgroundColor: cbg('#FFD700'), color: cfg('#1A1A1A') }; // Yellow/Gold background for SKM
                                     } else if (leg.brand === 'POLREGIO') {
                                         text = 'REGIO';
                                         style = styles.badgePol;
                                     } else if (leg.brand === 'MZK' || leg.brand === 'MZK Wejherowo') {
                                         text = leg.line ? `MZK ${leg.line}` : 'MZK'; // Show "MZK 9" if line number exists
-                                        style = { backgroundColor: '#1A237E', color: '#FFFFFF' }; // White text for MZK
+                                        style = { backgroundColor: cbg('#1A237E'), color: cfg('#FFFFFF') }; // White text for MZK
                                     } else if (leg.brand === 'PKS' || leg.brand === 'PKS Gdynia' || leg.brand?.includes('PKS')) {
                                         text = leg.line ? `${leg.line}` : 'PKS';
-                                        style = { backgroundColor: '#388E3C', color: '#FFFFFF' }; // Zielony PKS Gdynia
+                                        style = { backgroundColor: cbg('#388E3C'), color: cfg('#FFFFFF') }; // Zielony PKS Gdynia
                                     } else if (leg.brand === 'ZKM') {
                                         text = leg.line ? `ZKM ${leg.line}` : 'ZKM';
-                                        style = { backgroundColor: '#E53935', color: '#FFFFFF' }; // Czerwony ZKM Gdynia
+                                        style = { backgroundColor: cbg('#E53935'), color: cfg('#FFFFFF') }; // Czerwony ZKM Gdynia
                                     } else if (leg.brand === 'ZTM') {
                                         text = leg.line ? `ZTM ${leg.line}` : 'ZTM';
-                                        style = { backgroundColor: '#F57C00', color: '#FFFFFF' }; // Pomarańczowy ZTM Gdańsk
+                                        style = { backgroundColor: cbg('#F57C00'), color: cfg('#FFFFFF') }; // Pomarańczowy ZTM Gdańsk
                                     } else if (leg.brand === 'IC' || leg.brand === 'RegioJet') {
                                         text = leg.line ? `${leg.brand} ${leg.line}` : (leg.brand || 'IC');
-                                        style = { backgroundColor: '#1A237E', color: '#FFFFFF' }; // Granatowy IC/RegioJet
+                                        style = { backgroundColor: cbg('#1A237E'), color: cfg('#FFFFFF') }; // Granatowy IC/RegioJet
                                     } else if (leg.brand === 'PKP') {
                                         text = leg.line ? `PKP ${leg.line}` : 'PKP';
-                                        style = { backgroundColor: '#37474F', color: '#FFFFFF' }; // Ciemnoszary PKP
+                                        style = { backgroundColor: cbg('#37474F'), color: cfg('#FFFFFF') }; // Ciemnoszary PKP
                                     }
 
                                     return { text, style, label };
@@ -790,7 +789,7 @@ export default function TransportSearchScreen() {
                                             <MaterialCommunityIcons
                                                 name="train"
                                                 size={13}
-                                                color={badge.label === 'POLREGIO' ? '#FFFFFF' : '#1A1A1A'}
+                                                color={badge.label === 'POLREGIO' ? cfg('#FFFFFF') : cfg('#1A1A1A')}
                                                 style={{ marginRight: 4, alignSelf: 'center' }}
                                             />
                                         )}
@@ -798,7 +797,7 @@ export default function TransportSearchScreen() {
                                             <MaterialCommunityIcons
                                                 name="bus"
                                                 size={13}
-                                                color="#FFFFFF"
+                                                color={cfg('#FFFFFF')}
                                                 style={{ marginRight: 4, alignSelf: 'center' }}
                                             />
                                         )}
@@ -806,13 +805,13 @@ export default function TransportSearchScreen() {
                                             <MaterialCommunityIcons
                                                 name="bus"
                                                 size={13}
-                                                color="#FFFFFF"
+                                                color={cfg('#FFFFFF')}
                                                 style={{ marginRight: 4, alignSelf: 'center' }}
                                             />
                                         )}
                                         <Text style={[
                                             styles.miniBadgeText,
-                                            (badge.text === 'REGIO' || badge.text === 'MZK') ? { color: '#FFFFFF' } : null,
+                                            (badge.text === 'REGIO' || badge.text === 'MZK') ? { color: cfg('#FFFFFF') } : null,
                                             { fontSize: tfs(11), alignSelf: 'center', fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }) },
                                             badge.style.color ? { color: badge.style.color } : null
                                         ]}>
@@ -826,13 +825,13 @@ export default function TransportSearchScreen() {
                         {/* Row 2: Timeline Pills (Right Aligned) */}
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <View style={{ alignItems: 'flex-end' }}>
-                                <Text style={{ fontSize: tfs(11), color: '#A0AEC0', fontFamily: Platform.select({ android: 'Poppins_Regular', default: 'Poppins-Regular' }), marginBottom: 2 }}>{item.totalDuration} min</Text>
+                                <Text style={{ fontSize: tfs(11), color: cfg('#A0AEC0'), fontFamily: Platform.select({ android: 'Poppins_Regular', default: 'Poppins-Regular' }), marginBottom: 2 }}>{item.totalDuration} min</Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <View style={[styles.timeBadge, { backgroundColor: '#48BB78', height: 20, paddingHorizontal: 8, borderRadius: 10 }]}>
+                                    <View style={[styles.timeBadge, { backgroundColor: cbg('#48BB78'), height: 20, paddingHorizontal: 8, borderRadius: 10 }]}>
                                         <Text style={[styles.timeBadgeText, { color: 'white', fontSize: tfs(11) }]}>{item.startTime}</Text>
                                     </View>
-                                    <Ionicons name="arrow-forward" size={12} color="#CBD5E0" />
-                                    <View style={[styles.timeBadge, { backgroundColor: '#4299E1', height: 20, paddingHorizontal: 8, borderRadius: 10 }]}>
+                                    <Ionicons name="arrow-forward" size={12} color={cfg('#CBD5E0')} />
+                                    <View style={[styles.timeBadge, { backgroundColor: cbg('#4299E1'), height: 20, paddingHorizontal: 8, borderRadius: 10 }]}>
                                         <Text style={[styles.timeBadgeText, { color: 'white', fontSize: tfs(11) }]}>{item.endTime}</Text>
                                     </View>
                                 </View>
@@ -844,7 +843,7 @@ export default function TransportSearchScreen() {
                 {/* EXPANDED DETAILS */}
                 {isExpanded && (
                     <View style={styles.journeyDetails}>
-                        <View style={{ height: 1, backgroundColor: '#EDF2F7', marginVertical: 12, opacity: 0.6 }} />
+                        <View style={{ height: 1, backgroundColor: cbg('#EDF2F7'), marginVertical: 12, opacity: 0.6 }} />
                         {item.legs
                             .filter((leg, legIdx) => {
                                 // Filter out last WALK leg if it's just walking around destination station
@@ -860,13 +859,13 @@ export default function TransportSearchScreen() {
                             ))
                         }
                         <TouchableOpacity
-                            style={[styles.detailsButton, { backgroundColor: '#FFB300', marginTop: 12 }]}
+                            style={[styles.detailsButton, { backgroundColor: cbg('#FFB300'), marginTop: 12 }]}
                             onPress={() => {
                                 setSelectedJourney(item);
                                 setDetailsModalVisible(true);
                             }}
                         >
-                            <Text style={[styles.detailsButtonText, { color: '#1A1A1A', fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }) }]}>SZCZEGÓŁY TRASY</Text>
+                            <Text style={[styles.detailsButtonText, { color: cfg('#1A1A1A'), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }) }]}>SZCZEGÓŁY TRASY</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -878,9 +877,7 @@ export default function TransportSearchScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Nagłówek jest jasny niezależnie od motywu – bez tego w trybie ciemnym ikony paska statusu są białe na jasnym */}
-            {isFocused && <StatusBar style="dark" />}
-            <LinearGradient colors={['#E5E7EB', '#F3F4F6']} style={styles.headerGradient}>
+            <LinearGradient colors={[cbg('#E5E7EB'), cbg('#F3F4F6')]} style={styles.headerGradient}>
                 <SafeAreaView edges={['top']}>
                     <View style={styles.header}>
                         <View>
@@ -893,7 +890,7 @@ export default function TransportSearchScreen() {
                             accessibilityRole="button"
                             accessibilityLabel="Odjazdy z przystanku"
                         >
-                            <MaterialCommunityIcons name="table-clock" size={20} color="#1A1A1A" />
+                            <MaterialCommunityIcons name="table-clock" size={20} color={cfg('#1A1A1A')} />
                             <Text style={styles.settingsBtnText}>Odjazdy z przystanku</Text>
                         </TouchableOpacity>
                     </View>
@@ -906,7 +903,7 @@ export default function TransportSearchScreen() {
                             {/* Dot From */}
                             <View style={{ alignItems: 'center', flex: 1, justifyContent: 'flex-end', paddingBottom: 4 }}>
                                 <View style={[styles.dot, styles.dotFrom, { marginRight: 0 }]} />
-                                <View style={{ width: 2, flex: 1, backgroundColor: '#E5E7EB', marginVertical: 4 }} />
+                                <View style={{ width: 2, flex: 1, backgroundColor: cbg('#E5E7EB'), marginVertical: 4 }} />
                             </View>
 
                             {/* Swap Button */}
@@ -918,12 +915,12 @@ export default function TransportSearchScreen() {
                                 accessibilityRole="button"
                                 accessibilityLabel="Zamień miejscami Skąd i Dokąd"
                             >
-                                <MaterialCommunityIcons name="swap-vertical" size={20} color="#4B5563" />
+                                <MaterialCommunityIcons name="swap-vertical" size={20} color={cfg('#4B5563')} />
                             </TouchableOpacity>
 
                             {/* Dot To */}
                             <View style={{ alignItems: 'center', flex: 1, justifyContent: 'flex-start', paddingTop: 4 }}>
-                                <View style={{ width: 2, flex: 1, backgroundColor: '#E5E7EB', marginVertical: 4 }} />
+                                <View style={{ width: 2, flex: 1, backgroundColor: cbg('#E5E7EB'), marginVertical: 4 }} />
                                 <View style={[styles.dot, styles.dotTo, { marginRight: 0 }]} />
                             </View>
                         </View>
@@ -934,7 +931,7 @@ export default function TransportSearchScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Skąd wyruszasz?"
-                                    placeholderTextColor="#909090"
+                                    placeholderTextColor={cfg('#909090')}
                                     value={fromQuery}
                                     onChangeText={(t) => { setFromQuery(t); setFromStation(null); handleSearch(t); }}
                                     onFocus={onFromFocus}
@@ -943,7 +940,7 @@ export default function TransportSearchScreen() {
                                 />
                                 {fromQuery.length > 0 && (
                                     <TouchableOpacity onPress={onClearFrom} style={styles.clearBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Wyczyść pole Skąd">
-                                        <Ionicons name="close-circle" size={18} color="#909090" />
+                                        <Ionicons name="close-circle" size={18} color={cfg('#909090')} />
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -952,7 +949,7 @@ export default function TransportSearchScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Dokąd chcesz dotrzeć?"
-                                    placeholderTextColor="#909090"
+                                    placeholderTextColor={cfg('#909090')}
                                     value={toQuery}
                                     onChangeText={(t) => { setToQuery(t); setToStation(null); handleSearch(t); }}
                                     onFocus={onToFocus}
@@ -961,7 +958,7 @@ export default function TransportSearchScreen() {
                                 />
                                 {toQuery.length > 0 && (
                                     <TouchableOpacity onPress={onClearTo} style={styles.clearBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Wyczyść pole Dokąd">
-                                        <Ionicons name="close-circle" size={18} color="#909090" />
+                                        <Ionicons name="close-circle" size={18} color={cfg('#909090')} />
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -975,9 +972,9 @@ export default function TransportSearchScreen() {
                             activeOpacity={0.8}
                             disabled={!(fromStation && toStation)}
                         >
-                            <LinearGradient colors={!(fromStation && toStation) ? ['#E2E8F0', '#CBD5E0'] : ['#FFB300', '#F59E0B']} style={styles.searchGradient}>
-                                <Ionicons name="search" size={20} color={!(fromStation && toStation) ? '#A0AEC0' : '#FFFFFF'} />
-                                <Text style={[styles.searchMainText, !(fromStation && toStation) ? { color: '#A0AEC0' } : { color: '#FFFFFF' }]}>Szukaj połączeń</Text>
+                            <LinearGradient colors={!(fromStation && toStation) ? [cbg('#E2E8F0'), cbg('#CBD5E0')] : [cbg('#FFB300'), cbg('#F59E0B')]} style={styles.searchGradient}>
+                                <Ionicons name="search" size={20} color={!(fromStation && toStation) ? cfg('#A0AEC0') : cfg('#FFFFFF')} />
+                                <Text style={[styles.searchMainText, !(fromStation && toStation) ? { color: cfg('#A0AEC0') } : { color: cfg('#FFFFFF') }]}>Szukaj połączeń</Text>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -993,9 +990,9 @@ export default function TransportSearchScreen() {
                                 toStation.lat ?? 0,
                                 toStation.lon ?? 0
                             ) ? (
-                                <Ionicons name="heart" size={24} color="#E53E3E" />
+                                <Ionicons name="heart" size={24} color={cfg('#E53E3E')} />
                             ) : (
-                                <Ionicons name="heart-outline" size={24} color="#718096" />
+                                <Ionicons name="heart-outline" size={24} color={cfg('#718096')} />
                             )}
                         </TouchableOpacity>
                     </View>
@@ -1004,8 +1001,8 @@ export default function TransportSearchScreen() {
 
             {/* Pigułki z ulubionymi trasami (widoczne gdy nie ma wyników wyszukiwania) */}
             {activeField === null && journeys.length === 0 && sortedFavoriteRoutes.length > 0 && (
-                <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F7FAFC' }}>
-                    <Text style={{ fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: '#A0AEC0', paddingHorizontal: 20, marginBottom: 8, letterSpacing: 0.5 }}>Zapisane trasy</Text>
+                <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: cbd('#F7FAFC') }}>
+                    <Text style={{ fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: cfg('#A0AEC0'), paddingHorizontal: 20, marginBottom: 8, letterSpacing: 0.5 }}>Zapisane trasy</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
                         {sortedFavoriteRoutes.map((fav) => (
                             <TouchableOpacity
@@ -1014,21 +1011,21 @@ export default function TransportSearchScreen() {
                                 onPress={() => applyFavoriteRoute(fav)}
                                 activeOpacity={0.75}
                             >
-                                <Ionicons name="star" size={11} color="#F59E0B" />
+                                <Ionicons name="star" size={11} color={cfg('#F59E0B')} />
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.favoritePillText} numberOfLines={1}>
                                         {fav.fromName}
                                     </Text>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                        <Ionicons name="arrow-forward" size={10} color="#B45309" />
+                                        <Ionicons name="arrow-forward" size={10} color={cfg('#B45309')} />
                                         <Text style={[styles.favoritePillText, { fontSize: tfs(11), opacity: 0.8 }]} numberOfLines={1}>
                                             {fav.toName}
                                         </Text>
                                     </View>
                                 </View>
                                 {fav.usageCount > 0 && (
-                                    <View style={{ backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 2, marginLeft: 4 }}>
-                                        <Text style={{ fontSize: tfs(10), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: '#92400E' }}>{fav.usageCount}×</Text>
+                                    <View style={{ backgroundColor: cbg('#FEF3C7'), borderRadius: 8, paddingHorizontal: 5, paddingVertical: 2, marginLeft: 4 }}>
+                                        <Text style={{ fontSize: tfs(10), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: cfg('#92400E') }}>{fav.usageCount}×</Text>
                                     </View>
                                 )}
                                 <TouchableOpacity
@@ -1038,7 +1035,7 @@ export default function TransportSearchScreen() {
                                     accessibilityRole="button"
                                     accessibilityLabel="Usuń zapisaną trasę"
                                 >
-                                    <Ionicons name="close-circle" size={16} color="#CBD5E0" />
+                                    <Ionicons name="close-circle" size={16} color={cfg('#CBD5E0')} />
                                 </TouchableOpacity>
                             </TouchableOpacity>
                         ))}
@@ -1057,7 +1054,7 @@ export default function TransportSearchScreen() {
             >
                 {isInitLoading || isSearchingRoute ? (
                     <View style={styles.centered}>
-                        <ActivityIndicator size="large" color="#FFB300" />
+                        <ActivityIndicator size="large" color={cfg('#FFB300')} />
                         {isSearchingRoute && <Text style={styles.loadingText}>Szukam najlepszych połączeń...</Text>}
                     </View>
                 ) : journeys.length > 0 ? (
@@ -1070,8 +1067,8 @@ export default function TransportSearchScreen() {
                         ListFooterComponent={
                             isLoadingMore ? (
                                 <View style={{ alignItems: 'center', padding: 20 }}>
-                                    <ActivityIndicator size="small" color="#FFB300" />
-                                    <Text style={{ fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#A0AEC0', marginTop: 8 }}>
+                                    <ActivityIndicator size="small" color={cfg('#FFB300')} />
+                                    <Text style={{ fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#A0AEC0'), marginTop: 8 }}>
                                         Ładuję kolejne połączenia...
                                     </Text>
                                 </View>
@@ -1108,9 +1105,9 @@ export default function TransportSearchScreen() {
                                     )}
                                     {globalIdx === 0 && firstJourneyIsDirect && (
                                         <>
-                                            <View style={{ height: 1, backgroundColor: '#48BB78', marginHorizontal: 16, marginTop: 16, marginBottom: 12 }} />
+                                            <View style={{ height: 1, backgroundColor: cbg('#48BB78'), marginHorizontal: 16, marginTop: 16, marginBottom: 12 }} />
                                             <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-                                                <Text style={{ fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#48BB78', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                                                <Text style={{ fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#48BB78'), letterSpacing: 0.5, textTransform: 'uppercase' }}>
                                                     Najbliższy odjazd
                                                 </Text>
                                             </View>
@@ -1118,9 +1115,9 @@ export default function TransportSearchScreen() {
                                     )}
                                     {globalIdx === 1 && firstJourneyIsDirect && (
                                         <>
-                                            <View style={{ height: 1, backgroundColor: '#E2E8F0', marginHorizontal: 16, marginTop: 20, marginBottom: 12 }} />
+                                            <View style={{ height: 1, backgroundColor: cbg('#E2E8F0'), marginHorizontal: 16, marginTop: 20, marginBottom: 12 }} />
                                             <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-                                                <Text style={{ fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#A0AEC0', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                                                <Text style={{ fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#A0AEC0'), letterSpacing: 0.5, textTransform: 'uppercase' }}>
                                                     Pozostałe połączenia
                                                 </Text>
                                             </View>
@@ -1132,7 +1129,7 @@ export default function TransportSearchScreen() {
                         }}
                     />
                 ) : (isLoading && activeField !== null) ? (
-                    <View style={styles.centered}><ActivityIndicator color="#FFB300" /><Text style={styles.loadingText}>Szukam przystanków...</Text></View>
+                    <View style={styles.centered}><ActivityIndicator color={cfg('#FFB300')} /><Text style={styles.loadingText}>Szukam przystanków...</Text></View>
                 ) : (activeField !== null && results.length > 0) ? (
                     <FlashList
                         data={results}
@@ -1143,7 +1140,7 @@ export default function TransportSearchScreen() {
                     />
                 ) : (stopsLoadFailed && allStops.length === 0 && activeField !== null) ? (
                     <View style={styles.centered}>
-                        <MaterialCommunityIcons name="wifi-off" size={60} color="#CBD5E0" />
+                        <MaterialCommunityIcons name="wifi-off" size={60} color={cfg('#CBD5E0')} />
                         <Text style={styles.emptyTitle}>Nie udało się pobrać przystanków</Text>
                         <Text style={styles.emptySubtitle}>Sprawdź połączenie z internetem i spróbuj ponownie.</Text>
                         <TouchableOpacity style={styles.retryBtn} onPress={loadInitialData} accessibilityRole="button">
@@ -1152,7 +1149,7 @@ export default function TransportSearchScreen() {
                     </View>
                 ) : (activeField !== null && !isLoading && (fromQuery.length > 0 || (activeField === 'to' && toQuery.length > 0))) ? (
                     <View style={styles.centered}>
-                        <MaterialCommunityIcons name="map-marker-off" size={60} color="#F0F4F8" />
+                        <MaterialCommunityIcons name="map-marker-off" size={60} color={cfg('#F0F4F8')} />
                         <Text style={styles.emptyTitle}>Nie znaleziono przystanku</Text>
                         <Text style={styles.emptySubtitle}>Spróbuj wpisać inną nazwę lub sprawdź czy nie ma literówki.</Text>
                     </View>
@@ -1164,7 +1161,7 @@ export default function TransportSearchScreen() {
                     >
                         {routeStatus === 'failed' ? (
                             <>
-                                <MaterialCommunityIcons name="wifi-off" size={80} color="#CBD5E0" />
+                                <MaterialCommunityIcons name="wifi-off" size={80} color={cfg('#CBD5E0')} />
                                 <Text style={styles.emptyTitle}>Nie udało się wyszukać połączeń</Text>
                                 <Text style={styles.emptySubtitle}>Sprawdź połączenie z internetem i spróbuj ponownie.</Text>
                                 <TouchableOpacity style={styles.retryBtn} onPress={onSearchRoute} accessibilityRole="button">
@@ -1173,13 +1170,13 @@ export default function TransportSearchScreen() {
                             </>
                         ) : routeStatus === 'empty' ? (
                             <>
-                                <MaterialCommunityIcons name="calendar-remove" size={80} color="#CBD5E0" />
+                                <MaterialCommunityIcons name="calendar-remove" size={80} color={cfg('#CBD5E0')} />
                                 <Text style={styles.emptyTitle}>Brak połączeń o tej porze</Text>
                                 <Text style={styles.emptySubtitle}>Spróbuj innego przystanku albo zmień filtry wyszukiwania.</Text>
                             </>
                         ) : (
                             <>
-                                <MaterialCommunityIcons name="train-variant" size={100} color="#F0F4F8" />
+                                <MaterialCommunityIcons name="train-variant" size={100} color={cfg('#F0F4F8')} />
                                 <Text style={styles.emptyTitle}>Dokąd jedziesz?</Text>
                                 <Text style={styles.emptySubtitle}>Wpisz przystanek początkowy i końcowy, aby znaleźć połączenie.</Text>
                             </>
@@ -1216,107 +1213,107 @@ export default function TransportSearchScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FFFFFF' },
+const styles = themedStyles(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: cbg('#FFFFFF') },
     headerGradient: { borderBottomLeftRadius: 32, borderBottomRightRadius: 32, paddingBottom: 25, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, zIndex: 10 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 25, paddingTop: 10, marginBottom: 15 },
     headerSubtitle: {
         fontSize: tfs(13),
         fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }),
-        color: '#718096',
+        color: cfg('#718096'),
         textTransform: 'uppercase',
         letterSpacing: 1
     },
     headerTitle: {
         fontSize: tfs(32),
         fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }),
-        color: '#1A1A1A',
+        color: cfg('#1A1A1A'),
         marginTop: -5
     },
-    settingsBtn: { flexDirection: 'row', gap: 8, minHeight: 45, paddingHorizontal: 14, borderRadius: 15, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
-    retryBtn: { marginTop: 16, minHeight: 44, paddingHorizontal: 22, borderRadius: 14, backgroundColor: '#FFB300', alignItems: 'center', justifyContent: 'center' },
-    retryBtnText: { fontSize: tfs(14), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: '#FFFFFF' },
-    settingsBtnText: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#1A1A1A' },
+    settingsBtn: { flexDirection: 'row', gap: 8, minHeight: 45, paddingHorizontal: 14, borderRadius: 15, backgroundColor: cbg('#FFFFFF'), alignItems: 'center', justifyContent: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+    retryBtn: { marginTop: 16, minHeight: 44, paddingHorizontal: 22, borderRadius: 14, backgroundColor: cbg('#FFB300'), alignItems: 'center', justifyContent: 'center' },
+    retryBtnText: { fontSize: tfs(14), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: cfg('#FFFFFF') },
+    settingsBtnText: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#1A1A1A') },
     searchSection: { paddingHorizontal: 20, zIndex: 20 },
 
-    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7FAFC', borderRadius: 16, paddingHorizontal: 15, paddingVertical: 14, marginBottom: 12, borderWidth: 1.5, borderColor: '#EDF2F7' },
-    searchBarActive: { borderColor: '#FFB300', backgroundColor: '#FFFFFF', elevation: 4, shadowColor: '#FFB300', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
-    input: { flex: 1, fontSize: tfs(16), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#2D3748' },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: cbg('#F7FAFC'), borderRadius: 16, paddingHorizontal: 15, paddingVertical: 14, marginBottom: 12, borderWidth: 1.5, borderColor: cbd('#EDF2F7') },
+    searchBarActive: { borderColor: cbd('#FFB300'), backgroundColor: cbg('#FFFFFF'), elevation: 4, shadowColor: '#FFB300', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
+    input: { flex: 1, fontSize: tfs(16), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#2D3748') },
     dot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
-    dotFrom: { backgroundColor: '#48BB78', borderWidth: 2, borderColor: '#C6F6D5' },
-    dotTo: { backgroundColor: '#F56565', borderWidth: 2, borderColor: '#FED7D7' },
+    dotFrom: { backgroundColor: cbg('#48BB78'), borderWidth: 2, borderColor: cbd('#C6F6D5') },
+    dotTo: { backgroundColor: cbg('#F56565'), borderWidth: 2, borderColor: cbd('#FED7D7') },
     clearBtn: { padding: 4 },
 
-    swapButtonSide: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
+    swapButtonSide: { width: 32, height: 32, borderRadius: 16, backgroundColor: cbg('#F3F4F6'), alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: cbd('#E5E7EB') },
 
-    listContainer: { flex: 1, backgroundColor: '#FFFFFF' },
+    listContainer: { flex: 1, backgroundColor: cbg('#FFFFFF') },
     listPadding: { paddingTop: 15, paddingBottom: 120 },
 
-    resultItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F7FAFC' },
+    resultItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: cbg('#FFFFFF'), borderBottomWidth: 1, borderBottomColor: cbd('#F7FAFC') },
     resultLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     resultTextContainer: { flex: 1 },
-    itemTitle: { fontSize: tfs(16), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: '#1A202C' },
-    itemSubtitle: { fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Regular', default: 'Poppins-Regular' }), color: '#718096', marginTop: 2 },
+    itemTitle: { fontSize: tfs(16), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: cfg('#1A202C') },
+    itemSubtitle: { fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Regular', default: 'Poppins-Regular' }), color: cfg('#718096'), marginTop: 2 },
 
-    sectionTitle: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: '#A0AEC0', marginTop: 15, marginBottom: 10, letterSpacing: 0.5 },
-    recentChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7FAFC', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginRight: 10 },
-    recentText: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#4A5568', marginLeft: 6 },
+    sectionTitle: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: cfg('#A0AEC0'), marginTop: 15, marginBottom: 10, letterSpacing: 0.5 },
+    recentChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: cbg('#F7FAFC'), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginRight: 10 },
+    recentText: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#4A5568'), marginLeft: 6 },
 
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-    loadingText: { marginTop: 10, fontSize: tfs(14), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#A0AEC0' },
+    loadingText: { marginTop: 10, fontSize: tfs(14), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#A0AEC0') },
     emptyContainer: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 50, paddingBottom: 100 }, // Added bottom padding to push content up optically
     emptyTitle: {
         fontSize: tfs(24),
         fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }),
-        color: '#2D3748',
+        color: cfg('#2D3748'),
         marginTop: 25,
         textAlign: 'center'
     },
-    emptySubtitle: { fontSize: tfs(15), fontFamily: Platform.select({ android: 'Poppins_Regular', default: 'Poppins-Regular' }), color: '#A0AEC0', textAlign: 'center', marginTop: 10, lineHeight: 22 },
+    emptySubtitle: { fontSize: tfs(15), fontFamily: Platform.select({ android: 'Poppins_Regular', default: 'Poppins-Regular' }), color: cfg('#A0AEC0'), textAlign: 'center', marginTop: 10, lineHeight: 22 },
 
     searchMainBtn: { borderRadius: 20, overflow: 'hidden', shadowColor: '#FFB300', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
     searchMainBtnDisabled: { opacity: 0.6, elevation: 2 },
     searchGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
-    searchMainText: { fontSize: tfs(16), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: '#1A1A1A', marginLeft: 10 },
-    searchMainTextDisabled: { color: '#A0AEC0' },
+    searchMainText: { fontSize: tfs(16), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: cfg('#1A1A1A'), marginLeft: 10 },
+    searchMainTextDisabled: { color: cfg('#A0AEC0') },
 
-    favoriteBtn: { width: 52, height: 52, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#EDF2F7', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
-    favoritePill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, gap: 6, borderWidth: 1, borderColor: '#FEF3C7' },
-    favoritePillText: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#92400E', maxWidth: 200 },
+    favoriteBtn: { width: 52, height: 52, borderRadius: 20, backgroundColor: cbg('#FFFFFF'), alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: cbd('#EDF2F7'), shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
+    favoritePill: { flexDirection: 'row', alignItems: 'center', backgroundColor: cbg('#FFFBEB'), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, gap: 6, borderWidth: 1, borderColor: cbd('#FEF3C7') },
+    favoritePillText: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#92400E'), maxWidth: 200 },
 
-    journeyCard: { backgroundColor: '#FFFFFF', marginHorizontal: 20, marginVertical: 10, padding: 18, borderRadius: 20, borderWidth: 1, borderColor: '#EDF2F7', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-    journeyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F7FAFC', paddingBottom: 12 },
+    journeyCard: { backgroundColor: cbg('#FFFFFF'), marginHorizontal: 20, marginVertical: 10, padding: 18, borderRadius: 20, borderWidth: 1, borderColor: cbd('#EDF2F7'), shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
+    journeyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: cbd('#F7FAFC'), paddingBottom: 12 },
     journeyHeaderMain: { flexDirection: 'row', alignItems: 'center' },
-    journeyTime: { fontSize: tfs(18), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: '#1A1A1A', marginRight: 12 },
+    journeyTime: { fontSize: tfs(18), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: cfg('#1A1A1A'), marginRight: 12 },
     journeyAgencies: { flexDirection: 'row', gap: 4 },
     miniBadge: { borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-    miniBadgeText: { fontSize: tfs(10), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: '#1A1A1A' },
-    badgeSkm: { backgroundColor: '#FFD54F' },
-    badgePol: { backgroundColor: '#1A6ADD' }, // Modern blue for Polregio
-    badgePkp: { backgroundColor: '#D32F2F' },
-    badgeZka: { backgroundColor: '#E53E3E' },
-    badgeTextPol: { color: '#FFFFFF' },
-    journeyDurationBox: { backgroundColor: '#F7FAFC', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-    journeyDuration: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: '#4A5568' },
+    miniBadgeText: { fontSize: tfs(10), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: cfg('#1A1A1A') },
+    badgeSkm: { backgroundColor: cbg('#FFD54F') },
+    badgePol: { backgroundColor: cbg('#1A6ADD') }, // Modern blue for Polregio
+    badgePkp: { backgroundColor: cbg('#D32F2F') },
+    badgeZka: { backgroundColor: cbg('#E53E3E') },
+    badgeTextPol: { color: cfg('#FFFFFF') },
+    journeyDurationBox: { backgroundColor: cbg('#F7FAFC'), paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    journeyDuration: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: cfg('#4A5568') },
 
-    timeBadge: { backgroundColor: '#C6F6D5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginLeft: 8 },
-    timeBadgeText: { color: '#22543D', fontSize: tfs(11), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }) },
+    timeBadge: { backgroundColor: cbg('#C6F6D5'), paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginLeft: 8 },
+    timeBadgeText: { color: cfg('#22543D'), fontSize: tfs(11), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }) },
 
     journeySummary: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 },
-    summaryBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7FAFC', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
-    summaryText: { fontSize: tfs(11), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#718096' },
+    summaryBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: cbg('#F7FAFC'), paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
+    summaryText: { fontSize: tfs(11), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#718096') },
 
-    journeyDetails: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EDF2F7' },
+    journeyDetails: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: cbd('#EDF2F7') },
     journeyLeg: { flexDirection: 'row', minHeight: 40 },
-    stopsCount: { fontSize: tfs(11), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#A0AEC0', marginTop: 2 },
-    journeyFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 5, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F7FAFC' },
-    transferText: { fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#718096', marginLeft: 6 },
+    stopsCount: { fontSize: tfs(11), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#A0AEC0'), marginTop: 2 },
+    journeyFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 5, paddingTop: 10, borderTopWidth: 1, borderTopColor: cbd('#F7FAFC') },
+    transferText: { fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: cfg('#718096'), marginLeft: 6 },
 
-    detailsButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0066CC', padding: 14, borderRadius: 14, marginTop: 20, gap: 10, elevation: 3, shadowColor: '#0066CC', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
+    detailsButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: cbg('#0066CC'), padding: 14, borderRadius: 14, marginTop: 20, gap: 10, elevation: 3, shadowColor: '#0066CC', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
     detailsButtonText: { fontSize: tfs(15), fontFamily: Platform.select({ android: 'Poppins_Bold', default: 'Poppins-Bold' }), color: 'white' },
 
 
-    dateHeader: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#F7FAFC', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-    dateHeaderText: { fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: '#718096', textTransform: 'uppercase', letterSpacing: 0.5 },
+    dateHeader: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: cbg('#F7FAFC'), borderBottomWidth: 1, borderBottomColor: cbd('#E2E8F0') },
+    dateHeaderText: { fontSize: tfs(12), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: cfg('#718096'), textTransform: 'uppercase', letterSpacing: 0.5 },
 
-});
+}));

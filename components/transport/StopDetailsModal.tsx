@@ -4,6 +4,7 @@ import { X, Navigation, Clock, Train, ChevronRight, Bus, MapPin, Calendar, Bike,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Interfaces
@@ -62,6 +63,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
     onRefresh,
     isAllDay
 }) => {
+    useDarkSync();
     const insets = useSafeAreaInsets();
     const [activeDirection, setActiveDirection] = useState<string | null>(null);
     const [limit, setLimit] = useState(10);
@@ -185,9 +187,9 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                         </View>
                         <View style={styles.headerActions}>
                             <TouchableOpacity style={[styles.squareBtn, { backgroundColor: theme.colors.primary }]} onPress={startNavigation}>
-                                <Navigation size={18} color="#fff" />
+                                <Navigation size={18} color={cfg('#fff')} />
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.squareBtn, { backgroundColor: theme.dark ? '#334155' : '#F1F5F9' }]} onPress={onClose}>
+                            <TouchableOpacity style={[styles.squareBtn, { backgroundColor: theme.dark ? cbg('#334155') : cbg('#F1F5F9') }]} onPress={onClose}>
                                 <X size={20} color={theme.colors.text} />
                             </TouchableOpacity>
                         </View>
@@ -217,7 +219,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                 {directions.map((dir, index) => {
                                     const isActive = dir === activeDirection;
                                     return (
-                                        <TouchableOpacity key={index} onPress={() => setActiveDirection(dir)} style={[styles.tab, { backgroundColor: isActive ? stopColor : (theme.dark ? '#1E293B' : '#F8FAFC'), borderColor: isActive ? stopColor : theme.colors.border }]}>
+                                        <TouchableOpacity key={index} onPress={() => setActiveDirection(dir)} style={[styles.tab, { backgroundColor: isActive ? stopColor : (theme.dark ? cbg('#1E293B') : cbg('#F8FAFC')), borderColor: isActive ? stopColor : theme.colors.border }]}>
                                             <Text style={[styles.tabText, { color: isActive ? badgeTextColor : theme.colors.text, fontWeight: isActive ? '700' : '500' }]} numberOfLines={1}>{dir}</Text>
                                         </TouchableOpacity>
                                     );
@@ -247,7 +249,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                                 </Text>
                                                 <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 4 }}>
                                                     {timetable.filter(t => t.route_type === 'mevo_electric' || t.route_type === 'mevo_mechanical').map((type, idx) => (
-                                                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.dark ? '#334155' : '#F1F5F9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                                                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.dark ? cbg('#334155') : cbg('#F1F5F9'), paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
                                                             <Text style={{ fontSize: tfs(12), marginRight: 4 }}>{type.route_type === 'mevo_electric' ? '⚡' : '🚲'}</Text>
                                                             <Text style={{ fontSize: tfs(14), fontWeight: '700', color: theme.colors.text }}>{type.time}</Text>
                                                             <Text style={{ fontSize: tfs(11), marginLeft: 4, color: theme.colors.textSecondary }}>{type.line}</Text>
@@ -260,7 +262,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
 
                                     {/* Free docks */}
                                     <View style={[styles.mevoCard, { backgroundColor: '#10B98110' }]}>
-                                        <View style={[styles.mevoIconCircle, { backgroundColor: '#10B98115' }]}><MapPin size={24} color="#10B981" /></View>
+                                        <View style={[styles.mevoIconCircle, { backgroundColor: '#10B98115' }]}><MapPin size={24} color={cfg('#10B981')} /></View>
                                         <View>
                                             <Text style={[styles.mevoLabel, { color: theme.colors.textSecondary }]}>Wolne stojaki</Text>
                                             <Text style={[styles.mevoValue, { color: theme.colors.text }]}>{timetable.find(t => t.route_type === 'mevo_docks')?.line || '0'}</Text>
@@ -301,7 +303,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
 
                                     {timetable[0]?.time && (
                                         <View style={[styles.mevoCard, { backgroundColor: '#10B98110' }]}>
-                                            <View style={[styles.mevoIconCircle, { backgroundColor: '#10B98115' }]}><MapPin size={24} color="#10B981" /></View>
+                                            <View style={[styles.mevoIconCircle, { backgroundColor: '#10B98115' }]}><MapPin size={24} color={cfg('#10B981')} /></View>
                                             <View style={{ flex: 1 }}>
                                                 <Text style={[styles.mevoLabel, { color: theme.colors.textSecondary }]}>Lokalizacja</Text>
                                                 <Text style={{ fontSize: tfs(13), color: theme.colors.text, marginTop: 2 }}>
@@ -322,7 +324,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                 return (
                                     <React.Fragment key={idx}>
                                         {showDayHeader && (item.day_label || item.date) && (
-                                            <View style={[styles.dayHeader, { backgroundColor: theme.dark ? '#1E293B' : '#F1F5F9' }]}>
+                                            <View style={[styles.dayHeader, { backgroundColor: theme.dark ? cbg('#1E293B') : cbg('#F1F5F9') }]}>
                                                 <Calendar size={14} color={theme.colors.primary} />
                                                 <Text style={[styles.dayHeaderText, { color: theme.colors.text }]}>
                                                     {item.day_label || 'Termin'}
@@ -343,7 +345,7 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                                     {item.isRealtime && <View style={styles.liveBadge}><View style={styles.liveDot} /><Text style={styles.liveText}>LIVE</Text></View>}
                                                     {item.attributes?.is_next_day && <Text style={styles.nextDayText}>JUTRO</Text>}
                                                     {item.attributes?.platform && (
-                                                        <View style={[styles.platformBadge, { backgroundColor: theme.dark ? '#334155' : '#E2E8F0' }]}>
+                                                        <View style={[styles.platformBadge, { backgroundColor: theme.dark ? cbg('#334155') : cbg('#E2E8F0') }]}>
                                                             <Text style={[styles.platformText, { color: theme.colors.text }]}>Peron {item.attributes.platform}</Text>
                                                         </View>
                                                     )}
@@ -367,9 +369,9 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
                                     style={[styles.seeMoreBtn, { backgroundColor: theme.colors.primary, marginVertical: 25, paddingVertical: 20 }]}
                                     onPress={() => setLimit(prev => prev + 40)}
                                 >
-                                    <Clock size={20} color="#fff" />
+                                    <Clock size={20} color={cfg('#fff')} />
                                     <Text style={[styles.seeMoreText, { fontSize: tfs(16) }]}>POKAŻ DALSZY ROZKŁAD ({allDepartures.length - limit})</Text>
-                                    <ChevronRight size={24} color="#fff" />
+                                    <ChevronRight size={24} color={cfg('#fff')} />
                                 </TouchableOpacity>
                             )}
                         </ScrollView>
@@ -385,12 +387,12 @@ export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
     overlay: { flex: 1, justifyContent: 'flex-end' },
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
     container: { borderTopLeftRadius: 32, borderTopRightRadius: 32, maxHeight: '85%', width: SCREEN_WIDTH },
     dragHandleContainer: { alignItems: 'center', paddingVertical: 12 },
-    dragHandle: { width: 40, height: 4, backgroundColor: '#CBD5E1', borderRadius: 2 },
+    dragHandle: { width: 40, height: 4, backgroundColor: cbg('#CBD5E1'), borderRadius: 2 },
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
     iconContainer: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
     titleContainer: { flex: 1 },
@@ -449,17 +451,17 @@ const styles = StyleSheet.create({
         ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
     },
     liveBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF444415', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 8 },
-    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444', marginRight: 4 },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: cbg('#EF4444'), marginRight: 4 },
     liveText: {
         fontSize: tfs(9),
         fontWeight: '900',
-        color: '#EF4444',
+        color: cfg('#EF4444'),
         ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
     },
     nextDayText: {
         fontSize: tfs(9),
         fontWeight: '800',
-        color: '#3B82F6',
+        color: cfg('#3B82F6'),
         backgroundColor: '#3B82F615',
         paddingHorizontal: 6,
         paddingVertical: 2,
@@ -484,7 +486,7 @@ const styles = StyleSheet.create({
     absTime: { fontSize: tfs(12), marginTop: 1 },
     seeMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, marginTop: 20, gap: 8, elevation: 4 },
     seeMoreText: {
-        color: '#fff',
+        color: cfg('#fff'),
         fontSize: tfs(13),
         fontWeight: '800',
         ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
@@ -500,7 +502,7 @@ const styles = StyleSheet.create({
     emptyText: { marginTop: 12, fontSize: tfs(14), textAlign: 'center' },
     mevoContainer: { padding: 20, gap: 12 },
     mevoCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 20, gap: 20 },
-    mevoIconCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 2 },
+    mevoIconCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: cbg('#fff'), justifyContent: 'center', alignItems: 'center', elevation: 2 },
     mevoLabel: {
         fontSize: tfs(12),
         fontWeight: '700',
@@ -535,4 +537,4 @@ const styles = StyleSheet.create({
         opacity: 0.6,
         ...Platform.select({ android: { fontFamily: 'Poppins_Regular' }, default: {} }),
     },
-});
+}));

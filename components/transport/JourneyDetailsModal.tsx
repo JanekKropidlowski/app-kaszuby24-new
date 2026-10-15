@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteOption } from '../../services/TransportRoutingEngine';
 import { RouteMapView } from './RouteMapView';
 import { LegDetail } from './LegDetail';
-
+
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 interface JourneyDetailsModalProps {
     journey: RouteOption | null;
     visible: boolean;
@@ -18,6 +19,7 @@ type TabType = 'DETAILS' | 'MAP';
 const tfs = (size: number) => size;
 
 export const JourneyDetailsModal = ({ journey, visible, onClose }: JourneyDetailsModalProps) => {
+    useDarkSync();
     const [activeTab, setActiveTab] = useState<TabType>('DETAILS');
 
     if (!journey) return null;
@@ -37,7 +39,7 @@ export const JourneyDetailsModal = ({ journey, visible, onClose }: JourneyDetail
                 <View style={styles.header}>
                     <View style={styles.headerTop}>
                         <TouchableOpacity style={styles.backButton} onPress={onClose}>
-                            <Ionicons name="arrow-back" size={24} color="#1A202C" />
+                            <Ionicons name="arrow-back" size={24} color={cfg('#1A202C')} />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Szczegóły podróży</Text>
                         <View style={{ width: 40 }} />
@@ -47,19 +49,19 @@ export const JourneyDetailsModal = ({ journey, visible, onClose }: JourneyDetail
                     <View style={styles.summaryCard}>
                         <View style={styles.summaryRow}>
                             <View style={styles.summaryItem}>
-                                <Ionicons name="time-outline" size={20} color="#0066CC" />
+                                <Ionicons name="time-outline" size={20} color={cfg('#0066CC')} />
                                 <Text style={styles.summaryLabel}>Czas</Text>
                                 <Text style={styles.summaryValue}>{journey.totalDuration} min</Text>
                             </View>
                             <View style={styles.summaryDivider} />
                             <View style={styles.summaryItem}>
-                                <Ionicons name="swap-horizontal" size={20} color="#0066CC" />
+                                <Ionicons name="swap-horizontal" size={20} color={cfg('#0066CC')} />
                                 <Text style={styles.summaryLabel}>Przesiadki</Text>
                                 <Text style={styles.summaryValue}>{journey.changes}</Text>
                             </View>
                             <View style={styles.summaryDivider} />
                             <View style={styles.summaryItem}>
-                                <Ionicons name="walk" size={20} color="#0066CC" />
+                                <Ionicons name="walk" size={20} color={cfg('#0066CC')} />
                                 <Text style={styles.summaryLabel}>Pieszo</Text>
                                 <Text style={styles.summaryValue}>{totalWalkingTime} min</Text>
                             </View>
@@ -75,7 +77,7 @@ export const JourneyDetailsModal = ({ journey, visible, onClose }: JourneyDetail
                             <Ionicons
                                 name="list"
                                 size={18}
-                                color={activeTab === 'DETAILS' ? '#0066CC' : '#718096'}
+                                color={activeTab === 'DETAILS' ? cfg('#0066CC') : cfg('#718096')}
                             />
                             <Text style={[styles.tabText, activeTab === 'DETAILS' && styles.activeTabText]}>
                                 Lista
@@ -88,7 +90,7 @@ export const JourneyDetailsModal = ({ journey, visible, onClose }: JourneyDetail
                             <Ionicons
                                 name="map"
                                 size={18}
-                                color={activeTab === 'MAP' ? '#0066CC' : '#718096'}
+                                color={activeTab === 'MAP' ? cfg('#0066CC') : cfg('#718096')}
                             />
                             <Text style={[styles.tabText, activeTab === 'MAP' && styles.activeTabText]}>
                                 Mapa
@@ -134,15 +136,15 @@ export const JourneyDetailsModal = ({ journey, visible, onClose }: JourneyDetail
     );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F7FAFC',
+        backgroundColor: cbg('#F7FAFC'),
     },
     header: {
         backgroundColor: 'white',
         borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
+        borderBottomColor: cbd('#E2E8F0'),
         paddingBottom: 16,
         paddingTop: Platform.OS === 'ios' ? 50 : 0,
     },
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: tfs(18),
         fontFamily: 'Poppins-Bold',
-        color: '#1A202C',
+        color: cfg('#1A202C'),
         flex: 1,
         textAlign: 'center',
     },
@@ -165,7 +167,7 @@ const styles = StyleSheet.create({
         width: 40,
     },
     summaryCard: {
-        backgroundColor: '#F7FAFC',
+        backgroundColor: cbg('#F7FAFC'),
         marginHorizontal: 16,
         marginVertical: 12,
         borderRadius: 12,
@@ -183,18 +185,18 @@ const styles = StyleSheet.create({
     summaryLabel: {
         fontSize: tfs(11),
         fontFamily: 'Poppins-Medium',
-        color: '#718096',
+        color: cfg('#718096'),
         textTransform: 'uppercase',
     },
     summaryValue: {
         fontSize: tfs(16),
         fontFamily: 'Poppins-Bold',
-        color: '#1A202C',
+        color: cfg('#1A202C'),
     },
     summaryDivider: {
         width: 1,
         height: 40,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: cbg('#E2E8F0'),
     },
     tabsContainer: {
         flexDirection: 'row',
@@ -212,16 +214,16 @@ const styles = StyleSheet.create({
         borderBottomColor: 'transparent',
     },
     activeTab: {
-        borderBottomColor: '#0066CC',
+        borderBottomColor: cbd('#0066CC'),
     },
     tabText: {
         fontSize: tfs(15),
         fontWeight: '600',
-        color: '#718096',
+        color: cfg('#718096'),
         marginLeft: 6,
     },
     activeTabText: {
-        color: '#0066CC',
+        color: cfg('#0066CC'),
     },
     content: {
         flex: 1,
@@ -235,6 +237,6 @@ const styles = StyleSheet.create({
     },
     mapContainer: {
         flex: 1,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: cbg('#E2E8F0'),
     }
-});
+}));

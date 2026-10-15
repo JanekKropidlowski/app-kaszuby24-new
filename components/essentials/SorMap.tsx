@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { FilterType } from '@/hooks/useEssentials';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 const { width } = Dimensions.get('window');
 const PHARM_ZOOM = 0.35; // Relaxed from 0.2
 const AED_ZOOM = 0.45;   // Relaxed from 0.25
@@ -82,7 +83,7 @@ const AedMarker = React.memo(({ item, coordinate, onSelect }: { item: AEDPoint, 
     return (
         <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false}>
             <View style={[styles.markerContainer, { backgroundColor: color, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 5 }]}>
-                <MaterialCommunityIcons name="heart-flash" size={16} color="#fff" />
+                <MaterialCommunityIcons name="heart-flash" size={16} color={cfg('#fff')} />
             </View>
         </Marker>
     );
@@ -98,15 +99,15 @@ const PharmacyMarker = React.memo(({ item, coordinate, onSelect }: { item: Pharm
     }
     return (
         <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false}>
-            <View style={[styles.markerContainer, { backgroundColor: item.is24h ? '#1E293B' : '#8B5CF6' }]}>
+            <View style={[styles.markerContainer, { backgroundColor: item.is24h ? cbg('#1E293B') : cbg('#8B5CF6') }]}>
                 {item.is24h ? (
-                    <MaterialCommunityIcons name="weather-night" size={16} color="#FACC15" />
+                    <MaterialCommunityIcons name="weather-night" size={16} color={cfg('#FACC15')} />
                 ) : (
-                    <Ionicons name="medical" size={14} color="#fff" />
+                    <Ionicons name="medical" size={14} color={cfg('#fff')} />
                 )}
                 {item.is24h && (
-                    <View style={[styles.badge24h, { backgroundColor: '#FACC15' }]}>
-                        <Text style={[styles.badge24hText, { color: '#1E293B' }]}>24h</Text>
+                    <View style={[styles.badge24h, { backgroundColor: cbg('#FACC15') }]}>
+                        <Text style={[styles.badge24hText, { color: cfg('#1E293B') }]}>24h</Text>
                     </View>
                 )}
             </View>
@@ -124,8 +125,8 @@ const SorMarker = React.memo(({ item, coordinate, onSelect }: { item: SorHospita
     }
     return (
         <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false}>
-            <View style={[styles.markerContainer, { backgroundColor: item.type === 'NiSOZ' || !item.numer_ksiegi ? '#3B82F6' : '#EF4444' }]}>
-                <MaterialCommunityIcons name={item.type === 'NiSOZ' || !item.numer_ksiegi ? "hospital-building" : "hospital-box"} size={16} color="#fff" />
+            <View style={[styles.markerContainer, { backgroundColor: item.type === 'NiSOZ' || !item.numer_ksiegi ? cbg('#3B82F6') : cbg('#EF4444') }]}>
+                <MaterialCommunityIcons name={item.type === 'NiSOZ' || !item.numer_ksiegi ? "hospital-building" : "hospital-box"} size={16} color={cfg('#fff')} />
             </View>
         </Marker>
     );
@@ -140,8 +141,8 @@ const GeneralHospitalMarker = React.memo(({ item, coordinate, onSelect }: { item
     }
     return (
         <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={false}>
-            <View style={[styles.markerContainer, { backgroundColor: '#3B82F6' }]}>
-                <MaterialCommunityIcons name="hospital-building" size={16} color="#fff" />
+            <View style={[styles.markerContainer, { backgroundColor: cbg('#3B82F6') }]}>
+                <MaterialCommunityIcons name="hospital-building" size={16} color={cfg('#fff')} />
             </View>
         </Marker>
     );
@@ -161,6 +162,7 @@ interface EssentialsMapProps {
 export const SorMap: React.FC<EssentialsMapProps> = ({
     hospitals, aedPoints, generalHospitals, pharmacies, activeFilter, onFilterChange, fetchByViewport, areEssentialsLoading
 }) => {
+    useDarkSync();
     const mapRef = useRef<MapView>(null);
     const insets = useSafeAreaInsets();
     const router = useRouter();
@@ -614,11 +616,11 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         <View style={styles.legendContainer}>
             <Text style={styles.legendTitle}>Legenda - Szpitale</Text>
             <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+                <View style={[styles.legendDot, { backgroundColor: cbg('#EF4444') }]} />
                 <Text style={styles.legendText}>SOR (Kolejki NFZ)</Text>
             </View>
             <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#3B82F6' }]} />
+                <View style={[styles.legendDot, { backgroundColor: cbg('#3B82F6') }]} />
                 <Text style={styles.legendText}>NiSOZ (Nocna pomoc)</Text>
             </View>
         </View>
@@ -628,19 +630,19 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         <View style={styles.legendContainer}>
             <Text style={styles.legendTitle}>Legenda - AED</Text>
             <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
+                <View style={[styles.legendDot, { backgroundColor: cbg('#10B981') }]} />
                 <Text style={styles.legendText}>Publiczny / Otwarty</Text>
             </View>
             <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#3B82F6' }]} />
+                <View style={[styles.legendDot, { backgroundColor: cbg('#3B82F6') }]} />
                 <Text style={styles.legendText}>Dla klientów</Text>
             </View>
             <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+                <View style={[styles.legendDot, { backgroundColor: cbg('#EF4444') }]} />
                 <Text style={styles.legendText}>Prywatny / Ograniczony</Text>
             </View>
             <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
+                <View style={[styles.legendDot, { backgroundColor: cbg('#F59E0B') }]} />
                 <Text style={styles.legendText}>Wewnątrz / Inne</Text>
             </View>
         </View>
@@ -650,11 +652,11 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         <View style={styles.legendContainer}>
             <Text style={styles.legendTitle}>Legenda - Apteki</Text>
             <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#1E293B' }]} />
+                <View style={[styles.legendDot, { backgroundColor: cbg('#1E293B') }]} />
                 <Text style={styles.legendText}>Apteka 24h</Text>
             </View>
             <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#8B5CF6' }]} />
+                <View style={[styles.legendDot, { backgroundColor: cbg('#8B5CF6') }]} />
                 <Text style={styles.legendText}>Apteka</Text>
             </View>
         </View>
@@ -685,14 +687,14 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
             {/* Header Overlay */}
             <View style={[styles.header, { top: insets.top + 8 }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#374151" />
+                    <Ionicons name="arrow-back" size={24} color={cfg('#374151')} />
                 </TouchableOpacity>
                 <View style={styles.headerTitleContainer}>
                     <Text style={styles.headerTitle}>Niezbędnik</Text>
                     <Text style={styles.headerSub}>Szpitale, apteki i ratownictwo</Text>
                 </View>
-                <TouchableOpacity onPress={() => setShowEmergencyModal(true)} style={[styles.headerBtn, { backgroundColor: '#EF4444' }]}>
-                    <Ionicons name="call" size={20} color="#fff" />
+                <TouchableOpacity onPress={() => setShowEmergencyModal(true)} style={[styles.headerBtn, { backgroundColor: cbg('#EF4444') }]}>
+                    <Ionicons name="call" size={20} color={cfg('#fff')} />
                 </TouchableOpacity>
             </View>
 
@@ -701,14 +703,14 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                 <View style={styles.statsFloatingCard}>
                     {(activeFilter === 'ALL' || activeFilter === 'PHARMACY') && (
                         <View style={styles.cardStatItem}>
-                            <View style={[styles.cardIconCircle, { backgroundColor: '#3B82F6' }]}>
-                                <MaterialCommunityIcons name="pill" size={14} color="#fff" />
+                            <View style={[styles.cardIconCircle, { backgroundColor: cbg('#3B82F6') }]}>
+                                <MaterialCommunityIcons name="pill" size={14} color={cfg('#fff')} />
                             </View>
                             <View>
                                 <Text style={styles.cardStatLabel}>Apteki</Text>
                                 <Text style={styles.cardStatValue}>
                                     {viewportStats.pharmacies.inView}
-                                    <Text style={{ color: '#94A3B8', fontWeight: '400', fontSize: 10 }}> / {pharmacies.length}</Text>
+                                    <Text style={{ color: cfg('#94A3B8'), fontWeight: '400', fontSize: 10 }}> / {pharmacies.length}</Text>
                                     {viewportStats.isPharmHiddenByZoom && <Text style={styles.cardStatAction}> (Przybliż!)</Text>}
                                 </Text>
                             </View>
@@ -717,14 +719,14 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
 
                     {(activeFilter === 'ALL' || activeFilter === 'AED') && (
                         <View style={styles.cardStatItem}>
-                            <View style={[styles.cardIconCircle, { backgroundColor: '#10B981' }]}>
-                                <MaterialCommunityIcons name="heart-flash" size={14} color="#fff" />
+                            <View style={[styles.cardIconCircle, { backgroundColor: cbg('#10B981') }]}>
+                                <MaterialCommunityIcons name="heart-flash" size={14} color={cfg('#fff')} />
                             </View>
                             <View>
                                 <Text style={styles.cardStatLabel}>AED</Text>
                                 <Text style={styles.cardStatValue}>
                                     {viewportStats.aed.inView}
-                                    <Text style={{ color: '#94A3B8', fontWeight: '400', fontSize: 10 }}> / {aedPoints.length}</Text>
+                                    <Text style={{ color: cfg('#94A3B8'), fontWeight: '400', fontSize: 10 }}> / {aedPoints.length}</Text>
                                     {viewportStats.isAedHiddenByZoom && <Text style={styles.cardStatAction}> (Przybliż!)</Text>}
                                 </Text>
                             </View>
@@ -738,7 +740,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
 
             {areEssentialsLoading && (
                 <View style={styles.loadingToast}>
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={cfg('#fff')} />
                     <Text style={styles.loadingToastText}>Aktualizacja danych...</Text>
                 </View>
             )}
@@ -750,7 +752,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                 (activeFilter === 'ALL' && region.latitudeDelta > PHARM_ZOOM)
             ) && (
                     <View style={styles.bottomToast}>
-                        <Ionicons name="scan-outline" size={20} color="#fff" />
+                        <Ionicons name="scan-outline" size={20} color={cfg('#fff')} />
                         <Text style={styles.bottomToastText}>
                             {activeFilter === 'PHARMACY' && viewportStats.pharmacies.inView > 0
                                 ? `Przybliż, aby zobaczyć ${viewportStats.pharmacies.inView} aptek w okolicy`
@@ -778,7 +780,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                             style={[
                                 styles.filterChip,
                                 activeFilter === f.id && {
-                                    backgroundColor: f.id === 'AED' ? '#10B981' :
+                                    backgroundColor: f.id === 'AED' ? cbg('#10B981') :
                                         f.id === 'PHARMACY' ? '#3B82F6' :
                                             '#EF4444',
                                     borderColor: 'transparent',
@@ -786,8 +788,8 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                 }
                             ]}
                         >
-                            <Ionicons name={f.icon as any} size={16} color={activeFilter === f.id ? '#fff' : '#4B5563'} />
-                            <Text style={[styles.filterText, activeFilter === f.id && { color: '#fff' }]}>{f.label}</Text>
+                            <Ionicons name={f.icon as any} size={16} color={activeFilter === f.id ? cfg('#fff') : cfg('#4B5563')} />
+                            <Text style={[styles.filterText, activeFilter === f.id && { color: cfg('#fff') }]}>{f.label}</Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
@@ -810,7 +812,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                         style={[
                             styles.fab24h,
                             {
-                                backgroundColor: activeFilter === 'AED' ? '#10B981' :
+                                backgroundColor: activeFilter === 'AED' ? cbg('#10B981') :
                                     activeFilter === 'PHARMACY' || activeFilter === 'ALL' ? '#000000' :
                                         '#EF4444' // Med/SOR
                             }
@@ -819,23 +821,23 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                         disabled={searchingNearest}
                     >
                         {searchingNearest ? (
-                            <ActivityIndicator size="small" color="#FFFFFF" />
+                            <ActivityIndicator size="small" color={cfg('#FFFFFF')} />
                         ) : (
                             <>
                                 {activeFilter === 'PHARMACY' || activeFilter === 'ALL' ? (
                                     <>
-                                        <MaterialCommunityIcons name="weather-night" size={24} color="#FACC15" />
-                                        <Text style={[styles.fabText, { color: '#FACC15' }]}>24h</Text>
+                                        <MaterialCommunityIcons name="weather-night" size={24} color={cfg('#FACC15')} />
+                                        <Text style={[styles.fabText, { color: cfg('#FACC15') }]}>24h</Text>
                                     </>
                                 ) : activeFilter === 'AED' ? (
                                     <>
-                                        <MaterialCommunityIcons name="heart-flash" size={24} color="#FFFFFF" />
-                                        <Text style={[styles.fabText, { color: '#FFFFFF' }]}>AED</Text>
+                                        <MaterialCommunityIcons name="heart-flash" size={24} color={cfg('#FFFFFF')} />
+                                        <Text style={[styles.fabText, { color: cfg('#FFFFFF') }]}>AED</Text>
                                     </>
                                 ) : (
                                     <>
-                                        <MaterialCommunityIcons name="hospital-building" size={24} color="#FFFFFF" />
-                                        <Text style={[styles.fabText, { color: '#FFFFFF' }]}>SOR</Text>
+                                        <MaterialCommunityIcons name="hospital-building" size={24} color={cfg('#FFFFFF')} />
+                                        <Text style={[styles.fabText, { color: cfg('#FFFFFF') }]}>SOR</Text>
                                     </>
                                 )}
                             </>
@@ -856,7 +858,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                 <Text style={styles.modalTitle}>{modalInfo?.title}</Text>
                             </View>
                             <TouchableOpacity onPress={() => setSelectedItem(null)} style={styles.closeBtn}>
-                                <Ionicons name="close-circle" size={32} color="#D1D5DB" />
+                                <Ionicons name="close-circle" size={32} color={cfg('#D1D5DB')} />
                             </TouchableOpacity>
                         </View>
 
@@ -867,7 +869,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                         >
                             {selectedItem?.type !== 'AED' && (
                                 <View style={styles.infoRow}>
-                                    <Ionicons name="location" size={24} color="#3B82F6" style={{ marginRight: 15 }} />
+                                    <Ionicons name="location" size={24} color={cfg('#3B82F6')} style={{ marginRight: 15 }} />
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.infoTextPrimary}>{modalInfo?.address}</Text>
                                         {modalInfo?.city ? <Text style={styles.infoTextSecondary}>{modalInfo?.city}</Text> : null}
@@ -876,16 +878,16 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                             )}
 
                             <View style={styles.actionRow}>
-                                <TouchableOpacity onPress={() => handleNavigate(selectedItem?.data?.lat, selectedItem?.data?.lng || selectedItem?.data?.lon)} style={[styles.actionBtn, { backgroundColor: '#3B82F6' }]}>
-                                    <Ionicons name="map" size={18} color="#fff" />
+                                <TouchableOpacity onPress={() => handleNavigate(selectedItem?.data?.lat, selectedItem?.data?.lng || selectedItem?.data?.lon)} style={[styles.actionBtn, { backgroundColor: cbg('#3B82F6') }]}>
+                                    <Ionicons name="map" size={18} color={cfg('#fff')} />
                                     <Text style={styles.actionBtnText}>PROWADŹ</Text>
                                 </TouchableOpacity>
                                 {modalInfo?.phone ? (
                                     <TouchableOpacity onPress={() => {
                                         const cleanPhone = modalInfo.phone.split(',')[0].replace(/[^0-9]/g, '');
                                         Linking.openURL(`tel:${cleanPhone}`);
-                                    }} style={[styles.actionBtn, { backgroundColor: '#10B981' }]}>
-                                        <Ionicons name="call" size={18} color="#fff" />
+                                    }} style={[styles.actionBtn, { backgroundColor: cbg('#10B981') }]}>
+                                        <Ionicons name="call" size={18} color={cfg('#fff')} />
                                         <Text style={styles.actionBtnText}>ZADZWOŃ</Text>
                                     </TouchableOpacity>
                                 ) : null}
@@ -897,7 +899,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                     <Text style={styles.sectionTitle}>Status Oddziału i Kolejki</Text>
                                     {loadingQueue ? (
                                         <View style={styles.loaderBox}>
-                                            <ActivityIndicator size="small" color="#EF4444" />
+                                            <ActivityIndicator size="small" color={cfg('#EF4444')} />
                                             <Text style={styles.loaderText}>Pobieranie aktualnych danych...</Text>
                                         </View>
                                     ) : (
@@ -905,13 +907,13 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                             <View key={i} style={styles.queueCard}>
                                                 <View style={styles.queueTop}>
                                                     <Text style={styles.queueName}>{q.name}</Text>
-                                                    <View style={[styles.queueBadge, { backgroundColor: parseInt(q.wait) > 180 ? '#EF4444' : '#10B981' }]}>
+                                                    <View style={[styles.queueBadge, { backgroundColor: parseInt(q.wait) > 180 ? cbg('#EF4444') : cbg('#10B981') }]}>
                                                         <Text style={styles.queueValue}>{formatWaitTime(q.wait)}</Text>
                                                     </View>
                                                 </View>
                                                 {q.triage && (
                                                     <View style={styles.triageBox}>
-                                                        <Ionicons name="information-circle" size={16} color="#6B7280" />
+                                                        <Ionicons name="information-circle" size={16} color={cfg('#6B7280')} />
                                                         <Text style={styles.triageText}>{q.triage}</Text>
                                                     </View>
                                                 )}
@@ -958,7 +960,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                             </View>
                                             {selectedItem.data.indoor === 'yes' && (
                                                 <View style={styles.indoorBadge}>
-                                                    <Ionicons name="home" size={12} color="#F59E0B" />
+                                                    <Ionicons name="home" size={12} color={cfg('#F59E0B')} />
                                                     <Text style={styles.indoorBadgeText}>WEWNĄTRZ</Text>
                                                 </View>
                                             )}
@@ -966,7 +968,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
 
                                         {/* Main Description */}
                                         <View style={styles.luxuryMainCard}>
-                                            <Ionicons name="information-circle" size={24} color="#3B82F6" style={{ marginBottom: 8 }} />
+                                            <Ionicons name="information-circle" size={24} color={cfg('#3B82F6')} style={{ marginBottom: 8 }} />
                                             <Text style={styles.luxuryMainText}>
                                                 {selectedItem.data['defibrillator:location:pl'] || selectedItem.data['defibrillator:location'] || selectedItem.data.location || selectedItem.data.description || "Brak szczegółowego opisu lokalizacji."}
                                             </Text>
@@ -978,7 +980,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                             {/* Placement Info */}
                                             {(selectedItem.data.level || selectedItem.data.floor || selectedItem.data.room) && (
                                                 <View style={styles.luxuryGridItem}>
-                                                    <Ionicons name="layers-outline" size={18} color="#4B5563" />
+                                                    <Ionicons name="layers-outline" size={18} color={cfg('#4B5563')} />
                                                     <View>
                                                         <Text style={styles.luxuryGridLabel}>Lokalizacja</Text>
                                                         <Text style={styles.luxuryGridValue}>
@@ -992,7 +994,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                             {/* Operator */}
                                             {selectedItem.data.operator && (
                                                 <View style={[styles.luxuryGridItem, { width: '100%' }]}>
-                                                    <Ionicons name="business-outline" size={18} color="#4B5563" />
+                                                    <Ionicons name="business-outline" size={18} color={cfg('#4B5563')} />
                                                     <View style={{ flex: 1 }}>
                                                         <Text style={styles.luxuryGridLabel}>Operator</Text>
                                                         <Text style={styles.luxuryGridValue}>{selectedItem.data.operator}</Text>
@@ -1003,7 +1005,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                             {/* Opening Hours */}
                                             {selectedItem.data.opening_hours && (
                                                 <View style={styles.luxuryGridItem}>
-                                                    <Ionicons name="time-outline" size={18} color="#4B5563" />
+                                                    <Ionicons name="time-outline" size={18} color={cfg('#4B5563')} />
                                                     <View>
                                                         <Text style={styles.luxuryGridLabel}>Dostępność</Text>
                                                         <Text style={styles.luxuryGridValue}>{selectedItem.data.opening_hours}</Text>
@@ -1014,7 +1016,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                             {/* Device Info */}
                                             {(selectedItem.data['defibrillator:brand'] || selectedItem.data.model) && (
                                                 <View style={styles.luxuryGridItem}>
-                                                    <MaterialCommunityIcons name="heart-flash" size={18} color="#EF4444" />
+                                                    <MaterialCommunityIcons name="heart-flash" size={18} color={cfg('#EF4444')} />
                                                     <View>
                                                         <Text style={styles.luxuryGridLabel}>Urządzenie</Text>
                                                         <Text style={styles.luxuryGridValue}>{selectedItem.data['defibrillator:brand'] || ''} {selectedItem.data.model || ''}</Text>
@@ -1027,38 +1029,38 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                                         <View style={styles.luxuryActionList}>
                                             {selectedItem.data.phone && (
                                                 <TouchableOpacity style={styles.luxuryActionRow} onPress={() => Linking.openURL(`tel:${selectedItem.data.phone}`)}>
-                                                    <View style={[styles.luxuryActionIcon, { backgroundColor: '#ECFDF5' }]}>
-                                                        <Ionicons name="call" size={18} color="#10B981" />
+                                                    <View style={[styles.luxuryActionIcon, { backgroundColor: cbg('#ECFDF5') }]}>
+                                                        <Ionicons name="call" size={18} color={cfg('#10B981')} />
                                                     </View>
                                                     <Text style={styles.luxuryActionText}>{selectedItem.data.phone}</Text>
-                                                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                                                    <Ionicons name="chevron-forward" size={16} color={cfg('#9CA3AF')} />
                                                 </TouchableOpacity>
                                             )}
 
                                             {selectedItem.data.email && (
                                                 <TouchableOpacity style={styles.luxuryActionRow} onPress={() => Linking.openURL(`mailto:${selectedItem.data.email}`)}>
-                                                    <View style={[styles.luxuryActionIcon, { backgroundColor: '#EFF6FF' }]}>
-                                                        <Ionicons name="mail" size={18} color="#3B82F6" />
+                                                    <View style={[styles.luxuryActionIcon, { backgroundColor: cbg('#EFF6FF') }]}>
+                                                        <Ionicons name="mail" size={18} color={cfg('#3B82F6')} />
                                                     </View>
                                                     <Text style={styles.luxuryActionText}>{selectedItem.data.email}</Text>
-                                                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                                                    <Ionicons name="chevron-forward" size={16} color={cfg('#9CA3AF')} />
                                                 </TouchableOpacity>
                                             )}
 
                                             {selectedItem.data.website && (
                                                 <TouchableOpacity style={styles.luxuryActionRow} onPress={() => Linking.openURL(selectedItem.data.website)}>
-                                                    <View style={[styles.luxuryActionIcon, { backgroundColor: '#F5F3FF' }]}>
-                                                        <Ionicons name="globe" size={18} color="#8B5CF6" />
+                                                    <View style={[styles.luxuryActionIcon, { backgroundColor: cbg('#F5F3FF') }]}>
+                                                        <Ionicons name="globe" size={18} color={cfg('#8B5CF6')} />
                                                     </View>
                                                     <Text style={styles.luxuryActionText}>Strona internetowa</Text>
-                                                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                                                    <Ionicons name="chevron-forward" size={16} color={cfg('#9CA3AF')} />
                                                 </TouchableOpacity>
                                             )}
                                         </View>
 
                                         {/* Footer Info (Coordinates) */}
                                         <View style={styles.luxuryFooter}>
-                                            <Ionicons name="location" size={12} color="#9CA3AF" />
+                                            <Ionicons name="location" size={12} color={cfg('#9CA3AF')} />
                                             <Text style={styles.luxuryFooterText}>
                                                 Współrzędne: {selectedItem.data.lat.toFixed(6)}, {selectedItem.data.lon.toFixed(6)}
                                             </Text>
@@ -1113,79 +1115,79 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
     container: { flex: 1 },
     map: { flex: 1 },
-    header: { position: 'absolute', top: 50, left: 16, right: 16, backgroundColor: '#fff', borderRadius: 24, padding: 12, flexDirection: 'row', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
-    headerBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
+    header: { position: 'absolute', top: 50, left: 16, right: 16, backgroundColor: cbg('#fff'), borderRadius: 24, padding: 12, flexDirection: 'row', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
+    headerBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: cbg('#F3F4F6'), justifyContent: 'center', alignItems: 'center' },
     headerTitleContainer: { flex: 1, marginLeft: 16 },
-    headerTitle: { fontSize: 18, fontWeight: '900', color: '#111827' },
-    headerSub: { fontSize: 11, color: '#6B7280', fontWeight: 'bold' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: cfg('#111827') },
+    headerSub: { fontSize: 11, color: cfg('#6B7280'), fontWeight: 'bold' },
     filterWrapper: { position: 'absolute', bottom: 130, left: 0, right: 0, zIndex: 10 },
     filterScroll: { paddingHorizontal: 16 },
-    filterChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 24, marginRight: 12, elevation: 5 },
-    filterChipActive: { backgroundColor: '#111827' },
-    filterText: { marginLeft: 8, fontSize: 14, fontWeight: '800', color: '#4B5563' },
-    markerContainer: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
-    dotMarker: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#fff' },
+    filterChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: cbg('#fff'), paddingHorizontal: 18, paddingVertical: 12, borderRadius: 24, marginRight: 12, elevation: 5 },
+    filterChipActive: { backgroundColor: cbg('#111827') },
+    filterText: { marginLeft: 8, fontSize: 14, fontWeight: '800', color: cfg('#4B5563') },
+    markerContainer: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: cbd('#fff') },
+    dotMarker: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: cbd('#fff') },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, maxHeight: '85%' },
-    dragIndicator: { width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+    modalContent: { backgroundColor: cbg('#fff'), borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, maxHeight: '85%' },
+    dragIndicator: { width: 40, height: 4, backgroundColor: cbg('#E5E7EB'), borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-    modalLabel: { fontSize: 12, fontWeight: '800', color: '#9CA3AF', textTransform: 'uppercase' },
-    modalTitle: { fontSize: 22, fontWeight: '900', color: '#111827' },
+    modalLabel: { fontSize: 12, fontWeight: '800', color: cfg('#9CA3AF'), textTransform: 'uppercase' },
+    modalTitle: { fontSize: 22, fontWeight: '900', color: cfg('#111827') },
     closeBtn: { padding: 4 },
     modalScroll: { flexGrow: 1 },
     modalScrollContent: { paddingBottom: 20 },
-    infoRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16, borderRadius: 20, marginBottom: 20 },
-    infoTextPrimary: { fontSize: 16, fontWeight: '800', color: '#111827' },
-    infoTextSecondary: { fontSize: 14, color: '#6B7280' },
+    infoRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: cbg('#F9FAFB'), padding: 16, borderRadius: 20, marginBottom: 20 },
+    infoTextPrimary: { fontSize: 16, fontWeight: '800', color: cfg('#111827') },
+    infoTextSecondary: { fontSize: 14, color: cfg('#6B7280') },
     actionRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
     actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 16, gap: 8 },
-    actionBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+    actionBtnText: { color: cfg('#fff'), fontWeight: '900', fontSize: 14 },
     sectionContainer: { marginBottom: 24 },
-    sectionTitle: { fontSize: 16, fontWeight: '900', color: '#111827', marginBottom: 12 },
-    queueCard: { backgroundColor: '#FFF5F5', padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#FEE2E2' },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: cfg('#111827'), marginBottom: 12 },
+    queueCard: { backgroundColor: cbg('#FFF5F5'), padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: cbd('#FEE2E2') },
     queueTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    queueName: { fontSize: 15, fontWeight: '800', color: '#111827' },
+    queueName: { fontSize: 15, fontWeight: '800', color: cfg('#111827') },
     queueBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-    queueValue: { color: '#fff', fontWeight: '900', fontSize: 14 },
-    triageBox: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', padding: 8, borderRadius: 8 },
-    triageText: { fontSize: 12, color: '#4B5563', fontWeight: '600' },
-    qualityCard: { flexDirection: 'row', alignItems: 'center', gap: 20, backgroundColor: '#F0F9FF', padding: 20, borderRadius: 24, marginBottom: 12 },
-    qualityScore: { fontSize: 32, fontWeight: '900', color: '#0369A1' },
-    qualityLabel: { fontSize: 14, fontWeight: '800', color: '#0C4A6E' },
-    qualityDate: { fontSize: 12, color: '#0EA5E9' },
-    descBox: { backgroundColor: '#F3F4F6', padding: 16, borderRadius: 16 },
-    descText: { fontSize: 14, color: '#4B5563', fontWeight: '600', flex: 1 },
+    queueValue: { color: cfg('#fff'), fontWeight: '900', fontSize: 14 },
+    triageBox: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: cbg('#fff'), padding: 8, borderRadius: 8 },
+    triageText: { fontSize: 12, color: cfg('#4B5563'), fontWeight: '600' },
+    qualityCard: { flexDirection: 'row', alignItems: 'center', gap: 20, backgroundColor: cbg('#F0F9FF'), padding: 20, borderRadius: 24, marginBottom: 12 },
+    qualityScore: { fontSize: 32, fontWeight: '900', color: cfg('#0369A1') },
+    qualityLabel: { fontSize: 14, fontWeight: '800', color: cfg('#0C4A6E') },
+    qualityDate: { fontSize: 12, color: cfg('#0EA5E9') },
+    descBox: { backgroundColor: cbg('#F3F4F6'), padding: 16, borderRadius: 16 },
+    descText: { fontSize: 14, color: cfg('#4B5563'), fontWeight: '600', flex: 1 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     loaderBox: { alignItems: 'center', padding: 20 },
-    loaderText: { fontSize: 13, color: '#6B7280', marginTop: 10, fontWeight: '600' },
-    emptyBox: { padding: 20, backgroundColor: '#F9FAFB', borderRadius: 16, alignItems: 'center' },
+    loaderText: { fontSize: 13, color: cfg('#6B7280'), marginTop: 10, fontWeight: '600' },
+    emptyBox: { padding: 20, backgroundColor: cbg('#F9FAFB'), borderRadius: 16, alignItems: 'center' },
     emergencyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 20 },
     emergencyBtn: { width: '48%', padding: 16, borderRadius: 20, borderWidth: 2, alignItems: 'center' },
     emergencyNum: { fontSize: 24, fontWeight: '900' },
-    emergencyLabel: { fontSize: 12, fontWeight: '800', color: '#6B7280' },
-    closeModalBtn: { marginTop: 20, backgroundColor: '#F3F4F6', padding: 16, borderRadius: 16, alignItems: 'center' },
-    closeModalText: { fontWeight: '900', color: '#374151' },
-    loadingToast: { position: 'absolute', top: 110, alignSelf: 'center', backgroundColor: '#111827', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 30, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    bottomToast: { position: 'absolute', bottom: 200, alignSelf: 'center', backgroundColor: '#1F2937', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 30, flexDirection: 'row', alignItems: 'center', gap: 12, elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6 },
-    bottomToastText: { color: '#BFDBFE', fontSize: 13, fontWeight: '800' },
-    loadingToastText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-    emptyText: { textAlign: 'center', color: '#9CA3AF', padding: 20 },
+    emergencyLabel: { fontSize: 12, fontWeight: '800', color: cfg('#6B7280') },
+    closeModalBtn: { marginTop: 20, backgroundColor: cbg('#F3F4F6'), padding: 16, borderRadius: 16, alignItems: 'center' },
+    closeModalText: { fontWeight: '900', color: cfg('#374151') },
+    loadingToast: { position: 'absolute', top: 110, alignSelf: 'center', backgroundColor: cbg('#111827'), paddingHorizontal: 16, paddingVertical: 10, borderRadius: 30, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    bottomToast: { position: 'absolute', bottom: 200, alignSelf: 'center', backgroundColor: cbg('#1F2937'), paddingHorizontal: 20, paddingVertical: 12, borderRadius: 30, flexDirection: 'row', alignItems: 'center', gap: 12, elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6 },
+    bottomToastText: { color: cfg('#BFDBFE'), fontSize: 13, fontWeight: '800' },
+    loadingToastText: { color: cfg('#fff'), fontSize: 12, fontWeight: 'bold' },
+    emptyText: { textAlign: 'center', color: cfg('#9CA3AF'), padding: 20 },
     badge24h: {
         position: 'absolute',
         top: -8,
         right: -8,
-        backgroundColor: '#10B981',
+        backgroundColor: cbg('#10B981'),
         paddingHorizontal: 4,
         paddingVertical: 2,
         borderRadius: 6,
         borderWidth: 1,
-        borderColor: '#fff'
+        borderColor: cbd('#fff')
     },
     badge24hText: {
-        color: '#fff',
+        color: cfg('#fff'),
         fontSize: 8,
         fontWeight: '900'
     },
@@ -1202,7 +1204,7 @@ const styles = StyleSheet.create({
     legendTitle: {
         fontSize: 11,
         fontWeight: 'bold',
-        color: '#111827',
+        color: cfg('#111827'),
         textAlign: 'center',
         marginBottom: 4
     },
@@ -1219,7 +1221,7 @@ const styles = StyleSheet.create({
     legendText: {
         fontSize: 10,
         fontWeight: 'bold',
-        color: '#374151'
+        color: cfg('#374151')
     },
     statsContainer: {
         position: 'absolute',
@@ -1243,22 +1245,22 @@ const styles = StyleSheet.create({
         shadowRadius: 4
     },
     statText: {
-        color: '#fff',
+        color: cfg('#fff'),
         fontSize: 11,
         fontWeight: '900'
     },
     aedNameBox: {
-        backgroundColor: '#DBEAFE',
+        backgroundColor: cbg('#DBEAFE'),
         padding: 12,
         borderRadius: 12,
         marginBottom: 12,
         borderLeftWidth: 3,
-        borderLeftColor: '#3B82F6'
+        borderLeftColor: cbd('#3B82F6')
     },
     aedNameText: {
         fontSize: 15,
         fontWeight: '800',
-        color: '#1E3A8A'
+        color: cfg('#1E3A8A')
     },
     fabWrapper: {
         position: 'absolute',
@@ -1268,7 +1270,7 @@ const styles = StyleSheet.create({
         zIndex: 20
     },
     fab24h: {
-        backgroundColor: '#fff',
+        backgroundColor: cbg('#fff'),
         width: 60,
         height: 60,
         borderRadius: 30,
@@ -1280,13 +1282,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4.65,
         borderWidth: 2,
-        borderColor: '#1E293B'
+        borderColor: cbd('#1E293B')
     },
     hintBubble: {
         position: 'absolute',
         right: 75, // Adjusted right
         top: 15,   // Adjusted top
-        backgroundColor: '#1E293B',
+        backgroundColor: cbg('#1E293B'),
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 12,
@@ -1299,7 +1301,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     hintText: {
-        color: '#fff',
+        color: cfg('#fff'),
         fontSize: 12,
         fontWeight: '600',
         textAlign: 'center',
@@ -1317,12 +1319,12 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         borderTopColor: 'transparent',
         borderBottomColor: 'transparent',
-        borderLeftColor: '#1E293B',
+        borderLeftColor: cbd('#1E293B'),
     },
     fabText: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#1E293B',
+        color: cfg('#1E293B'),
         marginTop: -2
     },
     quickActionsContainer: {
@@ -1366,18 +1368,18 @@ const styles = StyleSheet.create({
     cardStatLabel: {
         fontSize: 8,
         fontWeight: '800',
-        color: '#6B7280',
+        color: cfg('#6B7280'),
         textTransform: 'uppercase',
     },
     cardStatValue: {
         fontSize: 12,
         fontWeight: '900',
-        color: '#111827',
+        color: cfg('#111827'),
         marginTop: -2,
     },
     cardStatAction: {
         fontSize: 10,
-        color: '#F59E0B',
+        color: cfg('#F59E0B'),
         fontWeight: '900',
     },
     // Premium AED Modal Styles
@@ -1398,7 +1400,7 @@ const styles = StyleSheet.create({
     luxuryTitle: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#6B7280',
+        color: cfg('#6B7280'),
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
@@ -1422,7 +1424,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: '#FEF3C7',
+        backgroundColor: cbg('#FEF3C7'),
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 12,
@@ -1430,27 +1432,27 @@ const styles = StyleSheet.create({
     indoorBadgeText: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#92400E',
+        color: cfg('#92400E'),
     },
     luxuryMainCard: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: cbg('#F8FAFC'),
         padding: 20,
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: cbd('#E2E8F0'),
     },
     luxuryMainText: {
         fontSize: 17,
         fontWeight: '800',
-        color: '#0F172A',
+        color: cfg('#0F172A'),
         lineHeight: 24,
     },
     luxuryNoteText: {
         fontSize: 12,
-        color: '#EF4444',
+        color: cfg('#EF4444'),
         fontWeight: '700',
         marginTop: 10,
-        backgroundColor: '#FEF2F2',
+        backgroundColor: cbg('#FEF2F2'),
         padding: 8,
         borderRadius: 8,
     },
@@ -1460,12 +1462,12 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     luxuryGridItem: {
-        backgroundColor: '#fff',
+        backgroundColor: cbg('#fff'),
         width: '48%',
         padding: 12,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: cbd('#F1F5F9'),
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
@@ -1473,20 +1475,20 @@ const styles = StyleSheet.create({
     luxuryGridLabel: {
         fontSize: 9,
         fontWeight: '700',
-        color: '#94A3B8',
+        color: cfg('#94A3B8'),
         textTransform: 'uppercase',
     },
     luxuryGridValue: {
         fontSize: 12,
         fontWeight: '800',
-        color: '#334155',
+        color: cfg('#334155'),
     },
     luxuryActionList: {
-        backgroundColor: '#fff',
+        backgroundColor: cbg('#fff'),
         borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: cbd('#F1F5F9'),
     },
     luxuryActionRow: {
         flexDirection: 'row',
@@ -1494,7 +1496,7 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: cbd('#F1F5F9'),
     },
     luxuryActionIcon: {
         width: 36,
@@ -1507,7 +1509,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 14,
         fontWeight: '700',
-        color: '#1E293B',
+        color: cfg('#1E293B'),
     },
     luxuryFooter: {
         flexDirection: 'row',
@@ -1520,6 +1522,6 @@ const styles = StyleSheet.create({
     luxuryFooterText: {
         fontSize: 10,
         fontWeight: '700',
-        color: '#94A3B8',
+        color: cfg('#94A3B8'),
     }
-});
+}));

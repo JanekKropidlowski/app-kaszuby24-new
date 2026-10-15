@@ -7,6 +7,7 @@ const { height } = Dimensions.get('window');
 
 import { TripResult, TripStep } from '@/services/transportService';
 
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 interface RouteResultsProps {
     results: TripResult[];
     onClose: () => void;
@@ -29,6 +30,7 @@ export const RouteResults: React.FC<RouteResultsProps> = ({
     onSelect,
     onShowMore
 }) => {
+    useDarkSync();
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
     if (isLoading && results.length === 0) {
@@ -63,7 +65,7 @@ export const RouteResults: React.FC<RouteResultsProps> = ({
         switch (mode) {
             case 'bus': return <Bus size={size} color={theme.colors.primary} />;
             case 'train': return <Train size={size} color={theme.colors.primary} />;
-            default: return <Footprints size={size} color="#9CA3AF" />;
+            default: return <Footprints size={size} color={cfg('#9CA3AF')} />;
         }
     };
 
@@ -220,7 +222,7 @@ export const RouteResults: React.FC<RouteResultsProps> = ({
 
                                     <View style={styles.actionButtons}>
                                         <TouchableOpacity
-                                            style={[styles.showOnMapBtn, { backgroundColor: '#10B981' }]}
+                                            style={[styles.showOnMapBtn, { backgroundColor: cbg('#10B981') }]}
                                             onPress={() => {
                                                 const firstStop = route.segments?.[0]?.from || route.from;
                                                 const latLng = `${firstStop.lat},${firstStop.lon}`;
@@ -233,7 +235,7 @@ export const RouteResults: React.FC<RouteResultsProps> = ({
                                                 Linking.openURL(url);
                                             }}
                                         >
-                                            <Navigation size={18} color="#fff" />
+                                            <Navigation size={18} color={cfg('#fff')} />
                                             <Text style={styles.actionBtnText}>Prowadź</Text>
                                         </TouchableOpacity>
 
@@ -241,7 +243,7 @@ export const RouteResults: React.FC<RouteResultsProps> = ({
                                             style={[styles.showOnMapBtn, { backgroundColor: theme.colors.primary }]}
                                             onPress={() => onSelect && onSelect(route)}
                                         >
-                                            <MapIcon size={20} color="#fff" />
+                                            <MapIcon size={20} color={cfg('#fff')} />
                                             <Text style={styles.actionBtnText}>POKAŻ TRASĘ NA MAPIE</Text>
                                         </TouchableOpacity>
                                     </View>
@@ -272,10 +274,10 @@ export const RouteResults: React.FC<RouteResultsProps> = ({
 
 const frontWidth = Dimensions.get('window').width;
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
     dismissArea: { flex: 1 },
     card: { borderTopLeftRadius: 36, borderTopRightRadius: 36, maxHeight: '95%', paddingBottom: 20 },
-    dragIndicator: { width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 15 },
+    dragIndicator: { width: 40, height: 5, backgroundColor: cbg('#E5E7EB'), borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 15 },
     header: { paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
     title: {
         fontSize: tfs(22),
@@ -308,7 +310,7 @@ const styles = StyleSheet.create({
         ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
     },
     expandIcon: { position: 'absolute', right: 16, bottom: 12 },
-    details: { padding: 15, borderTopWidth: 1, borderTopColor: '#eee' },
+    details: { padding: 15, borderTopWidth: 1, borderTopColor: cbd('#eee') },
     stepRow: { flexDirection: 'row', gap: 12, marginBottom: 15 },
     stepIconColumn: { alignItems: 'center', width: 24 },
     stepDot: { width: 8, height: 8, borderRadius: 4 },
@@ -324,7 +326,7 @@ const styles = StyleSheet.create({
     actionButtons: { flexDirection: 'row', gap: 10, marginTop: 10 },
     showOnMapBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14, borderRadius: 16, elevation: 2 },
     actionBtnText: {
-        color: '#fff',
+        color: cfg('#fff'),
         fontSize: tfs(12),
         fontWeight: '900',
         letterSpacing: 0.5,
@@ -338,7 +340,7 @@ const styles = StyleSheet.create({
     },
     agencyTag: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6, marginRight: 6 },
     agencyTagText: {
-        color: '#fff',
+        color: cfg('#fff'),
         fontSize: tfs(11),
         fontWeight: '900',
         textTransform: 'uppercase',
@@ -361,4 +363,4 @@ const styles = StyleSheet.create({
         ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
     },
     emptySub: { fontSize: tfs(14), textAlign: 'center', opacity: 0.7 }
-});
+}));

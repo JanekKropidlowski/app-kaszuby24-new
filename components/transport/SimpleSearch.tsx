@@ -6,7 +6,8 @@ import { TransportRoutingEngine, RouteOption } from '@/services/TransportRouting
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { BlurView } from 'expo-blur';
-
+
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 interface Props {
     theme: any;
     userLocation: Location.LocationObject | null;
@@ -18,6 +19,7 @@ interface Props {
 const tfs = (size: number) => size;
 
 export const SimpleSearch = ({ theme, userLocation, onClose, onRouteSelect }: Props) => {
+    useDarkSync();
     // State
     const [fromText, setFromText] = useState('');
     const [toText, setToText] = useState('');
@@ -152,8 +154,8 @@ export const SimpleSearch = ({ theme, userLocation, onClose, onRouteSelect }: Pr
             style={[styles.suggestionItem, { borderBottomColor: theme.colors.border }]}
             onPress={() => selectSuggestion(item)}
         >
-            <View style={[styles.iconBox, { backgroundColor: item.agency?.includes('rail') || item.agency?.includes('skm') ? '#fbbf24' : theme.colors.surface }]}>
-                {item.agency?.includes('rail') || item.agency?.includes('skm') ? <Navigation size={18} color="#000" /> : <MapPin size={18} color={theme.colors.textSecondary} />}
+            <View style={[styles.iconBox, { backgroundColor: item.agency?.includes('rail') || item.agency?.includes('skm') ? cbg('#fbbf24') : theme.colors.surface }]}>
+                {item.agency?.includes('rail') || item.agency?.includes('skm') ? <Navigation size={18} color={cfg('#000')} /> : <MapPin size={18} color={theme.colors.textSecondary} />}
             </View>
             <View style={{ flex: 1 }}>
                 <Text style={[styles.suggName, { color: theme.colors.text }]}>{item.name}</Text>
@@ -203,7 +205,7 @@ export const SimpleSearch = ({ theme, userLocation, onClose, onRouteSelect }: Pr
                 <View style={styles.inputRow}>
                     <View style={styles.inputStack}>
                         <View style={styles.inputWrapper}>
-                            <View style={[styles.dot, { backgroundColor: '#3b82f6' }]} />
+                            <View style={[styles.dot, { backgroundColor: cbg('#3b82f6') }]} />
                             <TextInput
                                 style={[styles.input, { color: theme.colors.text }]}
                                 placeholder="Start (np. Moja lokalizacja)"
@@ -215,7 +217,7 @@ export const SimpleSearch = ({ theme, userLocation, onClose, onRouteSelect }: Pr
                             {/* Use Current Location shortcut */}
                             {activeInput === 'from' && !fromText && (
                                 <TouchableOpacity onPress={useCurrentLocation} style={{ padding: 4 }}>
-                                    <LocateFixed size={18} color="#3b82f6" />
+                                    <LocateFixed size={18} color={cfg('#3b82f6')} />
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -284,7 +286,7 @@ export const SimpleSearch = ({ theme, userLocation, onClose, onRouteSelect }: Pr
     );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
     container: { flex: 1 },
     header: { padding: 16, paddingTop: 10, borderBottomWidth: 1, elevation: 2 },
     inputRow: { flexDirection: 'row', alignItems: 'center' },
@@ -301,12 +303,12 @@ const styles = StyleSheet.create({
 
     resultCard: { padding: 16, marginBottom: 12, borderRadius: 12, elevation: 1 },
     cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    agencyBadge: { paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#e0e7ff', borderRadius: 4 },
-    agencyText: { color: '#3730a3', fontWeight: 'bold' },
+    agencyBadge: { paddingHorizontal: 8, paddingVertical: 4, backgroundColor: cbg('#e0e7ff'), borderRadius: 4 },
+    agencyText: { color: cfg('#3730a3'), fontWeight: 'bold' },
     timeRange: { fontSize: tfs(18), fontWeight: '700' },
     durationText: { fontSize: tfs(13) },
     miniTimeline: { flexDirection: 'row', flexWrap: 'wrap' },
 
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     emptyState: { alignItems: 'center', marginTop: 50 }
-});
+}));

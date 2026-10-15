@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, Modal, Animated, Dimensions, 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 const { height } = Dimensions.get('window');
 
 interface TransportFilterModalProps {
@@ -27,6 +28,7 @@ export interface SearchFilters {
 }
 
 export const TransportFilterModal = ({ visible, onClose, onApply, currentFilters }: TransportFilterModalProps) => {
+    useDarkSync();
     const [filters, setFilters] = useState<SearchFilters>(currentFilters);
     const slideAnim = useRef(new Animated.Value(height)).current;
 
@@ -83,7 +85,7 @@ export const TransportFilterModal = ({ visible, onClose, onApply, currentFilters
                         <View style={styles.dragHandle} />
                         <View style={styles.headerRow}>
                             <TouchableOpacity onPress={onClose}>
-                                <Ionicons name="close" size={24} color="#1A202C" />
+                                <Ionicons name="close" size={24} color={cfg('#1A202C')} />
                             </TouchableOpacity>
                             <Text style={styles.title}>Połączenie</Text>
                             <TouchableOpacity onPress={() => setFilters(currentFilters)}>
@@ -99,7 +101,7 @@ export const TransportFilterModal = ({ visible, onClose, onApply, currentFilters
                                 style={[styles.modeCard, filters.sortMode === 'convenience' && styles.modeCardActive]}
                                 onPress={() => setFilters(prev => ({ ...prev, sortMode: 'convenience' }))}
                             >
-                                <Ionicons name="accessibility" size={24} color={filters.sortMode === 'convenience' ? '#1A202C' : '#718096'} />
+                                <Ionicons name="accessibility" size={24} color={filters.sortMode === 'convenience' ? cfg('#1A202C') : cfg('#718096')} />
                                 <Text style={[styles.modeText, filters.sortMode === 'convenience' && styles.modeTextActive]}>Wygodne</Text>
                             </TouchableOpacity>
 
@@ -107,7 +109,7 @@ export const TransportFilterModal = ({ visible, onClose, onApply, currentFilters
                                 style={[styles.modeCard, filters.sortMode === 'optimal' && styles.modeCardActive]}
                                 onPress={() => setFilters(prev => ({ ...prev, sortMode: 'optimal' }))}
                             >
-                                <Ionicons name="walk" size={24} color={filters.sortMode === 'optimal' ? '#1A202C' : '#718096'} />
+                                <Ionicons name="walk" size={24} color={filters.sortMode === 'optimal' ? cfg('#1A202C') : cfg('#718096')} />
                                 <Text style={[styles.modeText, filters.sortMode === 'optimal' && styles.modeTextActive]}>Optymalne</Text>
                             </TouchableOpacity>
 
@@ -115,7 +117,7 @@ export const TransportFilterModal = ({ visible, onClose, onApply, currentFilters
                                 style={[styles.modeCard, filters.sortMode === 'fast' && styles.modeCardActive]}
                                 onPress={() => setFilters(prev => ({ ...prev, sortMode: 'fast' }))}
                             >
-                                <Ionicons name="flash" size={24} color={filters.sortMode === 'fast' ? '#1A202C' : '#718096'} />
+                                <Ionicons name="flash" size={24} color={filters.sortMode === 'fast' ? cfg('#1A202C') : cfg('#718096')} />
                                 <Text style={[styles.modeText, filters.sortMode === 'fast' && styles.modeTextActive]}>Szybkie</Text>
                             </TouchableOpacity>
                         </View>
@@ -177,7 +179,7 @@ export const TransportFilterModal = ({ visible, onClose, onApply, currentFilters
 
 const TransportToggle = ({ label, icon, active, onPress }: { label: string, icon: any, active: boolean, onPress: () => void }) => (
     <TouchableOpacity style={[styles.transportToggle, active && styles.transportToggleActive]} onPress={onPress}>
-        <Ionicons name={icon} size={28} color="#2D3748" />
+        <Ionicons name={icon} size={28} color={cfg('#2D3748')} />
         <Text style={styles.transportLabel}>{label}</Text>
         <View style={[styles.checkbox, active && styles.checkboxActive]}>
             {active && <Ionicons name="checkmark" size={14} color="white" />}
@@ -185,7 +187,7 @@ const TransportToggle = ({ label, icon, active, onPress }: { label: string, icon
     </TouchableOpacity>
 );
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
     overlay: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
     dragHandle: {
         width: 40,
         height: 4,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: cbg('#E2E8F0'),
         borderRadius: 2,
         alignSelf: 'center',
         marginBottom: 16
@@ -225,12 +227,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: tfs(18),
         fontFamily: 'Poppins-Bold',
-        color: '#1A202C'
+        color: cfg('#1A202C')
     },
     resetText: {
         fontSize: tfs(14),
         fontFamily: 'Poppins-Medium',
-        color: '#718096'
+        color: cfg('#718096')
     },
     content: {
         padding: 16
@@ -244,7 +246,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'white',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: cbd('#E2E8F0'),
         borderRadius: 12,
         padding: 12,
         alignItems: 'center',
@@ -253,21 +255,21 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     modeCardActive: {
-        backgroundColor: '#FFD700', // Yellow
-        borderColor: '#FFD700'
+        backgroundColor: cbg('#FFD700'), // Yellow
+        borderColor: cbd('#FFD700')
     },
     modeText: {
         fontSize: tfs(13),
         fontFamily: 'Poppins-Medium',
-        color: '#4A5568'
+        color: cfg('#4A5568')
     },
     modeTextActive: {
-        color: '#1A202C',
+        color: cfg('#1A202C'),
         fontFamily: 'Poppins-SemiBold'
     },
     description: {
         fontSize: tfs(13),
-        color: '#718096',
+        color: cfg('#718096'),
         textAlign: 'center',
         marginBottom: 24
     },
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: tfs(18),
         fontFamily: 'Poppins-SemiBold',
-        color: '#1A202C'
+        color: cfg('#1A202C')
     },
     transportGrid: {
         flexDirection: 'row',
@@ -292,35 +294,35 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         backgroundColor: 'white',
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: cbd('#E2E8F0'),
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
         gap: 8
     },
     transportToggleActive: {
-        borderColor: '#CBD5E0',
-        backgroundColor: '#F7FAFC'
+        borderColor: cbd('#CBD5E0'),
+        backgroundColor: cbg('#F7FAFC')
     },
     transportLabel: {
         fontSize: tfs(14),
         fontFamily: 'Poppins-Regular',
-        color: '#4A5568'
+        color: cfg('#4A5568')
     },
     checkbox: {
         width: 20,
         height: 20,
         borderRadius: 4,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: cbg('#E2E8F0'),
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 4
     },
     checkboxActive: {
-        backgroundColor: '#FFB300'
+        backgroundColor: cbg('#FFB300')
     },
     applyButton: {
-        backgroundColor: '#FFD700',
+        backgroundColor: cbg('#FFD700'),
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
@@ -329,6 +331,6 @@ const styles = StyleSheet.create({
     applyButtonText: {
         fontSize: tfs(16),
         fontFamily: 'Poppins-Bold',
-        color: '#1A202C'
+        color: cfg('#1A202C')
     }
-});
+}));

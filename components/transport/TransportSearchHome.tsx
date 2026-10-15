@@ -5,6 +5,7 @@ import { TransportService, TransportStop } from '@/services/transportService';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 
+import { cbg, cfg, cbd, themedStyles, useDarkSync } from '@/lib/darkPalette';
 interface Props {
     theme: any;
     userLocation: Location.LocationObject | null;
@@ -17,6 +18,7 @@ interface Props {
 const tfs = (size: number) => size;
 
 export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSearch, onShowMap, onStopSelect }) => {
+    useDarkSync();
     const [fromText, setFromText] = useState('');
     const [toText, setToText] = useState('');
     const [nearbyStops, setNearbyStops] = useState<(TransportStop & { distance: number })[]>([]);
@@ -203,7 +205,7 @@ export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSe
                     style={[styles.searchBtn, { backgroundColor: theme.colors.primary }]}
                     onPress={handleSearch}
                 >
-                    <Search size={20} color="#fff" />
+                    <Search size={20} color={cfg('#fff')} />
                     <Text style={styles.searchBtnText}>Szukaj połączenia</Text>
                 </TouchableOpacity>
             </View>
@@ -278,7 +280,7 @@ export const TransportSearchHome: React.FC<Props> = ({ theme, userLocation, onSe
     );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
     container: { flex: 1, paddingHorizontal: 20 },
     header: { marginTop: 60, marginBottom: 25 },
     title: {
@@ -295,7 +297,7 @@ const styles = StyleSheet.create({
     },
     card: { borderRadius: 24, padding: 6, elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 15, shadowOffset: { width: 0, height: 5 } },
     inputRow: { flexDirection: 'row', alignItems: 'center', padding: 12 },
-    iconBox: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    iconBox: { width: 36, height: 36, borderRadius: 12, backgroundColor: cbg('#F3F4F6'), justifyContent: 'center', alignItems: 'center', marginRight: 12 },
     input: {
         flex: 1,
         fontSize: tfs(16),
@@ -306,7 +308,7 @@ const styles = StyleSheet.create({
     cleanDivider: { height: 1, marginLeft: 60, opacity: 0.5 },
     searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 18, marginTop: 6, gap: 10 },
     searchBtnText: {
-        color: '#fff',
+        color: cfg('#fff'),
         fontSize: tfs(16),
         fontWeight: '800',
         ...Platform.select({ android: { fontFamily: 'Poppins_Bold' }, default: {} }),
@@ -346,8 +348,8 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         ...Platform.select({ android: { fontFamily: 'Poppins_Medium' }, default: {} }),
     },
-    suggestionsContainer: { backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 12, borderRadius: 12, padding: 8, elevation: 2 },
-    suggestionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, gap: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+    suggestionsContainer: { backgroundColor: cbg('#fff'), marginHorizontal: 12, marginBottom: 12, borderRadius: 12, padding: 8, elevation: 2 },
+    suggestionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, gap: 10, borderBottomWidth: 1, borderBottomColor: cbd('#f0f0f0') },
     suggestionText: {
         fontSize: tfs(14),
         fontWeight: '600',
@@ -360,10 +362,10 @@ const styles = StyleSheet.create({
         ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
     },
     timeOptionsContainer: { flexDirection: 'row', gap: 8, marginTop: 16, marginBottom: 8, paddingHorizontal: 16 },
-    timeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6' },
+    timeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: cbd('#F3F4F6') },
     timeText: {
         fontSize: tfs(13),
         fontWeight: '700',
         ...Platform.select({ android: { fontFamily: 'Poppins_SemiBold' }, default: {} }),
     }
-});
+}));
