@@ -287,6 +287,10 @@ export default function HomeScreen() {
 
   // Loading states
   const [initialLoading, setInitialLoading] = useState(true);
+  // Zmiana kategorii: nagłówek i pigułki zostają na ekranie, kręci się tylko lista.
+  // Pełnoekranowy szkielet (initialLoading) tylko przy pierwszym wejściu.
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -394,8 +398,10 @@ export default function HomeScreen() {
       if (pageNum === 1) {
         if (isRefresh) {
           setRefreshing(true);
-        } else {
+        } else if (!hasLoadedOnceRef.current) {
           setInitialLoading(true);
+        } else {
+          setCategoryLoading(true);
         }
       } else {
         setLoadingMore(true);
@@ -495,7 +501,9 @@ export default function HomeScreen() {
     } finally {
       if (isMountedRef.current) {
         loadingRef.current = false;
+        hasLoadedOnceRef.current = true;
         setInitialLoading(false);
+        setCategoryLoading(false);
         setRefreshing(false);
         setLoadingMore(false);
       }
@@ -572,7 +580,7 @@ export default function HomeScreen() {
         setWeatherLoading(false);
       }
     }
-  }, [loadArticles]);
+  }, []);
 
   // Load nekrologi - sorted by date
   const loadNekrologi = useCallback(async () => {
@@ -617,6 +625,7 @@ export default function HomeScreen() {
 
   // Update mixed content when articles or nekrologi change
   useEffect(() => {
+    if (categoryLoading) return; // nowa kategoria się ładuje – nie pokazujemy artykułów poprzedniej
     if (articles.length > 0 || nekrologi.length > 0) {
       // Nekrologi wstawiamy tylko na liście głównej (brak filtra kategorii)
       const mixed = selectedCategory === null
@@ -624,7 +633,7 @@ export default function HomeScreen() {
         : [...articles];
       setMixedContent(mixed);
     }
-  }, [articles, nekrologi, selectedCategory, mixContentWithNekrologi]);
+  }, [articles, nekrologi, selectedCategory, categoryLoading, mixContentWithNekrologi]);
 
   // Component mount/unmount tracking
   useEffect(() => {
@@ -650,8 +659,10 @@ export default function HomeScreen() {
       // Start both loads simultaneously for faster initial render
       const loadData = async () => {
         try {
+          // Artykuły ładuje efekt „Handle category changes” poniżej (też na starcie) –
+          // wcześniej lista szła tu i tam (2–3 razy), a pogoda/kategorie/nekrologi
+          // pobierały się od nowa przy każdej zmianie kategorii.
           await Promise.allSettled([
-            loadArticles(1, false),
             loadCategories(),
             loadNekrologi(),
             loadWeatherData()
@@ -663,7 +674,7 @@ export default function HomeScreen() {
 
       loadData();
     }
-  }, [loadArticles, loadCategories, loadNekrologi, loadWeatherData]);
+  }, [loadCategories, loadNekrologi, loadWeatherData]);
 
   // Handle category changes
   useEffect(() => {
@@ -675,12 +686,18 @@ export default function HomeScreen() {
     setCurrentPage(1);
     setHasMoreArticles(true);
 
-    // Load first page with new category
-    const timeoutId = setTimeout(() => {
-      if (isMountedRef.current) {
-        loadArticles(1, false);
+    // Load first page with new category. Jeśli poprzednie zapytanie jeszcze trwa (szybkie
+    // dotknięcia kategorii), loadArticles by się pominęło – czekamy aż się zwolni.
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const tryLoad = (attempt: number) => {
+      if (!isMountedRef.current) return;
+      if (loadingRef.current && attempt < 40) {
+        timeoutId = setTimeout(() => tryLoad(attempt + 1), 150);
+        return;
       }
-    }, 100);
+      loadArticles(1, false);
+    };
+    timeoutId = setTimeout(() => tryLoad(0), 100);
 
     return () => clearTimeout(timeoutId);
   }, [selectedCategory, loadArticles]);
@@ -850,16 +867,12 @@ export default function HomeScreen() {
     setHasMoreArticles(true);
     setLoadingMore(false);
 
-    // Reset to show all content when changing category
+    // Czyścimy listę; załadowanie nowej kategorii robi efekt reagujący na selectedCategory
+    // (bez pełnoekranowego szkieletu – nagłówek i pigułki zostają).
+    setArticles([]);
     setMixedContent([]);
-    setInitialLoading(true);
-
-    // Force immediate reload with new category
-    setTimeout(() => {
-      setInitialLoading(false);
-      loadArticles(1, false); // Force reload with new category
-    }, 50);
-  }, [loadArticles]);
+    setCategoryLoading(true);
+  }, []);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -1117,7 +1130,11 @@ export default function HomeScreen() {
           </View>
         }
         ListEmptyComponent={
-          !initialLoading ? (
+          categoryLoading ? (
+            <View style={{ paddingVertical: 48, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+          ) : !initialLoading ? (
             <EmptyState
               title={selectedCategory ? "Brak artykułów w tej kategorii" : "Nie znaleziono artykułów"}
               message={selectedCategory ? "Spróbuj wybrać inną kategorię." : "Spróbuj odświeżyć stronę."}
