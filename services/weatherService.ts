@@ -10,6 +10,8 @@ import {
 } from '@/types/weather';
 
 const API_BASE_URL = 'https://danepubliczne.imgw.pl/api/data';
+// Stacje IMGW tylko z Pomorza (cache 10 min po stronie serwera); gdy endpointu brak lub padnie – kolejne próby idą do IMGW.
+const K24_IMGW_URL = 'https://kaszuby24.pl/wp-json/kaszuby24/v1/imgw';
 
 // Intelligent TTLs per data category
 const CACHE_TTL = {
@@ -354,6 +356,7 @@ type FetchOptions<T> = {
     backoffBaseMs?: number;
     transform?: (data: any) => T;
     skipNetwork?: boolean; // offline-mode
+    primaryUrl?: string; // pierwsza próba stąd (np. nasz endpoint z samym Pomorzem); kolejne – bezpośrednio z IMGW
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -367,6 +370,7 @@ const fetchApi = async <T>(endpoint: string, options: FetchOptions<T> = {}): Pro
         backoffBaseMs = 500,
         transform,
         skipNetwork = false,
+        primaryUrl,
     } = options;
 
     // 1) Try fresh-valid cache first
@@ -391,7 +395,7 @@ const fetchApi = async <T>(endpoint: string, options: FetchOptions<T> = {}): Pro
     let lastError: unknown = null;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
         try {
-            const fullUrl = `${API_BASE_URL}/${endpoint}`;
+            const fullUrl = attempt === 0 && primaryUrl ? primaryUrl : `${API_BASE_URL}/${endpoint}`;
             console.log(`Fetching fresh data from: ${fullUrl} (attempt ${attempt + 1})`);
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -551,6 +555,7 @@ export const fetchSynopByStation = (nameAscii: string, options: Partial<FetchOpt
 
 export const fetchHydroData = (options: Partial<FetchOptions<HydroData[]>> = {}) =>
     fetchApi<HydroData[]>('hydro', {
+        primaryUrl: `${K24_IMGW_URL}/hydro`,
         cacheKey: 'hydro',
         ttlMs: CACHE_TTL.forecastMs,
         allowStale: true,
@@ -574,6 +579,7 @@ export const fetchHydroById = (id: string, options: Partial<FetchOptions<HydroDa
 
 export const fetchMeteoData = (options: Partial<FetchOptions<MeteoData[]>> = {}) =>
     fetchApi<MeteoData[]>('meteo', {
+        primaryUrl: `${K24_IMGW_URL}/meteo`,
         cacheKey: 'meteo',
         ttlMs: CACHE_TTL.forecastMs,
         allowStale: true,

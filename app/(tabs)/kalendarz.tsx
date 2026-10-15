@@ -865,6 +865,7 @@ export default function EventCalendarScreen() {
       // Pobierz wydarzenia dla całego zakresu kalendarza (90 dni)
       const params = new URLSearchParams();
       params.append('per_page', '100'); // Więcej wydarzeń na stronę dla kalendarza
+      params.append('slim', '1'); // bez description/excerpt – kalendarz ich nie używa (starszy serwer ignoruje parametr)
       params.append('date_from', new Date().toISOString().split('T')[0]);
       params.append('date_to', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
