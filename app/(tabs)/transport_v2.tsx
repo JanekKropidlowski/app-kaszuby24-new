@@ -18,6 +18,8 @@ import { JourneyDetailsModal } from '../../components/transport/JourneyDetailsMo
 import { TransportFilterModal, SearchFilters } from '../../components/transport/TransportFilterModal';
 import { TimetableModal } from '../../components/transport/TimetableModal';
 import { KeyboardAvoidingView } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useIsFocused } from '@react-navigation/native';
 import { useFavoritesStore } from '../../store/favoritesStore';
 
 const API_STOPS = 'https://kaszuby24.pl/wp-json/kaszuby24/v2/stops?agency=all';
@@ -41,6 +43,7 @@ export default function TransportSearchScreen() {
     const [stopsLoadFailed, setStopsLoadFailed] = useState(false);
     const [routeStatus, setRouteStatus] = useState<'ok' | 'failed' | 'empty'>('ok');
     const locationAskedRef = useRef(false);
+    const isFocused = useIsFocused();
     const [userLocation, setUserLocation] = useState<{ lat: number, lon: number } | null>(null);
 
     const departuresService = useMemo(() => getDeparturesService(), []);
@@ -875,6 +878,8 @@ export default function TransportSearchScreen() {
 
     return (
         <View style={styles.container}>
+            {/* Nagłówek jest jasny niezależnie od motywu – bez tego w trybie ciemnym ikony paska statusu są białe na jasnym */}
+            {isFocused && <StatusBar style="dark" />}
             <LinearGradient colors={['#E5E7EB', '#F3F4F6']} style={styles.headerGradient}>
                 <SafeAreaView edges={['top']}>
                     <View style={styles.header}>
@@ -909,6 +914,9 @@ export default function TransportSearchScreen() {
                                 style={styles.swapButtonSide}
                                 onPress={onSwapStations}
                                 activeOpacity={0.7}
+                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Zamień miejscami Skąd i Dokąd"
                             >
                                 <MaterialCommunityIcons name="swap-vertical" size={20} color="#4B5563" />
                             </TouchableOpacity>
@@ -934,7 +942,7 @@ export default function TransportSearchScreen() {
                                     returnKeyType="search"
                                 />
                                 {fromQuery.length > 0 && (
-                                    <TouchableOpacity onPress={onClearFrom} style={styles.clearBtn}>
+                                    <TouchableOpacity onPress={onClearFrom} style={styles.clearBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Wyczyść pole Skąd">
                                         <Ionicons name="close-circle" size={18} color="#909090" />
                                     </TouchableOpacity>
                                 )}
@@ -952,7 +960,7 @@ export default function TransportSearchScreen() {
                                     returnKeyType="search"
                                 />
                                 {toQuery.length > 0 && (
-                                    <TouchableOpacity onPress={onClearTo} style={styles.clearBtn}>
+                                    <TouchableOpacity onPress={onClearTo} style={styles.clearBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Wyczyść pole Dokąd">
                                         <Ionicons name="close-circle" size={18} color="#909090" />
                                     </TouchableOpacity>
                                 )}
@@ -1025,8 +1033,10 @@ export default function TransportSearchScreen() {
                                 )}
                                 <TouchableOpacity
                                     onPress={(e) => { e.stopPropagation(); removeRoute(fav.id); }}
-                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
                                     style={{ marginLeft: 6, padding: 2 }}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Usuń zapisaną trasę"
                                 >
                                     <Ionicons name="close-circle" size={16} color="#CBD5E0" />
                                 </TouchableOpacity>

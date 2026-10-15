@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   halfWidth: {
     width: '48%',
-    height: 160,
+    minHeight: 160, // minHeight, nie height – przy większej czcionce systemowej opis się nie obcina
   },
   fullWidth: {
     width: '100%',

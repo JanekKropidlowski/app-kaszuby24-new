@@ -32,10 +32,6 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
   const isSaved = isArticleSaved(article.id);
   const isSponsored = isSponsoredContent(article);
   
-  if (isSponsored) {
-    return null;
-  }
-  
   const lastTapTime = useRef(0);
   const isPressingRef = useRef(false);
   
@@ -162,6 +158,11 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
     }
   }, [article.featured_media_url, compact, theme.colors.subtle, hasGallery, hasVideo]);
   
+  // Po wszystkich hookach: return przed nimi daje „Rendered fewer hooks”, gdy artykuł zmieni się na sponsorowany.
+  if (isSponsored) {
+    return null;
+  }
+
   if (compact) {
     return (
       <TouchableOpacity 
@@ -287,6 +288,8 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
               ]}
               hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={isSaved ? 'Usuń z zapisanych' : 'Zapisz artykuł'}
             >
               <Bookmark 
                 size={16} 

@@ -201,13 +201,14 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
         else if (selectedProvider === 'TRAINS') agencyFilter = ['pkp ic', 'pkpic', 'ic', 'regiojet', 'intercity'];
         else if (isMzkSearchMode) agencyFilter = ['mzk', 'mzk wejherowo', 'mzk_wejherowo'];
 
-        return stops
-            .filter(s => {
-                const matchesName = s.name.toLowerCase().includes(lower);
-                const matchesAgency = agencyFilter.length === 0 || agencyFilter.includes(s.agency?.toLowerCase() || '');
-                return matchesName && matchesAgency;
-            })
-            .slice(0, 20);
+        const matches = stops.filter(s => {
+            const matchesName = s.name.toLowerCase().includes(lower);
+            const matchesAgency = agencyFilter.length === 0 || agencyFilter.includes(s.agency?.toLowerCase() || '');
+            return matchesName && matchesAgency;
+        });
+        // Najpierw nazwy zaczynające się od wpisanej frazy (wyszukiwanie po wszystkich przewoźnikach daje dużo trafień)
+        matches.sort((a, b) => Number(b.name.toLowerCase().startsWith(lower)) - Number(a.name.toLowerCase().startsWith(lower)));
+        return matches.slice(0, 20);
     }, [searchQuery, stops, selectedProvider]);
 
     useEffect(() => {
@@ -344,6 +345,18 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 
 
     const renderProviderList = () => (
+        <View>
+            {/* Najczęstsze pytanie: „kiedy mam autobus z tego przystanku” – bez wybierania przewoźnika po logo */}
+            <TouchableOpacity
+                style={styles.searchAllBtn}
+                onPress={() => handleProviderSelect('SEARCH')}
+                accessibilityRole="button"
+                accessibilityLabel="Szukaj przystanku we wszystkich przewoźnikach"
+            >
+                <Ionicons name="search" size={20} color="#718096" style={{ marginRight: 10 }} />
+                <Text style={styles.searchAllText}>Wpisz nazwę przystanku – szukam u wszystkich przewoźników</Text>
+            </TouchableOpacity>
+            <Text style={styles.orText}>albo wybierz przewoźnika:</Text>
         <View style={styles.grid}>
 
             <TouchableOpacity style={[styles.card, styles.cardAcc]} onPress={() => handleProviderSelect('SKM')}>
@@ -395,6 +408,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                 </View>
                 <Text style={styles.cardLabel}>Pociągi (IC/RegioJet)</Text>
             </TouchableOpacity>
+        </View>
         </View>
     );
 
@@ -1303,7 +1317,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                 />
                 <View style={[
                     styles.content,
-                    (selectedProvider === 'MZK' || selectedProvider === 'SKM' || selectedProvider === 'POLREGIO' || selectedProvider === 'PKS' || selectedProvider === 'ZKM' || selectedProvider === 'ZTM' || selectedProvider === 'TRAINS') ? { height: '80%' } : null
+                    (selectedProvider === 'SEARCH' || selectedProvider === 'MZK' || selectedProvider === 'SKM' || selectedProvider === 'POLREGIO' || selectedProvider === 'PKS' || selectedProvider === 'ZKM' || selectedProvider === 'ZTM' || selectedProvider === 'TRAINS') ? { height: '80%' } : null
                 ]}>
                     <View style={styles.handle} />
 
@@ -1319,7 +1333,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
                     {selectedStop ? renderTimetable() :
                         selectedMzkLine ? renderMzkLineDetail() :
                             selectedPksLine ? renderPksLineDetail() :
-                                (selectedProvider === 'SKM' || selectedProvider === 'POLREGIO' || isMzkSearchMode || isPksSearchMode) ? renderStopSearch() :
+                                (selectedProvider === 'SKM' || selectedProvider === 'POLREGIO' || selectedProvider === 'SEARCH' || isMzkSearchMode || isPksSearchMode) ? renderStopSearch() :
                                     selectedProvider === 'MZK' ? renderMzkLines() :
                                         selectedProvider === 'PKS' ? renderPksLines() :
                                             renderProviderList()}
@@ -1517,6 +1531,9 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({ visible, onClose
 };
 
 const styles = StyleSheet.create({
+    searchAllBtn: { flexDirection: 'row', alignItems: 'center', minHeight: 52, marginHorizontal: 4, marginBottom: 10, paddingHorizontal: 16, borderRadius: 16, backgroundColor: '#F7FAFC', borderWidth: 1.5, borderColor: '#E2E8F0' },
+    searchAllText: { flex: 1, fontSize: 14, color: '#4A5568' },
+    orText: { fontSize: 13, color: '#A0AEC0', marginLeft: 6, marginBottom: 8 },
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     backdrop: { ...StyleSheet.absoluteFillObject },
     content: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },

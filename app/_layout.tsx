@@ -60,9 +60,12 @@ setTimeout(() => {
   const TextAny = RNText as unknown as { defaultProps?: any };
   TextAny.defaultProps = TextAny.defaultProps || {};
   TextAny.defaultProps.style = [{ fontFamily: 'Poppins_Regular' }, TextAny.defaultProps.style];
+  // Duża czcionka systemowa nie rozwala już kafelków i paska zakładek (stałe wysokości), ale nadal rośnie do 130%.
+  TextAny.defaultProps.maxFontSizeMultiplier = 1.3;
   const TextInputAny = RNTextInput as unknown as { defaultProps?: any };
   TextInputAny.defaultProps = TextInputAny.defaultProps || {};
   TextInputAny.defaultProps.style = [{ fontFamily: 'Poppins_Regular' }, TextInputAny.defaultProps.style];
+  TextInputAny.defaultProps.maxFontSizeMultiplier = 1.3;
 }
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/store/themeStore';

@@ -46,6 +46,7 @@ import {
   Eye,
   ChevronUp,
   Volume2,
+  Play,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -152,6 +153,47 @@ const TTS_TOOLTIP_MAX_SHOWS = 3;
 const isBoldStyle = (style?: string) =>
   !!style && /font-weight\s*:\s*(bold|6\d\d|7\d\d|8\d\d|9\d\d)/i.test(style);
 
+// Każdy <iframe> z treści WP był od razu osobnym WebView (Chromium) – kilka osadzeń naraz
+// zjadało pamięć i zamrażało wejście w artykuł. Teraz placeholder (miniatura YouTube),
+// a WebView dopiero po dotknięciu.
+function youtubeThumb(src: string): string | null {
+  const m = src.match(/(?:youtube(?:-nocookie)?\.com\/embed\/|youtu\.be\/)([\w-]{11})/);
+  return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : null;
+}
+
+function LazyIframe({ src, height }: { src: string; height: number }) {
+  const [active, setActive] = useState(false);
+  const thumb = useMemo(() => youtubeThumb(src), [src]);
+  if (active) {
+    return (
+      <View style={styles.iframeContainer}>
+        <WebView
+          source={{ uri: src }}
+          style={{ width: '100%', height, borderRadius: 8 }}
+          allowsFullscreenVideo={true}
+          allowsInlineMediaPlayback={true}
+          mediaPlaybackRequiresUserAction={true}
+        />
+      </View>
+    );
+  }
+  return (
+    <TouchableOpacity
+      style={[styles.iframeContainer, { height, borderRadius: 8, overflow: 'hidden', backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' }]}
+      activeOpacity={0.85}
+      onPress={() => setActive(true)}
+      accessibilityRole="button"
+      accessibilityLabel={thumb ? 'Odtwórz film' : 'Pokaż osadzoną zawartość'}
+    >
+      {thumb ? <ExpoImage source={{ uri: thumb }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' }}>
+        <Play size={30} color="#fff" fill="#fff" />
+      </View>
+      {!thumb ? <Text style={{ color: '#fff', marginTop: 12, fontSize: 14 }}>Dotknij, aby pokazać zawartość</Text> : null}
+    </TouchableOpacity>
+  );
+}
+
 export default function ArticleScreen() {
   const supportPromptPendingRef = useRef(false);
   useEffect(() => () => {
@@ -256,17 +298,7 @@ export default function ArticleScreen() {
       const frameH = parseInt(tnode.attributes?.height || '0', 10);
       const ratio = frameW > 0 && frameH > 0 ? frameH / frameW : 9 / 16;
       const frameHeight = Math.round(Math.min((width - 40) * ratio, height * 0.7));
-      return (
-        <View style={styles.iframeContainer}>
-          <WebView
-            source={{ uri: src }}
-            style={{ width: '100%', height: frameHeight, borderRadius: 8 }}
-            allowsFullscreenVideo={true}
-            allowsInlineMediaPlayback={true}
-            mediaPlaybackRequiresUserAction={true}
-          />
-        </View>
-      );
+      return <LazyIframe src={src} height={frameHeight} />;
     },
     img: ({ tnode }: { tnode: any }) => {
       const src = tnode.attributes?.src || '';

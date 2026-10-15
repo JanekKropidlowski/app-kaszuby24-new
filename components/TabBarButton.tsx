@@ -41,6 +41,9 @@ const TabBarButton: React.FC<TabBarButtonProps> = ({ icon, label, onPress, activ
 
   return (
     <TouchableOpacity
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: !!active }}
       style={[
         styles.tabItem,
         {
