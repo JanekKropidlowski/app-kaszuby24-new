@@ -48,8 +48,13 @@ export default function WasteCascadePicker({ citySlug, cityName, theme, onPicked
 
     const [loading, setLoading] = useState(false);
     const [gpsLoading, setGpsLoading] = useState(false);
+    const [loadError, setLoadError] = useState(false);
 
-    useEffect(() => { wasteScheduleService.getDzielnice(citySlug).then(setDzielnice); }, [citySlug]);
+    const loadDzielnice = () => {
+        setLoadError(false);
+        wasteScheduleService.getDzielnice(citySlug).then(setDzielnice).catch(() => setLoadError(true));
+    };
+    useEffect(loadDzielnice, [citySlug]);
 
     useEffect(() => {
         if (!selDzielnica) {
@@ -57,22 +62,25 @@ export default function WasteCascadePicker({ citySlug, cityName, theme, onPicked
             return;
         }
         setLoading(true);
+        setLoadError(false);
         wasteScheduleService.getStreetsInDzielnica(citySlug, selDzielnica)
-            .then(setStreets).finally(() => setLoading(false));
+            .then(setStreets).catch(() => setLoadError(true)).finally(() => setLoading(false));
         setSelStreet(''); setNumbers([]); setSelNumber(''); setBuildings([]);
     }, [citySlug, selDzielnica]);
 
     useEffect(() => {
         if (!selStreet) { setNumbers([]); setSelNumber(''); setBuildings([]); return; }
         setLoading(true);
+        setLoadError(false);
         wasteScheduleService.getNumbers(citySlug, selDzielnica, selStreet)
-            .then(setNumbers).finally(() => setLoading(false));
+            .then(setNumbers).catch(() => setLoadError(true)).finally(() => setLoading(false));
         setSelNumber(''); setBuildings([]);
     }, [citySlug, selDzielnica, selStreet]);
 
     useEffect(() => {
         if (!selNumber) { setBuildings([]); return; }
         setLoading(true);
+        setLoadError(false);
         wasteScheduleService.getBuildings(citySlug, selDzielnica, selStreet, selNumber)
             .then((b) => {
                 setBuildings(b);
@@ -83,6 +91,7 @@ export default function WasteCascadePicker({ citySlug, cityName, theme, onPicked
                     });
                 }
             })
+            .catch(() => setLoadError(true))
             .finally(() => setLoading(false));
     }, [citySlug, selDzielnica, selStreet, selNumber]);
 
@@ -98,6 +107,12 @@ export default function WasteCascadePicker({ citySlug, cityName, theme, onPicked
     }, [pickerOpen, pickerQuery, dzielnice, streets, numbers]);
 
     function openPicker(which: 'dzielnica' | 'ulica' | 'numer') {
+        if (loadError) {
+            setLoadError(false);
+            if (which === 'dzielnica') loadDzielnice();
+            else if (which === 'ulica' && selDzielnica) wasteScheduleService.getStreetsInDzielnica(citySlug, selDzielnica).then(setStreets).catch(() => setLoadError(true));
+            else if (which === 'numer' && selStreet) wasteScheduleService.getNumbers(citySlug, selDzielnica, selStreet).then(setNumbers).catch(() => setLoadError(true));
+        }
         setPickerOpen(which); setPickerQuery('');
     }
     function closePicker() { setPickerOpen(null); setPickerQuery(''); }
@@ -135,7 +150,7 @@ export default function WasteCascadePicker({ citySlug, cityName, theme, onPicked
             if (matchDz) {
                 setSelDzielnica(matchDz);
                 if (r.street) {
-                    setTimeout(async () => {
+                    setTimeout(async () => { try {
                         const ss = await wasteScheduleService.getStreetsInDzielnica(citySlug, matchDz);
                         const matchSt = ss.find((s) => s.toLowerCase().includes((r.street || '').toLowerCase()));
                         if (matchSt) {
@@ -147,7 +162,7 @@ export default function WasteCascadePicker({ citySlug, cityName, theme, onPicked
                                 if (matchNr) setSelNumber(matchNr);
                             }
                         }
-                    }, 300);
+                    } catch { setLoadError(true); } }, 300);
                 }
             } else {
                 Alert.alert('Wykryto pozycję', `GPS: ${r.district || r.city}. Wybierz dzielnicę z listy.`);
@@ -333,7 +348,9 @@ export default function WasteCascadePicker({ citySlug, cityName, theme, onPicked
                         ListEmptyComponent={() => (
                             <View style={{ padding: 32, alignItems: 'center' }}>
                                 <Text style={[FONT_REGULAR, { color: theme.colors.textSecondary, fontSize: 14, textAlign: 'center' }]}>
-                                    {pickerQuery ? `Brak wyników dla "${pickerQuery}"` : 'Wpisz aby zobaczyć wyniki'}
+                                    {loadError
+                                        ? 'Nie udało się pobrać listy. Sprawdź połączenie z internetem i otwórz listę ponownie.'
+                                        : pickerQuery ? `Brak wyników dla "${pickerQuery}"` : 'Wpisz aby zobaczyć wyniki'}
                                 </Text>
                             </View>
                         )}

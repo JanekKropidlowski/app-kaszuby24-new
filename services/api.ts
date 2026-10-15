@@ -4,8 +4,8 @@ import { Platform, Vibration } from 'react-native';
 import { filterSponsoredArticles, filterSponsoredCategories, isSponsoredContent } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
-const API_TIMEOUT = 30000; // Increased timeout to 30 seconds
-export const MAX_RETRIES = 2; // Export for use in other files
+const API_TIMEOUT = 12000; // 12 s (dawniej 30 s × 3 próby = ok. 95 s wiszącego spinnera przy słabym zasięgu)
+export const MAX_RETRIES = 1; // Export for use in other files
 const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_KEY_MEDIA = 'cached_media';

@@ -94,6 +94,8 @@ export default function SearchScreen() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [nekrologi, setNekrologi] = useState<Nekrolog[]>([]);
   const [loading, setLoading] = useState(false);
+  // Błąd sieci to nie „brak wyników” – osobny stan z przyciskiem ponowienia.
+  const [loadError, setLoadError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -135,6 +137,7 @@ export default function SearchScreen() {
     }
 
     try {
+      setLoadError(false);
       // Only set main loading if we don't have articles yet or if it's a major filter change
       if (articles.length === 0 && nekrologi.length === 0) {
         setLoading(true);
@@ -180,6 +183,7 @@ export default function SearchScreen() {
       setPage(1);
     } catch (err) {
       console.error('Error searching articles:', err);
+      setLoadError(true);
       setArticles([]);
       setNekrologi([]);
     } finally {
@@ -192,6 +196,7 @@ export default function SearchScreen() {
   // mixed default view (no active query/filters).
   const loadAllArticles = async () => {
     try {
+      setLoadError(false);
       setLoading(true);
       const articlesPromise =
         contentType === 'nekrologi'
@@ -213,6 +218,7 @@ export default function SearchScreen() {
       setPage(1);
     } catch (err) {
       console.error('Error loading all articles:', err);
+      setLoadError(true);
       setArticles([]);
       setNekrologi([]);
     } finally {
@@ -802,7 +808,14 @@ export default function SearchScreen() {
             ) : null
           }
           ListEmptyComponent={
-            hasActiveFilters ? (
+            loadError ? (
+              <EmptyState
+                title="Nie udało się pobrać wyników"
+                message="Sprawdź połączenie z internetem i spróbuj ponownie."
+                actionLabel="Spróbuj ponownie"
+                onAction={() => handleSearch(query)}
+              />
+            ) : hasActiveFilters ? (
               <EmptyState
                 title="Nie znaleziono wyników"
                 message="Spróbuj innej kategorii lub frazy"

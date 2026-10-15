@@ -122,6 +122,17 @@ const safeParseJsonResponse = async (res: Response) => {
   }
 };
 
+// Zwykły fetch w RN nie ma limitu czasu – przy słabym zasięgu spinner wisiał bez końca.
+const fetchWithTimeout = async (url: string, ms = 12000): Promise<Response> => {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(t);
+  }
+};
+
 export default function EventCalendarScreen() {
   const { theme } = useThemeStore();
   const { isEventSaved, saveEvent, removeEvent } = useEventsStore();
@@ -782,7 +793,7 @@ export default function EventCalendarScreen() {
 
       const url = `${BASE_URL}?${params.toString()}`;
 
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url);
       const data = await safeParseJsonResponse(res);
 
 
@@ -868,7 +879,7 @@ export default function EventCalendarScreen() {
 
       const url = `${BASE_URL}?${params.toString()}`;
 
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url);
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -1584,7 +1595,12 @@ export default function EventCalendarScreen() {
         {loading ? (
           <SkeletonLoader type="home" count={5} immediate={true} />
         ) : error ? (
-          <View style={styles.center}><Text style={{ color: theme.colors.error }}>{error}</Text></View>
+          <EmptyState
+            title="Nie udało się pobrać wydarzeń"
+            message="Sprawdź połączenie z internetem i spróbuj ponownie."
+            actionLabel="Spróbuj ponownie"
+            onAction={reloadEvents}
+          />
         ) : (
           <ModernEventList
             events={filteredEvents}

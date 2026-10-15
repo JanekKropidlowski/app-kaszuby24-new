@@ -121,25 +121,25 @@ export const wasteScheduleService = {
         try {
             const r = await axios.get(`${API_BASE_URL.replace('/wp', '')}/cities/${encodeURIComponent(citySlug)}/dzielnice`, { timeout: 8000 });
             return r.data.dzielnice || [];
-        } catch (e) { console.error('[WasteSchedule] dzielnice err:', e); return []; }
+        } catch (e) { console.error('[WasteSchedule] dzielnice err:', e); throw e; } // błąd sieci ≠ pusta lista (UI pokazuje „spróbuj ponownie”)
     },
     async getStreetsInDzielnica(citySlug: string, dzielnica: string): Promise<string[]> {
         try {
             const r = await axios.get(`${API_BASE_URL.replace('/wp', '')}/cities/${encodeURIComponent(citySlug)}/streets`, { params: { dzielnica }, timeout: 8000 });
             return r.data.streets || [];
-        } catch (e) { console.error('[WasteSchedule] streets err:', e); return []; }
+        } catch (e) { console.error('[WasteSchedule] streets err:', e); throw e; } // błąd sieci ≠ pusta lista (UI pokazuje „spróbuj ponownie”)
     },
     async getNumbers(citySlug: string, dzielnica: string, ulica: string): Promise<string[]> {
         try {
             const r = await axios.get(`${API_BASE_URL.replace('/wp', '')}/cities/${encodeURIComponent(citySlug)}/numbers`, { params: { dzielnica, ulica }, timeout: 8000 });
             return r.data.numbers || [];
-        } catch (e) { console.error('[WasteSchedule] numbers err:', e); return []; }
+        } catch (e) { console.error('[WasteSchedule] numbers err:', e); throw e; } // błąd sieci ≠ pusta lista (UI pokazuje „spróbuj ponownie”)
     },
     async getBuildings(citySlug: string, dzielnica: string, ulica: string, numer: string): Promise<BuildingResult[]> {
         try {
             const r = await axios.get(`${API_BASE_URL.replace('/wp', '')}/cities/${encodeURIComponent(citySlug)}/buildings`, { params: { dzielnica, ulica, numer }, timeout: 8000 });
             return r.data.buildings || [];
-        } catch (e) { console.error('[WasteSchedule] buildings err:', e); return []; }
+        } catch (e) { console.error('[WasteSchedule] buildings err:', e); throw e; } // błąd sieci ≠ pusta lista (UI pokazuje „spróbuj ponownie”)
     },
     async getRegionWithSchedule(regionId: string | number): Promise<WasteScheduleData | null> {
         try {
