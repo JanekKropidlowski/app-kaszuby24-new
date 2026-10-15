@@ -74,3 +74,10 @@ nie na telefonie.
   NIE zrobione z paczki 3: pełny motyw (kolory z theme) w transport_v2/SorMap/TimetableModal/LegDetail/
   JourneyDetailsModal; Kalendarz (`_fields` i LZS równolegle – wymaga serwera WP); IMGW 1,1 MB (serwer);
   widgety (handler 12 s + 12 s, Pogoda/Powietrze/Odpady bez odświeżania z sieci); reszta labeli a11y.
+- 15.10: Paczka 3 domknięta (`d68acb5`, kalendarz, `3b33d46`), OTA grupy `97bb6681` (1.1.2) / `43b0fe5f` (1.1.1).
+  Tryb ciemny: `lib/darkPalette.ts` (cbg/cfg/cbd + themedStyles Proxy) w 10 plikach rozkładu i Niezbędnika; nie testowane
+  wizualnie – sprawdzić w trybie ciemnym kontrast na żółtych akcentach (czarny tekst celowo niemapowany) i okna
+  szczegółów trasy. Widżety: Pogoda/Powietrze odświeżają się same (8 s), fetch 6 s, RESIZED bez sieci.
+  Kalendarz: LZS równolegle. NIE zrobione (wymaga serwera WP): `_fields`/odchudzony endpoint kalendarza (516 KB),
+  IMGW 1,1 MB (osobny mały endpoint dla woj. pomorskiego), endpoint przystanków z minimalnymi polami.
+  Reszta etykiet a11y: tylko główne przyciski (brak pełnego przeglądu).
