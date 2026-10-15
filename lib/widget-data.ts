@@ -64,7 +64,8 @@ export function mapEvents(raw: any[]): WidgetEvent[] {
     }));
 }
 
-async function fetchJson(url: string, timeoutMs = 12000): Promise<any> {
+// 6 s: handler widgetu to headless JS, długie czekanie przy słabej sieci = widżet „wisi”
+async function fetchJson(url: string, timeoutMs = 6000): Promise<any> {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {

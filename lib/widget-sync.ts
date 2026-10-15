@@ -14,6 +14,8 @@ import {
   EXCLUDED_CATEGORY_IDS,
   type WidgetWaste,
   type WidgetDicts,
+  type WidgetWeather,
+  type WidgetAir,
 } from './widget-shared';
 import { normalizeOpenMeteo, fetchAirForWidget, fetchArticlesForWidget, fetchEventsForWidget } from './widget-data';
 
@@ -32,6 +34,29 @@ async function resolveCoords(): Promise<{ lat: number; lon: number }> {
     /* brak modułu/uprawnień — fallback */
   }
   return DEFAULT_COORDS;
+}
+
+/**
+ * Świeża pogoda + powietrze dla handlera widżetu (okresowe odświeżenie przez system, bez otwierania apki).
+ * Zwraca null-e przy błędzie lub po przekroczeniu limitu czasu – widżet zostaje przy ostatnich danych.
+ */
+export async function fetchFreshWeatherAir(city?: string): Promise<{ weather: WidgetWeather | null; air: WidgetAir | null }> {
+  const run = async () => {
+    const { lat, lon } = await resolveCoords();
+    const updatedAt = new Date().toISOString();
+    const c = city || (await resolveCity(lat, lon));
+    const [fc, air] = await Promise.all([
+      fetchForecast({ latitude: lat, longitude: lon }).catch(() => null),
+      fetchAirForWidget(lat, lon, c, updatedAt).catch(() => null),
+    ]);
+    return { weather: normalizeOpenMeteo(fc, c, updatedAt), air };
+  };
+  const timeout = new Promise<{ weather: null; air: null }>((resolve) => setTimeout(() => resolve({ weather: null, air: null }), 8000));
+  try {
+    return await Promise.race([run(), timeout]);
+  } catch {
+    return { weather: null, air: null };
+  }
 }
 
 async function resolveCity(lat: number, lon: number): Promise<string> {

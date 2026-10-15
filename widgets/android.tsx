@@ -21,6 +21,7 @@ import {
   type ArticlesConfig,
 } from '../lib/widget-shared';
 import { fetchArticlesForWidget, fetchEventsForWidget } from '../lib/widget-data';
+import { fetchFreshWeatherAir } from '../lib/widget-sync';
 
 const BRAND = '#224A96';
 const FG = '#FFFFFF';
@@ -486,8 +487,17 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps): Promise<
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED': {
       const store = await readStore();
+      // Zmiana rozmiaru tylko przerysowuje z zapisanych danych (bez sieci – bywało 12+12 s w headless JS).
+      const refresh = props.widgetAction !== 'WIDGET_RESIZED';
       // Artykuły/Wydarzenia: self-fetch wg konfiguracji per-widget (świeżość bez otwierania apki).
-      if (widgetName === 'Artykuly') {
+      if (!refresh) {
+        /* tylko render z zapisanych danych */
+      } else if (widgetName === 'Pogoda' || widgetName === 'Powietrze') {
+        // Pogoda/Powietrze też odświeżają się same – wcześniej tylko przy otwarciu apki (stare dane przy rzadkim użyciu).
+        const fresh = await fetchFreshWeatherAir(store.weather?.city || store.air?.city);
+        if (fresh.weather) store.weather = fresh.weather;
+        if (fresh.air) store.air = fresh.air;
+      } else if (widgetName === 'Artykuly') {
         const cfg = await readArticlesConfig(widgetId);
         const fresh = await fetchArticlesForWidget(cfg).catch(() => []);
         if (fresh.length) store.posts = fresh;
