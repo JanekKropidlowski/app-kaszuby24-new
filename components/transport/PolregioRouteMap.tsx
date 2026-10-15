@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import MapView, { Polyline, Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,6 +25,14 @@ export const PolregioRouteMap: React.FC<PolregioRouteMapProps> = ({
     selectedStopId
 }) => {
     const mapRef = useRef<MapView>(null);
+    // Android przerysowuje znacznik z widoku na głównym wątku, dopóki tracksViewChanges=true.
+    // Śledzimy tylko chwilę po otwarciu i po wyborze przystanku (zmiana koloru), potem stop.
+    const [tracking, setTracking] = useState(true);
+    useEffect(() => {
+        setTracking(true);
+        const t = setTimeout(() => setTracking(false), 1500);
+        return () => clearTimeout(t);
+    }, [selectedStopId, stops]);
 
     // Proste współrzędne - bez filtrowania
     const polylineCoordinates = useMemo(() => {
@@ -110,6 +118,7 @@ export const PolregioRouteMap: React.FC<PolregioRouteMapProps> = ({
                             longitude: stop.stop_lon,
                         }}
                         onPress={() => onMarkerPress?.(stop.stop_id)}
+                        tracksViewChanges={tracking}
                     >
                         <View style={[
                             styles.marker,

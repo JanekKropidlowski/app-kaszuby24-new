@@ -62,8 +62,21 @@ const AM = Platform.OS === 'android' ? {
     hospital: require('@/assets/images/markers/marker_hospital.png'),
 } : null;
 
+// Android robi z widoku znacznika bitmapę; przy tracksViewChanges=true (domyślnie) robi to
+// w kółko na głównym wątku. Przy setkach AED i aptek to zawieszenia (ANR 15.10). Śledzimy
+// tylko chwilę, aż obrazek się wczyta – tak samo jak w MevoMap2 i Niezbednik2Map.
+const useMarkerTracking = () => {
+    const [tracking, setTracking] = useState(true);
+    useEffect(() => {
+        const t = setTimeout(() => setTracking(false), 2500);
+        return () => clearTimeout(t);
+    }, []);
+    return tracking;
+};
+
 // Memoized Marker Components to prevent re-rendering thrashing
 const AedMarker = React.memo(({ item, coordinate, onPress }: { item: AEDPoint, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
+    const tracking = useMarkerTracking();
     if (Platform.OS === 'android' && AM) {
         const acc = item.access?.toLowerCase() || '';
         const img = acc === 'private' || acc === 'no' ? AM.aed_red
@@ -71,7 +84,7 @@ const AedMarker = React.memo(({ item, coordinate, onPress }: { item: AEDPoint, c
                 : item.indoor === 'yes' ? AM.aed_orange
                     : AM.aed_green;
         return (
-            <Marker coordinate={coordinate} onPress={onPress}>
+            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracking}>
                 <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
                     <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
                 </View>
@@ -89,10 +102,11 @@ const AedMarker = React.memo(({ item, coordinate, onPress }: { item: AEDPoint, c
 });
 
 const PharmacyMarker = React.memo(({ item, coordinate, onPress }: { item: PharmacyPoint, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
+    const tracking = useMarkerTracking();
     if (Platform.OS === 'android' && AM) {
         const img = item.is24h ? AM.pharmacy_24h : AM.pharmacy;
         return (
-            <Marker coordinate={coordinate} onPress={onPress}>
+            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracking}>
                 <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
                     <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
                 </View>
@@ -118,10 +132,11 @@ const PharmacyMarker = React.memo(({ item, coordinate, onPress }: { item: Pharma
 });
 
 const SorMarker = React.memo(({ item, coordinate, onPress }: { item: SorHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
+    const tracking = useMarkerTracking();
     if (Platform.OS === 'android' && AM) {
         const img = item.type === 'NiSOZ' || !item.numer_ksiegi ? AM.hospital : AM.sor;
         return (
-            <Marker coordinate={coordinate} onPress={onPress}>
+            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracking}>
                 <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
                     <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
                 </View>
@@ -138,9 +153,10 @@ const SorMarker = React.memo(({ item, coordinate, onPress }: { item: SorHospital
 });
 
 const GeneralHospitalMarker = React.memo(({ item, coordinate, onPress }: { item: GeneralHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
+    const tracking = useMarkerTracking();
     if (Platform.OS === 'android' && AM) {
         return (
-            <Marker coordinate={coordinate} onPress={onPress}>
+            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracking}>
                 <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
                     <Image source={AM.hospital} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
                 </View>

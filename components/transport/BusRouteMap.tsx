@@ -36,6 +36,14 @@ export const BusRouteMap: React.FC<BusRouteMapProps> = ({
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const mapRef = useRef<MapView>(null);
+    // Android przerysowuje znacznik z widoku na głównym wątku, dopóki tracksViewChanges=true.
+    // Śledzimy tylko chwilę po otwarciu i po wyborze przystanku (zmiana koloru), potem stop.
+    const [tracking, setTracking] = useState(true);
+    useEffect(() => {
+        setTracking(true);
+        const t = setTimeout(() => setTracking(false), 1500);
+        return () => clearTimeout(t);
+    }, [selectedStopId, stops]);
 
     useEffect(() => {
         if (stops.length < 2) {
@@ -185,6 +193,7 @@ export const BusRouteMap: React.FC<BusRouteMapProps> = ({
                             }}
                             anchor={{ x: 0.5, y: 0.5 }}
                             onPress={() => onMarkerPress?.(stop.stop_id)}
+                            tracksViewChanges={tracking}
                         >
                             <View style={[
                                 styles.markerContainer,
