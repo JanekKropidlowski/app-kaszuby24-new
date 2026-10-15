@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Modal, Text, TouchableOpacity, ActivityIndicator, ScrollView, Linking, Platform, Dimensions, Image, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 import MapViewClustering from 'react-native-map-clustering';
@@ -10,6 +10,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { FilterType } from '@/hooks/useEssentials';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const PHARM_ZOOM = 0.35; // Relaxed from 0.2
@@ -62,21 +63,11 @@ const AM = Platform.OS === 'android' ? {
     hospital: require('@/assets/images/markers/marker_hospital.png'),
 } : null;
 
-// Android robi z widoku znacznika bitmapę; przy tracksViewChanges=true (domyślnie) robi to
-// w kółko na głównym wątku. Przy setkach AED i aptek to zawieszenia (ANR 15.10). Śledzimy
-// tylko chwilę, aż obrazek się wczyta – tak samo jak w MevoMap2 i Niezbednik2Map.
-const useMarkerTracking = () => {
-    const [tracking, setTracking] = useState(true);
-    useEffect(() => {
-        const t = setTimeout(() => setTracking(false), 2500);
-        return () => clearTimeout(t);
-    }, []);
-    return tracking;
-};
-
+// Android: Marker z image= to statyczna bitmapa – bez renderowania widoków do obrazka
+// na głównym wątku (ANR 15.10). iOS zostaje przy widokach (tracksViewChanges=false).
 // Memoized Marker Components to prevent re-rendering thrashing
-const AedMarker = React.memo(({ item, coordinate, onPress }: { item: AEDPoint, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
-    const tracking = useMarkerTracking();
+const AedMarker = React.memo(({ item, coordinate, onSelect }: { item: AEDPoint, coordinate: { latitude: number, longitude: number }, onSelect: (item: AEDPoint) => void }) => {
+    const onPress = () => onSelect(item);
     if (Platform.OS === 'android' && AM) {
         const acc = item.access?.toLowerCase() || '';
         const img = acc === 'private' || acc === 'no' ? AM.aed_red
@@ -84,11 +75,7 @@ const AedMarker = React.memo(({ item, coordinate, onPress }: { item: AEDPoint, c
                 : item.indoor === 'yes' ? AM.aed_orange
                     : AM.aed_green;
         return (
-            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracking}>
-                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
-                    <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
-                </View>
-            </Marker>
+            <Marker coordinate={coordinate} onPress={onPress} image={img} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false} />
         );
     }
     const color = getColorBadge(item.access, item.indoor);
@@ -101,16 +88,12 @@ const AedMarker = React.memo(({ item, coordinate, onPress }: { item: AEDPoint, c
     );
 });
 
-const PharmacyMarker = React.memo(({ item, coordinate, onPress }: { item: PharmacyPoint, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
-    const tracking = useMarkerTracking();
+const PharmacyMarker = React.memo(({ item, coordinate, onSelect }: { item: PharmacyPoint, coordinate: { latitude: number, longitude: number }, onSelect: (item: PharmacyPoint) => void }) => {
+    const onPress = () => onSelect(item);
     if (Platform.OS === 'android' && AM) {
         const img = item.is24h ? AM.pharmacy_24h : AM.pharmacy;
         return (
-            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracking}>
-                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
-                    <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
-                </View>
-            </Marker>
+            <Marker coordinate={coordinate} onPress={onPress} image={img} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false} />
         );
     }
     return (
@@ -131,16 +114,12 @@ const PharmacyMarker = React.memo(({ item, coordinate, onPress }: { item: Pharma
     );
 });
 
-const SorMarker = React.memo(({ item, coordinate, onPress }: { item: SorHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
-    const tracking = useMarkerTracking();
+const SorMarker = React.memo(({ item, coordinate, onSelect }: { item: SorHospital, coordinate: { latitude: number, longitude: number }, onSelect: (item: SorHospital) => void }) => {
+    const onPress = () => onSelect(item);
     if (Platform.OS === 'android' && AM) {
         const img = item.type === 'NiSOZ' || !item.numer_ksiegi ? AM.hospital : AM.sor;
         return (
-            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracking}>
-                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
-                    <Image source={img} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
-                </View>
-            </Marker>
+            <Marker coordinate={coordinate} onPress={onPress} image={img} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false} />
         );
     }
     return (
@@ -152,15 +131,11 @@ const SorMarker = React.memo(({ item, coordinate, onPress }: { item: SorHospital
     );
 });
 
-const GeneralHospitalMarker = React.memo(({ item, coordinate, onPress }: { item: GeneralHospital, coordinate: { latitude: number, longitude: number }, onPress: () => void }) => {
-    const tracking = useMarkerTracking();
+const GeneralHospitalMarker = React.memo(({ item, coordinate, onSelect }: { item: GeneralHospital, coordinate: { latitude: number, longitude: number }, onSelect: (item: GeneralHospital) => void }) => {
+    const onPress = () => onSelect(item);
     if (Platform.OS === 'android' && AM) {
         return (
-            <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracking}>
-                <View collapsable={false} style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center' }}>
-                    <Image source={AM.hospital} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
-                </View>
-            </Marker>
+            <Marker coordinate={coordinate} onPress={onPress} image={AM.hospital} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false} />
         );
     }
     return (
@@ -187,6 +162,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
     hospitals, aedPoints, generalHospitals, pharmacies, activeFilter, onFilterChange, fetchByViewport, areEssentialsLoading
 }) => {
     const mapRef = useRef<MapView>(null);
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const [selectedItem, setSelectedItem] = useState<{ type: FilterType; data: any } | null>(null);
     const [queueData, setQueueData] = useState<SorDataResponse | null>(null);
@@ -266,6 +242,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         })();
     }, []);
 
+    const handleHospitalPressRef = useRef<(h: SorHospital) => void>(() => {});
     const handleHospitalPress = async (hospital: SorHospital) => {
         setSelectedItem({ type: 'SOR', data: hospital });
         setQueueData(null);
@@ -278,6 +255,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
             setLoadingQueue(false);
         }
     };
+    handleHospitalPressRef.current = handleHospitalPress;
 
     const handleRegionChangeComplete = (newRegion: Region) => {
         setRegion(newRegion);
@@ -460,6 +438,16 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
         };
     }, [pharmacies, aedPoints, region.latitude, region.longitude, region.latitudeDelta]);
 
+    // Stabilne callbacki – inline onPress w pętli unieważniał React.memo znaczników.
+    const selectSor = useCallback((h: SorHospital) => {
+        setQueueData(null);
+        if (h.numer_ksiegi && h.type !== 'NiSOZ') handleHospitalPressRef.current(h);
+        else setSelectedItem({ type: 'SOR', data: h });
+    }, []);
+    const selectHospital = useCallback((h: GeneralHospital) => setSelectedItem({ type: 'HOSPITAL', data: h }), []);
+    const selectPharmacy = useCallback((p: PharmacyPoint) => setSelectedItem({ type: 'PHARMACY', data: p }), []);
+    const selectAed = useCallback((a: AEDPoint) => setSelectedItem({ type: 'AED', data: a }), []);
+
     const renderedMarkers = useMemo(() => {
         const markers: React.ReactNode[] = [];
         let isCapped = false;
@@ -480,10 +468,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                         key={`sor-${h.id_gsl_miej || h.numer_ksiegi || h.nazwa_swd}`}
                         item={h}
                         coordinate={{ latitude: h.lat as number, longitude: h.lng as number }}
-                        onPress={() => {
-                            setQueueData(null);
-                            h.numer_ksiegi && h.type !== 'NiSOZ' ? handleHospitalPress(h) : setSelectedItem({ type: 'SOR', data: h });
-                        }}
+                        onSelect={selectSor}
                     />
                 );
                 hCount++;
@@ -494,7 +479,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                         key={`gh-${h["L.P."] || idx}`}
                         item={h}
                         coordinate={{ latitude: h.lat as number, longitude: h.lon as number }}
-                        onPress={() => setSelectedItem({ type: 'HOSPITAL', data: h })}
+                        onSelect={selectHospital}
                     />
                 );
                 hCount++;
@@ -521,7 +506,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                         key={`ph-${p.id}`}
                         item={p}
                         coordinate={{ latitude: p.lat, longitude: p.lon }}
-                        onPress={() => setSelectedItem({ type: 'PHARMACY', data: p })}
+                        onSelect={selectPharmacy}
                     />
                 );
                 shown++;
@@ -544,7 +529,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
                             key={`aed-${a.id}`}
                             item={a}
                             coordinate={{ latitude: a.lat, longitude: a.lon }}
-                            onPress={() => setSelectedItem({ type: 'AED', data: a })}
+                            onSelect={selectAed}
                         />
                     );
                     shown++;
@@ -698,7 +683,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
             </MapViewClustering>
 
             {/* Header Overlay */}
-            <View style={styles.header}>
+            <View style={[styles.header, { top: insets.top + 8 }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
                     <Ionicons name="arrow-back" size={24} color="#374151" />
                 </TouchableOpacity>
@@ -860,7 +845,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
             )}
 
             {/* Detail Modal */}
-            <Modal visible={!!selectedItem} animationType="slide" transparent>
+            <Modal visible={!!selectedItem} animationType="slide" transparent onRequestClose={() => setSelectedItem(null)}>
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => setSelectedItem(null)} />
                     <View style={styles.modalContent}>
@@ -1100,7 +1085,7 @@ export const SorMap: React.FC<EssentialsMapProps> = ({
             </Modal>
 
             {/* Emergency Numbers Modal */}
-            <Modal visible={showEmergencyModal} animationType="fade" transparent>
+            <Modal visible={showEmergencyModal} animationType="fade" transparent onRequestClose={() => setShowEmergencyModal(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowEmergencyModal(false)} />
                     <View style={styles.modalContent}>

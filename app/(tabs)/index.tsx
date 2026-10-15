@@ -267,7 +267,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { addRecentArticle } = useArticlesStore();
   const { theme } = useThemeStore();
-  const { setScrollDirection } = useScrollStore();
+  const setScrollDirection = useScrollStore((s) => s.setScrollDirection);
   const insets = useSafeAreaInsets();
   const {
     shouldShowWelcome,

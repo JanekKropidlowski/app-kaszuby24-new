@@ -19,7 +19,7 @@ const { width } = Dimensions.get('window');
 // Scroll-responsive floating logo with gradient
 const FloatingLogo = () => {
   const { theme } = useThemeStore();
-  const { showLogo } = useScrollStore();
+  const showLogo = useScrollStore((s) => s.showLogo);
   const logoOpacity = React.useRef(new Animated.Value(0)).current;
   const logoTranslateY = React.useRef(new Animated.Value(-20)).current;
 
@@ -82,7 +82,7 @@ const FloatingLogo = () => {
 export default function TabLayout() {
   const { theme } = useThemeStore();
   const { hasUnreadNotifications, incrementNotificationCount } = useNotificationsStore();
-  const { showTabBar } = useScrollStore();
+  const showTabBar = useScrollStore((s) => s.showTabBar);
   const tabBarTranslateY = React.useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const tts = useTTSStore();

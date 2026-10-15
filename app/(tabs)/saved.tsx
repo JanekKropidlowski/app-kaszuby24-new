@@ -129,7 +129,8 @@ export default function SavedScreen() {
   const { savedArticles, recentArticles, clearRecentArticles } = useArticlesStore();
   const { savedEvents } = useEventsStore();
   const { theme } = useThemeStore();
-  const { setScrollDirection, resetScroll } = useScrollStore();
+  const setScrollDirection = useScrollStore((s) => s.setScrollDirection);
+  const resetScroll = useScrollStore((s) => s.resetScroll);
   const insets = useSafeAreaInsets();
 
   const [showRecent, setShowRecent] = useState(true);
@@ -590,4 +591,4 @@ const styles = StyleSheet.create({
   tabButtonText: {
     fontSize: 14,
   },
-});
+});

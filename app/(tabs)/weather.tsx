@@ -102,7 +102,7 @@ export default function WeatherScreen() {
   console.log('WeatherScreen - config:', config);
   const router = useRouter();
   const handleOpenPushSettings = () => {
-    router.push('/(tabs)/preferences');
+    router.push('/settings');
   };
 
 

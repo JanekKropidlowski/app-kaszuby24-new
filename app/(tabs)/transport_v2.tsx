@@ -21,7 +21,8 @@ import { KeyboardAvoidingView } from 'react-native';
 import { useFavoritesStore } from '../../store/favoritesStore';
 
 const API_STOPS = 'https://kaszuby24.pl/wp-json/kaszuby24/v2/stops?agency=all';
-const tfs = (size: number) => (Platform.OS === 'android' ? Math.max(9, size - 3) : size);
+// Dawniej Android dostawał tekst o 3 pt mniejszy (9–10 pt w rozkładzie) – nieczytelne.
+const tfs = (size: number) => size;
 
 type SearchFieldType = 'from' | 'to' | null;
 

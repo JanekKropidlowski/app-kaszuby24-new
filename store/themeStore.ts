@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Platform, Appearance } from 'react-native';
 
 export interface Theme {
   isDarkMode?: boolean;
@@ -167,6 +167,8 @@ export interface ThemeState {
   autoTheme: boolean;
   theme: typeof lightTheme;
   debugMode: boolean;
+  /** Czy użytkownik sam wybrał tryb; dopóki nie, idziemy za ustawieniem telefonu. */
+  themeChosen: boolean;
   toggleTheme: () => void;
   toggleAutoTheme: () => void;
   setAutoTheme: (enabled: boolean) => void;
@@ -181,10 +183,12 @@ export const useThemeStore = create<ThemeState>()(
       autoTheme: false,
       theme: lightTheme,
       debugMode: false,
+      themeChosen: false,
       toggleTheme: () =>
         set((state) => ({
           isDarkMode: !state.isDarkMode,
           theme: !state.isDarkMode ? darkTheme : lightTheme,
+          themeChosen: true,
         })),
       toggleAutoTheme: () =>
         set((state) => ({
@@ -219,7 +223,15 @@ export const useThemeStore = create<ThemeState>()(
         isDarkMode: state.isDarkMode,
         autoTheme: state.autoTheme,
         debugMode: state.debugMode,
+        themeChosen: state.themeChosen,
       }),
+      // Zapisujemy tylko flagę isDarkMode, więc po restarcie trzeba odtworzyć obiekt theme
+      // (wcześniej: przełącznik „ciemny”, kolory jasne). Bez własnego wyboru – jak telefon.
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        const dark = state.themeChosen ? state.isDarkMode : Appearance.getColorScheme() === 'dark';
+        useThemeStore.setState({ isDarkMode: dark, theme: dark ? darkTheme : lightTheme });
+      },
     }
   )
 );

@@ -33,7 +33,8 @@ interface TimetableModalProps {
     stops: TransportSearchResult[];
 }
 
-const tfs = (size: number) => (Platform.OS === 'android' ? Math.max(9, size - 3) : size);
+// Dawniej Android dostawał tekst o 3 pt mniejszy (9–10 pt w rozkładzie) – nieczytelne.
+const tfs = (size: number) => size;
 
 const MZK_LINES = [
     { number: '1', route: 'Bolszewo - Wejherowo - Gościcino' },

@@ -20,6 +20,8 @@ export const useGlobalTabBarMetrics = () => {
   return { height, bottomPadding };
 };
 
+// navigate, nie push: push dokładał nową kopię zakładki na stos przy każdym dotknięciu
+// (Główna ładowała się od nowa, Wstecz cofał przez wszystkie kopie).
 const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
   const { theme } = useThemeStore();
   const router = useRouter();
@@ -40,31 +42,31 @@ const GlobalTabBar: React.FC<GlobalTabBarProps> = ({ activeTab = 'home' }) => {
       <TabBarButton
         icon="Search"
         label="Szukaj"
-        onPress={() => router.push('/(tabs)/search')}
+        onPress={() => router.navigate('/(tabs)/search')}
         active={activeTab === 'search'}
       />
       <TabBarButton
         icon="Bookmark"
         label="Zapisane"
-        onPress={() => router.push('/(tabs)/saved')}
+        onPress={() => router.navigate('/(tabs)/saved')}
         active={activeTab === 'saved'}
       />
       <TabBarButton
         icon="Home"
         label="Główna"
-        onPress={() => router.push('/(tabs)')}
+        onPress={() => router.navigate('/(tabs)')}
         active={activeTab === 'home'}
       />
       <TabBarButton
         icon="CalendarIcon"
         label="Kalendarz"
-        onPress={() => router.push('/(tabs)/kalendarz')}
+        onPress={() => router.navigate('/(tabs)/kalendarz')}
         active={activeTab === 'kalendarz'}
       />
       <TabBarButton
         icon="Menu"
         label="Menu"
-        onPress={() => router.push('/(tabs)/menu')}
+        onPress={() => router.navigate('/(tabs)/menu')}
         active={activeTab === 'menu'}
       />
     </View>

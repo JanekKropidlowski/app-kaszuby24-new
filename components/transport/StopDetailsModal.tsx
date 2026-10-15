@@ -47,7 +47,8 @@ interface StopDetailsModalProps {
     isAllDay?: boolean;
 }
 
-const tfs = (size: number) => (Platform.OS === 'android' ? Math.max(9, size - 3) : size);
+// Dawniej Android dostawał tekst o 3 pt mniejszy (9–10 pt w rozkładzie) – nieczytelne.
+const tfs = (size: number) => size;
 
 export const StopDetailsModal: React.FC<StopDetailsModalProps> = ({
     visible,

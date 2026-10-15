@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, Linking, AppState, Text as RNText, TextInput as RNTextInput } from 'react-native';
+import { Platform, Linking, AppState, InteractionManager, Text as RNText, TextInput as RNTextInput } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import * as Clarity from '@microsoft/react-native-clarity';
 import Constants from 'expo-constants';
@@ -44,11 +44,14 @@ if (sentryDsn) {
 // Microsoft Clarity init — heatmaps + session replay. Native module, działa
 // tylko w EAS build (nie w Expo Go). try/catch żeby dev na symulatorze bez
 // natywnego linkowania nie wywalał startup.
-try {
-  Clarity.initialize('wnk4loedj7', { logLevel: Clarity.LogLevel.None });
-} catch (e) {
-  // dev/Expo Go — native module niedostępny, pomijamy
-}
+// Start odłożony o 3 s, żeby nie konkurował z pierwszym ekranem.
+setTimeout(() => {
+  try {
+    Clarity.initialize('wnk4loedj7', { logLevel: Clarity.LogLevel.None });
+  } catch (e) {
+    // dev/Expo Go — native module niedostępny, pomijamy
+  }
+}, 3000);
 
 // Set Poppins as default font for ALL <Text> and <TextInput> in the app.
 // Without this, RN Text falls back to the platform default (San Francisco / Roboto)
@@ -99,12 +102,20 @@ function RootLayout() {
   }, []);
 
   // Odświeżanie danych widgetów: przy starcie + po powrocie na pierwszy plan (best-effort).
+  // Nie częściej niż co 15 min (ok. 7 zapytań na każdy powrót do apki to za dużo),
+  // pierwszy raz dopiero po wyrenderowaniu pierwszego ekranu.
   useEffect(() => {
-    syncWidget();
+    let last = 0;
+    const run = () => {
+      if (Date.now() - last < 15 * 60 * 1000) return;
+      last = Date.now();
+      syncWidget();
+    };
+    const task = InteractionManager.runAfterInteractions(run);
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') syncWidget();
+      if (state === 'active') run();
     });
-    return () => sub.remove();
+    return () => { task.cancel(); sub.remove(); };
   }, []);
 
   // Performance monitoring
@@ -173,64 +184,42 @@ function RootLayout() {
     }
   }, [fontError]);
 
-  // Initialize app
+  // Apka pokazuje się od razu; sprawdzenie OTA, powiadomienia i analityka idą w tle
+  // po pierwszym renderze. Wcześniej splash czekał na sieć (bez limitu czasu), a przy
+  // nowej aktualizacji apka restartowała się na starcie – startowała dwa razy.
   useEffect(() => {
-    async function prepare() {
+    setAppIsReady(true);
+
+    const task = InteractionManager.runAfterInteractions(async () => {
       try {
-        // Check for OTA updates (skip in Expo Go where Updates APIs aren't available)
-        if (Updates.isEnabled && Constants.appOwnership !== 'expo') {
-          try {
-            console.log('📱 Current Update Info:', {
-              channel: Updates.channel,
-              runtimeVersion: Updates.runtimeVersion,
-              updateId: Updates.updateId,
-              isEmbeddedLaunch: Updates.isEmbeddedLaunch
-            });
-
-            const update = await Updates.checkForUpdateAsync();
-            if (update.isAvailable) {
-              console.log('✅ Update available, downloading...');
-              await Updates.fetchUpdateAsync();
-              console.log('✅ Update downloaded, reloading...');
-              await Updates.reloadAsync();
-            } else {
-              console.log('✅ App is up to date');
-            }
-          } catch (updateError) {
-            console.warn('Error checking for updates:', updateError);
-          }
-        } else if (Constants.appOwnership === 'expo') {
-          console.log('Skipping OTA update check in Expo Go');
-        }
-
-        // Initialize notification service
         await notificationService.setupNotificationHandlers();
-
-        // Initialize Firebase Analytics
-        try {
-          await analyticsService.initialize();
-          await analyticsService.logAppOpen('direct');
-          console.log('✅ Firebase Analytics initialized');
-        } catch (analyticsError) {
-          console.warn('Analytics initialization failed:', analyticsError);
-        }
-
-        // Memory optimization - no initialization needed
-
-        // Preload critical assets
-        await Promise.all([
-          // Add any critical asset preloading here
-        ]);
-
       } catch (e) {
-        console.warn('Error during app preparation:', e);
-        setError(e as Error);
-      } finally {
-        setAppIsReady(true);
+        console.warn('Notification setup failed:', e);
       }
-    }
 
-    prepare();
+      try {
+        await analyticsService.initialize();
+        await analyticsService.logAppOpen('direct');
+      } catch (analyticsError) {
+        console.warn('Analytics initialization failed:', analyticsError);
+      }
+
+      // OTA: pobieramy w tle, zadziała przy następnym uruchomieniu (bez reloadAsync).
+      // Pomijamy w Expo Go, gdzie Updates nie działa.
+      if (Updates.isEnabled && Constants.appOwnership !== 'expo') {
+        try {
+          const update = await Updates.checkForUpdateAsync();
+          if (update.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            console.log('✅ Update downloaded, applies on next launch');
+          }
+        } catch (updateError) {
+          console.warn('Error checking for updates:', updateError);
+        }
+      }
+    });
+
+    return () => task.cancel();
   }, []);
 
   // Hide splash screen when app is ready

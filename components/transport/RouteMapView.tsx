@@ -42,18 +42,22 @@ export const RouteMapView = ({ journey, showIntermediateStops = false, onLegPres
     const [selectedStop, setSelectedStop] = useState<string | null>(null); // Track which stop marker is selected
 
     // User Location tracking
+    // Cleanup musi wrócić z useEffect, nie z async IIFE – wcześniej nasłuch GPS
+    // nigdy nie był zdejmowany i każde otwarcie mapy dokładało kolejny (bateria).
     useEffect(() => {
+        let cancelled = false;
+        let sub: Location.LocationSubscription | null = null;
         (async () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return;
+            if (status !== 'granted' || cancelled) return;
 
-            const sub = await Location.watchPositionAsync({
-                accuracy: Location.Accuracy.High,
+            sub = await Location.watchPositionAsync({
+                accuracy: Location.Accuracy.Balanced,
                 distanceInterval: 20
-            }, (loc) => setUserLocation(loc));
-
-            return () => sub.remove();
+            }, (loc) => { if (!cancelled) setUserLocation(loc); });
+            if (cancelled) sub.remove();
         })();
+        return () => { cancelled = true; sub?.remove(); };
     }, []);
 
     // 1. Decode legs with memoization
