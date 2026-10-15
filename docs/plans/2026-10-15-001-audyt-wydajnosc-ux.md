@@ -68,3 +68,9 @@ nie na telefonie.
   `TimetableModal` jeszcze NIE zrobione. KeyboardAvoidingView `behavior="padding"` na Androidzie jest celowy
   (komentarz w kodzie, edge-to-edge) – audyt się tu mylił.
   Do zrobienia: Paczka 3 + wyszukiwanie przystanku po wszystkich przewoźnikach.
+- 15.10: Paczka 3 (część) w `8f6a5fd`, OTA grupy `c754dea2` (1.1.2) / `d872877d` (1.1.1): szukanie przystanku u
+  wszystkich przewoźników (TimetableModal, provider 'SEARCH'), iframe → placeholder + WebView po dotknięciu,
+  maxFontSizeMultiplier 1.3, StatusBar dark w rozkładzie, a11y (labele, hitSlop), ArticleCard hooki.
+  NIE zrobione z paczki 3: pełny motyw (kolory z theme) w transport_v2/SorMap/TimetableModal/LegDetail/
+  JourneyDetailsModal; Kalendarz (`_fields` i LZS równolegle – wymaga serwera WP); IMGW 1,1 MB (serwer);
+  widgety (handler 12 s + 12 s, Pogoda/Powietrze/Odpady bez odświeżania z sieci); reszta labeli a11y.
