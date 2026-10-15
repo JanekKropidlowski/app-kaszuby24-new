@@ -37,6 +37,10 @@ export default function TransportSearchScreen() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [isInitLoading, setIsInitLoading] = useState(true);
+    // Błąd ≠ „brak wyników”: osobno awaria pobrania przystanków i wyszukiwania połączeń
+    const [stopsLoadFailed, setStopsLoadFailed] = useState(false);
+    const [routeStatus, setRouteStatus] = useState<'ok' | 'failed' | 'empty'>('ok');
+    const locationAskedRef = useRef(false);
     const [userLocation, setUserLocation] = useState<{ lat: number, lon: number } | null>(null);
 
     const departuresService = useMemo(() => getDeparturesService(), []);
@@ -83,7 +87,7 @@ export default function TransportSearchScreen() {
 
     useEffect(() => {
         loadInitialData();
-        requestLocation();
+        requestLocation(false);
         Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 800,
@@ -91,10 +95,14 @@ export default function TransportSearchScreen() {
         }).start();
     }, []);
 
-    const requestLocation = async () => {
+    // ask=false: tylko jeśli zgoda już jest (start ekranu bez okna systemowego „z zaskoczenia”);
+    // ask=true: pytamy dopiero, gdy użytkownik dotknie pola „Skąd” (wtedy podpowiadamy przystanki w pobliżu).
+    const requestLocation = async (ask: boolean) => {
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return;
+            const perm = ask
+                ? await Location.requestForegroundPermissionsAsync()
+                : await Location.getForegroundPermissionsAsync();
+            if (perm.status !== 'granted') return;
 
             const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
             const userLoc = { lat: loc.coords.latitude, lon: loc.coords.longitude };
@@ -107,19 +115,47 @@ export default function TransportSearchScreen() {
         }
     };
 
-    const loadInitialData = async () => {
-        try {
-            const cachedStops = await AsyncStorage.getItem('k24_stops_cache');
-            if (cachedStops) {
-                const parsed = JSON.parse(cachedStops);
-                setAllStops(parsed);
-                setIsInitLoading(false);
-            }
+    // Lista przystanków to ok. 15,7 tys. pozycji (3 MB JSON). Cache: kompaktowe tablice zamiast
+    // obiektów (ok. 3× mniejszy wiersz w AsyncStorage – 4 MB potrafiło przekroczyć okno kursora
+    // Androida przy odczycie) i TTL 24 h, żeby nie pobierać i nie parsować tego przy każdym wejściu.
+    const STOPS_CACHE_KEY = 'k24_stops_cache_v2';
+    const STOPS_CACHE_TTL = 24 * 60 * 60 * 1000;
 
+    const loadInitialData = async () => {
+        setStopsLoadFailed(false);
+        let cacheFresh = false;
+        let haveStops = false;
+        try {
+            const raw = await AsyncStorage.getItem(STOPS_CACHE_KEY);
+            if (raw) {
+                const cached = JSON.parse(raw);
+                if (Array.isArray(cached?.s) && cached.s.length > 0) {
+                    setAllStops(cached.s.map((a: any[]): TransportSearchResult => ({
+                        id: a[0], name: a[1], type: 'stop' as const, lat: a[2], lon: a[3], source: 'local' as const,
+                        agency: a[4], agencies: a[5] || [a[4]], agencyStops: a[6], isMerged: !!a[7],
+                        description: a[4] ? `${String(a[4]).toUpperCase()}` : 'Przystanek', connections: 0,
+                    })));
+                    setIsInitLoading(false);
+                    haveStops = true;
+                    cacheFresh = Date.now() - (cached.t || 0) < STOPS_CACHE_TTL;
+                }
+            }
+        } catch {
+            AsyncStorage.removeItem(STOPS_CACHE_KEY).catch(() => {});
+        }
+        AsyncStorage.removeItem('k24_stops_cache').catch(() => {}); // stary, 4-megabajtowy format
+        if (cacheFresh) return;
+
+        const fail = () => {
+            setIsInitLoading(false);
+            if (!haveStops) setStopsLoadFailed(true);
+        };
+
+        try {
             const res = await fetch(API_STOPS);
 
             if (!res.ok) {
-                setIsInitLoading(false);
+                fail();
                 return;
             }
 
@@ -140,7 +176,7 @@ export default function TransportSearchScreen() {
                 }
                 data = JSON.parse(cleanText);
             } catch (parseError) {
-                setIsInitLoading(false);
+                fail();
                 return;
             }
 
@@ -182,7 +218,11 @@ export default function TransportSearchScreen() {
             // Clean up large temporary objects
             data = null;
             rawFeatures = [];
-            AsyncStorage.setItem('k24_stops_cache', JSON.stringify(normalizedStops)).catch(async (e) => {
+            const packedStops = JSON.stringify({
+                t: Date.now(),
+                s: normalizedStops.map((x) => [x.id, x.name, x.lat, x.lon, x.agency, x.agencies, x.agencyStops, x.isMerged ? 1 : 0]),
+            });
+            AsyncStorage.setItem(STOPS_CACHE_KEY, packedStops).catch(async (e) => {
                 const msg = (e as any)?.message || '';
                 const code = (e as any)?.code;
                 if (code === 13 || /SQLITE_FULL|database or disk is full/i.test(msg)) {
@@ -191,11 +231,11 @@ export default function TransportSearchScreen() {
                         k.startsWith('transport_tile_') || k.startsWith('pks_scraper_')
                     );
                     if (cacheKeys.length > 0) await AsyncStorage.multiRemove(cacheKeys);
-                    AsyncStorage.setItem('k24_stops_cache', JSON.stringify(normalizedStops)).catch(() => {});
+                    AsyncStorage.setItem(STOPS_CACHE_KEY, packedStops).catch(() => {});
                 }
             });
         } catch (e) {
-            setIsInitLoading(false);
+            fail();
         }
     };
 
@@ -264,12 +304,18 @@ export default function TransportSearchScreen() {
     const onFromFocus = () => {
         setActiveField('from');
         setJourneys([]);
+        setRouteStatus('ok');
+        if (!userLocationRef.current && !locationAskedRef.current) {
+            locationAskedRef.current = true;
+            requestLocation(true);
+        }
         handleSearch(fromQuery);
     };
 
     const onToFocus = () => {
         setActiveField('to');
         setJourneys([]);
+        setRouteStatus('ok');
         handleSearch(toQuery);
     };
 
@@ -277,6 +323,7 @@ export default function TransportSearchScreen() {
     const fetchRoute = async (from: TransportSearchResult, to: TransportSearchResult, currentFiltersState: SearchFilters) => {
         setIsSearchingRoute(true);
         setJourneys([]);
+        setRouteStatus('ok');
         setVisibleJourneysCount(3);
         setNextDayOffset(0); // Reset day offset when starting new search
 
@@ -300,7 +347,9 @@ export default function TransportSearchScreen() {
             );
 
             setJourneys(routeOptions);
+            if (routeOptions.length === 0) setRouteStatus('empty');
         } catch (e) {
+            setRouteStatus('failed');
         } finally {
             setIsSearchingRoute(false);
         }
@@ -440,6 +489,7 @@ export default function TransportSearchScreen() {
         if (!fromStation || !toStation) return;
 
         setIsSearchingRoute(true);
+        setRouteStatus('ok');
         setActiveField(null);
         Keyboard.dismiss();
 
@@ -464,8 +514,11 @@ export default function TransportSearchScreen() {
             // Auto-expand first journey
             if (routes.length > 0) {
                 setExpandedJourneyId(routes[0].id);
+            } else {
+                setRouteStatus('empty');
             }
         } catch (err) {
+            setRouteStatus('failed');
         } finally {
             setIsSearchingRoute(false);
         }
@@ -827,10 +880,16 @@ export default function TransportSearchScreen() {
                     <View style={styles.header}>
                         <View>
                             <Text style={styles.headerSubtitle}>Dokąd dzisiaj</Text>
-                            <Text style={styles.headerTitle}>Jedziemy ?</Text>
+                            <Text style={styles.headerTitle}>Jedziemy?</Text>
                         </View>
-                        <TouchableOpacity style={styles.settingsBtn} onPress={() => setTimetableModalVisible(true)}>
-                            <MaterialCommunityIcons name="table-clock" size={22} color="#1A1A1A" />
+                        <TouchableOpacity
+                            style={styles.settingsBtn}
+                            onPress={() => setTimetableModalVisible(true)}
+                            accessibilityRole="button"
+                            accessibilityLabel="Odjazdy z przystanku"
+                        >
+                            <MaterialCommunityIcons name="table-clock" size={20} color="#1A1A1A" />
+                            <Text style={styles.settingsBtnText}>Odjazdy z przystanku</Text>
                         </TouchableOpacity>
                     </View>
                 </SafeAreaView>
@@ -910,7 +969,7 @@ export default function TransportSearchScreen() {
                         >
                             <LinearGradient colors={!(fromStation && toStation) ? ['#E2E8F0', '#CBD5E0'] : ['#FFB300', '#F59E0B']} style={styles.searchGradient}>
                                 <Ionicons name="search" size={20} color={!(fromStation && toStation) ? '#A0AEC0' : '#FFFFFF'} />
-                                <Text style={[styles.searchMainText, !(fromStation && toStation) ? { color: '#A0AEC0' } : { color: '#FFFFFF' }]}>Znajdź połącz.</Text>
+                                <Text style={[styles.searchMainText, !(fromStation && toStation) ? { color: '#A0AEC0' } : { color: '#FFFFFF' }]}>Szukaj połączeń</Text>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -1072,6 +1131,15 @@ export default function TransportSearchScreen() {
                         keyboardDismissMode="none"
                         contentContainerStyle={styles.listPadding}
                     />
+                ) : (stopsLoadFailed && allStops.length === 0 && activeField !== null) ? (
+                    <View style={styles.centered}>
+                        <MaterialCommunityIcons name="wifi-off" size={60} color="#CBD5E0" />
+                        <Text style={styles.emptyTitle}>Nie udało się pobrać przystanków</Text>
+                        <Text style={styles.emptySubtitle}>Sprawdź połączenie z internetem i spróbuj ponownie.</Text>
+                        <TouchableOpacity style={styles.retryBtn} onPress={loadInitialData} accessibilityRole="button">
+                            <Text style={styles.retryBtnText}>Spróbuj ponownie</Text>
+                        </TouchableOpacity>
+                    </View>
                 ) : (activeField !== null && !isLoading && (fromQuery.length > 0 || (activeField === 'to' && toQuery.length > 0))) ? (
                     <View style={styles.centered}>
                         <MaterialCommunityIcons name="map-marker-off" size={60} color="#F0F4F8" />
@@ -1084,9 +1152,28 @@ export default function TransportSearchScreen() {
                         keyboardShouldPersistTaps="always"
                         keyboardDismissMode="none"
                     >
-                        <MaterialCommunityIcons name="train-variant" size={100} color="#F0F4F8" />
-                        <Text style={styles.emptyTitle}>Gotowy na podróż?</Text>
-                        <Text style={styles.emptySubtitle}>Wpisz nazwę przystanku powyżej, aby zobaczyć pociągi w czasie rzeczywistym.</Text>
+                        {routeStatus === 'failed' ? (
+                            <>
+                                <MaterialCommunityIcons name="wifi-off" size={80} color="#CBD5E0" />
+                                <Text style={styles.emptyTitle}>Nie udało się wyszukać połączeń</Text>
+                                <Text style={styles.emptySubtitle}>Sprawdź połączenie z internetem i spróbuj ponownie.</Text>
+                                <TouchableOpacity style={styles.retryBtn} onPress={onSearchRoute} accessibilityRole="button">
+                                    <Text style={styles.retryBtnText}>Spróbuj ponownie</Text>
+                                </TouchableOpacity>
+                            </>
+                        ) : routeStatus === 'empty' ? (
+                            <>
+                                <MaterialCommunityIcons name="calendar-remove" size={80} color="#CBD5E0" />
+                                <Text style={styles.emptyTitle}>Brak połączeń o tej porze</Text>
+                                <Text style={styles.emptySubtitle}>Spróbuj innego przystanku albo zmień filtry wyszukiwania.</Text>
+                            </>
+                        ) : (
+                            <>
+                                <MaterialCommunityIcons name="train-variant" size={100} color="#F0F4F8" />
+                                <Text style={styles.emptyTitle}>Dokąd jedziesz?</Text>
+                                <Text style={styles.emptySubtitle}>Wpisz przystanek początkowy i końcowy, aby znaleźć połączenie.</Text>
+                            </>
+                        )}
                     </ScrollView>
                 )}
             </KeyboardAvoidingView>
@@ -1136,7 +1223,10 @@ const styles = StyleSheet.create({
         color: '#1A1A1A',
         marginTop: -5
     },
-    settingsBtn: { width: 45, height: 45, borderRadius: 15, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+    settingsBtn: { flexDirection: 'row', gap: 8, minHeight: 45, paddingHorizontal: 14, borderRadius: 15, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+    retryBtn: { marginTop: 16, minHeight: 44, paddingHorizontal: 22, borderRadius: 14, backgroundColor: '#FFB300', alignItems: 'center', justifyContent: 'center' },
+    retryBtnText: { fontSize: tfs(14), fontFamily: Platform.select({ android: 'Poppins_SemiBold', default: 'Poppins-SemiBold' }), color: '#FFFFFF' },
+    settingsBtnText: { fontSize: tfs(13), fontFamily: Platform.select({ android: 'Poppins_Medium', default: 'Poppins-Medium' }), color: '#1A1A1A' },
     searchSection: { paddingHorizontal: 20, zIndex: 20 },
 
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7FAFC', borderRadius: 16, paddingHorizontal: 15, paddingVertical: 14, marginBottom: 12, borderWidth: 1.5, borderColor: '#EDF2F7' },

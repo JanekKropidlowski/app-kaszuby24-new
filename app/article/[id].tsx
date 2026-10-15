@@ -153,6 +153,13 @@ const isBoldStyle = (style?: string) =>
   !!style && /font-weight\s*:\s*(bold|6\d\d|7\d\d|8\d\d|9\d\d)/i.test(style);
 
 export default function ArticleScreen() {
+  const supportPromptPendingRef = useRef(false);
+  useEffect(() => () => {
+    if (supportPromptPendingRef.current) {
+      supportPromptPendingRef.current = false;
+      triggerSupportPrompt();
+    }
+  }, []);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { theme, isDarkMode } = useThemeStore();
@@ -548,9 +555,10 @@ export default function ArticleScreen() {
           articleData.categories?.[0],
         );
 
-        // Engagement tracking — show support prompt every 5 articles.
+        // Engagement tracking — prośba o wsparcie co 5 artykułów, ale dopiero po wyjściu z
+        // artykułu (wcześniej wyskakiwała zaraz po wczytaniu, zanim ktokolwiek cokolwiek przeczytał).
         EngagementService.trackArticleRead().then((shouldPrompt) => {
-          if (shouldPrompt) triggerSupportPrompt();
+          if (shouldPrompt) supportPromptPendingRef.current = true;
         });
         // Clean content
         const cleaned = cleanHtml(articleData.content.rendered || '', !!theme.isDarkMode || !!isDarkMode);

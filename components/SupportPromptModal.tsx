@@ -46,8 +46,8 @@ export default function SupportPromptModal({ visible, onClose }: Props) {
                     <Text style={styles.heading}>Podoba Ci się to, co robimy?</Text>
 
                     <Text style={styles.body}>
-                        Tworzymy lokalne media bez reklam. Jeśli nasze artykuły są dla
-                        Ciebie wartościowe — postaw nam wirtualną kawę. To ogromna
+                        Tworzymy lokalne media, które czytasz za darmo. Jeśli nasze artykuły są dla
+                        Ciebie wartościowe – postaw nam wirtualną kawę. To ogromna
                         motywacja!
                     </Text>
 
