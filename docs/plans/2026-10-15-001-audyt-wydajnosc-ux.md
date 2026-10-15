@@ -81,3 +81,11 @@ nie na telefonie.
   Kalendarz: LZS równolegle. NIE zrobione (wymaga serwera WP): `_fields`/odchudzony endpoint kalendarza (516 KB),
   IMGW 1,1 MB (osobny mały endpoint dla woj. pomorskiego), endpoint przystanków z minimalnymi polami.
   Reszta etykiet a11y: tylko główne przyciski (brak pełnego przeglądu).
+- 15.10 wieczór: część serwerowa. Pomiary: kalendarz 100 wydarzeń = 516 KB surowo / 99 KB gzip (description+excerpt po 3,4 KB
+  każde), przystanki 3 MB / 400 KB gzip, IMGW meteo 522 KB + hydro 554 KB BEZ kompresji (to jedyne realne obciążenie sieci).
+  Kod w CMS: `dashboard-kaszuby24` commit `f67b02d` (`events/mobile?slim=1`, `/kaszuby24/v1/imgw/meteo|hydro`, Pomorze+margines,
+  cache 10 min). **NIEWDROŻONE na produkcję** (klasyfikator zablokował restart app-kaszuby24; czeka na zgodę usera).
+  Wdrożenie: skompilować `npx tsc -p . --noEmitOnError false --outDir <tmp>` NA HOŚCIE (w kontenerze tsc ginie z braku pamięci,
+  `noEmitOnError` + 2 stare błędy w eventImport.ts/fbMetrics.ts blokują zwykły build), podmienić tylko
+  `backend/dist/routes/wp-custom-compat.js` (reszta dist identyczna), kopia poprzedniej do /root/tmp, `docker restart app-kaszuby24`.
+  Apka (`1a1057d`, OTA `b58d8e8a` / `15faee47`) używa nowych endpointów z automatycznym awaryjnym powrotem do IMGW.
