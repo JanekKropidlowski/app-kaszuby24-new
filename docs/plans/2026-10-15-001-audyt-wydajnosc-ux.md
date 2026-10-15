@@ -55,4 +55,8 @@ nie na telefonie.
 
 ## Postęp
 
-- 15.10: audyt zrobiony, czeka na decyzję, co robimy.
+- 15.10: audyt zrobiony.
+- 15.10: Paczka 1 (punkty 1–8) wdrożona w `db7c775`, OTA grupy `f6e7065e` (1.1.2) / `3dd384cb` (1.1.1).
+  Nie testowane na telefonie – sprawdzić: start bez sieci, przewijanie Home, tryb ciemny po restarcie,
+  Niezbędnik na Androidzie (wielkość ikon z `image=` zależy od gęstości ekranu), Wstecz w modalach.
+  Do zrobienia: Paczka 2, Paczka 3.
