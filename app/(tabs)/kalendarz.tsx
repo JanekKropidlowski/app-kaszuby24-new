@@ -793,6 +793,15 @@ export default function EventCalendarScreen() {
 
       const url = `${BASE_URL}?${params.toString()}`;
 
+      // LZS startuje równolegle z głównym zapytaniem (wcześniej czekał na jego koniec = suma czasów)
+      const lzsPromise: Promise<any[]> =
+        pageNum === 1 && !cityFilter && !objectFilter
+          ? Promise.resolve(fetchLzsEvents(60)).catch((lzsErr: unknown) => {
+              console.warn('LZS feed unavailable:', lzsErr);
+              return [] as any[];
+            })
+          : Promise.resolve([]);
+
       const res = await fetchWithTimeout(url);
       const data = await safeParseJsonResponse(res);
 
@@ -823,14 +832,7 @@ export default function EventCalendarScreen() {
       // (nie ma paginacji LZS od strony klienta). Web na /wydarzenia robi to
       // samo: getLzsEvents + landingToCard + sort. Filtr miasta/obiektu nie
       // ma odpowiednika w LZS, więc ukrywamy LZS gdy te są aktywne.
-      let lzs: any[] = [];
-      if (pageNum === 1 && !cityFilter && !objectFilter) {
-        try {
-          lzs = await fetchLzsEvents(60);
-        } catch (lzsErr) {
-          console.warn('LZS feed unavailable:', lzsErr);
-        }
-      }
+      const lzs: any[] = await lzsPromise;
 
       // Posortuj po dacie rosnąco — LZS i kaszuby24 razem.
       const merged = [...lzs, ...filteredData].sort((a, b) => {
