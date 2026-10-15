@@ -20,7 +20,9 @@ if (sentryDsn) {
     environment: ((Constants.expoConfig as any)?.updates?.requestHeaders?.['expo-channel-name']) || 'production',
     // Release tag: app version + build = "1.0.44+46". Sentry agreguje crashes per release,
     // żeby widzieć regresje gdy nowa wersja zaczyna sypać.
-    release: `kaszuby24@${Constants.expoConfig?.version || '0.0.0'}+${Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode || '0'}`,
+    // Numer buildu z platformy, na której działa apka — wcześniej Android dostawał
+    // iOS-owy buildNumber (ANR z 15.10 przyszedł jako „+18”, a Android ma versionCode 50).
+    release: `kaszuby24@${Constants.expoConfig?.version || '0.0.0'}+${(Platform.OS === 'ios' ? Constants.expoConfig?.ios?.buildNumber : Constants.expoConfig?.android?.versionCode) || '0'}`,
     // 10% sesji wysyłane do Sentry Performance — wystarczy do złapania regresji
     // (RN startup time, screen transition lag), bez zalewania quota.
     tracesSampleRate: 0.1,
