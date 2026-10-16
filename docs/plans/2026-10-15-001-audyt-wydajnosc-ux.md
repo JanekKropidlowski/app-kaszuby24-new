@@ -89,3 +89,6 @@ nie na telefonie.
   `noEmitOnError` + 2 stare błędy w eventImport.ts/fbMetrics.ts blokują zwykły build), podmienić tylko
   `backend/dist/routes/wp-custom-compat.js` (reszta dist identyczna), kopia poprzedniej do /root/tmp, `docker restart app-kaszuby24`.
   Apka (`1a1057d`, OTA `b58d8e8a` / `15faee47`) używa nowych endpointów z automatycznym awaryjnym powrotem do IMGW.
+- 16.10: endpointy serwerowe są NA PRODUKCJI (wdrożone razem z `18bf538` przez inną sesję, restart ok. 09:55).
+  Zweryfikowane: imgw/meteo 76 stacji (ok. 3,8 KB gzip), imgw/hydro 118 stacji, events/mobile?slim=1 100 wydarzeń
+  147 KB surowo (było 529 KB, opis pusty, tytuł i obraz są), pozostałe endpointy 200. Apka (OTA b58d8e8a / 15faee47) korzysta z nich.
