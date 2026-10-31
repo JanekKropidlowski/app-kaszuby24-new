@@ -1,6 +1,7 @@
 import { Article, Category, MediaItem, Nekrolog, Artist, Venue } from '@/types/article';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, Vibration } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 import { filterSponsoredArticles, filterSponsoredCategories, isSponsoredContent } from '@/utils/contentFilter';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
@@ -27,6 +28,58 @@ export interface ExpoPushTokenRegistration {
     categories: number[];
   };
 }
+
+// Zgłoszenia do Sentry z jednego miejsca – każde zapytanie tego pliku idzie
+// przez fetchWithTimeout. Tylko to, czego nie tłumaczy słaby zasięg: 5xx
+// (warning) i odpowiedź 200, która nie jest JSON-em (np. strona błędu
+// serwera). Brak sieci, przerwania, timeouty i 404 to zwykły ruch – w Sentry
+// byłyby szumem. Adres bez query (wyszukiwane frazy, slugi), liczby w ścieżce
+// jako :id, żeby jeden endpoint był jednym zgłoszeniem. Ten sam problem
+// najwyżej raz na 10 min, bo przy awarii serwera każda karta pyta osobno.
+const API_REPORT_THROTTLE = 10 * 60 * 1000;
+const lastApiReport = new Map<string, number>();
+
+const reportApiProblem = (
+  kind: 'http_5xx' | 'bad_json' | 'unexpected',
+  url: string,
+  details: { status?: number; error?: unknown } = {},
+) => {
+  const path = url.split(/[?#]/)[0];
+  const endpoint = path.replace(/^https?:\/\/[^/]+/, '').replace(/\/\d+(?=\/|$)/g, '/:id');
+  const key = `${kind} ${endpoint} ${details.status ?? ''}`;
+  const now = Date.now();
+  if (now - (lastApiReport.get(key) ?? 0) < API_REPORT_THROTTLE) return;
+  lastApiReport.set(key, now);
+
+  const context = {
+    tags: { api_problem: kind, api_endpoint: endpoint, ...(details.status ? { api_status: String(details.status) } : {}) },
+    extra: { url: path },
+    fingerprint: ['api', kind, endpoint],
+  };
+  if (kind === 'http_5xx') {
+    Sentry.captureMessage(`API ${details.status}: ${endpoint}`, { level: 'warning', ...context });
+  } else {
+    Sentry.captureException(details.error ?? new Error(`API ${kind}: ${endpoint}`), context);
+  }
+};
+
+// Błąd parsowania JSON widać dopiero w wywołującym (response.json() jest
+// w kilkunastu funkcjach), więc json() opakowujemy tu, raz dla wszystkich.
+// Zgłaszamy tylko SyntaxError – zerwane połączenie w trakcie czytania
+// treści to sieć, nie błąd serwera.
+const reportBadJson = (response: Response, url: string) => {
+  const parseJson = response.json.bind(response);
+  (response as any).json = async () => {
+    try {
+      return await parseJson();
+    } catch (error: any) {
+      if (error?.name === 'SyntaxError') {
+        reportApiProblem('bad_json', url, { status: response.status, error });
+      }
+      throw error;
+    }
+  };
+};
 
 // Helper function to handle fetch with timeout and retries
 const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise<Response> => {
@@ -62,6 +115,11 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
     const response = await fetch(url, fetchOptions);
     clearTimeout(timeout);
 
+    if (response.status >= 500) {
+      reportApiProblem('http_5xx', url, { status: response.status });
+    } else if (response.ok) {
+      reportBadJson(response, url);
+    }
 
     return response;
   } catch (error: any) {
@@ -114,6 +172,11 @@ const fetchWithTimeout = async (url: string, options = {}, retries = 0): Promise
       throw new Error('Brak połączenia z internetem. Sprawdź ustawienia sieci.');
     }
 
+    // Nie sieć i nie przerwanie – coś, czego się nie spodziewamy. Inne
+    // brzmienia słabego zasięgu („Network request timed out”, offline) też pomijamy.
+    if (!/network|internet|offline|timed? ?out/i.test(String(error?.message || ''))) {
+      reportApiProblem('unexpected', url, { error });
+    }
     throw error;
   }
 };

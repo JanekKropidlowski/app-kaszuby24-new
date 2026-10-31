@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { RefreshCw, AlertCircle, Wifi, WifiOff, Settings } from 'lucide-react-native';
 import * as Device from 'expo-device';
+import * as Sentry from '@sentry/react-native';
 import { 
   isAndroidNetworkSecurityError, 
   getAndroidNetworkErrorMessage,
@@ -59,6 +60,14 @@ export class ErrorBoundary extends Component<Props, State> {
        error.message?.includes('update'));
 
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    // Ta granica łapie błędy renderu przed Sentry.wrap() w app/_layout.tsx,
+    // więc bez jawnego zgłoszenia ekran „Wystąpił błąd” nie zostawiał śladu.
+    // Bez DSN (dev/Expo Go) Sentry nie jest zainicjalizowane i to nic nie robi.
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: errorInfo.componentStack ?? '' } },
+      tags: { error_boundary: 'root' },
+    });
     
     if (isAndroidUpdateError) {
       console.warn('Android-specific network/update error detected - attempting recovery');
