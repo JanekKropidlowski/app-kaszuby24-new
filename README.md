@@ -28,6 +28,8 @@ eas submit --platform ios | tail    # GOTCHA: bez |tail submit potrafi zawiesic 
 eas update --branch production      # OTA, uruchamiac Z KATALOGU apps/mobile
 ```
 
+OTA najprościej: `scripts/ota.sh "opis"` (od 31.10.2026 robi całość poniżej sam i przywraca `app.json`).
+
 OTA (stan 14.10.2026): `eas update` eksportuje też web, a web się nie buduje (`react-native-image-viewing` w `app/waste`) —
 na czas publikacji dopisz w `app.json` `"platforms": ["ios", "android"]`. Publikujemy dwa razy: z `runtimeVersion` 1.1.2
 i 1.1.1 (starsza binarka w sklepach), potem przywróć `app.json`. Cofnięcie: `eas update:republish --group <poprzednia grupa>`.
