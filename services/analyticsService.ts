@@ -27,6 +27,7 @@ const EKRANY_APKI: Record<string, [string, string]> = {
   contact: ['kontakt', 'Kontakt'],
   event: ['wydarzenie', 'Wydarzenie'],
   lzs: ['lzs', 'LZS'],
+  zajecia: ['zajecia', 'Zajęcia stałe'],
 };
 /** Ekrany z identyfikatorem w ścieżce (reszta ścieżki zostaje w adresie). */
 const EKRANY_Z_ID = new Set(['event', 'lzs']);

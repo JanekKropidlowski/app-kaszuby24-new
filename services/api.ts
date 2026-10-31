@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, Vibration } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import { filterSponsoredArticles, filterSponsoredCategories, isSponsoredContent } from '@/utils/contentFilter';
+import { czyZawieszone, type Zajecia } from '@/utils/zajecia';
 
 const API_BASE_URL = 'https://kaszuby24.pl/wp-json/wp/v2';
 const API_TIMEOUT = 12000; // 12 s (dawniej 30 s × 3 próby = ok. 95 s wiszącego spinnera przy słabym zasięgu)
@@ -11,6 +12,7 @@ const CACHE_KEY_ARTICLES = 'cached_articles';
 const CACHE_KEY_CATEGORIES = 'cached_categories';
 const CACHE_KEY_MEDIA = 'cached_media';
 const CACHE_KEY_SINGLE_ARTICLE = 'cached_single_article';
+const CACHE_KEY_ZAJECIA = 'cached_zajecia';
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 const STALE_WHILE_REVALIDATE_DURATION = 5 * 60 * 1000; // 5 minutes for stale-while-revalidate
 
@@ -1127,7 +1129,8 @@ export const clearAllCaches = async (): Promise<void> => {
       key.includes(CACHE_KEY_ARTICLES) ||
       key.includes(CACHE_KEY_CATEGORIES) ||
       key.includes(CACHE_KEY_MEDIA) ||
-      key.includes(CACHE_KEY_SINGLE_ARTICLE)
+      key.includes(CACHE_KEY_SINGLE_ARTICLE) ||
+      key.includes(CACHE_KEY_ZAJECIA)
     );
 
     if (cacheKeys.length > 0) {
@@ -1648,3 +1651,39 @@ export const fetchTagsByIds = async (
   }
 };
 
+/**
+ * Zajęcia stałe (Wejherowo, Reda…) z panelu – ten sam endpoint co strona
+ * /zajecia/. Karta w Kalendarzu i ekran listy pytają o to samo, więc wspólny
+ * cache i jedno zapytanie naraz. Zawieszone odpadają już tutaj (jak
+ * getClasses() na stronie), żeby liczba na karcie zgadzała się z listą.
+ */
+export const fetchZajecia = async (odswiez = false): Promise<Zajecia[]> =>
+  deduplicateRequest(`zajecia_${odswiez ? 'odswiez' : 'cache'}`, async () => {
+    const cached = await getCachedDataWithSWR(CACHE_KEY_ZAJECIA);
+    // Pociągnięcie listy w dół pyta serwer mimo świeżego cache.
+    if (cached && !cached.shouldRevalidate && !odswiez) return cached.data as Zajecia[];
+
+    try {
+      const response = await fetchWithTimeout('https://kaszuby24.pl/wp-json/kaszuby24/v1/zajecia');
+      if (!response.ok) {
+        throw new Error(
+          response.status >= 500
+            ? 'Serwer jest chwilowo niedostępny. Proszę spróbować ponownie później.'
+            : `Błąd API: ${response.status}`,
+        );
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error('Nieprawidłowy format odpowiedzi API');
+
+      const zajecia: Zajecia[] = data
+        .filter((z: Zajecia) => z?.slug && z?.title)
+        .map((z: Zajecia) => ({ ...z, audiences: z.audiences || [], days: z.days || [], groups: z.groups || [] }))
+        .filter((z: Zajecia) => !czyZawieszone(z));
+      await cacheDataWithSWR(CACHE_KEY_ZAJECIA, zajecia);
+      return zajecia;
+    } catch (error) {
+      // Bez sieci lepsza lista sprzed chwili niż pusty ekran.
+      if (cached) return cached.data as Zajecia[];
+      throw error;
+    }
+  });

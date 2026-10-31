@@ -45,6 +45,8 @@ interface ModernEventListProps {
   onScroll?: (event: any) => void;
   scrollEnabled?: boolean;
   hideSlider?: boolean;
+  /** Element nad sliderem weekendowym (karta „Zajęcia stałe” z Kalendarza). */
+  listHeader?: React.ReactNode;
 }
 
 const ModernEventList: React.FC<ModernEventListProps> = ({
@@ -61,6 +63,7 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
   onScroll,
   scrollEnabled = true,
   hideSlider = false,
+  listHeader = null,
 }) => {
   const { theme } = useThemeStore();
   const insets = useSafeAreaInsets();
@@ -221,9 +224,7 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
 
   const renderHeader = () => {
     try {
-      if (hideSlider || !weekendEvents || weekendEvents.length === 0) return null;
-      
-      return (
+      const slider = hideSlider || !weekendEvents || weekendEvents.length === 0 ? null : (
         <View style={styles.weekendSection}>
           <WeekendEventsSlider
             events={weekendEvents}
@@ -232,6 +233,14 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
             onAddToCalendar={onAddToCalendar}
           />
         </View>
+      );
+      if (!slider && !listHeader) return null;
+
+      return (
+        <>
+          {listHeader}
+          {slider}
+        </>
       );
     } catch (error) {
       console.error('❌ Error in renderHeader:', error);
@@ -255,7 +264,9 @@ const ModernEventList: React.FC<ModernEventListProps> = ({
           />
         ) : undefined
       }
-      ListHeaderComponent={renderHeader}
+      // Element, nie funkcja – funkcja tworzona co render to dla FlatList nowy
+      // komponent, więc nagłówek (slider weekendowy) montował się od nowa.
+      ListHeaderComponent={renderHeader()}
       ListEmptyComponent={renderEmptyState}
       ListFooterComponent={renderFooter}
       onEndReached={onLoadMore}

@@ -60,6 +60,9 @@ import * as Haptics from 'expo-haptics';
 import calendarService from '@/services/calendarService';
 import { Event } from '@/types/article';
 import { fetchLzsEvents } from '@/services/lzsEvents';
+import { fetchZajecia } from '@/services/api';
+import ZajeciaStaleCard from '@/components/ZajeciaStaleCard';
+import type { Zajecia } from '@/utils/zajecia';
 
 // EventCategory type definition
 interface EventCategory {
@@ -148,6 +151,8 @@ export default function EventCalendarScreen() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [objectFilter, setObjectFilter] = useState<string | null>(null);
   const [cityFilter, setCityFilter] = useState<string | null>(null);
+  // Zajęcia stałe – tylko do karty nad listą; brak danych = brak karty.
+  const [zajecia, setZajecia] = useState<Zajecia[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
@@ -713,6 +718,15 @@ export default function EventCalendarScreen() {
   useEffect(() => {
     fetchFilterData();
   }, [fetchFilterData]);
+
+  // Zajęcia stałe do karty nad listą. Błąd po cichu – karta po prostu się nie pokaże.
+  useEffect(() => {
+    let anulowane = false;
+    fetchZajecia()
+      .then((lista) => { if (!anulowane) setZajecia(lista); })
+      .catch(() => {});
+    return () => { anulowane = true; };
+  }, []);
 
 
 
@@ -1565,6 +1579,9 @@ export default function EventCalendarScreen() {
     // reloadEvents will be called automatically by useEffect when filters change
   };
 
+  // Przy aktywnych filtrach lista pokazuje same wyniki – bez slidera weekendowego i karty zajęć.
+  const filtrujeWydarzenia = selectedFilters.length > 0 || !!selectedDate || !!selectedDateRange || !!selectedSpecificDate || !!categoryFilter || !!objectFilter || !!cityFilter;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -1617,11 +1634,8 @@ export default function EventCalendarScreen() {
             onRefresh={handleRefresh}
             onLoadMore={loadMore}
             scrollEnabled={true}
-            hideSlider={(() => {
-              const shouldHide = selectedFilters.length > 0 || !!selectedDate || !!selectedDateRange || !!selectedSpecificDate || !!categoryFilter || !!objectFilter || !!cityFilter;
-
-              return shouldHide;
-            })()}
+            hideSlider={filtrujeWydarzenia}
+            listHeader={!filtrujeWydarzenia && zajecia.length > 0 ? <ZajeciaStaleCard zajecia={zajecia} theme={theme} /> : null}
           />
         )}
 
