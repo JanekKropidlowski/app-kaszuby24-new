@@ -10,8 +10,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 OPIS="${1:?Podaj opis: scripts/ota.sh \"co się zmienia\"}"
-if [ -n "$(git status --porcelain app.json)" ]; then
-  echo "app.json ma niezacommitowane zmiany – przerwane" >&2
+# eas update pakuje katalog roboczy, nie commit: niezacommitowany kod (np. innej sesji) poszedłby na telefony.
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "Są niezacommitowane zmiany – przerwane:" >&2
+  git status --short --untracked-files=no >&2
   exit 1
 fi
 trap 'git checkout -- app.json' EXIT
@@ -25,7 +27,8 @@ d['expo']['runtimeVersion'] = sys.argv[1]
 open('app.json', 'w').write(json.dumps(d, indent=2, ensure_ascii=False) + '\n')
 PY
   echo "== OTA runtimeVersion $RV"
-  eas update --branch production --non-interactive --message "$OPIS"
+  eas update --branch production --non-interactive --message "$OPIS" \
+    || { echo "BŁĄD przy runtimeVersion $RV – wcześniejsze wersje z tej pętli już poszły" >&2; exit 1; }
 done
 
 echo "Gotowe: OTA dla 1.1.2 i 1.1.1. Telefony pobiorą ją przy najbliższym uruchomieniu apki."

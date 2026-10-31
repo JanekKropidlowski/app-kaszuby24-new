@@ -166,8 +166,9 @@ class AnalyticsService {
     const events: any[] = [];
     // campaign_details w tym samym żądaniu i przed zdarzeniem: GA4 przypisuje
     // źródło zdarzeniom o czasie >= czasu campaign_details, czyli całej sesji.
-    if (this.nowaSesja) {
-      this.nowaSesja = false;
+    // Flagę zdejmujemy dopiero po udanym wysłaniu: bez sieci na starcie źródło sesji poszłoby w próżnię.
+    const zrodloSesji = this.nowaSesja;
+    if (zrodloSesji) {
       events.push({
         name: 'campaign_details',
         params: {
@@ -177,7 +178,6 @@ class AnalyticsService {
           session_id: sesja.session_id,
         },
       });
-      this.mediumSesji = 'app';
     }
     events.push({ name: eventName, params: { ...params, ...sesja } });
     const body: any = { client_id: this.clientId, events };
@@ -189,11 +189,15 @@ class AnalyticsService {
     }
 
     try {
-      await fetch(url, {
+      const odp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      if (zrodloSesji && odp.ok) {
+        this.nowaSesja = false;
+        this.mediumSesji = 'app';
+      }
     } catch (e) {
       console.warn('[Analytics] MP send failed:', e);
     }
