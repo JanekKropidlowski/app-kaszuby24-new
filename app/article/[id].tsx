@@ -78,12 +78,10 @@ import ArticlePollWidget from '@/components/ArticlePollWidget';
 import { isKaszuby24Link, handleDeepLinkWithValidation } from '@/utils/linkHandler';
 import SpeakerClipCard from '@/components/SpeakerClipCard';
 import * as WebBrowser from 'expo-web-browser';
-import ReaderToolbar from '@/components/ReaderToolbar';
 import ArticleTOC from '@/components/ArticleTOC';
 import ArticleTags, { ArticleTag } from '@/components/ArticleTags';
 import OrgPartnerBox, { ArticleOrg } from '@/components/OrgPartnerBox';
 import ArticleCustomHtml from '@/components/ArticleCustomHtml';
-import { useFontScale } from '@/store/readerStore';
 import HeroSpeakerChip from '@/components/HeroSpeakerChip';
 import ArticleFbComments from '@/components/ArticleFbComments';
 import { AudioPlayerBar } from '@/components/AudioPlayerBar';
@@ -250,7 +248,6 @@ export default function ArticleScreen() {
   const readingProgress = useSharedValue(0);
   const { height: tabBarHeight } = useGlobalTabBarMetrics();
 
-  const fontScale = useFontScale();
   const [tags, setTags] = useState<ArticleTag[]>([]);
   const [categoryName, setCategoryName] = useState('');
   const [contentOffsetY, setContentOffsetY] = useState(0);
@@ -283,12 +280,12 @@ export default function ArticleScreen() {
   // Memoizowane props dla RenderHtml — kluczowe dla wydajności
   const htmlBaseStyle = useMemo(() => ({
     color: theme.colors.text,
-    fontSize: Math.round(16 * fontScale),
-    lineHeight: Math.round(25 * fontScale),
+    fontSize: 16,
+    lineHeight: 25,
     textAlign: 'left' as const,
     fontFamily: 'Poppins_Regular',
-  }), [theme.colors.text, fontScale]);
-  const htmlTagsStyles = useMemo(() => getHtmlViewStyles(theme, fontScale), [theme, fontScale]);
+  }), [theme.colors.text]);
+  const htmlTagsStyles = useMemo(() => getHtmlViewStyles(theme), [theme]);
   const htmlRenderers = useMemo(() => ({
     iframe: ({ tnode }: { tnode: any }) => {
       const rawSrc: string = tnode.attributes?.src || '';
@@ -1260,9 +1257,6 @@ export default function ArticleScreen() {
               <VideoPlayer url={youtubeUrl} />
             )}
 
-            {/* Wielkość tekstu — ustawienie zapamiętywane między artykułami */}
-            <ReaderToolbar theme={theme} isDarkMode={!!isDarkMode} />
-
             {/* Spis treści — tylko dla dłuższych materiałów (3+ sekcje) */}
             <ArticleTOC
               items={tocItems}
@@ -1557,17 +1551,14 @@ export default function ArticleScreen() {
 }
 // Forced Rebuild 01
 
-// fontScale = ustawienie „Wielkość tekstu” — akapity, listy, nagłówki i tabele mają własne rozmiary,
-// więc skala musi wejść tutaj (sam baseStyle ich nie zmienia).
-const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
-  const fs = (n: number) => Math.round(n * fontScale);
+const getHtmlViewStyles = (theme: any) => {
   const linkColor = theme.isDarkMode ? '#8DB0E8' : '#224A96';
   return ({
   // Główny styl dla całej treści
   body: {
     fontFamily: 'Poppins_Regular' as any,
-    fontSize: fs(16) as any,
-    lineHeight: fs(25) as any,
+    fontSize: 16 as any,
+    lineHeight: 25 as any,
     color: theme.colors.text as any,
     backgroundColor: 'transparent' as any,
     textAlign: 'left' as any,
@@ -1586,8 +1577,8 @@ const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
   // Paragrafy - mniejsze odstępy
   p: {
     fontFamily: 'Poppins_Regular' as any,
-    fontSize: fs(16) as any,
-    lineHeight: fs(25) as any,
+    fontSize: 16 as any,
+    lineHeight: 25 as any,
     color: theme.colors.text as any,
     marginBottom: 12,
     marginTop: 0,
@@ -1595,24 +1586,24 @@ const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
   // Nagłówki - mniejsze odstępy
   h2: {
     fontFamily: 'Poppins_SemiBold' as any,
-    fontSize: fs(19) as any,
-    lineHeight: fs(26) as any,
+    fontSize: 19 as any,
+    lineHeight: 26 as any,
     marginTop: 12,
     marginBottom: 6,
     color: theme.colors.text as any,
   },
   h3: {
     fontFamily: 'Poppins_SemiBold' as any,
-    fontSize: fs(17) as any,
-    lineHeight: fs(24) as any,
+    fontSize: 17 as any,
+    lineHeight: 24 as any,
     marginTop: 10,
     marginBottom: 5,
     color: theme.colors.text as any,
   },
   h4: {
     fontFamily: 'Poppins_SemiBold' as any,
-    fontSize: fs(16) as any,
-    lineHeight: fs(22) as any,
+    fontSize: 16 as any,
+    lineHeight: 22 as any,
     marginTop: 8,
     marginBottom: 4,
     color: theme.colors.text as any,
@@ -1630,8 +1621,8 @@ const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
   },
   li: {
     fontFamily: 'Poppins_Regular' as any,
-    fontSize: fs(16) as any,
-    lineHeight: fs(25) as any,
+    fontSize: 16 as any,
+    lineHeight: 25 as any,
     color: theme.colors.text as any,
     marginBottom: 4,
   },
@@ -1652,7 +1643,7 @@ const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
   },
   figcaption: {
     color: theme.colors.textSecondary as any,
-    fontSize: fs(12) as any,
+    fontSize: 12 as any,
     textAlign: 'center' as any,
     marginTop: 2,
     fontFamily: 'Poppins_Regular' as any,
@@ -1696,7 +1687,7 @@ const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
   },
   th: {
     fontFamily: 'Poppins_SemiBold' as any,
-    fontSize: fs(13) as any, // Zmniejszone z 14 na 13
+    fontSize: 13 as any, // Zmniejszone z 14 na 13
     padding: 8,
     backgroundColor: (theme.colors.card + '10') as any,
     borderBottomWidth: 1,
@@ -1705,7 +1696,7 @@ const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
   },
   td: {
     fontFamily: 'Poppins_Regular' as any,
-    fontSize: fs(13) as any, // Zmniejszone z 14 na 13
+    fontSize: 13 as any, // Zmniejszone z 14 na 13
     padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border as any,
@@ -1733,7 +1724,7 @@ const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
   // Code - dla kodu
   code: {
     fontFamily: 'monospace' as any,
-    fontSize: fs(13) as any,
+    fontSize: 13 as any,
     backgroundColor: (theme.colors.card + '10') as any,
     padding: 4,
     borderRadius: 4,
@@ -1741,7 +1732,7 @@ const getHtmlViewStyles = (theme: any, fontScale: number = 1) => {
   // Pre - dla bloków kodu
   pre: {
     fontFamily: 'monospace' as any,
-    fontSize: fs(13) as any,
+    fontSize: 13 as any,
     backgroundColor: (theme.colors.card + '10') as any,
     padding: 12,
     borderRadius: 6,
