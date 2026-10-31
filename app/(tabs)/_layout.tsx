@@ -87,23 +87,13 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const tts = useTTSStore();
 
-  // GA4 screen tracking — wysyła screen_view + page_view (z fake URL pasującym
-  // do struktury webu) przy każdej zmianie taba. Centralne miejsce zamiast
-  // useFocusEffect w 6 osobnych ekranach. usePathname() reaguje na każdą
-  // nawigację w expo-router, włącznie z tab switch.
+  // GA4: odsłona ekranu przy każdej nawigacji (usePathname() reaguje też na
+  // zmianę karty). Centralne miejsce zamiast useFocusEffect w każdym ekranie.
+  // Adresy i tytuły ekranów: analyticsService.logAppScreen().
   const pathname = usePathname();
   useEffect(() => {
     if (!pathname) return;
-    const screenName = pathname.replace(/^\/+/, '') || 'home';
-    analyticsService.logScreenView(screenName);
-    // page_view z fake-app URL żeby dashboard pageviews map widział mobile
-    // odsłony tabów. Dodajemy `app://` prefix żeby nie kolidowało z webowym
-    // pageviewem (np. /wydarzenia ma odpowiednik na webie).
-    analyticsService.logCustomEvent('page_view', {
-      page_location: `app://kaszuby24${pathname}`,
-      page_title: screenName,
-      page_referrer: 'app',
-    });
+    analyticsService.logAppScreen(pathname);
   }, [pathname]);
 
   // Oblicz właściwy padding dla Androida z safe area

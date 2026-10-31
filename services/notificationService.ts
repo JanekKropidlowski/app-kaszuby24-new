@@ -85,7 +85,15 @@ class NotificationService {
       
       // Handle notification taps
       this.responseListener = Notifications.addNotificationResponseReceivedListener(this.handleNotificationResponse);
-      
+
+      // Start apki z dotknięcia powiadomienia: ustawiamy przed initialize()
+      // analityki, żeby pierwsza sesja trafiła w GA4 do kanału powiadomień.
+      try {
+        if (Notifications.getLastNotificationResponse?.()) analyticsService.oznaczWejscieZPowiadomienia();
+      } catch {
+        // starsza binarka bez tej funkcji – sesja zostaje z medium „app”
+      }
+
       this.isInitialized = true;
       console.log('Expo Push notification handlers setup complete');
       
@@ -184,6 +192,7 @@ class NotificationService {
       // i policzyć CTR per typ powiadomienia.
       const notificationType = (data?.type as string) ||
                                 (data?.articleId ? 'article' : data?.slug ? 'article' : 'general');
+      analyticsService.oznaczWejscieZPowiadomienia();
       analyticsService.logNotificationOpen(
         notificationType,
         (data?.notification_id as string) || (notification.request.identifier || 'unknown'),
