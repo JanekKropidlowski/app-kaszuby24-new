@@ -339,7 +339,6 @@ function RootLayout() {
                 gestureEnabled: true,
               }}
             />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             <Stack.Screen name="+not-found" />
           </Stack>
           {/* Globalna nakładka wsparcia (fundacja). Trzymamy ją na poziomie roota

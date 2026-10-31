@@ -2,12 +2,8 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-let analytics: any = null;
-let nativeAvailable = false;
-
-// Firebase Analytics has been removed to fix iOS build issues
-// Using Google Analytics Measurement Protocol fallback for all platforms
-console.log('[Analytics] Using Measurement Protocol fallback (Firebase Analytics removed)');
+// Analityka idzie wyłącznie przez GA4 Measurement Protocol. Firebase
+// Analytics usunięto przy problemach z buildem iOS – stąd brak natywnego SDK.
 
 /**
  * Ekrany apki (poza artykułami i nekrologami) idą jako page_view pod osobnym
@@ -31,7 +27,6 @@ const EKRANY_APKI: Record<string, [string, string]> = {
   contact: ['kontakt', 'Kontakt'],
   event: ['wydarzenie', 'Wydarzenie'],
   lzs: ['lzs', 'LZS'],
-  modal: ['okno', 'Okno'],
 };
 /** Ekrany z identyfikatorem w ścieżce (reszta ścieżki zostaje w adresie). */
 const EKRANY_Z_ID = new Set(['event', 'lzs']);
@@ -43,10 +38,7 @@ const EKRANY_Z_ID = new Set(['event', 'lzs']);
 const ZRODLO_APKI = 'kaszuby24_app';
 
 /**
- * Firebase Analytics Service for Kaszuby24 App
- *
- * Tracks user behavior and app usage to improve user experience
- * and understand content performance.
+ * Analityka apki Kaszuby24 (GA4 Measurement Protocol).
  */
 
 class AnalyticsService {
@@ -82,37 +74,27 @@ class AnalyticsService {
       const manifest = (Constants as any).expoConfig || (Constants as any).manifest || {};
       const appVersion = String(manifest.version || 'unknown');
 
-      if (nativeAvailable && analytics) {
-        await analytics().setAnalyticsCollectionEnabled(true);
-        await analytics().setUserProperty('app_platform', Platform.OS);
-        await analytics().setUserProperty('app_version', appVersion);
-        console.log('[Analytics] Native Firebase Analytics initialized');
-      } else {
-        // Setup Measurement Protocol fallback (for Expo Go / web)
-        const extra = manifest.extra || {};
-        this.measurementId = extra.gaMeasurementId || null;
-        this.apiSecret = extra.gaApiSecret || null;
-        this.clientId = await this.getOrCreateClientId();
-        // Strumień GA4 dla apki jest typu WEB i karmimy go Measurement
-        // Protocolem, więc GA4 wpisuje wszystkim platform=web,
-        // deviceCategory=desktop, system=(not set) — apka wtapia się w
-        // desktop i nie da się jej odsiać w raportach. Te trzy właściwości
-        // użytkownika są jedynym sposobem na segmentację bez przechodzenia
-        // na strumienie aplikacyjne (Firebase = nowy build, nie OTA).
-        // Wcześniej ustawiał je tylko martwy branch Firebase powyżej, więc
-        // do GA4 nigdy nie docierały, a app_version było zaszyte na 1.0.40.
-        this.userProperties['app_platform'] = Platform.OS;
-        this.userProperties['app_version'] = appVersion;
-        this.userProperties['app_os_version'] = String(Platform.Version ?? 'unknown');
-        console.log('[Analytics] Measurement Protocol fallback initialized', {
-          measurementId: this.measurementId ? 'present' : 'missing',
-          app_platform: Platform.OS,
-          app_version: appVersion,
-        });
-        this.gotowy = true;
-        for (const z of this.kolejka.splice(0)) {
-          await this.sendToMeasurementProtocol(z.name, z.params);
-        }
+      const extra = manifest.extra || {};
+      this.measurementId = extra.gaMeasurementId || null;
+      this.apiSecret = extra.gaApiSecret || null;
+      this.clientId = await this.getOrCreateClientId();
+      // Strumień GA4 dla apki jest typu WEB i karmimy go Measurement
+      // Protocolem, więc GA4 wpisuje wszystkim platform=web,
+      // deviceCategory=desktop, system=(not set) — apka wtapia się w
+      // desktop i nie da się jej odsiać w raportach. Te trzy właściwości
+      // użytkownika są jedynym sposobem na segmentację bez przechodzenia
+      // na strumienie aplikacyjne (Firebase = nowy build, nie OTA).
+      this.userProperties['app_platform'] = Platform.OS;
+      this.userProperties['app_version'] = appVersion;
+      this.userProperties['app_os_version'] = String(Platform.Version ?? 'unknown');
+      console.log('[Analytics] Measurement Protocol initialized', {
+        measurementId: this.measurementId ? 'present' : 'missing',
+        app_platform: Platform.OS,
+        app_version: appVersion,
+      });
+      this.gotowy = true;
+      for (const z of this.kolejka.splice(0)) {
+        await this.sendToMeasurementProtocol(z.name, z.params);
       }
     } catch (error) {
       console.warn('[Analytics] Failed to initialize:', error);
@@ -205,13 +187,7 @@ class AnalyticsService {
 
   private async sendEvent(eventName: string, params: { [k: string]: any } = {}) {
     if (!this.isEnabled) return;
-    if (nativeAvailable && analytics) {
-      try {
-        await analytics().logEvent(eventName, params);
-      } catch (e) {
-        console.warn('[Analytics] Native logEvent failed:', e);
-      }
-    } else if (!this.gotowy) {
+    if (!this.gotowy) {
       if (this.kolejka.length < 30) this.kolejka.push({ name: eventName, params });
     } else {
       await this.sendToMeasurementProtocol(eventName, params);
@@ -301,97 +277,6 @@ class AnalyticsService {
   }
 
   /**
-   * Track event view from calendar. Web używa `/wydarzenia/<id>` jako URL —
-   * mirror w page_view dla atrybucji.
-   */
-  async logEventView(eventId: number, eventTitle: string, eventType?: string) {
-    await this.sendEvent('page_view', {
-      page_location: `https://kaszuby24.pl/wydarzenia/${eventId}`,
-      page_title: eventTitle,
-    });
-    await this.sendEvent('calendar_event_view', {
-      event_id: eventId,
-      event_title: eventTitle,
-      event_type: eventType || 'general',
-      content_type: 'event',
-    });
-  }
-
-  /**
-   * Track transport search
-   */
-  async logTransportSearch(query: string, agency?: string, results?: number) {
-    await this.sendEvent('transport_search', {
-      search_term: query,
-      agency: agency || 'all',
-      results_count: results || 0,
-    });
-  }
-
-  /**
-   * Track timetable view
-   */
-  async logTimetableView(stopName: string, agency: string, lineNumber?: string) {
-    await this.sendEvent('timetable_view', {
-      stop_name: stopName,
-      agency: agency,
-      line_number: lineNumber || 'unknown',
-    });
-  }
-
-  /**
-   * Track weather check
-   */
-  async logWeatherCheck(location: string, source: string = 'manual') {
-    await this.sendEvent('weather_check', {
-      location: location,
-      source: source,
-    });
-  }
-
-  /**
-   * Track waste schedule setup
-   */
-  async logWasteScheduleSetup(city: string, street: string) {
-    await this.sendEvent('waste_schedule_setup', {
-      city: city,
-      street: street,
-    });
-  }
-
-  /**
-   * Track waste notification settings
-   */
-  async logWasteNotificationSettings(enabled: boolean, hour: number, dayOffset: number) {
-    await this.sendEvent('waste_notification_settings', {
-      enabled: enabled,
-      notification_hour: hour,
-      day_offset: dayOffset,
-    });
-  }
-
-  /**
-   * Track search query
-   */
-  async logSearch(searchTerm: string, contentType: string = 'general') {
-    await this.sendEvent('search', {
-      search_term: searchTerm,
-      content_type: contentType,
-    });
-  }
-
-  /**
-   * Track share action
-   */
-  async logShare(contentType: string, contentId: string, method?: string) {
-    await this.sendEvent('share', {
-      content_type: contentType,
-      content_id: contentId,
-      method: method || 'unknown',
-    });
-  }
-
-  /**
    * Track notification interaction
    */
   async logNotificationOpen(notificationType: string, notificationId?: string) {
@@ -399,28 +284,6 @@ class AnalyticsService {
       notification_type: notificationType,
       notification_id: notificationId || 'unknown',
     });
-  }
-
-  /**
-   * Set user location preference
-   */
-  async setUserLocation(location: string, locationId?: number) {
-    if (!this.isEnabled) return;
-
-    try {
-      if (nativeAvailable && analytics) {
-        await analytics().setUserProperty('preferred_location', location);
-        if (locationId) {
-          await analytics().setUserProperty('location_id', locationId.toString());
-        }
-      }
-      // MP doesn't support user properties in the same way, we'd need to send them with events
-      this.userProperties['preferred_location'] = location;
-      if (locationId) this.userProperties['location_id'] = locationId;
-      console.log(`[Analytics] User location set: ${location}`);
-    } catch (error) {
-      console.warn('[Analytics] Failed to set user location:', error);
-    }
   }
 
   /**
@@ -444,9 +307,6 @@ class AnalyticsService {
    */
   async resetAnalyticsData() {
     try {
-      if (nativeAvailable && analytics) {
-        await analytics().resetAnalyticsData();
-      }
       this.clientId = null;
       await AsyncStorage.removeItem('@kaszuby24:ga_client_id');
       console.log('[Analytics] Analytics data reset');
@@ -460,9 +320,6 @@ class AnalyticsService {
    */
   async setAnalyticsEnabled(enabled: boolean) {
     try {
-      if (nativeAvailable && analytics) {
-        await analytics().setAnalyticsCollectionEnabled(enabled);
-      }
       this.isEnabled = enabled;
       console.log(`[Analytics] Analytics ${enabled ? 'enabled' : 'disabled'}`);
     } catch (error) {
