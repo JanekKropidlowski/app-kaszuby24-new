@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, Platform } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { Pause, Play, X, Volume2, Mic } from 'lucide-react-native';
+import { useShallow } from 'zustand/react/shallow';
+import { useTTSStore } from '@/store/ttsStore';
 
 interface AudioPlayerBarProps {
   isPlaying: boolean;
@@ -112,6 +114,43 @@ export const AudioPlayerBar = ({ isPlaying, duration, position, onPlayPause, onS
         <X size={20} color={BLACK} />
       </TouchableOpacity>
     </Animated.View>
+  );
+};
+
+/**
+ * Pasek podłączony do store'u TTS. Postęp (`elapsedSec`) zmienia się co
+ * sekundę, więc subskrybuje go tylko ten komponent – ekran artykułu i pasek
+ * zakładek czytają wyłącznie `isVisible`/`status` i nie przerysowują się
+ * w trakcie czytania.
+ */
+export const TTSPlayerBar = () => {
+  const { status, totalSecEst, elapsedSec, title, categoryLabel, subtitle, photoUrl, toggle, stop } = useTTSStore(
+    useShallow((s) => ({
+      status: s.status,
+      totalSecEst: s.totalSecEst,
+      elapsedSec: s.elapsedSec,
+      title: s.title,
+      categoryLabel: s.categoryLabel,
+      subtitle: s.subtitle,
+      photoUrl: s.photoUrl,
+      toggle: s.toggle,
+      stop: s.stop,
+    })),
+  );
+
+  return (
+    <AudioPlayerBar
+      isPlaying={status === 'playing'}
+      isLoading={status === 'loading'}
+      duration={Math.max(1, totalSecEst)}
+      position={Math.min(elapsedSec, totalSecEst)}
+      title={title}
+      label={categoryLabel}
+      subtitle={subtitle}
+      photoUrl={photoUrl}
+      onPlayPause={toggle}
+      onStop={stop}
+    />
   );
 };
 

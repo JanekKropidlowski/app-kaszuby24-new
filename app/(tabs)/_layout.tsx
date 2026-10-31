@@ -11,7 +11,7 @@ import { notificationService } from '@/services/notificationService';
 import { useThemeStore } from '@/store/themeStore';
 import { useScrollStore } from '@/store/scrollStore';
 import { useTTSStore } from '@/store/ttsStore';
-import { AudioPlayerBar } from '@/components/AudioPlayerBar';
+import { TTSPlayerBar } from '@/components/AudioPlayerBar';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -85,7 +85,9 @@ export default function TabLayout() {
   const showTabBar = useScrollStore((s) => s.showTabBar);
   const tabBarTranslateY = React.useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
-  const tts = useTTSStore();
+  // Tylko widoczność paska – postęp czytania subskrybuje sam TTSPlayerBar,
+  // inaczej cały układ zakładek przerysowywałby się co sekundę.
+  const ttsVisible = useTTSStore((s) => s.isVisible);
 
   // GA4: odsłona ekranu przy każdej nawigacji (usePathname() reaguje też na
   // zmianę karty). Centralne miejsce zamiast useFocusEffect w każdym ekranie.
@@ -410,23 +412,12 @@ export default function TabLayout() {
 
       {/* Odtwarzacz audio nad tab barem — trzyma nagranie przy życiu także
           po wyjściu z artykułu (wcześniej pasek znikał, a dźwięk grał dalej). */}
-      {tts.isVisible && (
+      {ttsVisible && (
         <View
           style={[styles.globalAudioBar, { bottom: getTabBarHeight() - 10, backgroundColor: theme.colors.card }]}
           pointerEvents="box-none"
         >
-          <AudioPlayerBar
-            isPlaying={tts.status === 'playing'}
-            isLoading={tts.status === 'loading'}
-            duration={Math.max(1, tts.totalSecEst)}
-            position={Math.min(tts.elapsedSec, tts.totalSecEst)}
-            title={tts.title}
-            label={tts.categoryLabel}
-            subtitle={tts.subtitle}
-            photoUrl={tts.photoUrl}
-            onPlayPause={() => tts.toggle()}
-            onStop={() => tts.stop()}
-          />
+          <TTSPlayerBar />
         </View>
       )}
 

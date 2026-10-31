@@ -84,7 +84,7 @@ import OrgPartnerBox, { ArticleOrg } from '@/components/OrgPartnerBox';
 import ArticleCustomHtml from '@/components/ArticleCustomHtml';
 import HeroSpeakerChip from '@/components/HeroSpeakerChip';
 import ArticleFbComments from '@/components/ArticleFbComments';
-import { AudioPlayerBar } from '@/components/AudioPlayerBar';
+import { TTSPlayerBar } from '@/components/AudioPlayerBar';
 import { ReadingProgressBar } from '@/components/ReadingProgressBar';
 import * as Speech from 'expo-speech';
 import * as Audio from 'expo-av';
@@ -233,7 +233,11 @@ export default function ArticleScreen() {
   const [flickrUrl, setFlickrUrl] = useState<string | null>(null);
   const [allImages, setAllImages] = useState<MediaItem[]>([]);
   const [cleanedContentHtml, setCleanedContentHtml] = useState<string>('');
-  const tts = useTTSStore();
+  // Bez postępu czytania (elapsedSec zmienia się co sekundę) – ten ekran
+  // potrzebuje tylko stanu i widoczności; postęp rysuje sam TTSPlayerBar.
+  const ttsStatus = useTTSStore((s) => s.status);
+  const ttsVisible = useTTSStore((s) => s.isVisible);
+  const ttsBusy = ttsStatus === 'loading' || ttsStatus === 'playing';
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isLightboxVisible, setIsLightboxVisible] = useState(false);
   const [isLightboxReady, setIsLightboxReady] = useState(false);
@@ -398,6 +402,7 @@ export default function ArticleScreen() {
     if (showTtsTooltip) hideTooltip();
 
     // Debounce - prevent multiple rapid clicks
+    const tts = useTTSStore.getState();
     if (tts.status === 'loading' || tts.status === 'playing') {
       return;
     }
@@ -476,7 +481,7 @@ export default function ArticleScreen() {
       console.error('[TTS] Error starting TTS:', error);
       Alert.alert('Błąd', 'Nie udało się uruchomić czytania: ' + error);
     }
-  }, [article, cleanedContentHtml, tts, showTtsTooltip, hideTooltip]);
+  }, [article, cleanedContentHtml, showTtsTooltip, hideTooltip]);
 
   // Stabilne referencje dla lightboxa - zapobiegają przeładowaniu
   const lightboxImages = useMemo(() =>
@@ -1122,11 +1127,11 @@ export default function ArticleScreen() {
             accessible={true}
             accessibilityLabel="Czytaj artykuł na głos"
             accessibilityHint="Uruchamia czytanie całego artykułu przez syntezator mowy"
-            disabled={tts.status === 'loading' || tts.status === 'playing'}
+            disabled={ttsBusy}
           >
             <Volume2
               size={24}
-              color={tts.status === 'loading' || tts.status === 'playing' ? "#CCCCCC" : "#FFFFFF"}
+              color={ttsBusy ? "#CCCCCC" : "#FFFFFF"}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -1470,12 +1475,12 @@ export default function ArticleScreen() {
 
 
           {/* Miejsce pod paskiem zakładek (i odtwarzaczem, gdy gra), żeby koniec strony dało się przewinąć nad nie */}
-          <View style={{ height: tabBarHeight + (tts.isVisible ? 96 : 32) }} />
+          <View style={{ height: tabBarHeight + (ttsVisible ? 96 : 32) }} />
         </ScrollView>
       </Animated.View>
 
       {/* Pasek postępu czytania - ukryty gdy player jest aktywny */}
-      {!tts.isVisible && (
+      {!ttsVisible && (
         <ReadingProgressBar
           progress={readingProgress}
           tabBarHeight={tabBarHeight}
@@ -1484,25 +1489,14 @@ export default function ArticleScreen() {
       )}
 
       {/* Mini-player TTS – POD TAB BAREM Z BIAŁYM TŁEM */}
-      {tts.isVisible && (
+      {ttsVisible && (
         <View style={[styles.articleTtsPlayerContainer, {
           bottom: tabBarHeight - 10, // jak na ekranach z zakładkami: tuż nad paskiem
           backgroundColor: theme.colors.card,
           zIndex: 1,
           elevation: 1
         }]}>
-          <AudioPlayerBar
-            isPlaying={tts.status === 'playing'}
-            isLoading={tts.status === 'loading'}
-            duration={Math.max(1, tts.totalSecEst)}
-            position={Math.min(tts.elapsedSec, tts.totalSecEst)}
-            title={tts.title}
-            label={tts.categoryLabel}
-            subtitle={tts.subtitle}
-            photoUrl={tts.photoUrl}
-            onPlayPause={() => tts.toggle()}
-            onStop={() => tts.stop()}
-          />
+          <TTSPlayerBar />
         </View>
       )}
 

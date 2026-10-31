@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { Pause, Play, Mic } from 'lucide-react-native';
+import { useShallow } from 'zustand/react/shallow';
 import { useTTSStore } from '@/store/ttsStore';
 import { clipSourceId } from './SpeakerClipCard';
 import type { AudioClip } from '@/types/article';
@@ -19,16 +20,19 @@ function fmt(sec: number) {
  * nagranie w miejscu, bez przewijania do sekcji — dokładnie jak na stronie.
  */
 export const HeroSpeakerChip = ({ clip }: { clip: AudioClip }) => {
-  const tts = useTTSStore();
   const sourceId = clipSourceId(clip.id);
-  const isCurrent = tts.sourceId === sourceId && tts.isVisible;
-  const isPlaying = isCurrent && tts.status === 'playing';
+  // Tylko to, co zmienia wygląd plakietki – bez postępu (elapsedSec co 1 s).
+  const { isCurrent, status } = useTTSStore(
+    useShallow((s) => ({ isCurrent: s.sourceId === sourceId && s.isVisible, status: s.status })),
+  );
+  const isPlaying = isCurrent && status === 'playing';
 
   const name = clip.speaker_name || clip.speaker?.name || 'Wypowiedź';
   const photo = clip.speaker?.photo_url || null;
 
   const onPress = () => {
-    if (isCurrent && (isPlaying || tts.status === 'paused')) {
+    const tts = useTTSStore.getState();
+    if (isCurrent && (isPlaying || status === 'paused')) {
       tts.toggle();
       return;
     }

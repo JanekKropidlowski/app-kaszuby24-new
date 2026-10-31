@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { Pause, Play, Mic, ChevronDown } from 'lucide-react-native';
+import { useShallow } from 'zustand/react/shallow';
 import { useTTSStore } from '@/store/ttsStore';
 import type { AudioClip } from '@/types/article';
 
@@ -33,27 +34,39 @@ interface Props {
  * ekranem sterowanie przejmuje pasek nad tab barem.
  */
 export const SpeakerClipCard = ({ clip, theme, isDarkMode }: Props) => {
-  const tts = useTTSStore();
   const [transcriptOpen, setTranscriptOpen] = useState(false);
 
   const sourceId = clipSourceId(clip.id);
-  const isCurrent = tts.sourceId === sourceId && tts.isVisible;
-  const isPlaying = isCurrent && tts.status === 'playing';
-  const isLoading = isCurrent && tts.status === 'loading';
+  // Postęp tylko dla grającej wypowiedzi – pozostałe karty w artykule dostają
+  // stałe zera i nie przerysowują się co sekundę.
+  const { isCurrent, status, elapsedSec, totalSecEst } = useTTSStore(
+    useShallow((s) => {
+      const current = s.sourceId === sourceId && s.isVisible;
+      return {
+        isCurrent: current,
+        status: current ? s.status : 'idle',
+        elapsedSec: current ? s.elapsedSec : 0,
+        totalSecEst: current ? s.totalSecEst : 0,
+      };
+    }),
+  );
+  const isPlaying = isCurrent && status === 'playing';
+  const isLoading = isCurrent && status === 'loading';
 
   const name = clip.speaker_name || clip.speaker?.name || 'Wypowiedź';
   const title = clip.speaker_title || clip.speaker?.title || null;
   const photo = clip.speaker?.photo_url || null;
 
-  const duration = isCurrent && tts.totalSecEst ? tts.totalSecEst : clip.duration_sec || 0;
-  const position = isCurrent ? Math.min(tts.elapsedSec, duration || tts.elapsedSec) : 0;
+  const duration = isCurrent && totalSecEst ? totalSecEst : clip.duration_sec || 0;
+  const position = isCurrent ? Math.min(elapsedSec, duration || elapsedSec) : 0;
   const progress = duration ? Math.min(1, position / duration) : 0;
 
   const cardBg = isDarkMode ? 'rgba(255,255,255,0.06)' : '#fff';
   const borderColor = isDarkMode ? 'rgba(255,255,255,0.12)' : '#e8e8ee';
 
   const onToggle = () => {
-    if (isCurrent && (isPlaying || tts.status === 'paused')) {
+    const tts = useTTSStore.getState();
+    if (isCurrent && (isPlaying || status === 'paused')) {
       tts.toggle();
       return;
     }

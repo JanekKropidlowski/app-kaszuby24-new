@@ -26,10 +26,13 @@ const ArticleCard: React.FC<ArticleCardProps> = memo(({
   onPress 
 }) => {
   const router = useRouter();
-  const { isArticleSaved, saveArticle, removeArticle } = useArticlesStore();
-  const { theme } = useThemeStore();
+  // Selektor na „czy ta karta jest zapisana” – pełna subskrypcja store'u
+  // przerysowywała każdą kartę listy przy każdej zmianie zapisanych/ostatnich.
+  const isSaved = useArticlesStore((s) => s.savedArticles.some((a) => a.id === article.id));
+  const saveArticle = useArticlesStore((s) => s.saveArticle);
+  const removeArticle = useArticlesStore((s) => s.removeArticle);
+  const theme = useThemeStore((s) => s.theme);
   
-  const isSaved = isArticleSaved(article.id);
   const isSponsored = isSponsoredContent(article);
   
   const lastTapTime = useRef(0);
