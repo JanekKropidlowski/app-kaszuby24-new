@@ -17,6 +17,9 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   exit 1
 fi
 trap 'git checkout -- app.json' EXIT
+# runtimeVersion jest stały (1.1.2/1.1.1), więc fingerprint projektu (kilka minut) niczemu nie służy;
+# CI=1 zamiast --non-interactive dla expo-cli (ostrzeżenie przy eksporcie).
+export EAS_SKIP_AUTO_FINGERPRINT=1 CI=1
 
 for RV in 1.1.2 1.1.1; do
   python3 - "$RV" <<'PY'

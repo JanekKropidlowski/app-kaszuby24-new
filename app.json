@@ -36,7 +36,8 @@
         "UIDeviceFamily": [
           1
         ]
-      }
+      },
+      "appleTeamId": "Y73JSC36P8"
     },
     "android": {
       "adaptiveIcon": {
