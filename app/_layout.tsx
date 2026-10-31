@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, Linking, AppState, InteractionManager, Text as RNText, TextInput as RNTextInput } from 'react-native';
+import { Platform, AppState, InteractionManager, Text as RNText, TextInput as RNTextInput } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import * as Clarity from '@microsoft/react-native-clarity';
 import Constants from 'expo-constants';
@@ -72,9 +72,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { notificationService } from '@/services/notificationService';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import { MemoryOptimizer } from '@/utils/memoryOptimizer';
-import { useRouter } from 'expo-router';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { handleDeepLinkWithValidation } from '@/utils/linkHandler';
 import { syncWidget } from '@/lib/widget-sync';
 import SupportModal from '@/components/SupportModal';
 import SupportPromptModal from '@/components/SupportPromptModal';
@@ -92,7 +90,6 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
   const { isDarkMode, theme } = useThemeStore();
-  const router = useRouter();
   const [appIsReady, setAppIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [themeReady, setThemeReady] = useState(false);
@@ -232,24 +229,9 @@ function RootLayout() {
     }
   }, [appIsReady]);
 
-  // Deep links: cold-start URLs are handled by `app/+not-found.tsx` which
-  // resolves slug→id via linkHandler and does router.replace(), so no flash
-  // and no manual setTimeout. Here we only handle the "app already running"
-  // case where iOS/Android delivers a URL via the Linking event.
-  useEffect(() => {
-    const subscription = Linking.addEventListener('url', (event) => {
-      try {
-        handleDeepLinkWithValidation(event.url);
-      } catch (error) {
-        console.error('Error handling deep link in _layout:', error);
-        router.push('/(tabs)');
-      }
-    });
-
-    return () => {
-      subscription?.remove();
-    };
-  }, [router]);
+  // Deep links (zimny i ciepły start) obsługuje expo-router: app/+native-intent.tsx
+  // (subdomeny) i app/+not-found.tsx (slug → id przez linkHandler). Własny nasłuch
+  // Linking 'url' dublował nawigację (drugi artykuł albo biały ekran po „wstecz”).
 
   // Early return if theme is not ready
   if (!theme || !theme.colors || !themeReady) {

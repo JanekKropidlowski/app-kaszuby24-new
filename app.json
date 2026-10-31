@@ -23,9 +23,7 @@
       },
       "associatedDomains": [
         "applinks:kaszuby24.pl",
-        "applinks:www.kaszuby24.pl",
-        "applinks:pogoda.kaszuby24.pl",
-        "applinks:rozklady.kaszuby24.pl"
+        "applinks:www.kaszuby24.pl"
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -65,16 +63,6 @@
             {
               "scheme": "https",
               "host": "www.kaszuby24.pl",
-              "pathPrefix": "/"
-            },
-            {
-              "scheme": "https",
-              "host": "pogoda.kaszuby24.pl",
-              "pathPrefix": "/"
-            },
-            {
-              "scheme": "https",
-              "host": "rozklady.kaszuby24.pl",
               "pathPrefix": "/"
             }
           ],

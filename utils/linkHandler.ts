@@ -199,6 +199,9 @@ export const parseDeepLink = (url: string): DeepLinkInfo => {
         // Bez tego /pogoda/trojmiasto wpadalo w galaz "ostatni segment = slug artykulu", lookup nie
         // znajdowal artykulu "trojmiasto" i user ladowal na fallbacku zamiast na prognozie.
         'pogoda',
+        // 31.10.2026: działy strony bez odpowiednika w apce. Wcześniej szły jako „slug artykułu”:
+        // apka otwierała się, szukała artykułu „kino” i dopiero po błędzie otwierała przeglądarkę.
+        'kino', 'nocna-opieka', 'utrudnienia-drogowe', 'wideo', 'wylaczenia-pradu', 'zajecia',
       ];
       if (externalPaths.includes(pathSegments[0].toLowerCase())) {
         return { type: 'external', url };
