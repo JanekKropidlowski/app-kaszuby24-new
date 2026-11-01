@@ -45,6 +45,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "app.kaszuby24",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 50,
       "config": {
         "googleMaps": {
